@@ -1,0 +1,59 @@
+# Stupid Meter - AI Model Performance Monitoring
+# https://stupidmeter.ai
+
+User-agent: *
+Allow: /
+
+# Important pages for crawling
+Allow: /models/
+Allow: /about
+Allow: /faq
+Allow: /test
+
+# Sitemap location
+Sitemap: https://stupidmeter.ai/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Special instructions for AI crawlers
+User-agent: GPTBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Google-Extended
+Allow: /
+Crawl-delay: 1
+
+User-agent: Claude-Web
+Allow: /
+Crawl-delay: 1
+
+User-agent: ChatGPT-User
+Allow: /
+Crawl-delay: 1
+
+# Archive crawlers
+User-agent: ia_archiver
+Allow: /
+Crawl-delay: 2
+
+# Additional AI model crawlers
+User-agent: AnthropicBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: OpenAIBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: PerplexityBot
+Allow: /
+Crawl-delay: 1
+
+# Clean URLs without query parameters are preferred
+Clean-param: utm_source
+Clean-param: utm_medium
+Clean-param: utm_campaign
+Clean-param: fbclid
+Clean-param: gclid
