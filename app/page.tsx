@@ -2610,6 +2610,39 @@ export default function Dashboard() {
             r/AIStupidLevel
           </a>
         </div>
+        <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
+          🔓 Now Open Source! {' '}
+          <a 
+            href="https://github.com/StudioPlatforms/aistupidmeter-web" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              color: 'var(--phosphor-green)', 
+              textDecoration: 'none',
+              borderBottom: '1px dotted var(--phosphor-green)'
+            }}
+            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+          >
+            Web App
+          </a>
+          {' '} • {' '}
+          <a 
+            href="https://github.com/StudioPlatforms/aistupidmeter-api" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            style={{ 
+              color: 'var(--phosphor-green)', 
+              textDecoration: 'none',
+              borderBottom: '1px dotted var(--phosphor-green)'
+            }}
+            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+          >
+            Server
+          </a>
+          {' '} • Star us on GitHub! ⭐
+        </div>
       </div>
 
       {/* Mobile Navigation */}
