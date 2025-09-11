@@ -2,29 +2,53 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Stupid Meter - AI Model Performance Monitoring | Real-Time Intelligence Tracking',
-    template: '%s | Stupid Meter - AI Performance Monitor'
+    default: 'AI Benchmark Tool - Best AI Models 2025 | AI Performance Tests & Rankings',
+    template: '%s | AI Benchmark - Compare AI Models'
   },
-  description: 'The first AI intelligence degradation detection system. Monitor OpenAI GPT, Claude, Grok, and Gemini models in real-time. Track performance drops, coding ability, and model quality changes with mathematical precision.',
+  description: 'The ultimate AI benchmarking tool for 2025. Compare AI models, test AI performance, and find the best AI for coding. Real-time AI benchmark results, LLM performance tests, and AI model leaderboard with Claude vs GPT vs Gemini comparison.',
   keywords: [
+    // Core Keywords (must-have)
+    'AI benchmark',
+    'AI benchmarking tool',
+    'AI performance tests',
+    'AI ranking',
+    'AI score',
+    'AI model leaderboard',
+    'Best AI models 2025',
+    'Compare AI models',
+    'AI test suite',
+    'AI evaluation',
+    
+    // Long-Tail Keywords
+    'Which AI model is best for coding',
+    'Claude vs GPT vs Gemini comparison',
+    'Best AI for software development',
+    'AI quality drift detection',
+    'Measure AI performance',
+    'AI refusals and stability tests',
+    'Real-time AI scoring',
+    'Open source AI benchmark tool',
+    'AI benchmark results dashboard',
+    
+    // Technical / Developer Keywords
+    'AI coding benchmark',
+    'AI code generation test',
+    'AI debugging benchmark',
+    'AI optimization benchmark',
+    'LLM benchmark',
+    'LLM performance test',
+    'Test AI models with your API key',
+    'AI testing framework',
+    
+    // Legacy keywords for continuity
     'AI model monitoring',
-    'AI performance tracking', 
+    'AI performance tracking',
     'OpenAI monitoring',
     'Claude performance',
     'Grok tracking',
     'Gemini monitoring',
     'AI intelligence degradation',
-    'AI model benchmarking',
-    'machine learning monitoring',
-    'AI quality tracking',
-    'model performance metrics',
-    'AI regression detection',
-    'coding AI evaluation',
-    'LLM performance tracking',
     'AI model comparison',
-    'artificial intelligence monitoring',
-    'model degradation detection',
-    'AI capability tracking',
     'GPT performance monitor',
     'Claude benchmark',
     'AI model analytics'
@@ -45,24 +69,24 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://stupidmeter.ai',
-    title: 'Stupid Meter - AI Model Performance Monitoring',
-    description: 'The first real-time AI intelligence degradation detection system. Track OpenAI, Anthropic, xAI, and Google AI models with mathematical precision.',
-    siteName: 'Stupid Meter',
+    title: 'AI Benchmark Tool - Best AI Models 2025 | Compare Claude vs GPT vs Gemini',
+    description: 'Ultimate AI benchmarking tool for 2025. Test AI performance, compare AI models, and find the best AI for coding. Real-time AI benchmark results and LLM performance tests.',
+    siteName: 'AI Benchmark Tool',
     images: [
       {
-        url: '/og-image.png',
+        url: '/stupidmetermeta.png',
         width: 1200,
         height: 630,
-        alt: 'Stupid Meter - AI Model Performance Dashboard'
+        alt: 'AI Benchmark Tool - Compare AI Models Performance Dashboard'
       }
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Stupid Meter - AI Model Performance Monitoring',
-    description: 'The first real-time AI intelligence degradation detection system. Monitor AI model performance with mathematical precision.',
+    title: 'AI Benchmark Tool - Best AI Models 2025 Rankings',
+    description: 'Compare AI models with our comprehensive benchmarking tool. Test Claude vs GPT vs Gemini performance. Find the best AI for coding and development.',
     creator: '@GOATGameDev',
-    images: ['/twitter-image.png'],
+    images: ['/stupidmetermeta.png'],
   },
   robots: {
     index: true,
@@ -97,18 +121,24 @@ export default function RootLayout({
         <meta name="theme-color" content="#00ff41" />
         <meta name="color-scheme" content="dark" />
         
-        {/* Structured Data for AI/Search Engines */}
+        {/* Enhanced Structured Data for AI/Search Engines */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "WebApplication",
-              "name": "Stupid Meter",
-              "applicationCategory": "DeveloperApplication",
+              "@type": ["WebApplication", "SoftwareApplication"],
+              "name": "AI Benchmark Tool - Stupid Meter",
+              "alternateName": ["AI Benchmarking Tool", "AI Performance Test", "AI Model Comparison Tool"],
+              "applicationCategory": ["DeveloperApplication", "ProductivityApplication"],
               "operatingSystem": "Web",
-              "description": "The first AI intelligence degradation detection system for monitoring OpenAI, Anthropic, xAI, and Google AI models in real-time.",
+              "description": "The ultimate AI benchmarking tool for 2025. Compare AI models, test AI performance, and find the best AI for coding. Features real-time AI benchmark results, LLM performance tests, and comprehensive AI model leaderboard.",
               "url": "https://stupidmeter.ai",
+              "sameAs": [
+                "https://github.com/StudioPlatforms/aistupidmeter-web",
+                "https://www.reddit.com/r/AIStupidLevel/",
+                "https://x.com/GOATGameDev"
+              ],
               "author": {
                 "@type": "Person",
                 "name": "The Architect",
@@ -117,7 +147,11 @@ export default function RootLayout({
               "publisher": {
                 "@type": "Organization",
                 "name": "Studio Platforms",
-                "url": "https://stupidmeter.ai"
+                "url": "https://stupidmeter.ai",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://stupidmeter.ai/smlogo.png"
+                }
               },
               "softwareVersion": "1.0.0",
               "datePublished": "2025-01-06",
@@ -125,20 +159,30 @@ export default function RootLayout({
               "offers": {
                 "@type": "Offer",
                 "price": "0",
-                "priceCurrency": "USD"
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock"
               },
               "featureList": [
+                "AI benchmark testing and evaluation",
                 "Real-time AI model performance monitoring",
-                "7-axis scoring methodology", 
+                "AI model leaderboard and rankings",
+                "Compare Claude vs GPT vs Gemini performance",
+                "AI coding benchmark tests",
+                "LLM performance evaluation",
+                "AI debugging benchmark",
+                "Test AI models with your API key",
+                "AI quality drift detection",
+                "7-axis AI scoring methodology",
                 "Mathematical drift detection with CUSUM algorithms",
-                "OpenAI GPT monitoring",
-                "Anthropic Claude tracking",
-                "xAI Grok performance metrics",
-                "Google Gemini monitoring",
-                "API key testing functionality",
-                "Historical performance analysis",
-                "Automated regression detection"
+                "OpenAI GPT-5 and O3 monitoring",
+                "Anthropic Claude Opus 4 tracking",
+                "xAI Grok 4 performance metrics",
+                "Google Gemini 2.5 monitoring",
+                "Historical AI performance analysis",
+                "Automated AI regression detection",
+                "Open source AI benchmark tool"
               ],
+              "keywords": "AI benchmark, AI benchmarking tool, AI performance tests, AI ranking, AI model leaderboard, best AI models 2025, compare AI models, Claude vs GPT vs Gemini, AI coding benchmark, LLM benchmark",
               "screenshot": "https://stupidmeter.ai/screenshot.png",
               "aggregateRating": {
                 "@type": "AggregateRating",
@@ -146,15 +190,41 @@ export default function RootLayout({
                 "ratingCount": "1",
                 "bestRating": "5",
                 "worstRating": "1"
+              },
+              "mainEntity": {
+                "@type": "Dataset",
+                "name": "AI Model Performance Benchmark Results",
+                "description": "Comprehensive benchmark results for leading AI models including GPT, Claude, Grok, and Gemini",
+                "keywords": "AI benchmark results, AI model comparison data, LLM performance metrics",
+                "license": "https://creativecommons.org/licenses/by/4.0/",
+                "creator": {
+                  "@type": "Organization",
+                  "name": "Studio Platforms"
+                }
               }
             })
           }}
         />
         
-        {/* Additional meta tags for AI discovery */}
-        <meta name="ai-content-classification" content="ai-monitoring-tool" />
-        <meta name="model-types" content="OpenAI,Claude,Grok,Gemini,GPT,LLM" />
-        <meta name="functionality" content="performance-monitoring,benchmarking,regression-detection" />
+        {/* Enhanced SEO meta tags for target keywords */}
+        <meta name="ai-content-classification" content="ai-benchmarking-tool" />
+        <meta name="model-types" content="OpenAI,Claude,Grok,Gemini,GPT,LLM,GPT-5,O3,Opus-4,Grok-4,Gemini-2.5" />
+        <meta name="functionality" content="ai-benchmark,performance-testing,model-comparison,ai-evaluation" />
+        <meta name="target-audience" content="developers,ai-researchers,software-engineers,data-scientists" />
+        <meta name="use-cases" content="ai-model-selection,performance-comparison,coding-ai-evaluation,llm-benchmarking" />
+        <meta name="benchmark-types" content="coding-benchmark,debugging-test,performance-evaluation,quality-assessment" />
+        <meta name="supported-models" content="GPT-5,Claude-Opus-4,Grok-4,Gemini-2.5-Pro,O3,O3-Mini" />
+        <meta name="comparison-features" content="Claude-vs-GPT,GPT-vs-Gemini,Grok-vs-Claude,AI-model-rankings" />
+        
+        {/* Additional keyword-rich meta tags */}
+        <meta name="subject" content="AI Benchmark Tool, AI Model Comparison, LLM Performance Testing" />
+        <meta name="abstract" content="Comprehensive AI benchmarking tool for 2025 featuring real-time performance tests, model comparisons, and coding benchmarks for GPT, Claude, Grok, and Gemini." />
+        <meta name="topic" content="AI Benchmarking, Machine Learning Evaluation, LLM Performance Analysis" />
+        <meta name="summary" content="Compare AI models with our advanced benchmarking tool. Test Claude vs GPT vs Gemini performance. Find the best AI for coding and software development." />
+        <meta name="coverage" content="Worldwide" />
+        <meta name="distribution" content="Global" />
+        <meta name="rating" content="General" />
+        <meta name="revisit-after" content="1 day" />
         
         {/* Favicon and app icons */}
         <link rel="icon" href="/smlogo.png" />

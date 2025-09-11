@@ -1189,12 +1189,12 @@ input:checked + .toggle-slider::before {
 }
 
 .desktop-only {
-  display: none;
+  display: none !important;
 }
 
 @media (min-width: 768px) {
   .desktop-only {
-    display: block;
+    display: block !important;
   }
 }
 
@@ -1542,4 +1542,223 @@ input:checked + .toggle-slider::before {
   .section-toggle-btn {
     font-size: var(--font-size-sm);
   }
+}
+
+/* Mobile Controls Container - Live Model Rankings */
+.mobile-controls-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  background: linear-gradient(135deg, rgba(0, 255, 65, 0.05), rgba(0, 255, 65, 0.02));
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  border-radius: 8px;
+  box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
+}
+
+@media (min-width: 768px) {
+  .mobile-controls-container {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-xl);
+  }
+}
+
+.mobile-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .mobile-control-group {
+    width: auto;
+    min-width: 200px;
+  }
+}
+
+.mobile-control-label {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  color: var(--phosphor-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 0 3px currentColor;
+  margin-bottom: var(--space-xs);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .mobile-control-label {
+    font-size: var(--font-size-sm);
+    text-align: left;
+  }
+}
+
+.mobile-control-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-xs);
+}
+
+@media (min-width: 480px) {
+  .mobile-control-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-control-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+}
+
+.mobile-control-btn {
+  font-family: var(--font-mono);
+  background: linear-gradient(135deg, #333, #222);
+  color: var(--phosphor-green);
+  border: 2px solid var(--phosphor-dim);
+  border-radius: 6px;
+  padding: var(--space-sm) var(--space-xs);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  font-size: var(--font-size-xs);
+  
+  /* Mobile-friendly touch target */
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  
+  /* Prevent text overflow */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  /* Retro terminal styling */
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 768px) {
+  .mobile-control-btn {
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm) var(--space-md);
+    min-width: 80px;
+  }
+}
+
+.mobile-control-btn:hover {
+  background: linear-gradient(135deg, #444, #333);
+  border-color: var(--phosphor-green);
+  box-shadow: 
+    0 0 8px rgba(0, 255, 65, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 0 4px currentColor;
+  transform: translateY(-1px);
+}
+
+.mobile-control-btn:active {
+  transform: translateY(1px);
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 0 5px rgba(0, 255, 65, 0.3);
+}
+
+.mobile-control-btn--active {
+  background: linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim));
+  color: var(--terminal-black);
+  border-color: var(--phosphor-green);
+  box-shadow: 
+    0 0 15px rgba(0, 255, 65, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+  text-shadow: none;
+  font-weight: bold;
+}
+
+.mobile-control-btn--active:hover {
+  background: linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim));
+  box-shadow: 
+    0 0 20px rgba(0, 255, 65, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.3),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+  transform: translateY(-1px);
+}
+
+.mobile-control-btn--active:active {
+  transform: translateY(0px);
+  box-shadow: 
+    0 0 12px rgba(0, 255, 65, 0.6),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Touch feedback for mobile devices */
+@media (max-width: 767px) {
+  .mobile-control-btn {
+    -webkit-tap-highlight-color: rgba(0, 255, 65, 0.2);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  .mobile-control-btn:active {
+    background: linear-gradient(135deg, #555, #444);
+    transform: scale(0.95);
+  }
+  
+  .mobile-control-btn--active:active {
+    background: linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim));
+    transform: scale(0.95);
+  }
+}
+
+/* Focus indicators for keyboard navigation */
+.mobile-control-btn:focus {
+  outline: 2px solid var(--phosphor-green);
+  outline-offset: 2px;
+}
+
+/* Animation for state changes */
+.mobile-control-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Retro glow effect on active buttons */
+.mobile-control-btn--active::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--phosphor-green), transparent, var(--phosphor-green));
+  border-radius: 8px;
+  z-index: -1;
+  opacity: 0.3;
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Ensure proper positioning for pseudo-elements */
+.mobile-control-btn {
+  position: relative;
 }

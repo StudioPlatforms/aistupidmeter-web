@@ -1,14 +1,17 @@
-# Stupid Meter - AI Model Performance Monitoring
+# AI Benchmark Tool - Best AI Models 2025 | Compare Claude vs GPT vs Gemini
 # https://stupidmeter.ai
+# Ultimate AI benchmarking tool for performance tests and model comparison
 
 User-agent: *
 Allow: /
 
-# Important pages for crawling
+# Priority pages for AI benchmark and model comparison
 Allow: /models/
 Allow: /about
-Allow: /faq
+Allow: /faq  
 Allow: /test
+Allow: /api/models
+Allow: /api/dashboard/
 
 # Sitemap location
 Sitemap: https://stupidmeter.ai/sitemap.xml

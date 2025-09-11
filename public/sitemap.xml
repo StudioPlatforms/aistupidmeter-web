@@ -6,13 +6,18 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" 
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
 
-  <!-- Homepage - High priority, updated daily -->
+  <!-- Homepage - AI Benchmark Tool - High priority, updated daily -->
   <url>
     <loc>https://stupidmeter.ai/</loc>
-    <lastmod>2025-01-06</lastmod>
+    <lastmod>2025-01-11</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <mobile:mobile/>
+    <image:image>
+      <image:loc>https://stupidmeter.ai/og-image.png</image:loc>
+      <image:title>AI Benchmark Tool - Best AI Models 2025 Rankings</image:title>
+      <image:caption>Compare AI models with comprehensive benchmarking tool featuring Claude vs GPT vs Gemini comparison</image:caption>
+    </image:image>
   </url>
 
   <!-- About Page - Essential for understanding the tool -->
@@ -40,6 +45,20 @@
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
+  </url>
+
+  <!-- AI Model Comparison Page - High SEO value -->
+  <url>
+    <loc>https://stupidmeter.ai/compare</loc>
+    <lastmod>2025-01-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <mobile:mobile/>
+    <image:image>
+      <image:loc>https://stupidmeter.ai/og-image.png</image:loc>
+      <image:title>Claude vs GPT vs Gemini AI Model Comparison 2025</image:title>
+      <image:caption>Real-time performance comparison of Claude, GPT, and Gemini AI models with comprehensive benchmark results</image:caption>
+    </image:image>
   </url>
 
   <!-- OpenAI GPT Models -->

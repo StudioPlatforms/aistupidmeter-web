@@ -1491,11 +1491,11 @@ export default function Dashboard() {
           {/* Mobile Header */}
           <div className="mobile-header">
             <h1 className="mobile-title">
-              <span className="terminal-text--green">STUPID-METER</span>
+              <span className="terminal-text--green">STUPID METER</span>
               <span className="blinking-cursor"></span>
             </h1>
             <p className="mobile-subtitle terminal-text--dim">
-              The First AI Intelligence Degradation Detection System
+              Best AI Models 2025 • Compare Claude vs GPT vs Gemini
             </p>
             <div className="mobile-status terminal-text--dim">
               {currentTime ? (
@@ -1513,7 +1513,7 @@ export default function Dashboard() {
           {/* Desktop Header */}
           <div className="desktop-header">
             <h1 style={{ fontSize: 'var(--font-size-title)' }}>
-              <span className="terminal-text--green">STUPID-METER</span>
+              <span className="terminal-text--green">AI BENCHMARK TOOL</span>
               <span className="blinking-cursor"></span>
             </h1>
             <div className="terminal-text--dim" style={{ fontSize: 'var(--font-size-sm)', textAlign: 'right' }}>
@@ -1522,12 +1522,12 @@ export default function Dashboard() {
             </div>
           </div>
           
-      <div className="terminal-text--dim desktop-only" style={{ 
-        fontSize: 'var(--font-size-sm)', 
-        marginTop: 'var(--space-xs)' 
-      }}>
-        Real-Time AI Model Performance Monitoring • Track OpenAI GPT, Claude, Grok & Gemini
-      </div>
+          <div className="terminal-text--dim desktop-only" style={{ 
+            fontSize: 'var(--font-size-sm)', 
+            marginTop: 'var(--space-xs)' 
+          }}>
+            AI Performance Tests • AI Model Leaderboard • Compare Best AI Models 2025
+          </div>
 
         {/* Desktop Navigation - Hidden on mobile, only visible on desktop */}
         <div className="desktop-only" style={{
@@ -1609,79 +1609,52 @@ export default function Dashboard() {
           }}>
             {/* Mobile Layout */}
             <div className="mobile-only">
-              <div style={{ marginBottom: '8px' }}>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                  Time Period:
+              <div className="mobile-controls-container">
+                <div className="mobile-control-group">
+                  <div className="mobile-control-label">TIME PERIOD</div>
+                  <div className="mobile-control-buttons">
+                    <button
+                      onClick={() => setLeaderboardPeriod('latest')}
+                      className={`mobile-control-btn ${leaderboardPeriod === 'latest' ? 'mobile-control-btn--active' : ''}`}
+                      disabled={loadingLeaderboard}
+                    >
+                      LATEST
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardPeriod('24h')}
+                      className={`mobile-control-btn ${leaderboardPeriod === '24h' ? 'mobile-control-btn--active' : ''}`}
+                      disabled={loadingLeaderboard}
+                    >
+                      24H
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardPeriod('7d')}
+                      className={`mobile-control-btn ${leaderboardPeriod === '7d' ? 'mobile-control-btn--active' : ''}`}
+                      disabled={loadingLeaderboard}
+                    >
+                      7D
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardPeriod('1m')}
+                      className={`mobile-control-btn ${leaderboardPeriod === '1m' ? 'mobile-control-btn--active' : ''}`}
+                      disabled={loadingLeaderboard}
+                    >
+                      1M
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setLeaderboardPeriod('latest')}
-                    className={`vintage-btn ${leaderboardPeriod === 'latest' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={loadingLeaderboard}
-                  >
-                    LATEST
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardPeriod('24h')}
-                    className={`vintage-btn ${leaderboardPeriod === '24h' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={loadingLeaderboard}
-                  >
-                    24H
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardPeriod('7d')}
-                    className={`vintage-btn ${leaderboardPeriod === '7d' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={loadingLeaderboard}
-                  >
-                    7D
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardPeriod('1m')}
-                    className={`vintage-btn ${leaderboardPeriod === '1m' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={loadingLeaderboard}
-                  >
-                    1M
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                  Sort By:
-                </div>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setLeaderboardSortBy('score')}
-                    className={`vintage-btn ${leaderboardSortBy === 'score' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={loadingLeaderboard}
-                  >
-                    SCORE
-                  </button>
+                
+                <div className="mobile-control-group">
+                  <div className="mobile-control-label">SORT BY</div>
+                  <div className="mobile-control-buttons">
+                    <button
+                      onClick={() => setLeaderboardSortBy('score')}
+                      className={`mobile-control-btn ${leaderboardSortBy === 'score' ? 'mobile-control-btn--active' : ''}`}
+                      disabled={loadingLeaderboard}
+                    >
+                      SCORE
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2400,7 +2373,7 @@ export default function Dashboard() {
           </a>
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
-          🔓 Now Open Source! {' '}
+          Now Open Source! {' '}
           <a 
             href="https://github.com/StudioPlatforms/aistupidmeter-web" 
             target="_blank" 
@@ -2430,7 +2403,7 @@ export default function Dashboard() {
           >
             Server
           </a>
-          {' '} • Star us on GitHub! ⭐
+          {' '} • Star us on GitHub!
         </div>
       </div>
 
