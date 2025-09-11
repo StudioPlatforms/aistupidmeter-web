@@ -35,13 +35,11 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<AlertModel[]>([]);
   const [globalIndex, setGlobalIndex] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [bestModel, setBestModel] = useState<any>(null);
   const [degradations, setDegradations] = useState<any[]>([]);
   const [providerReliability, setProviderReliability] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any>(null);
   const [transparencyMetrics, setTransparencyMetrics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
-  const [loadingBestModel, setLoadingBestModel] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
   const [leaderboardSortBy, setLeaderboardSortBy] = useState<'score'>('score');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
@@ -244,30 +242,6 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch best model data using all-time calculation
-  const fetchBestModel = async () => {
-    if (loadingBestModel) return;
-    
-    setLoadingBestModel(true);
-    try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/api/dashboard/best-model`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setBestModel(data.data);
-      } else {
-        console.error('Failed to fetch best model:', data.error);
-        setBestModel(null);
-      }
-    } catch (error) {
-      console.error('Error fetching best model:', error);
-      setBestModel(null);
-    } finally {
-      setLoadingBestModel(false);
-    }
-  };
-
   // Silent background data fetch without loading indicators
   const fetchDataSilently = async () => {
     if (backgroundUpdating) return;
@@ -318,21 +292,12 @@ export default function Dashboard() {
         }
       }
       
-      // Also refresh best model and analytics data silently
-      const [bestModelResponse, analyticsResponses] = await Promise.all([
-        fetch(`${apiUrl}/api/dashboard/best-model`),
-        Promise.all([
-          fetch(`${apiUrl}/api/analytics/degradations?period=${analyticsPeriod}`),
-          fetch(`${apiUrl}/api/analytics/recommendations?period=${analyticsPeriod}`),
-          fetch(`${apiUrl}/api/analytics/transparency?period=${analyticsPeriod}`)
-        ])
+      // Also refresh analytics data silently
+      const analyticsResponses = await Promise.all([
+        fetch(`${apiUrl}/api/analytics/degradations?period=${analyticsPeriod}`),
+        fetch(`${apiUrl}/api/analytics/recommendations?period=${analyticsPeriod}`),
+        fetch(`${apiUrl}/api/analytics/transparency?period=${analyticsPeriod}`)
       ]);
-      
-      // Update best model
-      const bestModelData = await bestModelResponse.json();
-      if (bestModelData.success) {
-        setBestModel(bestModelData.data);
-      }
       
       // Update analytics
       const [degradationData, recommendationsData, transparencyData] = await Promise.all(
@@ -425,9 +390,6 @@ export default function Dashboard() {
         // Always fetch leaderboard data to keep models visible
         // The batch status indicator will show users when updates are in progress
         await fetchLeaderboardData();
-        
-        // Fetch best model after other data is loaded
-        fetchBestModel();
         
         // Fetch analytics data
         fetchAnalyticsData();
@@ -1566,160 +1528,6 @@ export default function Dashboard() {
       }}>
         Real-Time AI Model Performance Monitoring • Track OpenAI GPT, Claude, Grok & Gemini
       </div>
-      
-      {/* All-Time Best Performing Model - Enhanced Presentation */}
-      {bestModel && !loading && (
-        <div style={{ 
-          marginTop: '16px',
-          padding: '16px 20px',
-          background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.08) 0%, rgba(0, 255, 65, 0.05) 100%)',
-          border: '2px solid rgba(255, 215, 0, 0.4)',
-          borderRadius: '6px',
-          boxShadow: '0 0 20px rgba(255, 215, 0, 0.1)',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          {/* Animated background effect */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: '-100%',
-            width: '100%',
-            height: '100%',
-            background: 'linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.1), transparent)',
-            animation: 'shine 3s ease-in-out infinite'
-          }}></div>
-
-          {/* Mobile Layout */}
-          <div className="mobile-only" style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ 
-              textAlign: 'center',
-              marginBottom: '12px'
-            }}>
-              <div className="terminal-text--amber" style={{ 
-                fontSize: '1.1em', 
-                fontWeight: 'bold',
-                marginBottom: '6px',
-                textShadow: '0 0 10px rgba(255, 215, 0, 0.5)'
-              }}>
-                🏆 HALL OF FAME 🏆
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                All-Time Performance Champion
-              </div>
-            </div>
-            
-            <div style={{ 
-              textAlign: 'center',
-              padding: '12px',
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
-              borderRadius: '4px',
-              marginBottom: '10px'
-            }}>
-              <div className="terminal-text--green" style={{ 
-                fontSize: '1.2em',
-                fontWeight: 'bold',
-                marginBottom: '4px',
-                letterSpacing: '1px'
-              }}>
-                {bestModel.name.toUpperCase()}
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '6px' }}>
-                {getProviderName(bestModel.provider)}
-              </div>
-              <div className="terminal-text--amber" style={{ 
-                fontSize: '1.4em', 
-                fontWeight: 'bold',
-                textShadow: '0 0 8px rgba(255, 215, 0, 0.6)'
-              }}>
-                {bestModel.overallScore || bestModel.currentScore}
-              </div>
-            </div>
-          </div>
-
-          {/* Desktop Layout */}
-          <div className="desktop-only" style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <div>
-                <div className="terminal-text--amber" style={{ 
-                  fontSize: '1.3em', 
-                  fontWeight: 'bold',
-                  marginBottom: '4px',
-                  textShadow: '0 0 10px rgba(255, 215, 0, 0.5)'
-                }}>
-                  🏆 HALL OF FAME CHAMPION 🏆
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                  Dynamically calculated using weighted composite scoring across all historical data
-                </div>
-              </div>
-              <div style={{ 
-                textAlign: 'right',
-                padding: '16px 20px',
-                backgroundColor: 'rgba(0, 0, 0, 0.4)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 215, 0, 0.3)'
-              }}>
-                <div className="terminal-text--green" style={{ 
-                  fontSize: '1.4em',
-                  fontWeight: 'bold',
-                  marginBottom: '4px',
-                  letterSpacing: '1px'
-                }}>
-                  {bestModel.name.toUpperCase()}
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '8px' }}>
-                  {getProviderName(bestModel.provider)} • Current All-Time Leader
-                </div>
-                <div className="terminal-text--amber" style={{ 
-                  fontSize: '1.8em', 
-                  fontWeight: 'bold',
-                  textShadow: '0 0 12px rgba(255, 215, 0, 0.7)'
-                }}>
-                  {bestModel.overallScore || bestModel.currentScore}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{ 
-            backgroundColor: 'rgba(0, 0, 0, 0.2)',
-            padding: '10px 14px',
-            borderRadius: '4px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            border: '1px solid rgba(255, 215, 0, 0.2)',
-            position: 'relative',
-            zIndex: 1
-          }}
-          onClick={() => router.push(`/models/${bestModel.id}`)}
-          onMouseOver={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(255, 215, 0, 0.1)';
-            e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.4)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
-            e.currentTarget.style.borderColor = 'rgba(255, 215, 0, 0.2)';
-          }}>
-            <div className="terminal-text--green" style={{ 
-              fontSize: '0.85em', 
-              marginBottom: '3px',
-              fontWeight: 'bold'
-            }}>
-              🎯 {bestModel.reasonText}
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-              Click for analytics
-            </div>
-          </div>
-        </div>
-      )}
 
         {/* Desktop Navigation - Hidden on mobile, only visible on desktop */}
         <div className="desktop-only" style={{
@@ -2319,20 +2127,9 @@ export default function Dashboard() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', fontSize: '0.85em' }}>
                 <div>
-                  <span className="terminal-text--dim">Last Update: </span>
-                  <span className={
-                    transparencyMetrics.summary.lastUpdate && 
-                    (Date.now() - new Date(transparencyMetrics.summary.lastUpdate).getTime()) < 30 * 60 * 1000
-                      ? 'terminal-text--green' : 'terminal-text--amber'
-                  }>
-                    {transparencyMetrics.summary.lastUpdate ? 
-                      formatTimeAgo(new Date(transparencyMetrics.summary.lastUpdate)) : 'Unknown'}
-                  </span>
-                </div>
-                <div>
                   <span className="terminal-text--dim">Coverage: </span>
                   <span className={
-                    transparencyMetrics.summary.coverage >= 90 ? 'terminal-text--green' : 
+                    transparencyMetrics.summary.coverage >= 90 ? 'terminal-text--green' :
                     transparencyMetrics.summary.coverage >= 70 ? 'terminal-text--amber' : 'terminal-text--red'
                   }>
                     {transparencyMetrics.summary.coverage}%
@@ -2341,18 +2138,10 @@ export default function Dashboard() {
                 <div>
                   <span className="terminal-text--dim">Confidence: </span>
                   <span className={
-                    transparencyMetrics.summary.confidence >= 80 ? 'terminal-text--green' : 
+                    transparencyMetrics.summary.confidence >= 80 ? 'terminal-text--green' :
                     transparencyMetrics.summary.confidence >= 60 ? 'terminal-text--amber' : 'terminal-text--red'
                   }>
                     {transparencyMetrics.summary.confidence}%
-                  </span>
-                </div>
-                <div>
-                  <span className="terminal-text--dim">Next Test: </span>
-                  <span className="terminal-text">
-                    {transparencyMetrics.summary.nextTest ? 
-                      `in ${Math.ceil((new Date(transparencyMetrics.summary.nextTest).getTime() - Date.now()) / 60000)}m` : 
-                      'Soon'}
                   </span>
                 </div>
               </div>
@@ -2460,7 +2249,7 @@ export default function Dashboard() {
         )}
 
         <div className="terminal-text--dim" style={{ textAlign: 'center', fontSize: '0.8em', marginTop: '16px' }}>
-          Based on {globalIndex ? globalIndex.totalModels : modelScores.length} monitored models • Updates every 30 minutes
+          Based on {globalIndex ? globalIndex.totalModels : modelScores.length} monitored models 
         </div>
       </div>
 
