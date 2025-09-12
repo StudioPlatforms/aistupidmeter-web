@@ -2306,52 +2306,34 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Buy Me a Coffee Section */}
-      <div className="crt-monitor" style={{ 
-        backgroundColor: 'rgba(255, 165, 0, 0.05)',
-        border: '2px solid rgba(255, 165, 0, 0.3)',
+      {/* Buy Me a Coffee Section - Compact */}
+      <div style={{ 
+        backgroundColor: 'rgba(255, 165, 0, 0.03)',
+        border: '1px solid rgba(255, 165, 0, 0.2)',
+        padding: '12px 16px',
+        margin: '16px 0',
         textAlign: 'center',
-        marginTop: '24px'
+        borderRadius: '2px',
+        fontSize: '0.85em'
       }}>
         <div className="terminal-text">
-          <div style={{ fontSize: '1.2em', marginBottom: '12px' }}>
-            <span className="terminal-text--amber">☕ SUPPORT OUR MISSION</span>
-            <span className="blinking-cursor"></span>
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.5', marginBottom: '16px' }}>
-            Love tracking AI model performance? Help us keep the servers running and the benchmarks flowing! 
-            <br/>
-            <span className="terminal-text--green">Your support keeps this free for everyone.</span>
-          </div>
+          <span className="terminal-text--amber">☕ Like our work? </span>
           <a 
             href="https://buymeacoffee.com/goatgamedev" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="vintage-btn vintage-btn--active"
             style={{ 
-              display: 'inline-block',
-              padding: '12px 24px',
-              fontSize: '1em',
+              color: 'var(--phosphor-green)', 
               textDecoration: 'none',
-              color: 'var(--phosphor-green)',
-              border: '2px solid var(--phosphor-green)',
-              backgroundColor: 'rgba(0, 255, 65, 0.1)',
-              transition: 'all 0.2s ease'
+              borderBottom: '1px dotted var(--phosphor-green)',
+              fontSize: '0.9em'
             }}
-            onMouseOver={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(0, 255, 65, 0.2)';
-              (e.target as HTMLElement).style.transform = 'scale(1.05)';
-            }}
-            onMouseOut={(e) => {
-              (e.target as HTMLElement).style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
-              (e.target as HTMLElement).style.transform = 'scale(1)';
-            }}
+            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
           >
-            ☕ BUY US A COFFEE
+            Buy us a coffee
           </a>
-          <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '12px' }}>
-            Every coffee helps us monitor more models and improve detection accuracy!
-          </div>
+          <span className="terminal-text--dim"> • Your support keeps this free for everyone</span>
         </div>
       </div>
 
