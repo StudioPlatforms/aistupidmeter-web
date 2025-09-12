@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import TickerTape from '../components/TickerTape';
 import '../styles/vintage.css';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
@@ -453,12 +454,13 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch ticker data on component mount and when modelScores change
+  // Generate ticker content immediately when any data becomes available
   useEffect(() => {
-    if (modelScores.length > 0) {
-      fetchTickerData();
-    }
-  }, [modelScores]);
+    generateTickerContent();
+  }, [modelScores, degradations, recommendations, alerts, globalIndex]);
+
+  // Remove the 60-second forced regeneration - it's the main reset culprit
+  // generateTickerContent() is already called whenever data changes, which is enough
 
   const getProviderName = (provider: Provider): string => {
     switch (provider) {
@@ -492,60 +494,264 @@ export default function Dashboard() {
     return nameMap[name.toLowerCase()] || name.toUpperCase();
   };
 
-  // State for ticker data with initial placeholder
-  const [tickerData, setTickerData] = useState<any[]>([
-    { rank: 1, name: 'LOADING', score: '--', trend: 'stable' },
-    { rank: 2, name: 'MODELS', score: '--', trend: 'stable' },
-    { rank: 3, name: 'PLEASE', score: '--', trend: 'stable' },
-    { rank: 4, name: 'WAIT', score: '--', trend: 'stable' }
+  // State for ticker content with fun messages - use useRef to avoid re-renders
+  const [tickerContent, setTickerContent] = useState<string[]>([
+    '🚀 STUPID METER INITIALIZING...',
+    '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
+    '📊 LOADING STUPIDITY METRICS...'
   ]);
+  
+  // Use ref to track ticker content to prevent unnecessary updates
+  const tickerContentRef = useRef<string[]>([]);
+  const lastTickerUpdateRef = useRef(0);
 
-  // Helper function to get ticker data sorted by stupidity (lowest score = most stupid) from 24h period
-  const fetchTickerData = async () => {
-    try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/api/dashboard/scores?period=24h&sortBy=score`);
-      const data = await response.json();
-      
-      if (data.success) {
-        const processedData = data.data
-          .filter((m: any) => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number')
-          .sort((a: any, b: any) => {
-            const scoreA = a.currentScore as number;
-            const scoreB = b.currentScore as number;
-            return scoreA - scoreB; // Ascending order - lowest score = most stupid (stupidest first)
-          })
-          .map((model: any, index: number) => ({
-            rank: index + 1,
-            name: getCompactName(model.name),
-            score: model.currentScore as number,
-            trend: model.trend
-          }));
-        
-        setTickerData(processedData);
-        return;
-      }
-    } catch (error) {
-      console.error('Error fetching ticker data:', error);
+  // Helper function to check if ticker content is the same
+  const sameTicker = (a: string[], b: string[]) =>
+    a.length === b.length && a.join(' • ') === b.join(' • ');
+
+  // Throttled ticker update function
+  const setTickerIfChanged = (next: string[]) => {
+    if (!sameTicker(next, tickerContentRef.current)) {
+      const now = Date.now();
+      if (now - lastTickerUpdateRef.current < 90_000) return; // throttle 90s
+      lastTickerUpdateRef.current = now;
+      setTickerContent(next);
+      tickerContentRef.current = next;
     }
+  };
+
+  // Helper function to generate consistent ticker content using the same data as Model Intelligence Center
+  const generateTickerContent = () => {
+    const content: string[] = [];
     
-    // Fallback to current modelScores if API call fails
-    const fallbackData = modelScores
-      .filter(m => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number')
-      .sort((a, b) => {
-        const scoreA = a.currentScore as number;
-        const scoreB = b.currentScore as number;
-        return scoreA - scoreB; // Ascending order - lowest score = most stupid (stupidest first)
-      })
-      .map((model, index) => ({
-        rank: index + 1,
-        name: getCompactName(model.name),
-        score: model.currentScore as number,
-        trend: model.trend
-      }));
-    
-    if (fallbackData.length > 0) {
-      setTickerData(fallbackData);
+    try {
+      // Use the same data that's already loaded for the Model Intelligence Center
+      // This ensures consistency between ticker tape and analytics
+      
+      // 1. Use degradations data (same as Model Intelligence Center)
+      if (degradations.length > 0) {
+        degradations.slice(0, 3).forEach((deg: any) => {
+          if (deg.severity === 'critical') {
+            content.push(`🚨 BREAKING: ${getCompactName(deg.modelName)} just CRASHED ${deg.dropPercentage}% in 24h!`);
+          } else if (deg.severity === 'major') {
+            content.push(`⚠️ ALERT: ${getCompactName(deg.modelName)} degraded ${deg.dropPercentage}% (${deg.currentScore} from ${deg.baselineScore})`);
+          } else {
+            content.push(`📉 ${getCompactName(deg.modelName)} slipping: -${deg.dropPercentage}% performance`);
+          }
+        });
+      }
+      
+      // 2. Use recommendations data (same as Model Intelligence Center)
+      if (recommendations) {
+        // Avoid Now recommendations (consistent with Model Intelligence Center)
+        if (recommendations.avoidNow && recommendations.avoidNow.length > 0) {
+          recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
+            content.push(`🚫 AVOID: ${getCompactName(model.name)} - ${model.reason}`);
+          });
+        }
+        
+        // Best recommendations (consistent with Model Intelligence Center)
+        if (recommendations.bestForCode) {
+          const best = recommendations.bestForCode;
+          content.push(`✅ ACTUALLY WORKS: ${getCompactName(best.name)} can still write code (${best.correctness}% accuracy)`);
+        }
+        
+        if (recommendations.mostReliable) {
+          const reliable = recommendations.mostReliable;
+          content.push(`🛡️ MOST RELIABLE: ${getCompactName(reliable.name)} - ${reliable.reason}`);
+        }
+        
+        if (recommendations.fastestResponse) {
+          const fastest = recommendations.fastestResponse;
+          content.push(`⚡ FASTEST: ${getCompactName(fastest.name)} - ${fastest.reason}`);
+        }
+      }
+      
+      // 3. Use model scores data (same as leaderboard)
+      if (modelScores.length > 0) {
+        const availableModels = modelScores.filter((m: any) => 
+          m.currentScore !== 'unavailable' && typeof m.currentScore === 'number'
+        );
+        
+        if (availableModels.length > 0) {
+          // Sort by score (lowest = most stupid) - consistent with leaderboard logic
+          const sorted = [...availableModels].sort((a: any, b: any) => a.currentScore - b.currentScore);
+          
+          // Worst performers (consistent with actual rankings)
+          if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
+            content.push(`🥇 GOLD MEDAL FOR STUPIDITY: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
+          }
+          if (sorted[1] && typeof sorted[1].currentScore === 'number' && sorted[1].currentScore < 50) {
+            content.push(`🥈 SILVER: ${getCompactName(sorted[1].name)} struggling at ${sorted[1].currentScore} pts`);
+          }
+          
+          // Best performers (consistent with actual rankings)
+          const bestModels = sorted.slice(-3).reverse(); // Top 3 performers
+          if (bestModels[0] && typeof bestModels[0].currentScore === 'number' && bestModels[0].currentScore >= 70) {
+            content.push(`🏆 TOP PERFORMER: ${getCompactName(bestModels[0].name)} leading at ${bestModels[0].currentScore} pts`);
+          }
+          
+          // Trending analysis (consistent with model data)
+          const improving = availableModels.filter((m: any) => m.trend === 'up');
+          const declining = availableModels.filter((m: any) => m.trend === 'down');
+          
+          if (improving.length > 0) {
+            content.push(`📈 RECOVERING: ${improving.length} models getting smarter (finally!)`);
+            if (improving[0]) {
+              content.push(`🎉 MIRACLE: ${getCompactName(improving[0].name)} actually improved today!`);
+            }
+          }
+          
+          if (declining.length > 0) {
+            content.push(`📉 TRENDING STUPID: ${declining.length} models losing brain cells`);
+          }
+          
+          // Provider trends (consistent with actual provider performance)
+          const openaiModels = availableModels.filter((m: any) => m.provider === 'openai' && m.trend === 'down');
+          const anthropicModels = availableModels.filter((m: any) => m.provider === 'anthropic' && m.trend === 'down');
+          const xaiModels = availableModels.filter((m: any) => m.provider === 'xai' && m.trend === 'down');
+          const googleModels = availableModels.filter((m: any) => m.provider === 'google' && m.trend === 'down');
+          
+          if (openaiModels.length >= 2) {
+            content.push(`🔴 OpenAI ALERT: Multiple models degrading simultaneously!`);
+          }
+          if (anthropicModels.length >= 2) {
+            content.push(`🟠 Anthropic WARNING: Performance issues detected across models`);
+          }
+          if (xaiModels.length >= 1) {
+            content.push(`🟡 xAI NOTICE: Grok models showing performance variations`);
+          }
+          if (googleModels.length >= 2) {
+            content.push(`🔵 Google ALERT: Gemini models experiencing issues`);
+          }
+          
+          // Critical count (consistent with actual data)
+          const criticalCount = availableModels.filter((m: any) => m.currentScore < 40).length;
+          if (criticalCount > 3) {
+            content.push(`💀 APOCALYPSE: ${criticalCount} models currently failing basic intelligence tests!`);
+          } else if (criticalCount > 0) {
+            content.push(`⚠️ ${criticalCount} models in critical performance range`);
+          }
+        }
+      }
+      
+      // 4. Use alerts data only if they match current poor performance
+      if (alerts.length > 0 && modelScores.length > 0) {
+        const availableModels = modelScores.filter((m: any) => 
+          m.currentScore !== 'unavailable' && typeof m.currentScore === 'number'
+        );
+        
+        alerts.slice(0, 2).forEach((alert: any) => {
+          // Find the corresponding model in current scores
+          const currentModel = availableModels.find((m: any) => 
+            m.name.toLowerCase() === alert.name.toLowerCase() || 
+            m.id === alert.modelId
+          );
+          
+          // Only show alert if model is actually performing poorly (score < 50)
+          if (currentModel && typeof currentModel.currentScore === 'number' && currentModel.currentScore < 50) {
+            if (alert.severity === 'critical') {
+              content.push(`💀 CRITICAL: ${getCompactName(alert.name)} - ${alert.issue}`);
+            } else {
+              content.push(`⚠️ WARNING: ${getCompactName(alert.name)} showing signs of stupidity`);
+            }
+          }
+        });
+      }
+      
+      // 5. Global index information (consistent with 24-hour AI Stupidity Index)
+      if (globalIndex) {
+        const score = globalIndex.current.globalScore;
+        if (score < 50) {
+          content.push(`🌡️ GLOBAL STUPIDITY INDEX: ${score}/100 - AI intelligence at concerning levels`);
+        } else if (score >= 70) {
+          content.push(`🌡️ GLOBAL STUPIDITY INDEX: ${score}/100 - AI models performing well today`);
+        } else {
+          content.push(`🌡️ GLOBAL STUPIDITY INDEX: ${score}/100 - Mixed AI performance across models`);
+        }
+        
+        if (globalIndex.trend === 'declining') {
+          content.push(`📉 TREND ALERT: Global AI intelligence declining over past 24 hours`);
+        } else if (globalIndex.trend === 'improving') {
+          content.push(`📈 GOOD NEWS: Global AI intelligence improving over past 24 hours`);
+        }
+      }
+      
+      // 6. Remove time-based countdown - it changes every minute and causes resets
+      // The countdown is already shown in the footer, no need to duplicate it here
+      
+      // 7. Add some contextual fun facts only if we have real data
+      if (content.length > 3) {
+        const contextualFacts = [
+          `🔬 Lab Report: Intelligence monitoring active across ${modelScores.length} AI models`,
+          `📊 Real-time analysis: Tracking performance degradation patterns`,
+          `🎯 Detection system: Identifying capability reductions in real-time`,
+          `🛡️ Quality assurance: Protecting users from degraded AI performance`
+        ];
+        
+        // Use deterministic selection based on current hour to avoid random changes
+        const currentHour = new Date().getHours();
+        const factIndex = currentHour % contextualFacts.length;
+        content.push(contextualFacts[factIndex]);
+      }
+      
+      // Only update ticker content if it actually changed (using throttled version)
+      if (content.length > 0) {
+        setTickerIfChanged(content);
+      } else if (modelScores.length > 0) {
+        // Generate basic content from model scores if other data isn't available yet
+        const basicContent = [];
+        const availableModels = modelScores.filter((m: any) => 
+          m.currentScore !== 'unavailable' && typeof m.currentScore === 'number'
+        );
+        
+        if (availableModels.length > 0) {
+          const sorted = [...availableModels].sort((a: any, b: any) => b.currentScore - a.currentScore);
+          basicContent.push(`🏆 TOP PERFORMER: ${getCompactName(sorted[0].name)} leading at ${sorted[0].currentScore} pts`);
+          
+          if (sorted.length > 1) {
+            basicContent.push(`📊 ${availableModels.length} models currently monitored and ranked`);
+          }
+          
+          const criticalCount = availableModels.filter((m: any) => m.currentScore < 40).length;
+          if (criticalCount > 0) {
+            basicContent.push(`⚠️ ${criticalCount} models in critical performance range`);
+          }
+          
+          basicContent.push(`🔬 Real-time intelligence monitoring active`);
+        }
+        
+        if (basicContent.length > 0) {
+          setTickerIfChanged(basicContent);
+        } else {
+          const fallbackContent = [
+            '🚀 STUPID METER INITIALIZING...',
+            '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
+            '📊 LOADING STUPIDITY METRICS...',
+            '🔄 SYNCHRONIZING WITH MODEL INTELLIGENCE CENTER...'
+          ];
+          setTickerIfChanged(fallbackContent);
+        }
+      } else {
+        // Fallback when no data is available yet
+        const fallbackContent = [
+          '🚀 STUPID METER INITIALIZING...',
+          '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
+          '📊 LOADING STUPIDITY METRICS...',
+          '🔄 SYNCHRONIZING WITH MODEL INTELLIGENCE CENTER...'
+        ];
+        setTickerIfChanged(fallbackContent);
+      }
+      
+    } catch (error) {
+      console.error('Error generating ticker content:', error);
+      // Fallback to loading state (using throttled version)
+      const fallbackContent = [
+        '🚀 STUPID METER INITIALIZING...',
+        '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
+        '📊 LOADING STUPIDITY METRICS...'
+      ];
+      setTickerIfChanged(fallbackContent);
     }
   };
 
@@ -554,38 +760,6 @@ export default function Dashboard() {
     if (score >= 75) return 'terminal-text--green';
     if (score >= 50) return 'terminal-text--green'; // Use green for mid-range scores too
     return 'terminal-text--red';
-  };
-
-  // Render ticker tape component
-  const renderTickerTape = () => {
-    if (tickerData.length === 0) {
-      return null;
-    }
-
-    // Create ticker items with rank-based color coding (no trend arrows)
-    const tickerItems = tickerData.map((item: any) => {
-      // First 3 items (most stupid) get red color with pulsing animation
-      const colorClass = item.rank <= 3 ? 'terminal-text--red ticker-pulsing' : 'terminal-text--green';
-      return `<span class="${colorClass}" style="${item.rank <= 3 ? 'animation: ticker-pulse 1.5s ease-in-out infinite;' : ''}">#${item.rank} ${item.name}: ${item.score}</span>`;
-    });
-
-    // Create continuous ticker content by duplicating the content for seamless loop
-    const baseContent = [
-      '<span class="terminal-text--amber">STUPID METER #1 = MOST STUPID</span>',
-      ...tickerItems
-    ].join(' • ');
-    
-    // Duplicate content twice for seamless continuous animation
-    const tickerContent = `${baseContent} • ${baseContent}`;
-
-    return (
-      <div className="ticker-tape-container">
-        <div 
-          className="ticker-tape-content"
-          dangerouslySetInnerHTML={{ __html: tickerContent }}
-        />
-      </div>
-    );
   };
 
   const getStatusColor = (status: string): string => {
@@ -1636,7 +1810,7 @@ export default function Dashboard() {
 
             {/* Mobile Ticker Tape */}
             <div className="mobile-only">
-              {renderTickerTape()}
+              <TickerTape key="mobile-ticker" items={tickerContent} />
             </div>
           </div>
           
@@ -1688,7 +1862,7 @@ export default function Dashboard() {
 
         {/* Desktop Ticker Tape */}
         <div className="desktop-only">
-          {renderTickerTape()}
+          <TickerTape key="desktop-ticker" items={tickerContent} />
         </div>
         </div>
       </header>

@@ -768,12 +768,7 @@ input:checked + .toggle-slider::before {
   white-space: nowrap;
 }
 
-/* Ticker Tape Animation */
-@keyframes ticker-scroll {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-100%); }
-}
-
+/* Ticker Tape Animation - Seamless infinite scroll */
 .ticker-tape-container {
   position: relative;
   overflow: hidden;
@@ -785,6 +780,7 @@ input:checked + .toggle-slider::before {
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   white-space: nowrap;
+  width: 100%;
 }
 
 @media (min-width: 768px) {
@@ -795,12 +791,39 @@ input:checked + .toggle-slider::before {
   }
 }
 
-.ticker-tape-content {
-  display: inline-flex;
-  animation: ticker-scroll 45s linear infinite;
+/* One scrolling lane that contains two identical tracks */
+.ticker-tape-scroll {
+  display: flex;
   white-space: nowrap;
-  width: 200%;
   will-change: transform;
+  animation: ticker-scroll 20s linear infinite; /* Fast speed for mobile */
+}
+
+/* Desktop gets even faster speed */
+@media (min-width: 768px) {
+  .ticker-tape-scroll {
+    animation: ticker-scroll 25s linear infinite; /* Slightly slower on desktop for readability */
+  }
+}
+
+/* Each track is the same content duplicated so the loop is seamless */
+.ticker-tape-track {
+  display: inline-flex;
+  gap: .75rem;           /* bullet gap */
+  padding-right: 2rem;   /* little breathing space at the join */
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-items: center;
+}
+
+/* Optional: pause on hover */
+.ticker-tape-container:hover .ticker-tape-scroll {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); } /* because we have 2 tracks side-by-side */
 }
 
 /* Ensure ticker tape colors override any parent styles */
@@ -832,12 +855,6 @@ input:checked + .toggle-slider::before {
   50% {
     opacity: 0.7;
     text-shadow: 0 0 10px var(--red-alert), 0 0 20px var(--red-alert);
-  }
-}
-
-@media (max-width: 767px) {
-  .ticker-tape-content {
-    animation: ticker-scroll 30s linear infinite;
   }
 }
 
