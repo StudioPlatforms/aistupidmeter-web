@@ -1243,7 +1243,7 @@ export default function Dashboard() {
               <br/>
               
               <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔬 COMPREHENSIVE BENCHMARKING ARCHITECTURE</div>
-              <p>Our system executes <span className="terminal-text--green">147 unique coding challenges</span> against major AI APIs every 30 minutes. Each model receives identical prompts from our curated task suite including:</p>
+              <p>Our system executes <span className="terminal-text--green">147 unique coding challenges</span> against major AI APIs every hour. Each model receives identical prompts from our curated task suite including:</p>
               <p>• <strong>Algorithm Implementation</strong> - Data structures, sorting, searching, graph algorithms</p>
               <p>• <strong>Bug Detection & Fixing</strong> - Identifying syntax errors, logic bugs, edge cases</p>
               <p>• <strong>Code Refactoring</strong> - Optimization, readability improvements, design pattern application</p>
@@ -1397,7 +1397,7 @@ export default function Dashboard() {
             <div className="terminal-text--dim" style={{ lineHeight: '1.6', fontSize: '0.9em' }}>
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How does Stupid Meter detect AI model degradation?</div>
-                <div>A: Our system continuously monitors AI model performance through <span className="terminal-text--green">automated benchmarking every 30 minutes</span>. We execute 147 unique coding challenges against each model, measuring performance across 7 key axes. Statistical analysis using <span className="terminal-text--green">z-score standardization</span> against 28-day rolling baselines detects significant performance drops. Our <span className="terminal-text--green">CUSUM algorithm</span> identifies persistent degradation patterns that indicate when AI companies reduce model capability to save computational costs.</div>
+                <div>A: Our system continuously monitors AI model performance through <span className="terminal-text--green">automated benchmarking every hour</span>. We execute 147 unique coding challenges against each model, measuring performance across 7 key axes. Statistical analysis using <span className="terminal-text--green">z-score standardization</span> against 28-day rolling baselines detects significant performance drops. Our <span className="terminal-text--green">CUSUM algorithm</span> identifies persistent degradation patterns that indicate when AI companies reduce model capability to save computational costs.</div>
               </div>
               
               <div style={{ marginBottom: '20px' }}>
@@ -1491,11 +1491,11 @@ export default function Dashboard() {
           {/* Mobile Header */}
           <div className="mobile-header">
             <h1 className="mobile-title">
-              <span className="terminal-text--green">STUPID METER</span>
+              <span className="terminal-text--green">STUPID-METER</span>
               <span className="blinking-cursor"></span>
             </h1>
             <p className="mobile-subtitle terminal-text--dim">
-              Best AI Models 2025 • Compare Claude vs GPT vs Gemini
+              The First AI Intelligence Degradation Detection System
             </p>
             <div className="mobile-status terminal-text--dim">
               {currentTime ? (
@@ -1513,7 +1513,7 @@ export default function Dashboard() {
           {/* Desktop Header */}
           <div className="desktop-header">
             <h1 style={{ fontSize: 'var(--font-size-title)' }}>
-              <span className="terminal-text--green">AI BENCHMARK TOOL</span>
+              <span className="terminal-text--green">STUPID-METER</span>
               <span className="blinking-cursor"></span>
             </h1>
             <div className="terminal-text--dim" style={{ fontSize: 'var(--font-size-sm)', textAlign: 'right' }}>
@@ -1522,54 +1522,35 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="terminal-text--dim desktop-only" style={{ 
-            fontSize: 'var(--font-size-sm)', 
-            marginTop: 'var(--space-xs)' 
-          }}>
-            AI Performance Tests • AI Model Leaderboard • Compare Best AI Models 2025
-          </div>
+      <div className="terminal-text--dim desktop-only" style={{ 
+        fontSize: 'var(--font-size-sm)', 
+        marginTop: 'var(--space-xs)' 
+      }}>
+        Real-Time AI Model Performance Monitoring • Track OpenAI GPT, Claude, Grok & Gemini
+      </div>
 
-        {/* Desktop Navigation - Hidden on mobile, only visible on desktop */}
+        {/* Desktop Navigation - Centered */}
         <div className="desktop-only" style={{
           display: 'flex',
           justifyContent: 'center',
           gap: '16px',
-          marginTop: '24px',
-          padding: '16px',
-          backgroundColor: 'rgba(0, 255, 65, 0.02)',
-          border: '1px solid rgba(0, 255, 65, 0.15)',
-          borderRadius: '6px'
+          marginTop: '24px'
         }}>
           <button 
             onClick={() => setSelectedView('test')}
-            className={`${getButtonClassName('test')} desktop-only`}
-            style={{
-              padding: '12px 24px',
-              fontSize: '1em',
-              minWidth: '140px'
-            }}
+            className={getButtonClassName('test')}
           >
             TEST YOUR KEYS
           </button>
           <button 
             onClick={() => setSelectedView('about')}
-            className={`${getButtonClassName('about')} desktop-only`}
-            style={{
-              padding: '12px 24px',
-              fontSize: '1em',
-              minWidth: '140px'
-            }}
+            className={getButtonClassName('about')}
           >
             ABOUT
           </button>
           <button 
             onClick={() => setSelectedView('faq')}
-            className={`${getButtonClassName('faq')} desktop-only`}
-            style={{
-              padding: '12px 24px',
-              fontSize: '1em',
-              minWidth: '140px'
-            }}
+            className={getButtonClassName('faq')}
           >
             FAQ
           </button>
@@ -1609,52 +1590,79 @@ export default function Dashboard() {
           }}>
             {/* Mobile Layout */}
             <div className="mobile-only">
-              <div className="mobile-controls-container">
-                <div className="mobile-control-group">
-                  <div className="mobile-control-label">TIME PERIOD</div>
-                  <div className="mobile-control-buttons">
-                    <button
-                      onClick={() => setLeaderboardPeriod('latest')}
-                      className={`mobile-control-btn ${leaderboardPeriod === 'latest' ? 'mobile-control-btn--active' : ''}`}
-                      disabled={loadingLeaderboard}
-                    >
-                      LATEST
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardPeriod('24h')}
-                      className={`mobile-control-btn ${leaderboardPeriod === '24h' ? 'mobile-control-btn--active' : ''}`}
-                      disabled={loadingLeaderboard}
-                    >
-                      24H
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardPeriod('7d')}
-                      className={`mobile-control-btn ${leaderboardPeriod === '7d' ? 'mobile-control-btn--active' : ''}`}
-                      disabled={loadingLeaderboard}
-                    >
-                      7D
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardPeriod('1m')}
-                      className={`mobile-control-btn ${leaderboardPeriod === '1m' ? 'mobile-control-btn--active' : ''}`}
-                      disabled={loadingLeaderboard}
-                    >
-                      1M
-                    </button>
-                  </div>
+              <div style={{ marginBottom: '8px' }}>
+                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
+                  Time Period:
                 </div>
-                
-                <div className="mobile-control-group">
-                  <div className="mobile-control-label">SORT BY</div>
-                  <div className="mobile-control-buttons">
-                    <button
-                      onClick={() => setLeaderboardSortBy('score')}
-                      className={`mobile-control-btn ${leaderboardSortBy === 'score' ? 'mobile-control-btn--active' : ''}`}
-                      disabled={loadingLeaderboard}
-                    >
-                      SCORE
-                    </button>
-                  </div>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setLeaderboardPeriod('latest')}
+                    className={`vintage-btn ${leaderboardPeriod === 'latest' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                    disabled={loadingLeaderboard}
+                  >
+                    LATEST
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardPeriod('24h')}
+                    className={`vintage-btn ${leaderboardPeriod === '24h' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                    disabled={loadingLeaderboard}
+                  >
+                    24H
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardPeriod('7d')}
+                    className={`vintage-btn ${leaderboardPeriod === '7d' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                    disabled={loadingLeaderboard}
+                  >
+                    7D
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardPeriod('1m')}
+                    className={`vintage-btn ${leaderboardPeriod === '1m' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                    disabled={loadingLeaderboard}
+                  >
+                    1M
+                  </button>
+                </div>
+              </div>
+              
+              <div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
+                  Sort By:
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setLeaderboardSortBy('score')}
+                    className={`vintage-btn ${leaderboardSortBy === 'score' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                    disabled={loadingLeaderboard}
+                  >
+                    SCORE
+                  </button>
                 </div>
               </div>
             </div>
@@ -2312,21 +2320,19 @@ export default function Dashboard() {
             const now = currentTime;
             const minutes = now.getMinutes();
             let nextRun;
-            if (minutes < 20) {
-              // Next run is at :20 of current hour
-              nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 20, 0, 0);
-            } else if (minutes < 40) {
-              // Next run is at :40 of current hour
-              nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 40, 0, 0);
+            // Next run is at the top of the next hour (:00)
+            if (minutes === 0) {
+              // If it's exactly the top of the hour, next run is in 1 hour
+              nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
             } else {
-              // Next run is at :00 of next hour
+              // If we're past the top of the hour, next run is at the next hour's :00
               nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
             }
             const minutesUntil = Math.ceil((nextRun.getTime() - now.getTime()) / 60000);
             const nextTime = nextRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             return `${minutesUntil} minutes (${nextTime})`;
           })()} <br/>
-          Data refreshes every 20 minutes • Scores based on 7-axis performance metrics{visitorCount && (
+          Data refreshes every hour • Scores based on 7-axis performance metrics{visitorCount && (
             <> • <span className="terminal-text--green">VISITORS {(() => {
               if (visitorCount >= 1000000) {
                 return Math.floor(visitorCount / 1000000) + 'M';

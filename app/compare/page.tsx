@@ -52,7 +52,7 @@ export default function ComparePage() {
                 🏆 CURRENT PERFORMANCE LEADERS (2025)
               </div>
               <div className="terminal-text--dim">
-                Based on our continuous 30-minute benchmarking cycles, here are the current top performers across different categories:
+                Based on our continuous hourly benchmarking cycles, here are the current top performers across different categories:
               </div>
               <ul style={{ marginLeft: '20px', marginTop: '12px' }}>
                 <li className="terminal-text--green" style={{ marginBottom: '8px' }}>
@@ -192,7 +192,7 @@ export default function ComparePage() {
                 📈 REAL-TIME BENCHMARK RESULTS
               </div>
               <div className="terminal-text--dim" style={{ marginBottom: '12px' }}>
-                Our AI benchmark tool continuously monitors all models with 30-minute test cycles. Key metrics include:
+                Our AI benchmark tool continuously monitors all models with hourly test cycles. Key metrics include:
               </div>
               <ul style={{ marginLeft: '20px' }}>
                 <li className="terminal-text--dim" style={{ marginBottom: '6px' }}>
