@@ -2703,12 +2703,12 @@ export default function Dashboard() {
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
           Join our community: {' '}
-          <a 
-            href="https://www.reddit.com/r/AIStupidLevel/" 
-            target="_blank" 
+          <a
+            href="https://www.reddit.com/r/AIStupidLevel/"
+            target="_blank"
             rel="noopener noreferrer"
-            style={{ 
-              color: 'var(--phosphor-green)', 
+            style={{
+              color: 'var(--phosphor-green)',
               textDecoration: 'none',
               borderBottom: '1px dotted var(--phosphor-green)'
             }}
@@ -2716,6 +2716,21 @@ export default function Dashboard() {
             onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
           >
             r/AIStupidLevel
+          </a>
+          {' '} • {' '}
+          <a
+            href="https://x.com/AIStupidlevel"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: 'var(--phosphor-green)',
+              textDecoration: 'none',
+              borderBottom: '1px dotted var(--phosphor-green)'
+            }}
+            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+          >
+            Follow us on X
           </a>
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
@@ -2783,4 +2798,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
