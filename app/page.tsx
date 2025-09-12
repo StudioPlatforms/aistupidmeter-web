@@ -1401,14 +1401,14 @@ export default function Dashboard() {
               <p>• Best practices validation (SOLID principles, design patterns)</p>
               <br/>
               
-              <p><span className="terminal-text--green">EFFICIENCY (10% weight)</span></p>
+              <p><span className="terminal-text--green">EFFICIENCY (5% weight)</span></p>
               <p>• API response latency measurement (P50, P95, P99 percentiles)</p>
               <p>• Token usage optimization (input/output token ratio analysis)</p>
               <p>• Algorithmic complexity analysis (Big O notation assessment)</p>
               <p>• Memory usage patterns and resource optimization</p>
               <br/>
               
-              <p><span className="terminal-text--green">STABILITY (10% weight)</span></p>
+              <p><span className="terminal-text--green">STABILITY (15% weight)</span></p>
               <p>• Consistency across 5 identical test runs with different random seeds</p>
               <p>• Variance analysis of performance metrics over time</p>
               <p>• Temperature sensitivity testing (0.0, 0.3, 0.7, 1.0)</p>
@@ -1527,12 +1527,12 @@ export default function Dashboard() {
               
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: What exactly is the "StupidScore" and how is it calculated?</div>
-                <div>A: The StupidScore is our proprietary <span className="terminal-text--green">weighted composite metric</span> calculated as: <strong>StupidScore = Σ(weight<sub>i</sub> × z_score<sub>i</sub>)</strong> where z_score<sub>i</sub> = (metric<sub>i</sub> - μ<sub>i</sub>) / σ<sub>i</sub>. Each performance axis has a specific weight: Correctness (35%), Specification (15%), Code Quality (15%), Efficiency (10%), Stability (10%), Refusal Rate (10%), Recovery (5%). The z-score standardization compares current performance against historical baselines. <span className="terminal-text--green">Negative values indicate degradation</span> from historical performance, while positive values show improvement.</div>
+                <div>A: The StupidScore is our proprietary <span className="terminal-text--green">weighted composite metric</span> calculated as: <strong>StupidScore = Σ(weight<sub>i</sub> × z_score<sub>i</sub>)</strong> where z_score<sub>i</sub> = (metric<sub>i</sub> - μ<sub>i</sub>) / σ<sub>i</sub>. Each performance axis has a specific weight: Correctness (35%), Specification (15%), Code Quality (15%), Efficiency (5%), Stability (15%), Refusal Rate (10%), Recovery (5%). The z-score standardization compares current performance against historical baselines. <span className="terminal-text--green">Negative values indicate degradation</span> from historical performance, while positive values show improvement.</div>
               </div>
               
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How exactly do the 7 performance axes work?</div>
-                <div>A: <strong>CORRECTNESS (35%)</strong>: Measures functional accuracy through 200+ automated unit tests per challenge, including edge cases, error handling, and runtime stability. <strong>SPECIFICATION (15%)</strong>: Validates adherence to function signatures, JSON schema compliance, documentation format, and code structure requirements. <strong>CODE QUALITY (15%)</strong>: Uses static analysis (ESLint, Pylint), measures cyclomatic complexity, detects code duplication, and validates naming conventions. <strong>EFFICIENCY (10%)</strong>: Tracks API latency (P50/P95/P99), token usage optimization, and algorithmic complexity. <strong>STABILITY (10%)</strong>: Tests consistency across multiple runs with different seeds and temperature settings. <strong>REFUSAL RATE (10%)</strong>: Detects inappropriate task rejections for legitimate coding requests. <strong>RECOVERY (5%)</strong>: Measures self-correction ability when provided with error feedback.</div>
+                <div>A: <strong>CORRECTNESS (35%)</strong>: Measures functional accuracy through 200+ automated unit tests per challenge, including edge cases, error handling, and runtime stability. <strong>SPECIFICATION (15%)</strong>: Validates adherence to function signatures, JSON schema compliance, documentation format, and code structure requirements. <strong>CODE QUALITY (15%)</strong>: Uses static analysis (ESLint, Pylint), measures cyclomatic complexity, detects code duplication, and validates naming conventions. <strong>EFFICIENCY (5%)</strong>: Tracks API latency (P50/P95/P99), token usage optimization, and algorithmic complexity. <strong>STABILITY (15%)</strong>: Tests consistency across multiple runs with different seeds and temperature settings. <strong>REFUSAL RATE (10%)</strong>: Detects inappropriate task rejections for legitimate coding requests. <strong>RECOVERY (5%)</strong>: Measures self-correction ability when provided with error feedback.</div>
               </div>
               
               <div style={{ marginBottom: '20px' }}>
@@ -2610,3 +2610,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
