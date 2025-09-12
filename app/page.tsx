@@ -453,6 +453,13 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  // Fetch ticker data on component mount and when modelScores change
+  useEffect(() => {
+    if (modelScores.length > 0) {
+      fetchTickerData();
+    }
+  }, [modelScores]);
+
   const getProviderName = (provider: Provider): string => {
     switch (provider) {
       case 'openai': return 'OpenAI';
@@ -461,6 +468,124 @@ export default function Dashboard() {
       case 'google': return 'Google';
       default: return provider;
     }
+  };
+
+  // Helper function to get compact model names for ticker
+  const getCompactName = (name: string): string => {
+    const nameMap: Record<string, string> = {
+      'gpt-5-turbo': 'GPT-5-TURBO',
+      'gpt-5': 'GPT-5',
+      'o3-pro': 'O3-PRO',
+      'o3-mini': 'O3-MINI',
+      'o3': 'O3',
+      'gpt-4o': 'GPT-4O',
+      'gpt-4o-mini': 'GPT-4O-MINI',
+      'claude-opus-4-1': 'CLAUDE-OPUS-4.1',
+      'claude-opus-4': 'CLAUDE-OPUS-4',
+      'claude-sonnet-4': 'CLAUDE-SONNET-4',
+      'gemini-2.5-pro': 'GEMINI-2.5-PRO',
+      'gemini-2.5-flash': 'GEMINI-2.5-FLASH',
+      'gemini-2.5-flash-lite': 'GEMINI-2.5-LITE',
+      'grok-4': 'GROK-4',
+      'grok-code-fast-1': 'GROK-CODE-FAST'
+    };
+    return nameMap[name.toLowerCase()] || name.toUpperCase();
+  };
+
+  // State for ticker data with initial placeholder
+  const [tickerData, setTickerData] = useState<any[]>([
+    { rank: 1, name: 'LOADING', score: '--', trend: 'stable' },
+    { rank: 2, name: 'MODELS', score: '--', trend: 'stable' },
+    { rank: 3, name: 'PLEASE', score: '--', trend: 'stable' },
+    { rank: 4, name: 'WAIT', score: '--', trend: 'stable' }
+  ]);
+
+  // Helper function to get ticker data sorted by stupidity (lowest score = most stupid) from 24h period
+  const fetchTickerData = async () => {
+    try {
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/dashboard/scores?period=24h&sortBy=score`);
+      const data = await response.json();
+      
+      if (data.success) {
+        const processedData = data.data
+          .filter((m: any) => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number')
+          .sort((a: any, b: any) => {
+            const scoreA = a.currentScore as number;
+            const scoreB = b.currentScore as number;
+            return scoreA - scoreB; // Ascending order - lowest score = most stupid (stupidest first)
+          })
+          .map((model: any, index: number) => ({
+            rank: index + 1,
+            name: getCompactName(model.name),
+            score: model.currentScore as number,
+            trend: model.trend
+          }));
+        
+        setTickerData(processedData);
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching ticker data:', error);
+    }
+    
+    // Fallback to current modelScores if API call fails
+    const fallbackData = modelScores
+      .filter(m => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number')
+      .sort((a, b) => {
+        const scoreA = a.currentScore as number;
+        const scoreB = b.currentScore as number;
+        return scoreA - scoreB; // Ascending order - lowest score = most stupid (stupidest first)
+      })
+      .map((model, index) => ({
+        rank: index + 1,
+        name: getCompactName(model.name),
+        score: model.currentScore as number,
+        trend: model.trend
+      }));
+    
+    if (fallbackData.length > 0) {
+      setTickerData(fallbackData);
+    }
+  };
+
+  // Helper function to get color class based on score
+  const getScoreColorClass = (score: number): string => {
+    if (score >= 75) return 'terminal-text--green';
+    if (score >= 50) return 'terminal-text--green'; // Use green for mid-range scores too
+    return 'terminal-text--red';
+  };
+
+  // Render ticker tape component
+  const renderTickerTape = () => {
+    if (tickerData.length === 0) {
+      return null;
+    }
+
+    // Create ticker items with rank-based color coding (no trend arrows)
+    const tickerItems = tickerData.map((item: any) => {
+      // First 3 items (most stupid) get red color with pulsing animation
+      const colorClass = item.rank <= 3 ? 'terminal-text--red ticker-pulsing' : 'terminal-text--green';
+      return `<span class="${colorClass}" style="${item.rank <= 3 ? 'animation: ticker-pulse 1.5s ease-in-out infinite;' : ''}">#${item.rank} ${item.name}: ${item.score}</span>`;
+    });
+
+    // Create continuous ticker content by duplicating the content for seamless loop
+    const baseContent = [
+      '<span class="terminal-text--amber">STUPID METER #1 = MOST STUPID</span>',
+      ...tickerItems
+    ].join(' • ');
+    
+    // Duplicate content twice for seamless continuous animation
+    const tickerContent = `${baseContent} • ${baseContent}`;
+
+    return (
+      <div className="ticker-tape-container">
+        <div 
+          className="ticker-tape-content"
+          dangerouslySetInnerHTML={{ __html: tickerContent }}
+        />
+      </div>
+    );
   };
 
   const getStatusColor = (status: string): string => {
@@ -1508,6 +1633,11 @@ export default function Dashboard() {
                 'Loading...'
               )}
             </div>
+
+            {/* Mobile Ticker Tape */}
+            <div className="mobile-only">
+              {renderTickerTape()}
+            </div>
           </div>
           
           {/* Desktop Header */}
@@ -1555,6 +1685,11 @@ export default function Dashboard() {
             FAQ
           </button>
         </div>
+
+        {/* Desktop Ticker Tape */}
+        <div className="desktop-only">
+          {renderTickerTape()}
+        </div>
         </div>
       </header>
 
@@ -1575,7 +1710,7 @@ export default function Dashboard() {
                   <span style={{ fontSize: '0.8em' }}>All models are being refreshed simultaneously • Data will update shortly</span>
                 </>
               ) : (
-                'Based on 30-minute automated benchmarks • Higher scores = Better performance'
+                'Based on hourly automated benchmarks • Higher scores = Better performance'
               )}
             </div>
           </div>
@@ -2322,6 +2457,7 @@ export default function Dashboard() {
             href="https://buymeacoffee.com/goatgamedev" 
             target="_blank" 
             rel="noopener noreferrer"
+            className="coffee-link-pulsing"
             style={{ 
               color: 'var(--phosphor-green)', 
               textDecoration: 'none',
