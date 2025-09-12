@@ -509,11 +509,10 @@ export default function Dashboard() {
   const sameTicker = (a: string[], b: string[]) =>
     a.length === b.length && a.join(' • ') === b.join(' • ');
 
-  // Throttled ticker update function
+  // Ticker update function (no throttling for instant updates)
   const setTickerIfChanged = (next: string[]) => {
     if (!sameTicker(next, tickerContentRef.current)) {
       const now = Date.now();
-      if (now - lastTickerUpdateRef.current < 90_000) return; // throttle 90s
       lastTickerUpdateRef.current = now;
       setTickerContent(next);
       tickerContentRef.current = next;

@@ -12,9 +12,9 @@
   --terminal-black: #0a0a0a;
   --terminal-dark: #1a1a1a;
   
-  /* Typography (Mobile-first scaling) */
-  --font-mono: 'Courier New', 'Monaco', monospace;
-  --font-display: 'Courier New', monospace;
+  /* Typography (Mobile-first scaling) - iOS Safari compatible monospace stack */
+  --font-mono: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  --font-display: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
   --font-size-xs: 10px;
   --font-size-sm: 12px;
   --font-size-md: 14px;
@@ -768,17 +768,17 @@ input:checked + .toggle-slider::before {
   white-space: nowrap;
 }
 
-/* Ticker Tape Animation - Seamless infinite scroll */
+/* Ticker Tape Animation - Seamless infinite scroll showing full content */
 .ticker-tape-container {
   position: relative;
   overflow: hidden;
   background: rgba(0, 255, 65, 0.05);
   border-top: 1px solid var(--metal-silver);
   border-bottom: 1px solid var(--metal-silver);
-  padding: 8px 0;
+  padding: 6px 0;
   margin: 12px 0;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-family: monospace !important;
+  font-size: 10px; /* Smaller font on mobile to reduce height difference */
   white-space: nowrap;
   width: 100%;
 }
@@ -791,55 +791,113 @@ input:checked + .toggle-slider::before {
   }
 }
 
-/* One scrolling lane that contains two identical tracks */
+/* JavaScript-controlled continuous scrolling track */
 .ticker-tape-scroll {
   display: flex;
   white-space: nowrap;
   will-change: transform;
-  animation: ticker-scroll 20s linear infinite; /* Fast speed for mobile */
+  overflow: hidden;
 }
 
-/* Desktop gets even faster speed */
-@media (min-width: 768px) {
-  .ticker-tape-scroll {
-    animation: ticker-scroll 25s linear infinite; /* Slightly slower on desktop for readability */
-  }
-}
-
-/* Each track is the same content duplicated so the loop is seamless */
+/* Single track with very long content - JavaScript animated */
 .ticker-tape-track {
   display: inline-flex;
   gap: .75rem;           /* bullet gap */
-  padding-right: 2rem;   /* little breathing space at the join */
+  padding-right: 4rem;   /* more breathing space */
   flex-shrink: 0;
   white-space: nowrap;
   align-items: center;
-}
-
-/* Optional: pause on hover */
-.ticker-tape-container:hover .ticker-tape-scroll {
-  animation-play-state: paused;
-}
-
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); } /* because we have 2 tracks side-by-side */
 }
 
 /* Ensure ticker tape colors override any parent styles */
 .ticker-tape-content .terminal-text--green {
   color: var(--phosphor-green) !important;
   text-shadow: 0 0 5px var(--phosphor-green) !important;
+  font-family: monospace !important;
 }
 
 .ticker-tape-content .terminal-text--amber {
   color: var(--amber-warning) !important;
   text-shadow: 0 0 5px var(--amber-warning) !important;
+  font-family: monospace !important;
 }
 
 .ticker-tape-content .terminal-text--red {
   color: var(--red-alert) !important;
   text-shadow: 0 0 5px var(--red-alert) !important;
+  font-family: monospace !important;
+}
+
+/* NUCLEAR OPTION: Force identical font size for ALL ticker tape text on mobile */
+@media (max-width: 767px) {
+  /* Define exact font size as CSS custom property */
+  .ticker-tape-container {
+    --ticker-font-size: 10px;
+  }
+
+  /* Force inheritance on container */
+  .ticker-tape-container,
+  .ticker-tape-container * {
+    font-size: var(--ticker-font-size) !important;
+    line-height: 1.2 !important;
+  }
+
+  /* Ultra-specific targeting with maximum specificity */
+  .ticker-tape-container .ticker-tape-scroll .ticker-tape-track span,
+  .ticker-tape-container .ticker-tape-scroll .ticker-tape-track .terminal-text,
+  .ticker-tape-container .ticker-tape-scroll .ticker-tape-track .terminal-text--green,
+  .ticker-tape-container .ticker-tape-scroll .ticker-tape-track .terminal-text--amber,
+  .ticker-tape-container .ticker-tape-scroll .ticker-tape-track .terminal-text--red,
+  .ticker-tape-container .ticker-tape-content span,
+  .ticker-tape-container .ticker-tape-content .terminal-text,
+  .ticker-tape-container .ticker-tape-content .terminal-text--green,
+  .ticker-tape-container .ticker-tape-content .terminal-text--amber,
+  .ticker-tape-container .ticker-tape-content .terminal-text--red,
+  .ticker-tape-container span,
+  .ticker-tape-container .terminal-text,
+  .ticker-tape-container .terminal-text--green,
+  .ticker-tape-container .terminal-text--amber,
+  .ticker-tape-container .terminal-text--red {
+    font-size: var(--ticker-font-size) !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    font-family: monospace !important;
+    font-weight: normal !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    display: inline !important;
+    vertical-align: baseline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    outline: none !important;
+  }
+
+  /* Force all child elements to inherit */
+  .ticker-tape-container *,
+  .ticker-tape-container *::before,
+  .ticker-tape-container *::after {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    font-family: inherit !important;
+    font-weight: inherit !important;
+    letter-spacing: inherit !important;
+    text-transform: inherit !important;
+  }
+}
+
+/* iOS Safari specific font forcing */
+@supports (-webkit-appearance: none) {
+  .ticker-tape-content .terminal-text,
+  .ticker-tape-content .terminal-text--green,
+  .ticker-tape-content .terminal-text--amber,
+  .ticker-tape-content .terminal-text--red {
+    font-family: monospace !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 /* Pulsing animation for ticker tape items */
