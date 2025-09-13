@@ -7,6 +7,32 @@ import '../styles/vintage.css';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
+const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
+
+/**
+ * Prefer backend-provided displayScore/currentScore.
+ * If we only have stupidScore (z-score-ish), map ~1σ ≈ 10 pts.
+ * Positive stupidScore = better → higher display.
+ */
+const toDisplayScore = (point: any): number | null => {
+  if (!point) return null;
+
+  const ds =
+    typeof point.displayScore === 'number' ? point.displayScore :
+    typeof point.currentScore === 'number' ? point.currentScore :
+    null;
+
+  if (typeof ds === 'number' && !Number.isNaN(ds)) {
+    return clamp(Math.round(ds));
+  }
+
+  const z = typeof point.stupidScore === 'number' ? point.stupidScore : null;
+  if (z === null) return null;
+
+  // 10 points per sigma; tweak if your backend uses a different scale
+  return clamp(Math.round(50 + z * 10));
+};
+
 interface ModelScore {
   id: string;
   name: string;
@@ -150,39 +176,29 @@ export default function Dashboard() {
       );
     }
     
-    // Use displayScore if available from API, otherwise convert
-    const displayScores = data.map(d => {
-      // Prioritize displayScore from API
-      if (d.displayScore !== undefined && d.displayScore !== null) {
-        return d.displayScore;
-      }
-      // Fallback conversion
-      const rawScore = d.stupidScore;
-      if (Math.abs(rawScore) < 1 || Math.abs(rawScore) > 100) {
-        return Math.max(0, Math.min(100, Math.round(50 - rawScore * 100)));
-      } else {
-        return Math.max(0, Math.min(100, Math.round(rawScore)));
-      }
-    });
+    const displayScores = data
+      .map((d) => toDisplayScore(d))
+      .filter((v) => typeof v === 'number') as number[];
+
+    if (displayScores.length === 0) {
+      return (
+        <div className="mini-chart-container">
+          <svg width="60" height="30" className="desktop-only">
+            <line x1="0" y1="15" x2="60" y2="15" stroke="var(--phosphor-green)" strokeWidth="1" opacity="0.3"/>
+            <text x="30" y="20" fontSize="10" fill="var(--phosphor-green)" textAnchor="middle" opacity="0.5">—</text>
+          </svg>
+        </div>
+      );
+    }
+
     const maxScore = Math.max(...displayScores);
     const minScore = Math.min(...displayScores);
     const range = maxScore - minScore || 1;
-    
+
     const points = data.map((point, index) => {
-      // Use displayScore if available from API, otherwise convert
-      let displayScore;
-      if (point.displayScore !== undefined && point.displayScore !== null) {
-        displayScore = point.displayScore;
-      } else {
-        const rawScore = point.stupidScore;
-        if (Math.abs(rawScore) < 1 || Math.abs(rawScore) > 100) {
-          displayScore = Math.max(0, Math.min(100, Math.round(50 - rawScore * 100)));
-        } else {
-          displayScore = Math.max(0, Math.min(100, Math.round(rawScore)));
-        }
-      }
-      const x = (index / Math.max(1, data.length - 1)) * 58 + 1; // 58px width with 1px margin
-      const y = 28 - ((displayScore - minScore) / range) * 26; // Higher display score = higher on chart (intuitive)
+      const displayScore = toDisplayScore(point) ?? minScore; // safe fallback
+      const x = (index / Math.max(1, data.length - 1)) * 58 + 1;
+      const y = 28 - ((displayScore - minScore) / range) * 26;
       return `${x},${y}`;
     }).join(' ');
     
@@ -780,21 +796,18 @@ export default function Dashboard() {
     }
   };
 
-  // Helper function to calculate trend percentage from history
   const calculateTrendPercentage = (model: any): number => {
     if (!model.history || model.history.length < 2) return 0;
-    
-    const recent = model.history[0]?.stupidScore;
-    const previous = model.history[model.history.length - 1]?.stupidScore;
-    
-    if (!recent || !previous) return 0;
-    
-    // Convert stupidScores to display scores for percentage calculation
-    const recentDisplay = Math.round(50 - recent / 2);
-    const previousDisplay = Math.round(50 - previous / 2);
-    
-    if (previousDisplay === 0) return 0;
-    
+
+    const recentDisplay = toDisplayScore(model.history[0]) ?? toDisplayScore({ currentScore: model.currentScore });
+    const previousDisplay = toDisplayScore(model.history[model.history.length - 1]);
+
+    if (
+      typeof recentDisplay !== 'number' ||
+      typeof previousDisplay !== 'number' ||
+      previousDisplay === 0
+    ) return 0;
+
     return Math.round(((recentDisplay - previousDisplay) / previousDisplay) * 100);
   };
 
@@ -803,6 +816,11 @@ export default function Dashboard() {
     // Since we only support 'score' sorting now, always return SCORE
     return 'SCORE';
   };
+
+  const scoreColorClass = (score: number) =>
+    score >= 80 ? 'terminal-text--green' :
+    score >= 60 ? 'terminal-text--amber' :
+    'terminal-text--red';
 
   // Helper function to render dynamic metric display with rich information
   const renderDynamicMetric = (model: any): JSX.Element => {
@@ -837,7 +855,7 @@ export default function Dashboard() {
     }
     
     return (
-      <div className={`score-display ${getStatusColor(model.status)}`}>
+      <div className={`score-display ${scoreColorClass(score)}`}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'center', marginBottom: '1px' }}>
             <span style={{ fontSize: '0.8em' }}>{tierIcon}</span>
