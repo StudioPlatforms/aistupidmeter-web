@@ -186,13 +186,30 @@ export default function ModelDetailPage() {
       }
       
       if (modelId) {
-        // Use API's built-in period filtering for accurate results
-        console.log(`🔄 Fetching period-specific data from API (${selectedPeriod}, ${selectedScoringMode})`);
+        // CRITICAL FIX: Get mode-specific data from dashboard endpoint since individual model endpoints don't support sortBy
+        console.log(`🔄 Fetching mode-specific data from dashboard API (${selectedPeriod}, ${selectedScoringMode})`);
+        
+        // Get the correct score and data for the selected mode from dashboard endpoint
+        const dashboardModeResponse = await fetch(`${apiUrl}/api/dashboard/scores?period=${selectedPeriod}&sortBy=${selectedScoringMode}`);
+        let dashboardModeData = null;
+        if (dashboardModeResponse.ok) {
+          const dashboardData = await dashboardModeResponse.json();
+          if (dashboardData.success) {
+            dashboardModeData = dashboardData.data.find((m: any) => m.id === modelId.toString());
+            console.log('✅ Found mode-specific model data from dashboard:', {
+              id: dashboardModeData?.id,
+              name: dashboardModeData?.name,
+              score: dashboardModeData?.currentScore,
+              mode: selectedScoringMode
+            });
+          }
+        }
+        
         const [modelResponse, historyResponse, statsResponse, performanceResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}&sortBy=${selectedScoringMode}`),
-          fetch(`${apiUrl}/api/models/${modelId}/history?days=30&sortBy=${selectedScoringMode}`),  // Always get 30 days for chart
-          fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}&sortBy=${selectedScoringMode}`),
-          fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}&sortBy=${selectedScoringMode}`)
+          fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}`),
+          fetch(`${apiUrl}/api/models/${modelId}/history?days=30`),  // Always get 30 days for chart
+          fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`),
+          fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}`)
         ]);
         
         if (modelResponse.ok) {
@@ -219,13 +236,31 @@ export default function ModelDetailPage() {
           console.log('✅ Stats data loaded successfully from API for period', selectedPeriod, ':', statsData);
           console.log('📈 Performance metrics for period', selectedPeriod, '- Score:', statsData.currentScore, 'Runs:', statsData.totalRuns, 'Success Rate:', statsData.successRate + '%');
           
-          // Score consistency check - compare with dashboard data
-          if (window.dashboardModelData && selectedPeriod === 'latest') {
+          // CRITICAL FIX: Override with mode-specific score from dashboard
+          if (dashboardModeData && typeof dashboardModeData.currentScore === 'number') {
+            const originalScore = statsData.currentScore;
+            statsData.currentScore = dashboardModeData.currentScore;
+            console.log(`✅ OVERRIDING score with ${selectedScoringMode} mode data:`, {
+              originalScore,
+              modeSpecificScore: dashboardModeData.currentScore,
+              scoringMode: selectedScoringMode,
+              difference: Math.abs(originalScore - dashboardModeData.currentScore)
+            });
+            
+            // Also override model's latest score for consistency
+            if (modelData?.latestScore) {
+              modelData.latestScore.displayScore = dashboardModeData.currentScore;
+              console.log('✅ Also updated model latest score for consistency');
+            }
+          }
+          
+          // Legacy consistency check for non-mode-specific scenarios
+          else if (window.dashboardModelData && selectedPeriod === 'latest' && selectedScoringMode === 'combined') {
             const dashboardScore = window.dashboardModelData.currentScore;
             const detailScore = statsData.currentScore;
             const modelScore = modelData?.latestScore?.displayScore;
             
-            console.log('🔍 Score consistency check:', {
+            console.log('🔍 Legacy score consistency check:', {
               dashboardScore,
               detailStatsScore: detailScore,
               modelLatestScore: modelScore,

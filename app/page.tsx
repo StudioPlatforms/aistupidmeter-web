@@ -247,19 +247,21 @@ export default function Dashboard() {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [testLogs, setTestLogs] = useState<string[]>([]);
 
-  // Fetch analytics data
-  const fetchAnalyticsData = async (period?: 'latest' | '24h' | '7d' | '1m') => {
+  // Fetch analytics data - now includes sortBy parameter for mode-specific recommendations
+  const fetchAnalyticsData = async (period?: 'latest' | '24h' | '7d' | '1m', sortBy?: string) => {
     // Use the passed period or fall back to current state
     const selectedPeriod = period || analyticsPeriod;
+    const selectedSortBy = sortBy || leaderboardSortBy;
+    
     setLoadingAnalytics(true);
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       
       const [degradationResponse, reliabilityResponse, recommendationsResponse, transparencyResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/analytics/degradations?period=${selectedPeriod}`),
-        fetch(`${apiUrl}/api/analytics/provider-reliability?period=${selectedPeriod}`),
-        fetch(`${apiUrl}/api/analytics/recommendations?period=${selectedPeriod}`),
-        fetch(`${apiUrl}/api/analytics/transparency?period=${selectedPeriod}`)
+        fetch(`${apiUrl}/api/analytics/degradations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
+        fetch(`${apiUrl}/api/analytics/provider-reliability?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
+        fetch(`${apiUrl}/api/analytics/recommendations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
+        fetch(`${apiUrl}/api/analytics/transparency?period=${selectedPeriod}&sortBy=${selectedSortBy}`)
       ]);
       
       const degradationData = await degradationResponse.json();
@@ -550,13 +552,15 @@ export default function Dashboard() {
   useEffect(() => {
     if (!loading) {
       fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
+      // CRITICAL: Also update analytics when leaderboard mode changes
+      fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
     }
   }, [leaderboardPeriod, leaderboardSortBy]);
 
   // Effect for analytics controls changes
   useEffect(() => {
     if (!loading) {
-      fetchAnalyticsData(); // Will use current analyticsPeriod state
+      fetchAnalyticsData(analyticsPeriod, leaderboardSortBy); // Include current sort mode
     }
   }, [analyticsPeriod]);
 
@@ -740,7 +744,7 @@ export default function Dashboard() {
         }
       }
       
-      // 3. Use model scores data (same as leaderboard)
+      // 3. Use model scores data (MODE-AWARE - reflects current leaderboard selection)
       if (modelScores.length > 0) {
         const availableModels = modelScores.filter((m: any) => 
           m.currentScore !== 'unavailable' && typeof m.currentScore === 'number'
@@ -750,15 +754,26 @@ export default function Dashboard() {
           // Sort by score (lowest = most stupid) - consistent with leaderboard logic
           const sorted = [...availableModels].sort((a: any, b: any) => a.currentScore - b.currentScore);
           
-          // Worst performers with stupidity awards
-          if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 30) {
-            content.push(`🤡 STUPIDITY AWARD WINNER: ${getCompactName(sorted[0].name)} - officially the dumbest at ${sorted[0].currentScore} pts!`);
-          } else if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
-            content.push(`🥇 GOLD MEDAL FOR STUPIDITY: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
-          }
+          // CRITICAL: Show warnings for models performing poorly in CURRENT mode
+          const criticalModels = availableModels.filter((m: any) => m.currentScore < 65);
+          const warningModels = availableModels.filter((m: any) => m.currentScore < 50);
           
-          if (sorted[1] && typeof sorted[1].currentScore === 'number' && sorted[1].currentScore < 50) {
-            content.push(`🥈 RUNNER-UP STUPID: ${getCompactName(sorted[1].name)} trying hard at ${sorted[1].currentScore} pts`);
+          // Show mode-specific warnings for critical models
+          criticalModels.slice(0, 3).forEach((model: any) => {
+            if (model.currentScore < 40) {
+              content.push(`🚨 CRITICAL ${leaderboardSortBy.toUpperCase()}: ${getCompactName(model.name)} failing at ${model.currentScore} pts!`);
+            } else if (model.currentScore < 50) {
+              content.push(`⚠️ ${leaderboardSortBy.toUpperCase()} ALERT: ${getCompactName(model.name)} struggling at ${model.currentScore} pts`);
+            } else if (model.currentScore < 65) {
+              content.push(`📉 ${leaderboardSortBy.toUpperCase()} WARNING: ${getCompactName(model.name)} below average at ${model.currentScore} pts`);
+            }
+          });
+          
+          // Worst performers with stupidity awards (mode-specific)
+          if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 30) {
+            content.push(`🤡 ${leaderboardSortBy.toUpperCase()} STUPIDITY WINNER: ${getCompactName(sorted[0].name)} - ${sorted[0].currentScore} pts!`);
+          } else if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
+            content.push(`🥇 WORST ${leaderboardSortBy.toUpperCase()}: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
           }
           
           // Best value models (price-to-performance)
