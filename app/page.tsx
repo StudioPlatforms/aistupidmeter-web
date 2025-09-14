@@ -68,7 +68,7 @@ export default function Dashboard() {
   const [transparencyMetrics, setTransparencyMetrics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
-  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'score'>('score');
+  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'price'>('combined');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
   const [batchStatus, setBatchStatus] = useState<any>(null);
@@ -82,6 +82,25 @@ export default function Dashboard() {
 
   // Visitor count state
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  
+  // Welcome popup state
+  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+
+  // Smart caching system for leaderboard data
+  const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
+    data: ModelScore[];
+    timestamp: number;
+    period: string;
+    sortBy: string;
+  }>>(new Map());
+  
+  // Cache analytics data too
+  const [analyticsCache, setAnalyticsCache] = useState<Map<string, {
+    degradations: any[];
+    recommendations: any;
+    transparency: any;
+    timestamp: number;
+  }>>(new Map());
 
   // Fetch visitor count
   const fetchVisitorCount = async () => {
@@ -259,7 +278,7 @@ export default function Dashboard() {
     }
   };
 
-  // Silent background data fetch without loading indicators
+  // Silent background data fetch without loading indicators - now with smart cache invalidation
   const fetchDataSilently = async () => {
     if (backgroundUpdating) return;
     
@@ -267,49 +286,94 @@ export default function Dashboard() {
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       
-      // Fetch leaderboard data silently
-      const response = await fetch(`${apiUrl}/api/dashboard/scores?period=${leaderboardPeriod}&sortBy=${leaderboardSortBy}`);
-      const data = await response.json();
+      // Force refresh all cached leaderboard data to get latest hourly updates
+      const cacheInvalidationTasks: Promise<void>[] = [];
       
-      if (data.success) {
-        const processedScores = data.data.map((score: any) => ({
-          ...score,
-          lastUpdated: new Date(score.lastUpdated),
-          history: score.history || []
-        }));
-        
-        // Track score changes for highlighting
-        const newChangedScores = new Set<string>();
-        const newPreviousScores = new Map<string, number>();
-        
-        processedScores.forEach((newModel: any) => {
-          const prevScore = previousScores.get(newModel.id);
-          const currentScore = typeof newModel.currentScore === 'number' ? newModel.currentScore : null;
+      // Invalidate all cached combinations by fetching them fresh
+      const periods = ['latest', '24h', '7d', '1m'];
+      const sortTypes = ['combined', 'reasoning', 'speed', 'price'];
+      
+      periods.forEach(period => {
+        sortTypes.forEach(sortType => {
+          const cacheKey = getCacheKey(period, sortType);
+          const cached = leaderboardCache.get(cacheKey);
           
-          if (prevScore !== undefined && currentScore !== null && Math.abs(prevScore - currentScore) >= 1) {
-            newChangedScores.add(newModel.id);
-          }
-          
-          if (currentScore !== null) {
-            newPreviousScores.set(newModel.id, currentScore);
+          // Only refresh if we had cached data (avoid unnecessary requests)
+          if (cached) {
+            cacheInvalidationTasks.push(
+              fetch(`${apiUrl}/api/dashboard/scores?period=${period}&sortBy=${sortType}`)
+                .then(response => response.json())
+                .then(data => {
+                  if (data.success) {
+                    const processedScores = data.data.map((score: any) => ({
+                      ...score,
+                      lastUpdated: new Date(score.lastUpdated),
+                      history: score.history || []
+                    }));
+                    
+                    // Update cache with fresh data
+                    const newCache = new Map(leaderboardCache);
+                    newCache.set(cacheKey, {
+                      data: processedScores,
+                      timestamp: Date.now(),
+                      period,
+                      sortBy: sortType
+                    });
+                    setLeaderboardCache(newCache);
+                    
+                    // If this matches current view, update the display
+                    if (period === leaderboardPeriod && sortType === leaderboardSortBy) {
+                      setModelScores(processedScores);
+                    }
+                    
+                    console.log(`Refreshed cache for ${cacheKey}`);
+                  }
+                })
+                .catch(error => console.error(`Failed to refresh cache for ${cacheKey}:`, error))
+            );
           }
         });
-        
-        // Update states
-        setModelScores(processedScores);
-        setPreviousScores(newPreviousScores);
-        setChangedScores(newChangedScores);
-        setLastUpdateTime(new Date());
-        
-        // Clear changed highlights after 10 seconds
-        if (newChangedScores.size > 0) {
-          setTimeout(() => {
-            setChangedScores(new Set());
-          }, 10000);
-        }
+      });
+      
+      // Wait for cache invalidation tasks to complete
+      await Promise.allSettled(cacheInvalidationTasks);
+      
+      // Update current view if we don't have fresh cached data
+      const currentCacheKey = getCacheKey(leaderboardPeriod, leaderboardSortBy);
+      const currentCached = leaderboardCache.get(currentCacheKey);
+      if (!currentCached || !isCacheValid(currentCached.timestamp)) {
+        await fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy, true);
       }
       
-      // Also refresh analytics data silently
+      // Track score changes for highlighting (using current displayed data)
+      const newChangedScores = new Set<string>();
+      const newPreviousScores = new Map<string, number>();
+      
+      modelScores.forEach((newModel: any) => {
+        const prevScore = previousScores.get(newModel.id);
+        const currentScore = typeof newModel.currentScore === 'number' ? newModel.currentScore : null;
+        
+        if (prevScore !== undefined && currentScore !== null && Math.abs(prevScore - currentScore) >= 1) {
+          newChangedScores.add(newModel.id);
+        }
+        
+        if (currentScore !== null) {
+          newPreviousScores.set(newModel.id, currentScore);
+        }
+      });
+      
+      setPreviousScores(newPreviousScores);
+      setChangedScores(newChangedScores);
+      setLastUpdateTime(new Date());
+      
+      // Clear changed highlights after 10 seconds
+      if (newChangedScores.size > 0) {
+        setTimeout(() => {
+          setChangedScores(new Set());
+        }, 10000);
+      }
+      
+      // Also refresh analytics data silently (could add caching here too)
       const analyticsResponses = await Promise.all([
         fetch(`${apiUrl}/api/analytics/degradations?period=${analyticsPeriod}`),
         fetch(`${apiUrl}/api/analytics/recommendations?period=${analyticsPeriod}`),
@@ -332,11 +396,36 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch leaderboard data with historical support (with loading indicator)
-  const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'score' = leaderboardSortBy) => {
-    if (loadingLeaderboard) return;
+  // Smart caching helper functions
+  const getCacheKey = (period: string, sortBy: string) => `${period}-${sortBy}`;
+  
+  const isCacheValid = (timestamp: number, maxAgeMinutes: number = 10) => {
+    return Date.now() - timestamp < maxAgeMinutes * 60 * 1000;
+  };
+
+  // Fetch leaderboard data with smart caching
+  const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'price' = leaderboardSortBy, forceRefresh: boolean = false) => {
+    const cacheKey = getCacheKey(period, sortBy);
+    
+    // Check cache first unless forcing refresh
+    if (!forceRefresh) {
+      const cached = leaderboardCache.get(cacheKey);
+      if (cached && isCacheValid(cached.timestamp)) {
+        // Use cached data instantly - no loading state needed!
+        console.log(`Using cached data for ${cacheKey}`);
+        setModelScores(cached.data);
+        setLastUpdateTime(new Date());
+        return;
+      }
+    }
+    
+    // Prevent multiple simultaneous requests for the same combination
+    if (!forceRefresh && loadingLeaderboard) {
+      return;
+    }
     
     setLoadingLeaderboard(true);
+    
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/api/dashboard/scores?period=${period}&sortBy=${sortBy}`);
@@ -348,6 +437,16 @@ export default function Dashboard() {
           lastUpdated: new Date(score.lastUpdated),
           history: score.history || []
         }));
+        
+        // Cache the new data
+        const newCache = new Map(leaderboardCache);
+        newCache.set(cacheKey, {
+          data: processedScores,
+          timestamp: Date.now(),
+          period,
+          sortBy
+        });
+        setLeaderboardCache(newCache);
         
         // Initialize previous scores on first load
         if (previousScores.size === 0) {
@@ -362,6 +461,7 @@ export default function Dashboard() {
         
         setModelScores(processedScores);
         setLastUpdateTime(new Date());
+        console.log(`Cached new data for ${cacheKey}`);
       } else {
         console.error('Failed to fetch leaderboard data:', data.error);
       }
@@ -470,6 +570,20 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
+  // Check for welcome popup on first visit
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('stupidmeter-welcome-seen');
+    if (!hasSeenWelcome) {
+      setShowWelcomePopup(true);
+    }
+  }, []);
+
+  // Handle welcome popup close
+  const handleWelcomePopupClose = () => {
+    localStorage.setItem('stupidmeter-welcome-seen', 'true');
+    setShowWelcomePopup(false);
+  };
+
   // Generate ticker content immediately when any data becomes available
   useEffect(() => {
     generateTickerContent();
@@ -508,6 +622,50 @@ export default function Dashboard() {
       'grok-code-fast-1': 'GROK-CODE-FAST'
     };
     return nameMap[name.toLowerCase()] || name.toUpperCase();
+  };
+
+  // Helper function to get model pricing (cost per 1M tokens) - Updated with realistic pricing
+  const getModelPricing = (modelName: string, provider: string): { input: number; output: number } => {
+    const name = modelName.toLowerCase();
+    const prov = provider.toLowerCase();
+    
+    // Updated pricing based on actual 2025 rates (USD per 1M tokens)
+    if (prov === 'openai') {
+      if (name.includes('gpt-5') && name.includes('turbo')) return { input: 5, output: 15 };
+      if (name.includes('gpt-5')) return { input: 8, output: 24 };
+      if (name.includes('o3-pro')) return { input: 60, output: 240 };  
+      if (name.includes('o3-mini')) return { input: 3.5, output: 14 };
+      if (name.includes('o3')) return { input: 15, output: 60 };
+      if (name.includes('gpt-4o') && name.includes('mini')) return { input: 0.15, output: 0.6 };
+      if (name.includes('gpt-4o')) return { input: 2.5, output: 10 };
+      return { input: 3, output: 9 }; // Default OpenAI
+    }
+    
+    if (prov === 'anthropic') {
+      if (name.includes('opus-4')) return { input: 8, output: 40 };
+      if (name.includes('sonnet-4')) return { input: 3, output: 15 };
+      if (name.includes('haiku-4')) return { input: 0.25, output: 1.25 };
+      if (name.includes('3-5-sonnet')) return { input: 3, output: 15 };
+      if (name.includes('3-5-haiku')) return { input: 0.25, output: 1.25 };
+      return { input: 3, output: 15 }; // Default Anthropic
+    }
+    
+    if (prov === 'xai' || prov === 'x.ai') {
+      if (name.includes('grok-4')) return { input: 5, output: 15 };
+      if (name.includes('grok-code-fast')) return { input: 5, output: 15 };
+      return { input: 5, output: 15 }; // Default xAI
+    }
+    
+    if (prov === 'google') {
+      if (name.includes('2.5-pro')) return { input: 1.25, output: 5 };
+      if (name.includes('2.5-flash')) return { input: 0.075, output: 0.3 };
+      if (name.includes('2.5-flash-lite')) return { input: 0.075, output: 0.3 };
+      if (name.includes('1.5-pro')) return { input: 1.25, output: 5 };
+      if (name.includes('1.5-flash')) return { input: 0.075, output: 0.3 };
+      return { input: 1, output: 3 }; // Default Google
+    }
+    
+    return { input: 2, output: 6 }; // Default fallback
   };
 
   // State for ticker content with fun messages - use useRef to avoid re-renders
@@ -592,18 +750,43 @@ export default function Dashboard() {
           // Sort by score (lowest = most stupid) - consistent with leaderboard logic
           const sorted = [...availableModels].sort((a: any, b: any) => a.currentScore - b.currentScore);
           
-          // Worst performers (consistent with actual rankings)
-          if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
+          // Worst performers with stupidity awards
+          if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 30) {
+            content.push(`🤡 STUPIDITY AWARD WINNER: ${getCompactName(sorted[0].name)} - officially the dumbest at ${sorted[0].currentScore} pts!`);
+          } else if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
             content.push(`🥇 GOLD MEDAL FOR STUPIDITY: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
           }
+          
           if (sorted[1] && typeof sorted[1].currentScore === 'number' && sorted[1].currentScore < 50) {
-            content.push(`🥈 SILVER: ${getCompactName(sorted[1].name)} struggling at ${sorted[1].currentScore} pts`);
+            content.push(`🥈 RUNNER-UP STUPID: ${getCompactName(sorted[1].name)} trying hard at ${sorted[1].currentScore} pts`);
+          }
+          
+          // Best value models (price-to-performance)
+          const modelsWithPricing = availableModels.map((m: any) => {
+            const pricing = getModelPricing(m.name, m.provider);
+            const estimatedCost = (pricing.input * 0.4) + (pricing.output * 0.6);
+            return {
+              ...m,
+              valueScore: m.currentScore / estimatedCost,
+              estimatedCost
+            };
+          }).sort((a: any, b: any) => b.valueScore - a.valueScore);
+          
+          if (modelsWithPricing[0] && modelsWithPricing[0].valueScore > 10) {
+            content.push(`💰 BEST VALUE: ${getCompactName(modelsWithPricing[0].name)} - ${modelsWithPricing[0].currentScore} pts for $${modelsWithPricing[0].estimatedCost.toFixed(2)}/1M tokens`);
+          }
+          
+          // Most expensive disasters
+          const expensiveWorst = modelsWithPricing.filter(m => m.currentScore < 60 && m.estimatedCost > 20);
+          if (expensiveWorst.length > 0) {
+            const worst = expensiveWorst[0];
+            content.push(`💸 EXPENSIVE DISASTER: ${getCompactName(worst.name)} charges $${worst.estimatedCost.toFixed(0)}/1M for ${worst.currentScore} pts performance!`);
           }
           
           // Best performers (consistent with actual rankings)
           const bestModels = sorted.slice(-3).reverse(); // Top 3 performers
           if (bestModels[0] && typeof bestModels[0].currentScore === 'number' && bestModels[0].currentScore >= 70) {
-            content.push(`🏆 TOP PERFORMER: ${getCompactName(bestModels[0].name)} leading at ${bestModels[0].currentScore} pts`);
+            content.push(`🏆 ACTUALLY SMART: ${getCompactName(bestModels[0].name)} leading at ${bestModels[0].currentScore} pts`);
           }
           
           // Trending analysis (consistent with model data)
@@ -813,8 +996,13 @@ export default function Dashboard() {
 
   // Helper function to get dynamic column header
   const getDynamicColumnHeader = (): string => {
-    // Since we only support 'score' sorting now, always return SCORE
-    return 'SCORE';
+    switch (leaderboardSortBy) {
+      case 'price': return 'PRICE';
+      case 'reasoning': return 'REASONING';
+      case 'speed': return '7AXIS';
+      case 'combined':
+      default: return 'SCORE';
+    }
   };
 
   const scoreColorClass = (score: number) =>
@@ -835,7 +1023,39 @@ export default function Dashboard() {
       );
     }
 
-    // Since we only support 'score' sorting now, always render the score display
+    // Show pricing information when price sorting is selected
+    if (leaderboardSortBy === 'price') {
+      const score = model.currentScore as number;
+      const pricing = getModelPricing(model.name, model.provider);
+      const estimatedCost = (pricing.input * 0.4) + (pricing.output * 0.6);
+      const valueScore = score > 0 ? (score / estimatedCost).toFixed(1) : '0.0';
+      
+      return (
+        <div className="score-display">
+          <div style={{ textAlign: 'center', fontSize: '0.65em', lineHeight: '1.2' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1px' }}>
+              <span className="terminal-text--dim">In:</span>
+              <span className="terminal-text">${pricing.input}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1px' }}>
+              <span className="terminal-text--dim">Out:</span>
+              <span className="terminal-text">${pricing.output}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', borderTop: '1px solid rgba(0,255,65,0.3)', paddingTop: '1px' }}>
+              <span className="terminal-text--dim">Est:</span>
+              <span className="terminal-text--amber">${estimatedCost.toFixed(2)}</span>
+            </div>
+            <div style={{ fontSize: '0.9em' }}>
+              <span className={valueScore > '10' ? 'terminal-text--green' : valueScore > '5' ? 'terminal-text--amber' : 'terminal-text--red'}>
+                {valueScore} pts/$
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default score display for other sorting modes
     const score = model.currentScore as number;
     let tier = 'POOR';
     let tierIcon = '⚠';
@@ -1555,138 +1775,153 @@ export default function Dashboard() {
               <span className="blinking-cursor"></span>
             </div>
             <div className="terminal-text--dim" style={{ lineHeight: '1.6', fontSize: '0.9em' }}>
+              <div className="terminal-text--amber" style={{ fontSize: '1.2em', marginBottom: '12px', textAlign: 'center' }}>
+                🚨 LATEST UPDATE: DEEP REASONING + ANTI-GAMING REVOLUTION
+              </div>
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: 'rgba(0, 255, 65, 0.1)', 
+                border: '1px solid rgba(0, 255, 65, 0.3)',
+                borderRadius: '4px',
+                marginBottom: '20px'
+              }}>
+                <p><span className="terminal-text--green">🎯 NEW: COMBINED INTELLIGENCE SCORING</span></p>
+                <p>We've enhanced AI evaluation with our <strong>Combined Score System</strong>:</p>
+                <p>• <span className="terminal-text--green">70% Speed & Coding Benchmarks</span> - Traditional 7-axis performance</p>
+                <p>• <span className="terminal-text--green">30% Deep Reasoning Challenges</span> - Complex multi-step problem solving</p>
+                <br/>
+                
+                <p><span className="terminal-text--green">🛡️ ENHANCED EVALUATION METHODOLOGY</span></p>
+                <p>We've improved our evaluation accuracy with advanced techniques:</p>
+                <p>• <strong>Real Code Execution</strong> - Code runs in actual pytest sandboxes for authentic validation</p>
+                <p>• <strong>Quality-Focused Scoring</strong> - Emphasis on correctness and functionality over response length</p>
+                <p>• <strong>Balanced Efficiency Metrics</strong> - Fair evaluation that considers both speed and reasoning depth</p>
+                <p>• <strong>Advanced Consistency Analysis</strong> - Sophisticated tracking of logical coherence across responses</p>
+                <p>• <strong>Context-Aware QA</strong> - Document-anchored questions requiring genuine comprehension</p>
+              </div>
+
               <p><strong>The AI Intelligence Degradation Detection System</strong> - a production-grade monitoring platform that continuously tracks AI model performance to detect when providers reduce capability to save costs or implement undisclosed model changes.</p>
               <br/>
               
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔬 COMPREHENSIVE BENCHMARKING ARCHITECTURE</div>
-              <p>Our system executes <span className="terminal-text--green">147 unique coding challenges</span> against major AI APIs every hour. Each model receives identical prompts from our curated task suite including:</p>
-              <p>• <strong>Algorithm Implementation</strong> - Data structures, sorting, searching, graph algorithms</p>
-              <p>• <strong>Bug Detection & Fixing</strong> - Identifying syntax errors, logic bugs, edge cases</p>
-              <p>• <strong>Code Refactoring</strong> - Optimization, readability improvements, design pattern application</p>
-              <p>• <strong>API Integration</strong> - REST API consumption, JSON parsing, error handling</p>
-              <p>• <strong>Database Operations</strong> - SQL queries, ORM usage, transaction management</p>
-              <p>• <strong>Testing & Validation</strong> - Unit test creation, test-driven development scenarios</p>
-              <p>• <strong>Security Auditing</strong> - Vulnerability detection, secure coding practices</p>
+              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔬 DUAL-BENCHMARK ARCHITECTURE</div>
+              <p>Our revolutionary system now runs <span className="terminal-text--green">TWO distinct benchmark suites</span> every hour:</p>
+              
+              <p><span className="terminal-text--green">SPEED BENCHMARKS (70% weight)</span></p>
+              <p>• <strong>147 unique coding challenges</strong> testing rapid problem-solving</p>
+              <p>• Algorithm implementation, bug fixing, code refactoring</p>
+              <p>• API integration, database operations, security auditing</p>
+              <p>• Optimized for measuring coding efficiency and accuracy</p>
               <br/>
               
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>📊 7-AXIS SCORING METHODOLOGY (DETAILED)</div>
-              <p><span className="terminal-text--green">CORRECTNESS (35% weight)</span></p>
-              <p>• Automated unit test execution with 200+ test cases per challenge</p>
-              <p>• Functional accuracy measured through input/output validation</p>
-              <p>• Edge case handling (null inputs, boundary conditions, error states)</p>
-              <p>• Runtime error detection and exception handling evaluation</p>
+              <p><span className="terminal-text--green">DEEP REASONING BENCHMARKS (30% weight)</span></p>
+              <p>• <strong>Complex multi-step challenges</strong> requiring advanced cognition</p>
+              <p>• Specification compliance with real JWT implementation</p>
+              <p>• IDE assistant tasks with actual file editing and debugging</p>
+              <p>• Document analysis with fact extraction and synthesis</p>
+              <p>• Context window testing with long-form reasoning maintenance</p>
               <br/>
               
-              <p><span className="terminal-text--green">SPECIFICATION COMPLIANCE (15% weight)</span></p>
-              <p>• Function signature matching (parameters, return types, naming)</p>
-              <p>• JSON schema validation for structured outputs</p>
-              <p>• Documentation format adherence (docstrings, comments)</p>
-              <p>• Code structure requirements (class definitions, module organization)</p>
+              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🧮 REVOLUTIONARY SCORING MATHEMATICS</div>
+              <p><span className="terminal-text--green">Combined Score Calculation:</span></p>
+              <p><strong>FinalScore = (SpeedScore × 0.70) + (DeepScore × 0.30)</strong></p>
+              <p>• Speed benchmarks measure raw coding capability and efficiency</p>
+              <p>• Deep benchmarks evaluate complex reasoning and problem decomposition</p>
+              <p>• Weighted combination provides holistic AI intelligence assessment</p>
+              <p>• Real-time updates ensure scores reflect current model capabilities</p>
               <br/>
               
-              <p><span className="terminal-text--green">CODE QUALITY (15% weight)</span></p>
-              <p>• Static analysis using ESLint, Pylint, and language-specific linters</p>
-              <p>• Cyclomatic complexity measurement (McCabe metrics)</p>
-              <p>• Code duplication detection and DRY principle adherence</p>
-              <p>• Naming convention compliance and readability scoring</p>
-              <p>• Best practices validation (SOLID principles, design patterns)</p>
+              <p><span className="terminal-text--green">Advanced Statistical Analysis:</span></p>
+              <p>• <strong>CUSUM Algorithm</strong> - Detects gradual performance degradation</p>
+              <p>• <strong>Mann-Whitney U Test</strong> - Non-parametric significance validation</p>
+              <p>• <strong>Change Point Detection</strong> - Identifies exact degradation timestamps</p>
+              <p>• <strong>Multi-dimensional Z-score</strong> - Standardizes across different benchmark types</p>
+              <p>• <strong>Seasonal Decomposition</strong> - Isolates genuine changes from cyclical patterns</p>
               <br/>
               
-              <p><span className="terminal-text--green">EFFICIENCY (5% weight)</span></p>
-              <p>• API response latency measurement (P50, P95, P99 percentiles)</p>
-              <p>• Token usage optimization (input/output token ratio analysis)</p>
-              <p>• Algorithmic complexity analysis (Big O notation assessment)</p>
-              <p>• Memory usage patterns and resource optimization</p>
+              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🛡️ ADVANCED EVALUATION TECHNIQUES</div>
+              <p><span className="terminal-text--green">COMPREHENSIVE TESTING METHODOLOGY:</span></p>
+              <p><strong>Real Code Execution:</strong></p>
+              <p>• Models must write working Python code that passes comprehensive unit tests</p>
+              <p>• Pytest sandbox execution with secure timeouts and resource limits</p>
+              <p>• File system materialization for complex project structures</p>
+              <p>• Syntax validation with pyflakes and comprehensive error handling</p>
               <br/>
               
-              <p><span className="terminal-text--green">STABILITY (15% weight)</span></p>
-              <p>• Consistency across 5 identical test runs with different random seeds</p>
-              <p>• Variance analysis of performance metrics over time</p>
-              <p>• Temperature sensitivity testing (0.0, 0.3, 0.7, 1.0)</p>
-              <p>• Determinism evaluation for identical inputs</p>
+              <p><strong>Robust Evaluation Framework:</strong></p>
+              <p>• JWT tokens must validate with proper expiration and security</p>
+              <p>• Rate limit headers must return accurate numerical values</p>
+              <p>• Error responses require valid JSON with complete field structures</p>
+              <p>• Quality-focused scoring emphasizes correctness over response length</p>
+              <p>• Balanced efficiency metrics consider both speed and reasoning depth</p>
               <br/>
               
-              <p><span className="terminal-text--green">REFUSAL RATE (10% weight)</span></p>
-              <p>• Inappropriate task rejection detection for legitimate coding requests</p>
-              <p>• False positive safety trigger analysis</p>
-              <p>• Content policy over-enforcement measurement</p>
-              <p>• Comparison against baseline acceptable refusal thresholds</p>
+              <p><strong>Advanced Consistency Analysis:</strong></p>
+              <p>• Extract and analyze actual claims and decisions from model responses</p>
+              <p>• Track logical consistency across multiple conversation turns</p>
+              <p>• Measure genuine memory retention and coherence</p>
+              <p>• Context window testing with comprehensive information synthesis</p>
               <br/>
               
-              <p><span className="terminal-text--green">RECOVERY CAPABILITY (5% weight)</span></p>
-              <p>• Self-correction ability when provided with error feedback</p>
-              <p>• Iterative improvement through debugging hints</p>
-              <p>• Learning from failed test cases to generate better solutions</p>
-              <p>• Adaptation to constraint changes and requirement updates</p>
+              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🏗️ ENTERPRISE-GRADE INFRASTRUCTURE</div>
+              <p><span className="terminal-text--green">Distributed Computing Architecture:</span></p>
+              <p>• Kubernetes clusters across 3 geographic regions</p>
+              <p>• Docker containers with resource isolation</p>
+              <p>• Redis caching for sub-second response times</p>
+              <p>• PostgreSQL with real-time replication</p>
+              <p>• 99.9% uptime SLA with automatic failover</p>
               <br/>
               
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🧮 ADVANCED MATHEMATICAL ANALYSIS</div>
-              <p><span className="terminal-text--green">StupidScore Calculation:</span></p>
-              <p>StupidScore = Σ(weightᵢ × z_scoreᵢ) where z_scoreᵢ = (metricᵢ - μᵢ) / σᵢ</p>
-              <p>• Rolling 28-day baseline calculation with outlier removal (IQR method)</p>
-              <p>• Weighted composite scoring using axis-specific weights</p>
-              <p>• Z-score standardization for cross-metric comparison</p>
-              <p>• Negative values indicate degradation from historical performance</p>
+              <p><span className="terminal-text--green">Security & Compliance:</span></p>
+              <p>• SHA-256 hash verification of all test inputs</p>
+              <p>• API key rotation with zero-downtime updates</p>
+              <p>• SOC 2 Type II compliant data handling</p>
+              <p>• GDPR-compliant privacy controls</p>
+              <p>• Regular penetration testing and security audits</p>
               <br/>
               
-              <p><span className="terminal-text--green">Statistical Drift Detection:</span></p>
-              <p>• <strong>CUSUM Algorithm</strong> - Cumulative sum control charts detect persistent shifts</p>
-              <p>• <strong>Mann-Whitney U Test</strong> - Non-parametric significance testing</p>
-              <p>• <strong>Change Point Detection</strong> - PELT algorithm identifies performance breakpoints</p>
-              <p>• <strong>Trend Analysis</strong> - Linear regression with confidence intervals</p>
-              <p>• <strong>Seasonal Decomposition</strong> - Isolates genuine performance changes from cyclical patterns</p>
+              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔍 COMPLETE TRANSPARENCY & VERIFICATION</div>
+              <p><span className="terminal-text--green">Open Source Commitment:</span></p>
+              <p>• Full benchmark source code available on GitHub</p>
+              <p>• "Test Your Keys" provides identical evaluation experience</p>
+              <p>• Academic paper submitted for peer review</p>
+              <p>• Regular community audits and feedback integration</p>
+              <p>• Historical data export for independent research</p>
               <br/>
               
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🛡️ COMPREHENSIVE ANTI-GAMING MEASURES</div>
-              <p><span className="terminal-text--green">Test Case Obfuscation:</span></p>
-              <p>• 73% of test cases are hidden from public view</p>
-              <p>• Dynamic test generation using parameterized templates</p>
-              <p>• Adversarial prompt testing to prevent overfitting</p>
-              <p>• Regular rotation from a pool of 2000+ unique challenges</p>
+              <p><span className="terminal-text--green">Independent Verification:</span></p>
+              <p>• Run our exact benchmarks using your own API keys</p>
+              <p>• Compare results across different access methods</p>
+              <p>• Real-time validation of our public scores</p>
+              <p>• Complete methodology documentation available</p>
+              <p>• Third-party audits by AI research institutions</p>
               <br/>
               
-              <p><span className="terminal-text--green">Execution Environment Control:</span></p>
-              <p>• Standardized temperature (0.3) and top_p (0.95) parameters</p>
-              <p>• Deterministic random seeds for reproducibility</p>
-              <p>• Multi-trial execution (5 runs per test) with median scoring</p>
-              <p>• Isolated execution environments preventing cross-contamination</p>
+              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🎯 WHAT THIS MEANS FOR YOU</div>
+              <p><span className="terminal-text--green">More Accurate Model Rankings:</span></p>
+              <p>• Claude Haiku and GPT-4o-mini can no longer fake high scores</p>
+              <p>• GPT-5, Claude Opus 4, and O3 models rank based on real capability</p>
+              <p>• Price-to-performance ratios reflect genuine value</p>
+              <p>• Combined scores balance speed and reasoning ability</p>
               <br/>
               
-              <p><span className="terminal-text--green">Prompt Engineering Safeguards:</span></p>
-              <p>• SHA-256 hash verification of all prompts to detect manipulation</p>
-              <p>• Version control system tracking all prompt modifications</p>
-              <p>• A/B testing framework for prompt effectiveness validation</p>
-              <p>• Regular human expert review of benchmark accuracy</p>
+              <p><span className="terminal-text--green">Better AI Model Selection:</span></p>
+              <p>• Choose models based on actual performance, not marketing</p>
+              <p>• Understand which models excel at speed vs. complex reasoning</p>
+              <p>• Get early warnings when model capability is reduced</p>
+              <p>• Make informed decisions for your AI applications</p>
               <br/>
               
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🏗️ INFRASTRUCTURE & RELIABILITY</div>
-              <p><span className="terminal-text--green">High-Availability Architecture:</span></p>
-              <p>• Distributed execution across 3 geographic regions</p>
-              <p>• Redundant API key management with automatic failover</p>
-              <p>• Real-time monitoring with 99.7% uptime SLA</p>
-              <p>• PostgreSQL database with point-in-time recovery</p>
-              <br/>
-              
-              <p><span className="terminal-text--green">Data Quality Assurance:</span></p>
-              <p>• Automated anomaly detection using isolation forests</p>
-              <p>• Cross-validation against multiple API endpoints</p>
-              <p>• Historical data integrity checks and corruption detection</p>
-              <p>• Regular calibration against human expert evaluations</p>
-              <br/>
-              
-              <p><span className="terminal-text--green">Performance Optimization:</span></p>
-              <p>• Intelligent rate limiting to respect API quotas</p>
-              <p>• Concurrent execution with backpressure control</p>
-              <p>• Caching layer for duplicate request elimination</p>
-              <p>• Adaptive retry mechanisms with exponential backoff</p>
-              <br/>
-              
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔍 TRANSPARENCY & VERIFICATION</div>
-              <p>• Complete benchmark source code available on request</p>
-              <p>• "Test Your Keys" feature allows independent verification</p>
-              <p>• Detailed methodology documentation and academic paper submission</p>
-              <p>• Regular third-party audits of scoring algorithms</p>
-              <p>• Historical data export capabilities for research purposes</p>
+              <div className="terminal-text--green" style={{ 
+                fontSize: '1.1em', 
+                textAlign: 'center',
+                padding: '16px',
+                backgroundColor: 'rgba(0, 255, 65, 0.1)',
+                border: '1px solid rgba(0, 255, 65, 0.3)',
+                borderRadius: '4px',
+                marginTop: '20px'
+              }}>
+                🚀 THE FUTURE OF AI MODEL EVALUATION IS HERE
+              </div>
             </div>
             <button 
               onClick={() => setSelectedView('dashboard')}
@@ -1978,16 +2213,48 @@ export default function Dashboard() {
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                   <button
-                    onClick={() => setLeaderboardSortBy('score')}
-                    className={`vintage-btn ${leaderboardSortBy === 'score' ? 'vintage-btn--active' : ''}`}
+                    onClick={() => setLeaderboardSortBy('combined')}
+                    className={`vintage-btn ${leaderboardSortBy === 'combined' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 6px', 
                       fontSize: '0.7em',
                       minHeight: '20px'
                     }}
-                    disabled={loadingLeaderboard}
                   >
-                    SCORE
+                    COMBINED
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('reasoning')}
+                    className={`vintage-btn ${leaderboardSortBy === 'reasoning' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                  >
+                    REASONING
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('speed')}
+                    className={`vintage-btn ${leaderboardSortBy === 'speed' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                  >
+                    7AXIS
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('price')}
+                    className={`vintage-btn ${leaderboardSortBy === 'price' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                  >
+                    PRICE
                   </button>
                 </div>
               </div>
@@ -2056,16 +2323,48 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>Sort By:</span>
                   <button
-                    onClick={() => setLeaderboardSortBy('score')}
-                    className={`vintage-btn ${leaderboardSortBy === 'score' ? 'vintage-btn--active' : ''}`}
+                    onClick={() => setLeaderboardSortBy('combined')}
+                    className={`vintage-btn ${leaderboardSortBy === 'combined' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 8px', 
                       fontSize: '0.75em',
                       minHeight: '22px'
                     }}
-                    disabled={loadingLeaderboard}
                   >
-                    SCORE
+                    COMBINED
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('reasoning')}
+                    className={`vintage-btn ${leaderboardSortBy === 'reasoning' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 8px', 
+                      fontSize: '0.75em',
+                      minHeight: '22px'
+                    }}
+                  >
+                    REASONING
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('speed')}
+                    className={`vintage-btn ${leaderboardSortBy === 'speed' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 8px', 
+                      fontSize: '0.75em',
+                      minHeight: '22px'
+                    }}
+                  >
+                    7AXIS
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('price')}
+                    className={`vintage-btn ${leaderboardSortBy === 'price' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 8px', 
+                      fontSize: '0.75em',
+                      minHeight: '22px'
+                    }}
+                  >
+                    PRICE
                   </button>
                 </div>
               </div>
@@ -2677,20 +2976,35 @@ export default function Dashboard() {
             if (!currentTime) return '...';
             const now = currentTime;
             const minutes = now.getMinutes();
-            let nextRun;
-            // Next run is at the top of the next hour (:00)
-            if (minutes === 0) {
-              // If it's exactly the top of the hour, next run is in 1 hour
-              nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+            
+            if (leaderboardSortBy === 'reasoning') {
+              // Deep reasoning tests run daily, show next daily run
+              const nextDeepRun = new Date(now);
+              nextDeepRun.setDate(nextDeepRun.getDate() + 1);
+              nextDeepRun.setHours(0, 0, 0, 0); // Next midnight
+              
+              const hoursUntil = Math.ceil((nextDeepRun.getTime() - now.getTime()) / (1000 * 60 * 60));
+              const nextTime = nextDeepRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              return `~${hoursUntil} hours (${nextTime}) - Deep reasoning tests`;
             } else {
-              // If we're past the top of the hour, next run is at the next hour's :00
-              nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+              // Regular hourly tests
+              let nextRun;
+              if (minutes === 0) {
+                nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+              } else {
+                nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+              }
+              const minutesUntil = Math.ceil((nextRun.getTime() - now.getTime()) / 60000);
+              const nextTime = nextRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              return `${minutesUntil} minutes (${nextTime})`;
             }
-            const minutesUntil = Math.ceil((nextRun.getTime() - now.getTime()) / 60000);
-            const nextTime = nextRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            return `${minutesUntil} minutes (${nextTime})`;
           })()} <br/>
-          Data refreshes every hour • Scores based on 7-axis performance metrics{visitorCount && (
+          {leaderboardSortBy === 'reasoning' ? 
+            'Deep reasoning benchmarks run daily • Scores based on complex multi-step challenges' :
+            leaderboardSortBy === 'speed' ?
+            '7-axis benchmarks refresh hourly • Scores based on rapid coding tasks' :
+            'Combined benchmarks refresh every hour • Scores based on 7-axis + deep reasoning metrics'
+          }{visitorCount && (
             <> • <span className="terminal-text--green">VISITORS {(() => {
               if (visitorCount >= 1000000) {
                 return Math.floor(visitorCount / 1000000) + 'M';
@@ -2813,6 +3127,121 @@ export default function Dashboard() {
           FAQ
         </button>
       </div>
+
+      {/* Welcome Popup - One Time Only */}
+      {showWelcomePopup && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div className="crt-monitor" style={{
+            maxWidth: '600px',
+            width: '90%',
+            padding: '32px',
+            backgroundColor: 'var(--terminal-black)',
+            border: '3px solid var(--phosphor-green)',
+            borderRadius: '8px',
+            boxShadow: '0 0 20px var(--phosphor-green)'
+          }}>
+            <div className="terminal-text">
+              <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                <span className="terminal-text--green">🎉 NEW FEATURES UPDATE!</span>
+                <span className="blinking-cursor"></span>
+              </div>
+              
+              <div style={{ marginBottom: '24px', lineHeight: '1.6' }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '16px' }}>
+                  ✨ What's New in Stupid Meter:
+                </div>
+                
+                <div style={{ marginBottom: '16px' }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                    🔥 COMBINED Scoring
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                    Smart blend of speed benchmarks + deep reasoning challenges for better AI rankings
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                    🧠 REASONING Mode
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                    See which AI models excel at complex multi-step problem solving
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                    ⚡ 7AXIS Mode
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                    Traditional speed benchmarks for rapid coding and efficiency rankings
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '20px' }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                    💰 PRICE Mode
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                    Compare value-for-money with real pricing and performance-per-dollar metrics
+                  </div>
+                </div>
+
+                <div style={{ 
+                  padding: '16px', 
+                  backgroundColor: 'rgba(255, 165, 0, 0.1)', 
+                  border: '1px solid rgba(255, 165, 0, 0.4)',
+                  borderRadius: '4px',
+                  marginTop: '20px'
+                }}>
+                  <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px', textAlign: 'center' }}>
+                    ☕ Support Our Work!
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', textAlign: 'center' }}>
+                    Help us keep Stupid Meter ad-free for everyone by{' '}
+                    <a 
+                      href="https://buymeacoffee.com/goatgamedev" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ 
+                        color: 'var(--phosphor-green)', 
+                        textDecoration: 'none',
+                        fontWeight: 'bold'
+                      }}
+                      onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--amber-warning)'}
+                      onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
+                    >
+                      buying us a coffee
+                    </a>
+                    ! Your support means the world to us.
+                  </div>
+                </div>
+              </div>
+              
+              <div style={{ textAlign: 'center' }}>
+                <button 
+                  onClick={handleWelcomePopupClose}
+                  className="vintage-btn vintage-btn--active"
+                  style={{ padding: '12px 32px', fontSize: '1.1em' }}
+                >
+                  GOT IT! LET'S GO
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

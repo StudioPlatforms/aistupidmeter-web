@@ -90,6 +90,7 @@ interface ModelPerformance {
 }
 
 type HistoricalPeriod = 'latest' | '24h' | '7d' | '1m';
+type ScoringMode = 'combined' | 'reasoning' | 'speed';
 
 // Extend Window interface for debugging
 declare global {
@@ -113,6 +114,7 @@ export default function ModelDetailPage() {
 
   // UI control states
   const [selectedPeriod, setSelectedPeriod] = useState<HistoricalPeriod>('latest');
+  const [selectedScoringMode, setSelectedScoringMode] = useState<ScoringMode>('combined');
   const [showExpandedDetails, setShowExpandedDetails] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [chartHoverPoint, setChartHoverPoint] = useState<any>(null);
@@ -185,12 +187,12 @@ export default function ModelDetailPage() {
       
       if (modelId) {
         // Use API's built-in period filtering for accurate results
-        console.log(`🔄 Fetching period-specific data from API (${selectedPeriod})`);
+        console.log(`🔄 Fetching period-specific data from API (${selectedPeriod}, ${selectedScoringMode})`);
         const [modelResponse, historyResponse, statsResponse, performanceResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}`),
-          fetch(`${apiUrl}/api/models/${modelId}/history?days=30`),  // Always get 30 days for chart
-          fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`),
-          fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}`)
+          fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}&sortBy=${selectedScoringMode}`),
+          fetch(`${apiUrl}/api/models/${modelId}/history?days=30&sortBy=${selectedScoringMode}`),  // Always get 30 days for chart
+          fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}&sortBy=${selectedScoringMode}`),
+          fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}&sortBy=${selectedScoringMode}`)
         ]);
         
         if (modelResponse.ok) {
@@ -290,10 +292,10 @@ export default function ModelDetailPage() {
     }
   };
 
-  // Effect to fetch data when model ID or period changes
+  // Effect to fetch data when model ID, period, or scoring mode changes
   useEffect(() => {
     fetchModelData();
-  }, [params.id, selectedPeriod]);
+  }, [params.id, selectedPeriod, selectedScoringMode]);
 
   // Auto-refresh effect
   useEffect(() => {
@@ -1032,6 +1034,32 @@ export default function ModelDetailPage() {
                 </button>
               ))}
             </div>
+
+            {/* Scoring Mode Selection */}
+            <div style={{ marginTop: '12px', textAlign: 'center' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '8px' }}>
+                Scoring Mode:
+              </div>
+              <div className="scoring-mode-tabs">
+                {(['combined', 'reasoning', 'speed'] as ScoringMode[]).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setSelectedScoringMode(mode)}
+                    className={`vintage-btn scoring-mode-tab ${selectedScoringMode === mode ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      color: selectedScoringMode === mode ? 'var(--terminal-black)' : 'var(--phosphor-green)',
+                      background: selectedScoringMode === mode ? 'var(--phosphor-green)' : 'linear-gradient(135deg, #333, #222)',
+                      fontSize: '0.7em',
+                      padding: '4px 8px',
+                      margin: '0 2px'
+                    }}
+                    disabled={isRefreshing}
+                  >
+                    {mode === 'speed' ? '7AXIS' : mode.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           
           {/* Professional Chart */}
@@ -1061,7 +1089,7 @@ export default function ModelDetailPage() {
           </div>
 
           {/* Quick Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.85em' }}>
             <div style={{ textAlign: 'center', padding: '12px', background: 'rgba(0, 255, 65, 0.05)', borderRadius: '4px' }}>
               <div className="terminal-text--dim">Total Runs</div>
               <div className="terminal-text" style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
@@ -1089,6 +1117,72 @@ export default function ModelDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Pricing Information */}
+          {(() => {
+            const name = modelDetails.name.toLowerCase();
+            const prov = modelDetails.vendor.toLowerCase();
+            let pricing = { input: 0, output: 0 };
+            
+            // Get pricing using same logic as frontend
+            if (prov === 'openai') {
+              if (name.includes('gpt-5') && name.includes('turbo')) pricing = { input: 10, output: 30 };
+              else if (name.includes('gpt-5')) pricing = { input: 15, output: 45 };
+              else if (name.includes('o3-pro')) pricing = { input: 60, output: 240 };  
+              else if (name.includes('o3-mini')) pricing = { input: 3.5, output: 14 };
+              else if (name.includes('o3')) pricing = { input: 15, output: 60 };
+              else if (name.includes('gpt-4o') && name.includes('mini')) pricing = { input: 0.15, output: 0.6 };
+              else if (name.includes('gpt-4o')) pricing = { input: 2.5, output: 10 };
+              else pricing = { input: 5, output: 15 };
+            } else if (prov === 'anthropic') {
+              if (name.includes('opus-4')) pricing = { input: 15, output: 75 };
+              else if (name.includes('sonnet-4')) pricing = { input: 3, output: 15 };
+              else if (name.includes('haiku-4')) pricing = { input: 0.25, output: 1.25 };
+              else pricing = { input: 8, output: 24 };
+            } else if (prov === 'xai' || prov === 'x.ai') {
+              if (name.includes('grok-4')) pricing = { input: 5, output: 15 };
+              else if (name.includes('grok-code-fast')) pricing = { input: 5, output: 15 };
+              else pricing = { input: 5, output: 15 };
+            } else if (prov === 'google') {
+              if (name.includes('2.5-pro')) pricing = { input: 1.25, output: 5 };
+              else if (name.includes('2.5-flash')) pricing = { input: 0.075, output: 0.3 };
+              else if (name.includes('2.5-flash-lite')) pricing = { input: 0.075, output: 0.3 };
+              else pricing = { input: 2, output: 6 };
+            } else {
+              pricing = { input: 3, output: 10 };
+            }
+            
+            const estimatedCost = (pricing.input * 0.4) + (pricing.output * 0.6);
+            const valueScore = currentScore > 0 ? (currentScore / estimatedCost).toFixed(1) : '0.0';
+            
+            return (
+              <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(255, 165, 0, 0.05)', border: '1px solid rgba(255, 165, 0, 0.3)', borderRadius: '4px' }}>
+                <div className="terminal-text--amber" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
+                  💰 PRICING & VALUE
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8em' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div className="terminal-text--dim">Input Cost</div>
+                    <div className="terminal-text">${pricing.input}/1M tokens</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div className="terminal-text--dim">Output Cost</div>
+                    <div className="terminal-text">${pricing.output}/1M tokens</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div className="terminal-text--dim">Est. Total Cost</div>
+                    <div className="terminal-text">${estimatedCost.toFixed(2)}/1M tokens</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div className="terminal-text--dim">Value Score</div>
+                    <div className={valueScore > '10' ? 'terminal-text--green' : valueScore > '5' ? 'terminal-text--amber' : 'terminal-text--red'}>
+                      {valueScore} pts/$
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -1218,383 +1312,6 @@ export default function ModelDetailPage() {
         )}
       </div>
 
-      {/* Advanced Details Toggle */}
-      <div className="crt-monitor" style={{ textAlign: 'center' }}>
-        <div className="terminal-text" style={{ marginBottom: '16px' }}>
-          <button 
-            onClick={() => setShowExpandedDetails(!showExpandedDetails)}
-            className="vintage-btn expanded-details-btn"
-            style={{ 
-              background: showExpandedDetails ? 'var(--phosphor-green)' : 'linear-gradient(135deg, #333, #222)',
-              color: showExpandedDetails ? 'var(--terminal-black)' : 'var(--phosphor-green)'
-            }}
-          >
-            {showExpandedDetails ? '▼ HIDE ADVANCED DETAILS' : '▶ SHOW ADVANCED DETAILS'}
-          </button>
-        </div>
-        
-        {showExpandedDetails && (
-          <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '20px' }}>
-            Deep dive into performance logs, task breakdowns, and statistical analysis
-            {autoRefresh && <span className="terminal-text--green"> • Live data updates enabled</span>}
-          </div>
-        )}
-      </div>
-
-      {/* Expanded Advanced Details Sections */}
-      {showExpandedDetails && (
-        <>
-          {/* Performance Logs Section */}
-          <div className="crt-monitor">
-            <div className="terminal-text" style={{ marginBottom: '16px' }}>
-              <div className="section-header">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === 'logs' ? null : 'logs')}
-                  className="vintage-btn section-toggle-btn"
-                >
-                  {expandedSection === 'logs' ? '▼' : '▶'}
-                </button>
-                <span>🔍 PERFORMANCE LOGS</span>
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                Recent test executions and detailed performance breakdowns
-              </div>
-            </div>
-
-            {expandedSection === 'logs' && (
-              <div style={{ 
-                maxHeight: '400px', 
-                overflowY: 'auto', 
-                background: 'rgba(0, 0, 0, 0.3)', 
-                padding: '16px', 
-                borderRadius: '6px',
-                fontSize: '0.85em',
-                fontFamily: 'monospace'
-              }}>
-                {history && history.history.length > 0 ? (
-                  history.history.slice(0, 10).map((entry, index) => {
-                    const displayScore = Math.round(50 - entry.stupidScore / 2);
-                    const testTime = new Date(entry.timestamp);
-                    
-                    return (
-                      <div key={index} style={{ 
-                        marginBottom: '16px', 
-                        padding: '12px', 
-                        background: displayScore >= 80 ? 'rgba(0, 255, 65, 0.05)' : 
-                                   displayScore >= 60 ? 'rgba(255, 176, 0, 0.05)' : 'rgba(255, 45, 0, 0.05)',
-                        border: `1px solid ${displayScore >= 80 ? 'rgba(0, 255, 65, 0.3)' : 
-                                            displayScore >= 60 ? 'rgba(255, 176, 0, 0.3)' : 'rgba(255, 45, 0, 0.3)'}`,
-                        borderRadius: '4px'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <div className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
-                            🤖 Test Run #{history.history.length - index}
-                          </div>
-                          <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                            {testTime.toLocaleDateString()} {testTime.toLocaleTimeString()}
-                          </div>
-                        </div>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginBottom: '8px' }}>
-                          <div>
-                            <span className="terminal-text--dim">Score: </span>
-                            <span className={displayScore >= 80 ? 'terminal-text--green' : 
-                                           displayScore >= 60 ? 'terminal-text--amber' : 'terminal-text--red'}>
-                              {displayScore}/100
-                            </span>
-                          </div>
-                          <div>
-                            <span className="terminal-text--dim">Correctness: </span>
-                            <span className="terminal-text">{(entry.axes.correctness * 100).toFixed(0)}%</span>
-                          </div>
-                          <div>
-                            <span className="terminal-text--dim">Quality: </span>
-                            <span className="terminal-text">{(entry.axes.codeQuality * 100).toFixed(0)}%</span>
-                          </div>
-                          <div>
-                            <span className="terminal-text--dim">Efficiency: </span>
-                            <span className="terminal-text">{(entry.axes.efficiency * 100).toFixed(0)}%</span>
-                          </div>
-                        </div>
-                        
-                        {entry.note && (
-                          <div className="terminal-text--amber" style={{ fontSize: '0.8em', marginTop: '6px' }}>
-                            📝 {entry.note}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '40px' }}>
-                    <div style={{ fontSize: '2em', marginBottom: '12px', opacity: 0.5 }}>📋</div>
-                    <div>No performance logs available yet</div>
-                    <div style={{ fontSize: '0.8em', marginTop: '8px' }}>
-                      Logs will appear after benchmark tests are run
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Task Performance Matrix */}
-          <div className="crt-monitor">
-            <div className="terminal-text" style={{ marginBottom: '16px' }}>
-              <div className="section-header">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === 'tasks' ? null : 'tasks')}
-                  className="vintage-btn section-toggle-btn"
-                >
-                  {expandedSection === 'tasks' ? '▼' : '▶'}
-                </button>
-                <span>📊 TASK PERFORMANCE MATRIX</span>
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                Performance breakdown by individual coding challenges
-              </div>
-            </div>
-
-            {expandedSection === 'tasks' && (
-              <div>
-                {performance && performance.taskPerformance.length > 0 ? (
-                  <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-                    {performance.taskPerformance.slice(0, 6).map((task, index) => (
-                      <div key={task.taskId} style={{ 
-                        padding: '16px', 
-                        background: 'rgba(0, 255, 65, 0.03)', 
-                        border: '1px solid rgba(0, 255, 65, 0.2)', 
-                        borderRadius: '6px' 
-                      }}>
-                        <div style={{ marginBottom: '12px' }}>
-                          <div className="terminal-text" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '4px' }}>
-                            {task.taskSlug ? task.taskSlug.toUpperCase() : `TASK-${task.taskId}`}
-                          </div>
-                          <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                            Success Rate: <span className={
-                              task.successRate >= 0.8 ? 'terminal-text--green' : 
-                              task.successRate >= 0.6 ? 'terminal-text--amber' : 'terminal-text--red'
-                            }>{Math.round(task.successRate * 100)}%</span> • Runs: {task.runs.length}
-                          </div>
-                        </div>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8em' }}>
-                          <div>
-                            <span className="terminal-text--dim">Correctness: </span>
-                            <span className="terminal-text">{Math.round(task.averageMetrics.correctness * 100)}%</span>
-                          </div>
-                          <div>
-                            <span className="terminal-text--dim">Quality: </span>
-                            <span className="terminal-text">{Math.round(task.averageMetrics.codeQuality * 100)}%</span>
-                          </div>
-                          <div>
-                            <span className="terminal-text--dim">Spec: </span>
-                            <span className="terminal-text">{Math.round(task.averageMetrics.spec * 100)}%</span>
-                          </div>
-                          <div>
-                            <span className="terminal-text--dim">Efficiency: </span>
-                            <span className="terminal-text">{Math.round(task.averageMetrics.efficiency * 100)}%</span>
-                          </div>
-                        </div>
-                        
-                        <div style={{ 
-                          marginTop: '12px', 
-                          height: '4px', 
-                          background: 'rgba(0, 0, 0, 0.3)', 
-                          borderRadius: '2px',
-                          overflow: 'hidden'
-                        }}>
-                          <div style={{
-                            width: `${task.successRate * 100}%`,
-                            height: '100%',
-                            background: task.successRate >= 0.8 ? 'var(--phosphor-green)' : 
-                                       task.successRate >= 0.6 ? 'var(--amber-warning)' : 'var(--red-alert)',
-                            borderRadius: '2px'
-                          }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '40px' }}>
-                    <div style={{ fontSize: '2em', marginBottom: '12px', opacity: 0.5 }}>📈</div>
-                    <div>No task performance data available</div>
-                    <div style={{ fontSize: '0.8em', marginTop: '8px' }}>
-                      Task breakdowns will appear after detailed benchmarks are run
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Statistical Analysis */}
-          <div className="crt-monitor">
-            <div className="terminal-text" style={{ marginBottom: '16px' }}>
-              <div className="section-header">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === 'stats' ? null : 'stats')}
-                  className="vintage-btn section-toggle-btn"
-                >
-                  {expandedSection === 'stats' ? '▼' : '▶'}
-                </button>
-                <span>📈 STATISTICAL ANALYSIS</span>
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                Advanced metrics, trends, and performance distributions
-              </div>
-            </div>
-
-            {expandedSection === 'stats' && (
-              <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-                {/* Performance Distribution */}
-                <div style={{ 
-                  padding: '16px', 
-                  background: 'rgba(0, 255, 65, 0.03)', 
-                  border: '1px solid rgba(0, 255, 65, 0.2)', 
-                  borderRadius: '6px' 
-                }}>
-                  <div className="terminal-text--amber" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '12px' }}>
-                    📊 Score Distribution
-                  </div>
-                  {history && history.history.length > 0 ? (
-                    (() => {
-                      const scores = history.history.map(h => Math.round(50 - h.stupidScore / 2));
-                      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                      const sorted = scores.sort((a, b) => b - a);
-                      const median = sorted[Math.floor(sorted.length / 2)];
-                      const std = Math.sqrt(scores.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / scores.length);
-                      
-                      return (
-                        <div style={{ fontSize: '0.8em' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <span className="terminal-text--dim">Average:</span>
-                            <span className="terminal-text">{avg.toFixed(1)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <span className="terminal-text--dim">Median:</span>
-                            <span className="terminal-text">{median}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <span className="terminal-text--dim">Std Dev:</span>
-                            <span className="terminal-text">{std.toFixed(1)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <span className="terminal-text--dim">Best:</span>
-                            <span className="terminal-text--green">{Math.max(...scores)}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span className="terminal-text--dim">Worst:</span>
-                            <span className="terminal-text--red">{Math.min(...scores)}</span>
-                          </div>
-                        </div>
-                      );
-                    })()
-                  ) : (
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      Insufficient data for statistical analysis
-                    </div>
-                  )}
-                </div>
-
-                {/* Trend Analysis */}
-                <div style={{ 
-                  padding: '16px', 
-                  background: 'rgba(0, 255, 65, 0.03)', 
-                  border: '1px solid rgba(0, 255, 65, 0.2)', 
-                  borderRadius: '6px' 
-                }}>
-                  <div className="terminal-text--amber" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '12px' }}>
-                    📈 Trend Analysis
-                  </div>
-                  <div style={{ fontSize: '0.8em' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Overall Trend:</span>
-                      <span className={
-                        trend === 'up' ? 'terminal-text--green' : 
-                        trend === 'down' ? 'terminal-text--red' : 'terminal-text--amber'
-                      }>
-                        {trend === 'up' ? 'IMPROVING' : trend === 'down' ? 'DECLINING' : 'STABLE'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Period:</span>
-                      <span className="terminal-text">{selectedPeriod.toUpperCase()}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Volatility:</span>
-                      <span className="terminal-text">
-                        {history && history.history.length > 5 ? 
-                          (() => {
-                            const scores = history.history.map(h => Math.round(50 - h.stupidScore / 2));
-                            const volatility = Math.max(...scores) - Math.min(...scores);
-                            return volatility > 15 ? 'HIGH' : volatility > 8 ? 'MEDIUM' : 'LOW';
-                          })() : 'UNKNOWN'
-                        }
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span className="terminal-text--dim">Consistency:</span>
-                      <span className={
-                        history && history.history.length > 5 ? 
-                          (() => {
-                            const scores = history.history.map(h => Math.round(50 - h.stupidScore / 2));
-                            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                            const std = Math.sqrt(scores.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / scores.length);
-                            return std < 5 ? 'terminal-text--green' : std < 10 ? 'terminal-text--amber' : 'terminal-text--red';
-                          })() : 'terminal-text--dim'
-                      }>
-                        {history && history.history.length > 5 ? 
-                          (() => {
-                            const scores = history.history.map(h => Math.round(50 - h.stupidScore / 2));
-                            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-                            const std = Math.sqrt(scores.reduce((sq, n) => sq + Math.pow(n - avg, 2), 0) / scores.length);
-                            return std < 5 ? 'EXCELLENT' : std < 10 ? 'GOOD' : 'POOR';
-                          })() : 'UNKNOWN'
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* System Information */}
-                <div style={{ 
-                  padding: '16px', 
-                  background: 'rgba(0, 255, 65, 0.03)', 
-                  border: '1px solid rgba(0, 255, 65, 0.2)', 
-                  borderRadius: '6px' 
-                }}>
-                  <div className="terminal-text--amber" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '12px' }}>
-                    ⚙️ System Information
-                  </div>
-                  <div style={{ fontSize: '0.8em' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Model ID:</span>
-                      <span className="terminal-text">{modelDetails.id}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Version:</span>
-                      <span className="terminal-text">{modelDetails.version || 'Latest'}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Data Points:</span>
-                      <span className="terminal-text">{history?.dataPoints || 0}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span className="terminal-text--dim">Refresh Rate:</span>
-                      <span className="terminal-text">{autoRefresh ? '2 MIN' : 'MANUAL'}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span className="terminal-text--dim">Next Test:</span>
-                      <span className="terminal-text">~{Math.ceil(Math.random() * 25 + 5)}M</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </>
-      )}
     </div>
   );
 }
