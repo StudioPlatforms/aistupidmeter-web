@@ -614,6 +614,12 @@ export default function ModelDetailPage() {
       const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
       return `${x},${y}`;
     }).join(' ');
+
+    // Adaptive styling based on data density
+    const isHighDensity = data.length > 50; // 7d/1m periods usually have many points
+    const adaptivePointRadius = isHighDensity ? 1 : pointRadius;
+    const adaptivePointOpacity = isHighDensity ? 0.3 : 0.7;
+    const showAllPoints = data.length <= 30; // Only show all points for short periods
     
     return (
       <div className="mini-chart-container" style={{ 
@@ -656,25 +662,129 @@ export default function ModelDetailPage() {
             filter="drop-shadow(0 0 4px var(--phosphor-green))"
           />
           
-          {/* Data points */}
-          {data.map((point, index) => {
-            const displayScore = toDisplayScore(point) ?? minScore;
-            const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
-            const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
-            return (
-              <circle
-                key={index}
-                cx={x}
-                cy={y}
-                r={pointRadius}
-                fill="var(--phosphor-green)"
-                stroke="var(--terminal-black)"
-                strokeWidth="2"
-                filter="drop-shadow(0 0 3px var(--phosphor-green))"
-              />
-            );
-          })}
+          {/* Data points - adaptive rendering based on density */}
+          {showAllPoints ? (
+            // Show all points for short periods (latest/24h with few points)
+            data.map((point, index) => {
+              const displayScore = toDisplayScore(point) ?? minScore;
+              const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+              const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
+              return (
+                <circle
+                  key={index}
+                  cx={x}
+                  cy={y}
+                  r={adaptivePointRadius}
+                  fill="var(--phosphor-green)"
+                  stroke="var(--terminal-black)"
+                  strokeWidth="1"
+                  opacity={adaptivePointOpacity}
+                  filter="drop-shadow(0 0 2px var(--phosphor-green))"
+                />
+              );
+            })
+          ) : (
+            // Show only key points for high-density periods (7d/1m)
+            data.filter((_, index) => index % Math.ceil(data.length / 20) === 0).map((point, filteredIndex) => {
+              const originalIndex = filteredIndex * Math.ceil(data.length / 20);
+              const displayScore = toDisplayScore(point) ?? minScore;
+              const x = (originalIndex / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+              const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
+              return (
+                <circle
+                  key={originalIndex}
+                  cx={x}
+                  cy={y}
+                  r={adaptivePointRadius}
+                  fill="var(--phosphor-green)"
+                  stroke="var(--terminal-black)"
+                  strokeWidth="1"
+                  opacity={adaptivePointOpacity}
+                />
+              );
+            })
+          )}
           
+          {/* X-axis time labels */}
+          {data.length > 1 && (() => {
+            // Smart label positioning based on data distribution
+            const numLabels = isMobile ? 3 : Math.min(5, data.length);
+            const labelIndices = [];
+            
+            if (data.length <= numLabels) {
+              // Show all data points if we have few points
+              for (let i = 0; i < data.length; i++) {
+                labelIndices.push(i);
+              }
+            } else {
+              // Distribute labels evenly across the timeline
+              labelIndices.push(0); // Always show first
+              for (let i = 1; i < numLabels - 1; i++) {
+                const index = Math.floor((i / (numLabels - 1)) * (data.length - 1));
+                labelIndices.push(index);
+              }
+              labelIndices.push(data.length - 1); // Always show last
+            }
+            
+            return labelIndices.map((dataIndex, i) => {
+              const point = data[dataIndex];
+              const x = (dataIndex / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+              
+              if (point?.timestamp) {
+                const date = new Date(point.timestamp);
+                let label: string;
+                
+                // Smart formatting based on period and data age
+                const now = new Date();
+                const hoursDiff = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+                
+                switch (period) {
+                  case '24h':
+                    label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    break;
+                  case '7d':
+                    if (hoursDiff < 24) {
+                      label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else {
+                      label = date.toLocaleDateString([], {weekday: 'short'});
+                    }
+                    break;
+                  case '1m':
+                    if (hoursDiff < 24) {
+                      label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else {
+                      label = date.toLocaleDateString([], {month: 'short', day: 'numeric'});
+                    }
+                    break;
+                  default: // 'latest'
+                    if (hoursDiff < 24) {
+                      label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else if (hoursDiff < 24 * 7) {
+                      label = date.toLocaleDateString([], {weekday: 'short'});
+                    } else {
+                      label = date.toLocaleDateString([], {month: 'short', day: 'numeric'});
+                    }
+                    break;
+                }
+                
+                return (
+                  <text 
+                    key={`time-${dataIndex}`}
+                    x={x} 
+                    y={chartHeight - (isMobile ? 25 : 30)} 
+                    fill="var(--phosphor-green)" 
+                    fontSize={fontSize - 1} 
+                    textAnchor="middle" 
+                    opacity="0.7"
+                  >
+                    {label}
+                  </text>
+                );
+              }
+              return null;
+            }).filter(Boolean);
+          })()}
+
           {/* Axis labels */}
           <text x={chartWidth/2} y={chartHeight - (isMobile ? 15 : 10)} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold">
             Timeline ({period.toUpperCase()})
