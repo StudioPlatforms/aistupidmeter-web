@@ -2433,7 +2433,22 @@ export default function Dashboard() {
                     <div className="col-model">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div>
-                          <div className="terminal-text">{model.name.toUpperCase()}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div className="terminal-text">{(model.displayName || model.name).toUpperCase()}</div>
+                            {model.isNew && (
+                              <span style={{
+                                backgroundColor: 'var(--amber-warning)',
+                                color: 'var(--terminal-black)',
+                                fontSize: '0.6em',
+                                fontWeight: 'bold',
+                                padding: '2px 4px',
+                                borderRadius: '2px',
+                                animation: 'pulse 2s infinite'
+                              }}>
+                                NEW
+                              </span>
+                            )}
+                          </div>
                           <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
                             {getProviderName(model.provider)}
                           </div>
