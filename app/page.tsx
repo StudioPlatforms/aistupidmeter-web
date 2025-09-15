@@ -71,6 +71,7 @@ export default function Dashboard() {
   const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'price'>('combined');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [analyticsPeriod, setAnalyticsPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
+  const [stupidMeterMode, setStupidMeterMode] = useState<'smart' | 'stupid'>('smart');
   const [batchStatus, setBatchStatus] = useState<any>(null);
   const [showBatchRefreshing, setShowBatchRefreshing] = useState(false);
   
@@ -140,9 +141,17 @@ export default function Dashboard() {
     if (!history || history.length === 0) {
       return (
         <div className="mini-chart-container">
-          <svg width="60" height="30" className="desktop-only">
-            <line x1="0" y1="15" x2="60" y2="15" stroke="var(--phosphor-green)" strokeWidth="1" opacity="0.3"/>
-            <text x="30" y="20" fontSize="10" fill="var(--phosphor-green)" textAnchor="middle" opacity="0.5">—</text>
+          <svg width="80" height="40" className="desktop-only">
+            {/* Y-axis labels */}
+            <text x="8" y="8" fontSize="8" fill="var(--phosphor-green)" textAnchor="middle" opacity="0.6">100</text>
+            <text x="8" y="22" fontSize="8" fill="var(--amber-warning)" textAnchor="middle" opacity="0.6">50</text>
+            <text x="8" y="36" fontSize="8" fill="var(--red-alert)" textAnchor="middle" opacity="0.6">0</text>
+            {/* Performance zones */}
+            <rect x="12" y="4" width="66" height="10" fill="rgba(0,255,65,0.1)" opacity="0.3"/>
+            <rect x="12" y="14" width="66" height="10" fill="rgba(255,176,0,0.1)" opacity="0.3"/>
+            <rect x="12" y="24" width="66" height="10" fill="rgba(255,45,0,0.1)" opacity="0.3"/>
+            <line x1="12" y1="20" x2="78" y2="20" stroke="var(--phosphor-green)" strokeWidth="1" opacity="0.3"/>
+            <text x="45" y="25" fontSize="8" fill="var(--phosphor-green)" textAnchor="middle" opacity="0.5">No Data</text>
           </svg>
         </div>
       );
@@ -216,14 +225,25 @@ export default function Dashboard() {
 
     const points = data.map((point, index) => {
       const displayScore = toDisplayScore(point) ?? minScore; // safe fallback
-      const x = (index / Math.max(1, data.length - 1)) * 58 + 1;
-      const y = 28 - ((displayScore - minScore) / range) * 26;
+      const x = (index / Math.max(1, data.length - 1)) * 66 + 12; // Account for Y-axis space
+      const y = 36 - ((displayScore - minScore) / range) * 32;
       return `${x},${y}`;
     }).join(' ');
     
     return (
       <div className="mini-chart-container">
-        <svg width="60" height="30" className="mini-chart desktop-only">
+        <svg width="80" height="40" className="mini-chart desktop-only">
+          {/* Y-axis labels */}
+          <text x="8" y="8" fontSize="8" fill="var(--phosphor-green)" textAnchor="middle" opacity="0.6">{Math.round(maxScore)}</text>
+          <text x="8" y="22" fontSize="8" fill="var(--amber-warning)" textAnchor="middle" opacity="0.6">{Math.round((maxScore + minScore) / 2)}</text>
+          <text x="8" y="36" fontSize="8" fill={minScore < 50 ? "var(--red-alert)" : "var(--phosphor-green)"} textAnchor="middle" opacity="0.6">{Math.round(minScore)}</text>
+          
+          {/* Performance zone backgrounds */}
+          <rect x="12" y="4" width="66" height="8" fill="rgba(0,255,65,0.08)" opacity="0.4"/>
+          <rect x="12" y="12" width="66" height="12" fill="rgba(255,176,0,0.08)" opacity="0.4"/>
+          <rect x="12" y="24" width="66" height="12" fill="rgba(255,45,0,0.08)" opacity="0.4"/>
+          
+          {/* Chart line */}
           <polyline
             points={points}
             fill="none"
@@ -231,6 +251,23 @@ export default function Dashboard() {
             strokeWidth="2"
             opacity="0.8"
           />
+          
+          {/* Data point indicators */}
+          {data.map((point, index) => {
+            const displayScore = toDisplayScore(point) ?? minScore;
+            const x = (index / Math.max(1, data.length - 1)) * 66 + 12;
+            const y = 36 - ((displayScore - minScore) / range) * 32;
+            return (
+              <circle
+                key={index}
+                cx={x}
+                cy={y}
+                r="1"
+                fill="var(--phosphor-green)"
+                opacity="0.7"
+              />
+            );
+          })}
         </svg>
       </div>
     );
@@ -574,11 +611,17 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Check for welcome popup on first visit
+  // Check for welcome popup on first visit and load preferences
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('stupidmeter-welcome-seen');
     if (!hasSeenWelcome) {
       setShowWelcomePopup(true);
+    }
+    
+    // Load stupid meter mode preference
+    const savedMode = localStorage.getItem('stupidmeter-mode');
+    if (savedMode === 'stupid') {
+      setStupidMeterMode('stupid');
     }
   }, []);
 
@@ -2151,7 +2194,9 @@ export default function Dashboard() {
                   <span style={{ fontSize: '0.8em' }}>All models are being refreshed simultaneously • Data will update shortly</span>
                 </>
               ) : (
-                'Based on hourly automated benchmarks • Higher scores = Better performance'
+                stupidMeterMode === 'stupid' ? 
+                  '🤡 Showing stupidest models first - embrace the chaos!' :
+                  'Based on hourly automated benchmarks • Higher scores = Better performance'
               )}
             </div>
           </div>
@@ -2222,7 +2267,7 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div>
+              <div style={{ marginBottom: '8px' }}>
                 <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
                   Sort By:
                 </div>
@@ -2270,6 +2315,30 @@ export default function Dashboard() {
                     }}
                   >
                     PRICE
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile Stupid Meter Toggle */}
+              <div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
+                  View Mode:
+                </div>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => {
+                      const newMode = stupidMeterMode === 'smart' ? 'stupid' : 'smart';
+                      setStupidMeterMode(newMode);
+                      localStorage.setItem('stupidmeter-mode', newMode);
+                    }}
+                    className={`vintage-btn ${stupidMeterMode === 'stupid' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                  >
+                    {stupidMeterMode === 'smart' ? '🧠 SMART' : '🤡 STUPID'}
                   </button>
                 </div>
               </div>
@@ -2336,6 +2405,23 @@ export default function Dashboard() {
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* Stupid Meter Toggle */}
+                  <button
+                    onClick={() => {
+                      const newMode = stupidMeterMode === 'smart' ? 'stupid' : 'smart';
+                      setStupidMeterMode(newMode);
+                      localStorage.setItem('stupidmeter-mode', newMode);
+                    }}
+                    className={`vintage-btn ${stupidMeterMode === 'stupid' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 8px', 
+                      fontSize: '0.75em',
+                      minHeight: '22px',
+                      marginRight: '12px'
+                    }}
+                  >
+                    {stupidMeterMode === 'smart' ? '🧠 SMART' : '🤡 STUPID'}
+                  </button>
                   <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>Sort By:</span>
                   <button
                     onClick={() => setLeaderboardSortBy('combined')}
@@ -2420,7 +2506,19 @@ export default function Dashboard() {
                 </div>
               ))
             ) : (
-              modelScores.map((model: any, index: number) => (
+              (() => {
+                // Apply stupid meter sorting logic
+                const sortedModels = [...modelScores];
+                if (stupidMeterMode === 'stupid') {
+                  // Reverse the order - worst models first (ascending by score)
+                  sortedModels.sort((a: any, b: any) => {
+                    const aScore = typeof a.currentScore === 'number' ? a.currentScore : -1;
+                    const bScore = typeof b.currentScore === 'number' ? b.currentScore : -1;
+                    return aScore - bScore; // Ascending order (lowest/stupidest first)
+                  });
+                }
+                return sortedModels;
+              })().map((model: any, index: number) => (
                   <div key={model.id} 
                        className={`leaderboard-row ${changedScores.has(model.id) ? 'score-highlight' : ''}`} 
                        style={{ cursor: 'pointer' }}

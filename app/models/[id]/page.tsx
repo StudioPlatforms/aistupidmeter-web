@@ -518,7 +518,7 @@ export default function ModelDetailPage() {
     return `${days}d ago`;
   };
 
-  // Use EXACT same renderMiniChart function as main page but scaled up for detail view
+  // Mobile-responsive detail chart
   const renderDetailChart = (historyData: any[], period: string = selectedPeriod) => {
     if (!historyData || historyData.length === 0) {
       return (
@@ -599,10 +599,14 @@ export default function ModelDetailPage() {
     const minScore = Math.min(...displayScores);
     const range = maxScore - minScore || 1;
 
-    // Scale up from 60x30 mini chart to 600x300 detail chart
-    const chartWidth = 600;
-    const chartHeight = 300;
-    const padding = 40;
+    // Responsive chart dimensions
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const chartWidth = isMobile ? 350 : 600;
+    const chartHeight = isMobile ? 200 : 300;
+    const padding = isMobile ? 30 : 40;
+    const fontSize = isMobile ? 8 : 10;
+    const strokeWidth = isMobile ? 2 : 3;
+    const pointRadius = isMobile ? 2 : 4;
 
     const points = data.map((point, index) => {
       const displayScore = toDisplayScore(point) ?? minScore; // safe fallback
@@ -612,16 +616,30 @@ export default function ModelDetailPage() {
     }).join(' ');
     
     return (
-      <div className="mini-chart-container" style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
-        <svg width={chartWidth} height={chartHeight} className="mini-chart" style={{ background: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
+      <div className="mini-chart-container" style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        padding: isMobile ? '10px' : '20px',
+        overflowX: 'auto'
+      }}>
+        <svg 
+          width={chartWidth} 
+          height={chartHeight} 
+          className="mini-chart" 
+          style={{ 
+            background: 'rgba(0, 0, 0, 0.2)', 
+            borderRadius: '8px',
+            minWidth: isMobile ? '350px' : 'auto'
+          }}
+        >
           {/* Grid lines */}
-          {Array.from({length: 6}).map((_, i) => {
-            const y = padding + (i * (chartHeight - 2 * padding) / 5);
-            const value = maxScore - (i * range / 5);
+          {Array.from({length: isMobile ? 4 : 6}).map((_, i) => {
+            const y = padding + (i * (chartHeight - 2 * padding) / (isMobile ? 3 : 5));
+            const value = maxScore - (i * range / (isMobile ? 3 : 5));
             return (
               <g key={`grid-${i}`}>
                 <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} stroke="rgba(0, 255, 65, 0.1)" strokeWidth="1"/>
-                <text x={padding - 5} y={y + 4} fill="var(--phosphor-green)" fontSize="10" textAnchor="end" opacity="0.7">
+                <text x={padding - 5} y={y + 4} fill="var(--phosphor-green)" fontSize={fontSize} textAnchor="end" opacity="0.7">
                   {Math.round(value)}
                 </text>
               </g>
@@ -633,7 +651,7 @@ export default function ModelDetailPage() {
             points={points}
             fill="none"
             stroke="var(--phosphor-green)"
-            strokeWidth="3"
+            strokeWidth={strokeWidth}
             opacity="0.8"
             filter="drop-shadow(0 0 4px var(--phosphor-green))"
           />
@@ -648,7 +666,7 @@ export default function ModelDetailPage() {
                 key={index}
                 cx={x}
                 cy={y}
-                r="4"
+                r={pointRadius}
                 fill="var(--phosphor-green)"
                 stroke="var(--terminal-black)"
                 strokeWidth="2"
@@ -658,10 +676,10 @@ export default function ModelDetailPage() {
           })}
           
           {/* Axis labels */}
-          <text x={chartWidth/2} y={chartHeight - 10} fill="var(--phosphor-green)" fontSize="12" textAnchor="middle" fontWeight="bold">
+          <text x={chartWidth/2} y={chartHeight - 10} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold">
             Timeline ({period.toUpperCase()})
           </text>
-          <text x={20} y={chartHeight/2} fill="var(--phosphor-green)" fontSize="12" textAnchor="middle" fontWeight="bold" transform={`rotate(-90, 20, ${chartHeight/2})`}>
+          <text x={20} y={chartHeight/2} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold" transform={`rotate(-90, 20, ${chartHeight/2})`}>
             Score
           </text>
         </svg>
