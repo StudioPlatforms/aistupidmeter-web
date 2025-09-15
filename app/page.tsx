@@ -2993,10 +2993,14 @@ export default function Dashboard() {
             const minutes = now.getMinutes();
             
             if (leaderboardSortBy === 'reasoning') {
-              // Deep reasoning tests run daily, show next daily run
+              // Deep reasoning tests run daily at 3:00 AM Berlin time
               const nextDeepRun = new Date(now);
-              nextDeepRun.setDate(nextDeepRun.getDate() + 1);
-              nextDeepRun.setHours(0, 0, 0, 0); // Next midnight
+              nextDeepRun.setHours(3, 0, 0, 0); // Next 3:00 AM
+              
+              // If we're already past 3 AM today, move to tomorrow's 3 AM
+              if (now.getHours() >= 3) {
+                nextDeepRun.setDate(nextDeepRun.getDate() + 1);
+              }
               
               const hoursUntil = Math.ceil((nextDeepRun.getTime() - now.getTime()) / (1000 * 60 * 60));
               const nextTime = nextDeepRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

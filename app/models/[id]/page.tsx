@@ -4,6 +4,33 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import '../../../styles/vintage.css';
 
+// Add the same helper functions from the main page
+const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
+
+/**
+ * Prefer backend-provided displayScore/currentScore.
+ * If we only have stupidScore (z-score-ish), map ~1σ ≈ 10 pts.
+ * Positive stupidScore = better → higher display.
+ */
+const toDisplayScore = (point: any): number | null => {
+  if (!point) return null;
+
+  const ds =
+    typeof point.displayScore === 'number' ? point.displayScore :
+    typeof point.currentScore === 'number' ? point.currentScore :
+    null;
+
+  if (typeof ds === 'number' && !Number.isNaN(ds)) {
+    return clamp(Math.round(ds));
+  }
+
+  const z = typeof point.stupidScore === 'number' ? point.stupidScore : null;
+  if (z === null) return null;
+
+  // 10 points per sigma; tweak if your backend uses a different scale
+  return clamp(Math.round(50 + z * 10));
+};
+
 interface ModelDetails {
   id: number;
   name: string;
@@ -205,12 +232,29 @@ export default function ModelDetailPage() {
           }
         }
         
-        const [modelResponse, historyResponse, statsResponse, performanceResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}`),
-          fetch(`${apiUrl}/api/models/${modelId}/history?days=30`),  // Always get 30 days for chart
-          fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`),
-          fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}`)
-        ]);
+        // Fix sortBy parameter - backend expects '7axis' not 'speed'
+        const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
+        
+        // Get data from dashboard endpoint to ensure consistency with main page charts
+        const dashboardHistoryResponse = await fetch(`${apiUrl}/api/dashboard/scores?period=${selectedPeriod}&sortBy=${sortByParam}`);
+        let dashboardHistoryData = null;
+        if (dashboardHistoryResponse.ok) {
+          const dashboardData = await dashboardHistoryResponse.json();
+          if (dashboardData.success) {
+            const modelFromDashboard = dashboardData.data.find((m: any) => m.id === modelId.toString());
+            if (modelFromDashboard && modelFromDashboard.history) {
+              dashboardHistoryData = modelFromDashboard.history;
+              console.log(`✅ Using dashboard history data for charts (${sortByParam}, ${selectedPeriod}):`, dashboardHistoryData.length, 'points');
+            }
+          }
+        }
+      
+      const [modelResponse, historyResponse, statsResponse, performanceResponse] = await Promise.all([
+        fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}`),
+        fetch(`${apiUrl}/api/models/${modelId}/history?days=30&period=${selectedPeriod}&sortBy=${sortByParam}`),  // Use corrected sortBy parameter
+        fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`),
+        fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}`)
+      ]);
         
         if (modelResponse.ok) {
           modelData = await modelResponse.json();
@@ -221,14 +265,37 @@ export default function ModelDetailPage() {
           throw new Error('Model not found');
         }
         
-        if (historyResponse.ok) {
+        // ALWAYS use dashboard data as primary source - same as main page charts
+        if (dashboardHistoryData && dashboardHistoryData.length > 0) {
+          console.log(`✅ Using dashboard history data (${sortByParam}, ${selectedPeriod}):`, dashboardHistoryData.length, 'points');
+          setHistory({
+            modelId,
+            period: selectedPeriod,
+            dataPoints: dashboardHistoryData.length,
+            history: dashboardHistoryData.map((point: any) => ({
+              timestamp: point.timestamp || new Date().toISOString(),
+              stupidScore: point.stupidScore,
+              displayScore: point.displayScore || point.currentScore || toDisplayScore(point),
+              axes: point.axes || {}
+            }))
+          });
+        } else if (historyResponse.ok) {
+          // Fallback to individual endpoint only if dashboard fails
           const historyData = await historyResponse.json();
-          console.log('✅ History data loaded successfully from API:', historyData);
-          console.log('📊 Chart data points:', historyData.dataPoints, 'Period:', historyData.period);
+          console.log(`⚠️ Dashboard history not available, using individual model endpoint:`, historyData);
+          
+          // Ensure display scores are included for chart rendering
+          if (historyData.history && historyData.history.length > 0) {
+            historyData.history = historyData.history.map((point: any) => ({
+              ...point,
+              displayScore: point.displayScore || point.currentScore || toDisplayScore(point)
+            }));
+          }
+          
           setHistory(historyData);
         } else {
-          console.log('⚠️ No history data from API, using empty state');
-          setHistory({ modelId, period: '30 days', dataPoints: 0, history: [] });
+          console.log('⚠️ No history data available from any source');
+          setHistory({ modelId, period: selectedPeriod, dataPoints: 0, history: [] });
         }
         
         if (statsResponse.ok) {
@@ -451,11 +518,11 @@ export default function ModelDetailPage() {
     return `${days}d ago`;
   };
 
-  // Enhanced chart rendering with professional features
-  const renderProfessionalChart = () => {
-    if (!history || history.history.length === 0) {
+  // Use EXACT same renderMiniChart function as main page but scaled up for detail view
+  const renderDetailChart = (historyData: any[], period: string = selectedPeriod) => {
+    if (!historyData || historyData.length === 0) {
       return (
-        <div className="professional-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '3em', marginBottom: '16px', opacity: 0.3 }}>📊</div>
             <div>NO HISTORICAL DATA AVAILABLE</div>
@@ -465,12 +532,13 @@ export default function ModelDetailPage() {
       );
     }
 
-    // Filter history based on selected period (same logic as main dashboard)
+    // EXACT SAME LOGIC as main page renderMiniChart
+    // Filter history based on selected period
     const filteredHistory = (() => {
       const now = Date.now();
       let cutoffTime;
       
-      switch (selectedPeriod) {
+      switch (period) {
         case '24h':
           cutoffTime = now - (24 * 60 * 60 * 1000);
           break;
@@ -482,25 +550,28 @@ export default function ModelDetailPage() {
           break;
         default: // 'latest'
           // Show last 24 data points for 'latest'
-          return history.history.slice(0, 24);
+          return historyData.slice(0, 24);
       }
       
       // Filter data by timestamp if timestamps are available
-      if (history.history[0]?.timestamp) {
-        return history.history.filter(h => {
+      if (historyData[0]?.timestamp) {
+        return historyData.filter(h => {
           const timestamp = new Date(h.timestamp).getTime();
           return timestamp >= cutoffTime;
         });
       }
       
       // Fallback to showing proportional amount of data
-      const dataPointsToShow = selectedPeriod === '24h' ? 24 : selectedPeriod === '7d' ? 168 : 720;
-      return history.history.slice(0, Math.min(dataPointsToShow, history.history.length));
+      const dataPointsToShow = period === '24h' ? 24 : period === '7d' ? 168 : 720;
+      return historyData.slice(0, Math.min(dataPointsToShow, historyData.length));
     })();
 
-    if (filteredHistory.length === 0) {
+    // Reverse history to show oldest to newest (left to right) - same as model detail page
+    const data = [...filteredHistory].reverse();
+    
+    if (data.length === 0) {
       return (
-        <div className="professional-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '3em', marginBottom: '16px', opacity: 0.3 }}>📊</div>
             <div>NO DATA FOR SELECTED PERIOD</div>
@@ -509,305 +580,91 @@ export default function ModelDetailPage() {
         </div>
       );
     }
-
-    // Responsive chart dimensions
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    const chartWidth = isMobile ? Math.min(350, (typeof window !== 'undefined' ? window.innerWidth - 80 : 350)) : Math.min(600, (typeof window !== 'undefined' ? window.innerWidth * 0.8 : 600));
-    const chartHeight = isMobile ? 250 : 300;
-    const padding = { 
-      top: 20, 
-      right: isMobile ? 40 : 60, 
-      bottom: isMobile ? 50 : 60, 
-      left: isMobile ? 40 : 60 
-    };
-    const plotWidth = chartWidth - padding.left - padding.right;
-    const plotHeight = chartHeight - padding.top - padding.bottom;
-
-    // Prepare data - reverse filtered history to show oldest to newest (left to right)
-    const data = [...filteredHistory].reverse();
-    const displayScores = data.map(d => {
-      // Prioritize displayScore from API (our endpoints now provide this)
-      if (d.displayScore !== undefined) {
-        return d.displayScore;
-      }
-      // Fallback conversion for any legacy data (shouldn't be needed with current API)
-      const rawScore = d.stupidScore;
-      if (Math.abs(rawScore) < 1 || Math.abs(rawScore) > 100) {
-        return Math.max(0, Math.min(100, Math.round(50 - rawScore * 100)));
-      } else {
-        return Math.max(0, Math.min(100, Math.round(rawScore)));
-      }
-    });
-    const maxScore = Math.max(...displayScores, 100);
-    const minScore = Math.min(...displayScores, 0);
-    const range = maxScore - minScore || 1;
-
-    // Generate chart points
-    const points = data.map((point, index) => {
-      // Use displayScore from API if available, otherwise convert with robust logic
-      const displayScore = point.displayScore !== undefined 
-        ? point.displayScore 
-        : (() => {
-            const rawScore = point.stupidScore;
-            if (Math.abs(rawScore) < 1 || Math.abs(rawScore) > 100) {
-              return Math.max(0, Math.min(100, Math.round(50 - rawScore * 100)));
-            } else {
-              return Math.max(0, Math.min(100, Math.round(rawScore)));
-            }
-          })();
-      const x = padding.left + (index / Math.max(1, data.length - 1)) * plotWidth;
-      const y = padding.top + plotHeight - ((displayScore - minScore) / range) * plotHeight;
-      return { x, y, score: displayScore, data: point, index };
-    });
-
-    // Generate path for animated line
-    const animatedPoints = points.slice(0, Math.ceil(points.length * chartAnimationProgress));
-    const pathData = animatedPoints.length > 0 ? 
-      `M ${animatedPoints[0].x},${animatedPoints[0].y} ` +
-      animatedPoints.slice(1).map(p => `L ${p.x},${p.y}`).join(' ')
-      : '';
-
-    // Generate grid lines
-    const gridLines = [];
-    const numYLines = 5;
-    const numXLines = Math.min(6, data.length);
     
-    // Horizontal grid lines
-    for (let i = 0; i <= numYLines; i++) {
-      const y = padding.top + (plotHeight / numYLines) * i;
-      const value = maxScore - ((maxScore - minScore) / numYLines) * i;
-      gridLines.push(
-        <g key={`hgrid-${i}`}>
-          <line
-            x1={padding.left}
-            y1={y}
-            x2={padding.left + plotWidth}
-            y2={y}
-            stroke="rgba(0, 255, 65, 0.1)"
-            strokeWidth="1"
-          />
-          <text
-            x={padding.left - 10}
-            y={y + 4}
-            fill="var(--phosphor-dim)"
-            fontSize="10"
-            textAnchor="end"
-          >
-            {Math.round(value)}
-          </text>
-        </g>
+    const displayScores = data
+      .map((d) => toDisplayScore(d))
+      .filter((v) => typeof v === 'number') as number[];
+
+    if (displayScores.length === 0) {
+      return (
+        <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
+            <div>NO VALID SCORE DATA</div>
+          </div>
+        </div>
       );
     }
 
-    // Vertical grid lines
-    for (let i = 0; i <= numXLines; i++) {
-      const x = padding.left + (plotWidth / numXLines) * i;
-      const dataIndex = Math.floor((data.length - 1) * (i / numXLines));
-      const point = data[dataIndex];
-      
-      if (point) {
-        gridLines.push(
-          <g key={`vgrid-${i}`}>
-            <line
-              x1={x}
-              y1={padding.top}
-              x2={x}
-              y2={padding.top + plotHeight}
-              stroke="rgba(0, 255, 65, 0.05)"
-              strokeWidth="1"
-            />
-            <text
-              x={x}
-              y={padding.top + plotHeight + 20}
-              fill="var(--phosphor-dim)"
-              fontSize="9"
-              textAnchor="middle"
-              transform={`rotate(-45, ${x}, ${padding.top + plotHeight + 20})`}
-            >
-              {new Date(point.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-            </text>
-          </g>
-        );
-      }
-    }
+    const maxScore = Math.max(...displayScores);
+    const minScore = Math.min(...displayScores);
+    const range = maxScore - minScore || 1;
 
+    // Scale up from 60x30 mini chart to 600x300 detail chart
+    const chartWidth = 600;
+    const chartHeight = 300;
+    const padding = 40;
+
+    const points = data.map((point, index) => {
+      const displayScore = toDisplayScore(point) ?? minScore; // safe fallback
+      const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+      const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
+      return `${x},${y}`;
+    }).join(' ');
+    
     return (
-      <div className="professional-chart-container" style={{ 
-        padding: '20px', 
-        background: 'rgba(0, 0, 0, 0.2)', 
-        borderRadius: '8px',
-        width: '100%',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}>
-        <svg
-          ref={chartRef}
-          width={chartWidth}
-          height={chartHeight}
-          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          style={{ 
-            background: 'rgba(0, 0, 0, 0.3)', 
-            borderRadius: '4px',
-            maxWidth: '100%',
-            height: 'auto'
-          }}
-          onMouseMove={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            
-            // Find closest point
-            let closest = null;
-            let minDistance = Infinity;
-            
-            points.forEach(point => {
-              const distance = Math.sqrt(
-                Math.pow(mouseX - point.x, 2) + Math.pow(mouseY - point.y, 2)
-              );
-              if (distance < minDistance && distance < 20) {
-                minDistance = distance;
-                closest = point;
-              }
-            });
-            
-            setChartHoverPoint(closest);
-          }}
-          onMouseLeave={() => setChartHoverPoint(null)}
-        >
-          {/* Grid */}
-          {gridLines}
+      <div className="mini-chart-container" style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+        <svg width={chartWidth} height={chartHeight} className="mini-chart" style={{ background: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px' }}>
+          {/* Grid lines */}
+          {Array.from({length: 6}).map((_, i) => {
+            const y = padding + (i * (chartHeight - 2 * padding) / 5);
+            const value = maxScore - (i * range / 5);
+            return (
+              <g key={`grid-${i}`}>
+                <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} stroke="rgba(0, 255, 65, 0.1)" strokeWidth="1"/>
+                <text x={padding - 5} y={y + 4} fill="var(--phosphor-green)" fontSize="10" textAnchor="end" opacity="0.7">
+                  {Math.round(value)}
+                </text>
+              </g>
+            );
+          })}
           
-          {/* Area fill */}
-          {animatedPoints.length > 0 && (
-            <defs>
-              <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="var(--phosphor-green)" stopOpacity="0.3"/>
-                <stop offset="100%" stopColor="var(--phosphor-green)" stopOpacity="0.05"/>
-              </linearGradient>
-            </defs>
-          )}
-          
-          {animatedPoints.length > 0 && (
-            <path
-              d={pathData + ` L ${animatedPoints[animatedPoints.length - 1].x},${padding.top + plotHeight} L ${padding.left},${padding.top + plotHeight} Z`}
-              fill="url(#scoreGradient)"
-            />
-          )}
-          
-          {/* Main line */}
-          {animatedPoints.length > 0 && (
-            <path
-              d={pathData}
-              fill="none"
-              stroke="var(--phosphor-green)"
-              strokeWidth="3"
-              filter="drop-shadow(0 0 4px var(--phosphor-green))"
-            />
-          )}
+          {/* Main chart line - EXACTLY like main page */}
+          <polyline
+            points={points}
+            fill="none"
+            stroke="var(--phosphor-green)"
+            strokeWidth="3"
+            opacity="0.8"
+            filter="drop-shadow(0 0 4px var(--phosphor-green))"
+          />
           
           {/* Data points */}
-          {animatedPoints.map((point, index) => (
-            <circle
-              key={index}
-              cx={point.x}
-              cy={point.y}
-              r={chartHoverPoint?.index === point.index ? 6 : 4}
-              fill="var(--phosphor-green)"
-              stroke="var(--terminal-black)"
-              strokeWidth="2"
-              filter="drop-shadow(0 0 3px var(--phosphor-green))"
-              style={{ cursor: 'pointer' }}
-            />
-          ))}
-          
-          {/* Hover tooltip */}
-          {chartHoverPoint && (
-            <g>
-              <rect
-                x={chartHoverPoint.x + 10}
-                y={chartHoverPoint.y - 60}
-                width="140"
-                height="50"
-                fill="var(--terminal-black)"
-                stroke="var(--phosphor-green)"
-                strokeWidth="1"
-                rx="4"
-                filter="drop-shadow(2px 2px 4px rgba(0,0,0,0.5))"
-              />
-              <text
-                x={chartHoverPoint.x + 20}
-                y={chartHoverPoint.y - 40}
+          {data.map((point, index) => {
+            const displayScore = toDisplayScore(point) ?? minScore;
+            const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+            const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
+            return (
+              <circle
+                key={index}
+                cx={x}
+                cy={y}
+                r="4"
                 fill="var(--phosphor-green)"
-                fontSize="12"
-                fontWeight="bold"
-              >
-                Score: {chartHoverPoint.score}
-              </text>
-              <text
-                x={chartHoverPoint.x + 20}
-                y={chartHoverPoint.y - 25}
-                fill="var(--phosphor-dim)"
-                fontSize="10"
-              >
-                {new Date(chartHoverPoint.data.timestamp).toLocaleDateString()}
-              </text>
-              <text
-                x={chartHoverPoint.x + 20}
-                y={chartHoverPoint.y - 10}
-                fill="var(--phosphor-dim)"
-                fontSize="10"
-              >
-                {new Date(chartHoverPoint.data.timestamp).toLocaleTimeString()}
-              </text>
-            </g>
-          )}
+                stroke="var(--terminal-black)"
+                strokeWidth="2"
+                filter="drop-shadow(0 0 3px var(--phosphor-green))"
+              />
+            );
+          })}
           
           {/* Axis labels */}
-          <text
-            x={chartWidth / 2}
-            y={chartHeight - 5}
-            fill="var(--phosphor-green)"
-            fontSize="12"
-            textAnchor="middle"
-            fontWeight="bold"
-          >
-            Timeline
+          <text x={chartWidth/2} y={chartHeight - 10} fill="var(--phosphor-green)" fontSize="12" textAnchor="middle" fontWeight="bold">
+            Timeline ({period.toUpperCase()})
           </text>
-          
-          <text
-            x={15}
-            y={chartHeight / 2}
-            fill="var(--phosphor-green)"
-            fontSize="12"
-            textAnchor="middle"
-            fontWeight="bold"
-            transform={`rotate(-90, 15, ${chartHeight / 2})`}
-          >
-            Performance Score
+          <text x={20} y={chartHeight/2} fill="var(--phosphor-green)" fontSize="12" textAnchor="middle" fontWeight="bold" transform={`rotate(-90, 20, ${chartHeight/2})`}>
+            Score
           </text>
         </svg>
-        
-        {/* Chart stats */}
-        <div className="chart-stats-grid">
-          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
-            Data Points: <br/>
-            <span className="terminal-text">{data.length}</span>
-          </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
-            Period: <br/>
-            <span className="terminal-text">{history.period}</span>
-          </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
-            Range: <br/>
-            <span className="terminal-text">{minScore} - {maxScore}</span>
-          </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
-            Average: <br/>
-            <span className="terminal-text">{Math.round(displayScores.reduce((a, b) => a + b, 0) / displayScores.length)}</span>
-          </div>
-        </div>
       </div>
     );
   };
@@ -1097,8 +954,8 @@ export default function ModelDetailPage() {
             </div>
           </div>
           
-          {/* Professional Chart */}
-          {renderProfessionalChart()}
+          {/* Detail Chart - EXACT same logic as main page mini chart */}
+          {history && history.history ? renderDetailChart(history.history, selectedPeriod) : renderDetailChart([], selectedPeriod)}
         </div>
 
         {/* Current Score & Key Metrics */}
