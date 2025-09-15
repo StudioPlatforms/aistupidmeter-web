@@ -1819,16 +1819,16 @@ export default function Dashboard() {
               <br/>
               
               <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔬 DUAL-BENCHMARK ARCHITECTURE</div>
-              <p>Our revolutionary system now runs <span className="terminal-text--green">TWO distinct benchmark suites</span> every hour:</p>
+              <p>Our revolutionary system runs <span className="terminal-text--green">TWO distinct benchmark suites</span> on different schedules:</p>
               
-              <p><span className="terminal-text--green">SPEED BENCHMARKS (70% weight)</span></p>
+              <p><span className="terminal-text--green">7-AXIS BENCHMARKS (70% weight) - EVERY HOUR</span></p>
               <p>• <strong>147 unique coding challenges</strong> testing rapid problem-solving</p>
               <p>• Algorithm implementation, bug fixing, code refactoring</p>
               <p>• API integration, database operations, security auditing</p>
               <p>• Optimized for measuring coding efficiency and accuracy</p>
               <br/>
               
-              <p><span className="terminal-text--green">DEEP REASONING BENCHMARKS (30% weight)</span></p>
+              <p><span className="terminal-text--green">DEEP REASONING BENCHMARKS (30% weight) - DAILY AT 3AM</span></p>
               <p>• <strong>Complex multi-step challenges</strong> requiring advanced cognition</p>
               <p>• Specification compliance with real JWT implementation</p>
               <p>• IDE assistant tasks with actual file editing and debugging</p>
