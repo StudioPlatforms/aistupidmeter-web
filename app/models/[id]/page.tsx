@@ -602,7 +602,7 @@ export default function ModelDetailPage() {
     // Responsive chart dimensions
     const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     const chartWidth = isMobile ? 350 : 600;
-    const chartHeight = isMobile ? 200 : 300;
+    const chartHeight = isMobile ? 240 : 300; // Increased mobile height to accommodate timeline text
     const padding = isMobile ? 30 : 40;
     const fontSize = isMobile ? 8 : 10;
     const strokeWidth = isMobile ? 2 : 3;
@@ -676,7 +676,7 @@ export default function ModelDetailPage() {
           })}
           
           {/* Axis labels */}
-          <text x={chartWidth/2} y={chartHeight - 10} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold">
+          <text x={chartWidth/2} y={chartHeight - (isMobile ? 15 : 10)} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold">
             Timeline ({period.toUpperCase()})
           </text>
           <text x={20} y={chartHeight/2} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold" transform={`rotate(-90, 20, ${chartHeight/2})`}>
