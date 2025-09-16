@@ -1165,8 +1165,9 @@ export default function ModelDetailPage() {
               else pricing = { input: 5, output: 15 };
             } else if (prov === 'google') {
               if (name.includes('2.5-pro')) pricing = { input: 1.25, output: 5 };
-              else if (name.includes('2.5-flash')) pricing = { input: 0.075, output: 0.3 };
-              else if (name.includes('2.5-flash-lite')) pricing = { input: 0.075, output: 0.3 };
+              // FIXED: Corrected Gemini 2.5 Flash and Flash-Lite pricing based on latest Google AI pricing
+              else if (name.includes('2.5-flash-lite')) pricing = { input: 0.10, output: 0.40 };
+              else if (name.includes('2.5-flash')) pricing = { input: 0.30, output: 2.50 };
               else pricing = { input: 2, output: 6 };
             } else {
               pricing = { input: 3, output: 10 };

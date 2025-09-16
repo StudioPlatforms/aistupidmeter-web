@@ -705,27 +705,33 @@ export default function Dashboard() {
     return nameMap[name.toLowerCase()] || name.toUpperCase();
   };
 
-  // Helper function to get model pricing (cost per 1M tokens) - Updated with realistic pricing
+  // Helper function to get model pricing (cost per 1M tokens) - Updated with latest Google AI pricing
   const getModelPricing = (modelName: string, provider: string): { input: number; output: number } => {
     const name = modelName.toLowerCase();
     const prov = provider.toLowerCase();
     
-    // Updated pricing based on actual 2025 rates (USD per 1M tokens)
-    if (prov === 'openai') {
-      if (name.includes('gpt-5') && name.includes('turbo')) return { input: 5, output: 15 };
-      if (name.includes('gpt-5')) return { input: 8, output: 24 };
-      if (name.includes('o3-pro')) return { input: 60, output: 240 };  
-      if (name.includes('o3-mini')) return { input: 3.5, output: 14 };
-      if (name.includes('o3')) return { input: 15, output: 60 };
-      if (name.includes('gpt-4o') && name.includes('mini')) return { input: 0.15, output: 0.6 };
-      if (name.includes('gpt-4o')) return { input: 2.5, output: 10 };
-      return { input: 3, output: 9 }; // Default OpenAI
-    }
+  // FIXED: Updated pricing based on latest 2025 rates from official sources (USD per 1M tokens)
+  if (prov === 'openai') {
+    // GPT-5 series - corrected pricing based on official OpenAI pricing
+    if (name.includes('gpt-5') && name.includes('nano')) return { input: 0.05, output: 0.40 };
+    if (name.includes('gpt-5') && name.includes('mini')) return { input: 0.25, output: 2.00 };
+    if (name.includes('gpt-5')) return { input: 1.25, output: 10.00 }; // FIXED: Official GPT-5 pricing
+    // O3 series
+    if (name.includes('o3-pro')) return { input: 60, output: 240 };
+    if (name.includes('o3-mini')) return { input: 3.5, output: 14 };
+    if (name.includes('o3')) return { input: 15, output: 60 };
+    // GPT-4 series
+    if (name.includes('gpt-4o') && name.includes('mini')) return { input: 0.15, output: 0.6 };
+    if (name.includes('gpt-4o')) return { input: 3.00, output: 12.00 }; // FIXED: Official GPT-4o pricing
+    return { input: 3, output: 9 }; // Default OpenAI
+  }
     
     if (prov === 'anthropic') {
-      if (name.includes('opus-4')) return { input: 8, output: 40 };
-      if (name.includes('sonnet-4')) return { input: 3, output: 15 };
+      // Claude 4 series - corrected pricing based on official rates
+      if (name.includes('opus-4')) return { input: 15, output: 75 }; // FIXED: Official pricing
+      if (name.includes('sonnet-4')) return { input: 3, output: 15 }; // Standard rate (≤200K tokens)
       if (name.includes('haiku-4')) return { input: 0.25, output: 1.25 };
+      // Claude 3.5 series
       if (name.includes('3-5-sonnet')) return { input: 3, output: 15 };
       if (name.includes('3-5-haiku')) return { input: 0.25, output: 1.25 };
       return { input: 3, output: 15 }; // Default Anthropic
@@ -738,9 +744,12 @@ export default function Dashboard() {
     }
     
     if (prov === 'google') {
-      if (name.includes('2.5-pro')) return { input: 1.25, output: 5 };
-      if (name.includes('2.5-flash')) return { input: 0.075, output: 0.3 };
-      if (name.includes('2.5-flash-lite')) return { input: 0.075, output: 0.3 };
+      // Gemini 2.5 series - corrected pricing  
+      if (name.includes('2.5-pro')) return { input: 1.25, output: 10.00 }; // Fixed from 5 to 10.00
+      // FIXED: Corrected Gemini 2.5 Flash and Flash-Lite pricing based on latest Google AI pricing
+      if (name.includes('2.5-flash-lite')) return { input: 0.10, output: 0.40 };
+      if (name.includes('2.5-flash')) return { input: 0.30, output: 2.50 };
+      // Gemini 1.5 series
       if (name.includes('1.5-pro')) return { input: 1.25, output: 5 };
       if (name.includes('1.5-flash')) return { input: 0.075, output: 0.3 };
       return { input: 1, output: 3 }; // Default Google
