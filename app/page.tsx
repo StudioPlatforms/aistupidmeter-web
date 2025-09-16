@@ -615,8 +615,13 @@ export default function Dashboard() {
   // Check for welcome popup on first visit and load preferences
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('stupidmeter-welcome-seen');
+    const hasConsentPreference = localStorage.getItem('gdpr-consent');
+
     if (!hasSeenWelcome) {
-      setShowWelcomePopup(true);
+      setShowWelcomePopup(true); // Full popup for brand new users
+    } else if (!hasConsentPreference) {
+      setShowWelcomePopup(true);   // Just privacy step for returning users
+      setWelcomeStep('privacy');   // Skip straight to consent question
     }
     
     // Load stupid meter mode preference
