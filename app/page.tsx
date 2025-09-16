@@ -86,6 +86,7 @@ export default function Dashboard() {
   
   // Welcome popup state
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
+  const [welcomeStep, setWelcomeStep] = useState<'updates' | 'privacy' | 'completed'>('updates');
 
   // Smart caching system for leaderboard data
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
@@ -625,10 +626,38 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Handle welcome popup close
-  const handleWelcomePopupClose = () => {
+  // Handle welcome popup steps
+  const handleWelcomeStep = (step: 'updates' | 'privacy' | 'completed') => {
+    setWelcomeStep(step);
+  };
+
+  const updateGoogleConsent = (accepted: boolean) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('consent', 'update', {
+        'analytics_storage': accepted ? 'granted' : 'denied',
+        'ad_storage': accepted ? 'granted' : 'denied',
+        'functionality_storage': accepted ? 'granted' : 'denied',
+        'personalization_storage': accepted ? 'granted' : 'denied',
+      });
+    }
+  };
+
+  const handleAcceptAnalytics = () => {
+    localStorage.setItem('gdpr-consent', 'accepted');
+    updateGoogleConsent(true);
+    setWelcomeStep('completed');
+  };
+
+  const handleDeclineAnalytics = () => {
+    localStorage.setItem('gdpr-consent', 'declined');
+    updateGoogleConsent(false);
+    setWelcomeStep('completed');
+  };
+
+  const handleCompleteWelcome = () => {
     localStorage.setItem('stupidmeter-welcome-seen', 'true');
     setShowWelcomePopup(false);
+    setWelcomeStep('updates'); // Reset for next time
   };
 
   // Generate ticker content immediately when any data becomes available
@@ -3260,7 +3289,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Welcome Popup - One Time Only */}
+      {/* Welcome Popup - Two-Step Process */}
       {showWelcomePopup && (
         <div style={{
           position: 'fixed',
@@ -3284,92 +3313,209 @@ export default function Dashboard() {
             boxShadow: '0 0 20px var(--phosphor-green)'
           }}>
             <div className="terminal-text">
-              <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
-                <span className="terminal-text--green">🎉 NEW FEATURES UPDATE!</span>
-                <span className="blinking-cursor"></span>
-              </div>
-              
-              <div style={{ marginBottom: '24px', lineHeight: '1.6' }}>
-                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '16px' }}>
-                  ✨ What's New in Stupid Meter:
-                </div>
-                
-                <div style={{ marginBottom: '16px' }}>
-                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                    🔥 COMBINED Scoring
+              {welcomeStep === 'updates' && (
+                <>
+                  <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                    <span className="terminal-text--green">🎉 NEW FEATURES UPDATE!</span>
+                    <span className="blinking-cursor"></span>
                   </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                    Smart blend of speed benchmarks + deep reasoning challenges for better AI rankings
-                  </div>
-                </div>
+                  
+                  <div style={{ marginBottom: '24px', lineHeight: '1.6' }}>
+                    <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '16px' }}>
+                      ✨ What's New in Stupid Meter:
+                    </div>
+                    
+                    <div style={{ marginBottom: '16px' }}>
+                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                        🔥 COMBINED Scoring
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                        Smart blend of speed benchmarks + deep reasoning challenges for better AI rankings
+                      </div>
+                    </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                    🧠 REASONING Mode
-                  </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                    See which AI models excel at complex multi-step problem solving
-                  </div>
-                </div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                        🧠 REASONING Mode
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                        See which AI models excel at complex multi-step problem solving
+                      </div>
+                    </div>
 
-                <div style={{ marginBottom: '16px' }}>
-                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                    ⚡ 7AXIS Mode
-                  </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                    Traditional speed benchmarks for rapid coding and efficiency rankings
-                  </div>
-                </div>
+                    <div style={{ marginBottom: '16px' }}>
+                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                        ⚡ 7AXIS Mode
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                        Traditional speed benchmarks for rapid coding and efficiency rankings
+                      </div>
+                    </div>
 
-                <div style={{ marginBottom: '20px' }}>
-                  <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                    💰 PRICE Mode
-                  </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                    Compare value-for-money with real pricing and performance-per-dollar metrics
-                  </div>
-                </div>
+                    <div style={{ marginBottom: '20px' }}>
+                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                        💰 PRICE Mode
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                        Compare value-for-money with real pricing and performance-per-dollar metrics
+                      </div>
+                    </div>
 
-                <div style={{ 
-                  padding: '16px', 
-                  backgroundColor: 'rgba(255, 165, 0, 0.1)', 
-                  border: '1px solid rgba(255, 165, 0, 0.4)',
-                  borderRadius: '4px',
-                  marginTop: '20px'
-                }}>
-                  <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px', textAlign: 'center' }}>
-                    ☕ Support Our Work!
+                    <div style={{ 
+                      padding: '16px', 
+                      backgroundColor: 'rgba(255, 165, 0, 0.1)', 
+                      border: '1px solid rgba(255, 165, 0, 0.4)',
+                      borderRadius: '4px',
+                      marginTop: '20px'
+                    }}>
+                      <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px', textAlign: 'center' }}>
+                        ☕ Support Our Work!
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', textAlign: 'center' }}>
+                        Help us keep Stupid Meter ad-free for everyone by{' '}
+                        <a 
+                          href="https://buymeacoffee.com/goatgamedev" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ 
+                            color: 'var(--phosphor-green)', 
+                            textDecoration: 'none',
+                            fontWeight: 'bold'
+                          }}
+                          onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--amber-warning)'}
+                          onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
+                        >
+                          buying us a coffee
+                        </a>
+                        ! Your support means the world to us.
+                      </div>
+                    </div>
                   </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', textAlign: 'center' }}>
-                    Help us keep Stupid Meter ad-free for everyone by{' '}
-                    <a 
-                      href="https://buymeacoffee.com/goatgamedev" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{ 
-                        color: 'var(--phosphor-green)', 
-                        textDecoration: 'none',
-                        fontWeight: 'bold'
-                      }}
-                      onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--amber-warning)'}
-                      onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <button 
+                      onClick={() => handleWelcomeStep('privacy')}
+                      className="vintage-btn vintage-btn--active"
+                      style={{ padding: '12px 32px', fontSize: '1.1em' }}
                     >
-                      buying us a coffee
-                    </a>
-                    ! Your support means the world to us.
+                      CONTINUE
+                    </button>
                   </div>
-                </div>
-              </div>
-              
-              <div style={{ textAlign: 'center' }}>
-                <button 
-                  onClick={handleWelcomePopupClose}
-                  className="vintage-btn vintage-btn--active"
-                  style={{ padding: '12px 32px', fontSize: '1.1em' }}
-                >
-                  GOT IT! LET'S GO
-                </button>
-              </div>
+                </>
+              )}
+
+              {welcomeStep === 'privacy' && (
+                <>
+                  <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                    <span className="terminal-text--amber">🍪 PRIVACY NOTICE</span>
+                    <span className="blinking-cursor"></span>
+                  </div>
+                  
+                  <div style={{ marginBottom: '24px', lineHeight: '1.6' }}>
+                    <div className="terminal-text--green" style={{ marginBottom: '12px' }}>
+                      🔐 Your Privacy is Protected:
+                    </div>
+                    <div className="terminal-text--dim" style={{ fontSize: '0.95em', marginBottom: '16px' }}>
+                      We use Google Analytics to improve our AI benchmarking tool. This helps us understand usage patterns and optimize performance. 
+                      We <strong>anonymize IP addresses</strong> and <strong>disable advertising features</strong> to protect your privacy.
+                    </div>
+                    <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px' }}>
+                      By accepting, you consent to analytics cookies. You can change your preference anytime.
+                    </div>
+                    
+                    <div style={{ 
+                      padding: '12px', 
+                      backgroundColor: 'rgba(0, 255, 65, 0.05)', 
+                      border: '1px solid rgba(0, 255, 65, 0.3)',
+                      borderRadius: '4px',
+                      fontSize: '0.85em'
+                    }}>
+                      <div className="terminal-text--green" style={{ marginBottom: '8px' }}>
+                        📋 What we collect:
+                      </div>
+                      <ul style={{ marginLeft: '20px', marginBottom: '8px' }}>
+                        <li className="terminal-text--dim">Page views and user interactions</li>
+                        <li className="terminal-text--dim">Performance metrics (anonymized)</li>
+                        <li className="terminal-text--dim">General location data (country level)</li>
+                      </ul>
+                      <div className="terminal-text--red" style={{ marginBottom: '4px' }}>
+                        ❌ What we DON'T collect:
+                      </div>
+                      <ul style={{ marginLeft: '20px' }}>
+                        <li className="terminal-text--dim">Personal information or emails</li>
+                        <li className="terminal-text--dim">Your API keys or test results</li>
+                        <li className="terminal-text--dim">Advertising profiles or tracking</li>
+                      </ul>
+                    </div>
+                    
+                    <div style={{ marginTop: '16px', fontSize: '0.8em' }}>
+                      <a 
+                        href="/privacy" 
+                        className="terminal-text--green"
+                        style={{ textDecoration: 'underline', marginRight: '16px' }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Privacy Policy
+                      </a>
+                      <a 
+                        href="https://policies.google.com/privacy" 
+                        className="terminal-text--green"
+                        style={{ textDecoration: 'underline' }}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Google Privacy Policy
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button 
+                      onClick={handleDeclineAnalytics}
+                      className="vintage-btn"
+                      style={{ padding: '8px 24px' }}
+                    >
+                      DECLINE ANALYTICS
+                    </button>
+                    <button 
+                      onClick={handleAcceptAnalytics}
+                      className="vintage-btn vintage-btn--active"
+                      style={{ padding: '8px 24px' }}
+                    >
+                      ACCEPT ANALYTICS
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {welcomeStep === 'completed' && (
+                <>
+                  <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                    <span className="terminal-text--green">✅ ALL SET!</span>
+                    <span className="blinking-cursor"></span>
+                  </div>
+                  
+                  <div style={{ marginBottom: '24px', lineHeight: '1.6', textAlign: 'center' }}>
+                    <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px' }}>
+                      🚀 Welcome to Stupid Meter!
+                    </div>
+                    <div className="terminal-text--dim" style={{ fontSize: '0.95em' }}>
+                      Thank you for your privacy preferences. You're now ready to explore our AI model rankings and intelligence monitoring system.
+                    </div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'center' }}>
+                    <button 
+                      onClick={handleCompleteWelcome}
+                      className="vintage-btn vintage-btn--active"
+                      style={{ padding: '12px 32px', fontSize: '1.1em' }}
+                    >
+                      START EXPLORING
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -121,6 +121,41 @@ export default function RootLayout({
         <meta name="theme-color" content="#00ff41" />
         <meta name="color-scheme" content="dark" />
         
+        {/* Google Analytics */}
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <script
+              async
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  
+                  // Initialize with consent mode defaults
+                  gtag('consent', 'default', {
+                    'analytics_storage': 'denied',
+                    'ad_storage': 'denied',
+                    'functionality_storage': 'denied',
+                    'personalization_storage': 'denied',
+                    'security_storage': 'granted',
+                    'wait_for_update': 500,
+                  });
+                  
+                  gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
+                    anonymize_ip: true,
+                    allow_google_signals: false,
+                    allow_ad_personalization_signals: false
+                  });
+                `,
+              }}
+            />
+          </>
+        )}
+        
         {/* Enhanced Structured Data for AI/Search Engines */}
         <script
           type="application/ld+json"
@@ -234,7 +269,9 @@ export default function RootLayout({
         {/* Preload critical resources */}
         <link rel="preload" href="/styles/vintage.css" as="style" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+      </body>
     </html>
   )
 }
