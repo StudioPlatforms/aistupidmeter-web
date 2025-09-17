@@ -324,106 +324,109 @@ export default function Dashboard() {
     }
   };
 
-  // Silent background data fetch without loading indicators - now with smart cache invalidation
+  // Silent background data fetch without loading indicators - FIXED: No loading state changes
   const fetchDataSilently = async () => {
-    if (backgroundUpdating) return;
+    if (backgroundUpdating) {
+      console.log('⏸️ Silent refresh already in progress, skipping...');
+      return;
+    }
     
     setBackgroundUpdating(true);
     try {
+      // FIXED: Store current user selections to prevent them from being overridden
+      const currentPeriod = leaderboardPeriod;
+      const currentSortBy = leaderboardSortBy;
+      const currentAnalyticsPeriod = analyticsPeriod;
+      
+      // Try to use cached endpoint for instant updates first
+      console.log(`⚡ Silent refresh: trying cached endpoint for ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod}`);
+      
+      // FIXED: Don't modify any loading states during silent refresh
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const cacheUrl = `${apiUrl}/dashboard/cached?period=${currentPeriod}&sortBy=${currentSortBy}&analyticsPeriod=${currentAnalyticsPeriod}`;
       
-      // Force refresh all cached leaderboard data to get latest hourly updates
-      const cacheInvalidationTasks: Promise<void>[] = [];
+      const response = await fetch(cacheUrl);
+      const result = await response.json();
       
-      // Invalidate all cached combinations by fetching them fresh
-      const periods = ['latest', '24h', '7d', '1m'];
-      const sortTypes = ['combined', 'reasoning', 'speed', 'price'];
-      
-      periods.forEach(period => {
-        sortTypes.forEach(sortType => {
-          const cacheKey = getCacheKey(period, sortType);
-          const cached = leaderboardCache.get(cacheKey);
+      if (result.success && result.data) {
+        console.log(`✅ Silent refresh: received cached data from ${result.meta?.cachedAt || 'unknown time'}`);
+        
+        // Extract all the data components
+        const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
+        
+        // Track score changes BEFORE updating state
+        const newChangedScores = new Set<string>();
+        const newPreviousScores = new Map<string, number>();
+        
+        // Batch all state updates to avoid multiple re-renders
+        const stateUpdates: any = {};
+        
+        if (modelScores && Array.isArray(modelScores)) {
+          const processedScores = modelScores.map((score: any) => ({
+            ...score,
+            lastUpdated: new Date(score.lastUpdated),
+            history: score.history || []
+          }));
           
-          // Only refresh if we had cached data (avoid unnecessary requests)
-          if (cached) {
-            cacheInvalidationTasks.push(
-              fetch(`${apiUrl}/api/dashboard/scores?period=${period}&sortBy=${sortType}`)
-                .then(response => response.json())
-                .then(data => {
-                  if (data.success) {
-                    const processedScores = data.data.map((score: any) => ({
-                      ...score,
-                      lastUpdated: new Date(score.lastUpdated),
-                      history: score.history || []
-                    }));
-                    
-                    // Update cache with fresh data
-                    const newCache = new Map(leaderboardCache);
-                    newCache.set(cacheKey, {
-                      data: processedScores,
-                      timestamp: Date.now(),
-                      period,
-                      sortBy: sortType
-                    });
-                    setLeaderboardCache(newCache);
-                    
-                    // If this matches current view, update the display
-                    if (period === leaderboardPeriod && sortType === leaderboardSortBy) {
-                      setModelScores(processedScores);
-                    }
-                    
-                    console.log(`Refreshed cache for ${cacheKey}`);
-                  }
-                })
-                .catch(error => console.error(`Failed to refresh cache for ${cacheKey}:`, error))
-            );
-          }
+          // Track score changes for highlighting
+          processedScores.forEach((newModel: any) => {
+            const prevScore = previousScores.get(newModel.id);
+            const currentScore = typeof newModel.currentScore === 'number' ? newModel.currentScore : null;
+            
+            if (prevScore !== undefined && currentScore !== null && Math.abs(prevScore - currentScore) >= 1) {
+              newChangedScores.add(newModel.id);
+            }
+            
+            if (currentScore !== null) {
+              newPreviousScores.set(newModel.id, currentScore);
+            }
+          });
+          
+          stateUpdates.modelScores = processedScores;
+          console.log(`⚡ Silent refresh: prepared ${processedScores.length} models for batch update`);
+        }
+        
+        // Prepare all other data components for batch update
+        if (alerts) stateUpdates.alerts = alerts;
+        if (globalIndex) stateUpdates.globalIndex = globalIndex;
+        if (degradations) stateUpdates.degradations = degradations;
+        if (recommendations) stateUpdates.recommendations = recommendations;
+        if (transparencyMetrics) stateUpdates.transparencyMetrics = transparencyMetrics;
+        if (providerReliability) stateUpdates.providerReliability = providerReliability;
+        
+        // BATCH STATE UPDATES - Use requestAnimationFrame to prevent UI blocking
+        requestAnimationFrame(() => {
+          // Update all states in a single render cycle
+          if (stateUpdates.modelScores) setModelScores(stateUpdates.modelScores);
+          if (stateUpdates.alerts) setAlerts(stateUpdates.alerts);
+          if (stateUpdates.globalIndex) setGlobalIndex(stateUpdates.globalIndex);
+          if (stateUpdates.degradations) setDegradations(stateUpdates.degradations);
+          if (stateUpdates.recommendations) setRecommendations(stateUpdates.recommendations);
+          if (stateUpdates.transparencyMetrics) setTransparencyMetrics(stateUpdates.transparencyMetrics);
+          if (stateUpdates.providerReliability) setProviderReliability(stateUpdates.providerReliability);
+          
+          // Update tracking state
+          setPreviousScores(newPreviousScores);
+          setChangedScores(newChangedScores);
+          setLastUpdateTime(new Date());
         });
-      });
-      
-      // Wait for cache invalidation tasks to complete
-      await Promise.allSettled(cacheInvalidationTasks);
-      
-      // Update current view if we don't have fresh cached data
-      const currentCacheKey = getCacheKey(leaderboardPeriod, leaderboardSortBy);
-      const currentCached = leaderboardCache.get(currentCacheKey);
-      if (!currentCached || !isCacheValid(currentCached.timestamp)) {
-        await fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy, true);
-      }
-      
-      // Track score changes for highlighting (using current displayed data)
-      const newChangedScores = new Set<string>();
-      const newPreviousScores = new Map<string, number>();
-      
-      modelScores.forEach((newModel: any) => {
-        const prevScore = previousScores.get(newModel.id);
-        const currentScore = typeof newModel.currentScore === 'number' ? newModel.currentScore : null;
         
-        if (prevScore !== undefined && currentScore !== null && Math.abs(prevScore - currentScore) >= 1) {
-          newChangedScores.add(newModel.id);
+        // Clear changed highlights after 10 seconds
+        if (newChangedScores.size > 0) {
+          setTimeout(() => {
+            setChangedScores(new Set());
+          }, 10000);
         }
         
-        if (currentScore !== null) {
-          newPreviousScores.set(newModel.id, currentScore);
-        }
-      });
-      
-      setPreviousScores(newPreviousScores);
-      setChangedScores(newChangedScores);
-      setLastUpdateTime(new Date());
-      
-      // Clear changed highlights after 10 seconds
-      if (newChangedScores.size > 0) {
-        setTimeout(() => {
-          setChangedScores(new Set());
-        }, 10000);
+        console.log('🚀 Silent refresh completed successfully without UI disruption!');
+      } else {
+        console.warn(`⚠️ Silent refresh cache miss: ${result.message || result.error}`);
+        // Don't fallback during silent refresh to avoid loading indicators
       }
-      
-      // Also refresh analytics data silently using the analytics function
-      await fetchAnalyticsData(analyticsPeriod, leaderboardSortBy, true); // true = silent mode
       
     } catch (error) {
       console.error('Silent background update failed:', error);
+      // Silently fail - don't disrupt user experience
     } finally {
       setBackgroundUpdating(false);
     }
@@ -2829,13 +2832,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Active Degradations */}
-          {degradations.length > 0 && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
-                <span className="terminal-text--red">🚨 ACTIVE DEGRADATIONS</span>
-              </div>
-              {degradations.slice(0, 3).map((degradation, index) => (
+          {/* Active Degradations - Always show header, provide fallbacks */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+              <span className="terminal-text--red">🚨 ACTIVE DEGRADATIONS</span>
+            </div>
+            {degradations && degradations.length > 0 ? (
+              degradations.slice(0, 3).map((degradation, index) => (
                 <div key={index} 
                      style={{ 
                        marginBottom: '6px', 
@@ -2847,77 +2850,152 @@ export default function Dashboard() {
                      }}
                      onClick={() => router.push(`/models/${degradation.modelId}`)}>
                   <span className={degradation.severity === 'critical' ? 'terminal-text--red' : 'terminal-text--amber'}>
-                    {degradation.modelName.toUpperCase()} ({getProviderName(degradation.provider)})
+                    {degradation.modelName?.toUpperCase() || 'UNKNOWN MODEL'} ({getProviderName(degradation.provider)})
                   </span>
                   <span className="terminal-text--dim" style={{ marginLeft: '8px' }}>
-                    {degradation.message}
+                    {degradation.message || 'Performance degradation detected'}
                   </span>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            ) : (
+              <div style={{ 
+                padding: '12px', 
+                border: '1px solid rgba(0, 255, 65, 0.3)',
+                backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                fontSize: '0.85em',
+                textAlign: 'center'
+              }}>
+                <span className="terminal-text--green">✅ No active degradations detected</span>
+                <br/>
+                <span className="terminal-text--dim" style={{ fontSize: '0.8em' }}>All monitored models performing within expected ranges</span>
+              </div>
+            )}
+          </div>
 
-          {/* Smart Recommendations */}
-          {recommendations && (
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
-                <span className="terminal-text--amber">🎯 SMART RECOMMENDATIONS</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
-                {recommendations.bestForCode && (
-                  <div style={{ 
-                    padding: '8px', 
-                    border: '1px solid rgba(0, 255, 65, 0.3)',
-                    backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                    fontSize: '0.85em'
-                  }}>
-                    <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                      Best for Code: {recommendations.bestForCode.name.toUpperCase()}
-                    </div>
-                    <div className="terminal-text--dim">{recommendations.bestForCode.reason}</div>
+          {/* Smart Recommendations - Always show, provide comprehensive fallbacks */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+              <span className="terminal-text--amber">🎯 SMART RECOMMENDATIONS</span>
+              <span className="terminal-text--dim" style={{ fontSize: '0.8em', marginLeft: '8px' }}>
+                (Based on {leaderboardSortBy.toUpperCase()} performance)
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
+              {/* Best for Code */}
+              {recommendations?.bestForCode ? (
+                <div style={{ 
+                  padding: '8px', 
+                  border: '1px solid rgba(0, 255, 65, 0.3)',
+                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  fontSize: '0.85em'
+                }}>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
+                    Best for Code: {recommendations.bestForCode.name?.toUpperCase() || 'UNKNOWN'}
                   </div>
-                )}
-                {recommendations.mostReliable && (
-                  <div style={{ 
-                    padding: '8px', 
-                    border: '1px solid rgba(0, 255, 65, 0.3)',
-                    backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                    fontSize: '0.85em'
-                  }}>
-                    <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                      Most Reliable: {recommendations.mostReliable.name.toUpperCase()}
+                  <div className="terminal-text--dim">{recommendations.bestForCode.reason || `${recommendations.bestForCode.score || 0}% performance rating`}</div>
+                  {recommendations.bestForCode.correctness && (
+                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                      Correctness: {recommendations.bestForCode.correctness}% • Quality: {recommendations.bestForCode.codeQuality || 'N/A'}%
                     </div>
-                    <div className="terminal-text--dim">{recommendations.mostReliable.reason}</div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ 
+                  padding: '8px', 
+                  border: '1px solid rgba(255, 176, 0, 0.3)',
+                  backgroundColor: 'rgba(255, 176, 0, 0.05)',
+                  fontSize: '0.85em'
+                }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
+                    Best for Code: Analyzing...
                   </div>
-                )}
-                {recommendations.fastestResponse && (
-                  <div style={{ 
-                    padding: '8px', 
-                    border: '1px solid rgba(0, 255, 65, 0.3)',
-                    backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                    fontSize: '0.85em'
-                  }}>
-                    <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                      Fastest: {recommendations.fastestResponse.name.toUpperCase()}
+                  <div className="terminal-text--dim">Evaluating models for coding performance</div>
+                </div>
+              )}
+
+              {/* Most Reliable */}
+              {recommendations?.mostReliable ? (
+                <div style={{ 
+                  padding: '8px', 
+                  border: '1px solid rgba(0, 255, 65, 0.3)',
+                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  fontSize: '0.85em'
+                }}>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
+                    Most Reliable: {recommendations.mostReliable.name?.toUpperCase() || 'UNKNOWN'}
+                  </div>
+                  <div className="terminal-text--dim">{recommendations.mostReliable.reason || `${recommendations.mostReliable.score || 0}% performance rating`}</div>
+                  {recommendations.mostReliable.stabilityScore && (
+                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                      Stability: {recommendations.mostReliable.stabilityScore}%
                     </div>
-                    <div className="terminal-text--dim">{recommendations.fastestResponse.reason}</div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ 
+                  padding: '8px', 
+                  border: '1px solid rgba(255, 176, 0, 0.3)',
+                  backgroundColor: 'rgba(255, 176, 0, 0.05)',
+                  fontSize: '0.85em'
+                }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
+                    Most Reliable: Analyzing...
                   </div>
-                )}
-              </div>
-              {recommendations.avoidNow && recommendations.avoidNow.length > 0 && (
-                <div style={{ marginTop: '8px' }}>
-                  <div className="terminal-text--red" style={{ fontSize: '0.95em', marginBottom: '4px' }}>
-                    ⚠️ Avoid Now:
+                  <div className="terminal-text--dim">Evaluating consistency metrics</div>
+                </div>
+              )}
+
+              {/* Fastest Response */}
+              {recommendations?.fastestResponse ? (
+                <div style={{ 
+                  padding: '8px', 
+                  border: '1px solid rgba(0, 255, 65, 0.3)',
+                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  fontSize: '0.85em'
+                }}>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
+                    Fastest: {recommendations.fastestResponse.name?.toUpperCase() || 'UNKNOWN'}
                   </div>
-                  {recommendations.avoidNow.slice(0, 2).map((model: any, index: number) => (
-                    <div key={index} className="terminal-text--amber" style={{ fontSize: '0.85em', marginLeft: '16px' }}>
-                      • {model.name.toUpperCase()} - {model.reason}
+                  <div className="terminal-text--dim">{recommendations.fastestResponse.reason || `${recommendations.fastestResponse.responseTime || 'Unknown'}ms average response time`}</div>
+                  {recommendations.fastestResponse.score && (
+                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                      Performance: {recommendations.fastestResponse.score}%
                     </div>
-                  ))}
+                  )}
+                </div>
+              ) : (
+                <div style={{ 
+                  padding: '8px', 
+                  border: '1px solid rgba(255, 176, 0, 0.3)',
+                  backgroundColor: 'rgba(255, 176, 0, 0.05)',
+                  fontSize: '0.85em'
+                }}>
+                  <div className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
+                    Fastest: Analyzing...
+                  </div>
+                  <div className="terminal-text--dim">Measuring response times</div>
                 </div>
               )}
             </div>
-          )}
+            
+            {/* Avoid Now Section */}
+            <div style={{ marginTop: '12px' }}>
+              <div className="terminal-text--red" style={{ fontSize: '0.95em', marginBottom: '6px' }}>
+                ⚠️ Avoid Now:
+              </div>
+              {recommendations?.avoidNow && recommendations.avoidNow.length > 0 ? (
+                recommendations.avoidNow.slice(0, 3).map((model: any, index: number) => (
+                  <div key={index} className="terminal-text--amber" style={{ fontSize: '0.85em', marginLeft: '16px', marginBottom: '2px' }}>
+                    • {model.name?.toUpperCase() || 'UNKNOWN'} - {model.reason || `Low performance score (${model.score || 'N/A'}/100)`}
+                  </div>
+                ))
+              ) : (
+                <div className="terminal-text--green" style={{ fontSize: '0.85em', marginLeft: '16px' }}>
+                  • No models currently flagged for avoidance
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Provider Trust Scores */}
           {providerReliability.length > 0 && (
@@ -3039,7 +3117,7 @@ export default function Dashboard() {
             </div>
             <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '4px' }}>
               {globalIndex ? 
-                `${globalIndex.performingWell}/${globalIndex.totalModels} models performing well` :
+                `${globalIndex.performingWell || globalIndex.current?.performingWell || 0}/${globalIndex.totalModels || globalIndex.current?.totalModels || 0} models performing well` :
                 `${modelScores.filter(m => m.status === 'excellent' || m.status === 'good').length}/${modelScores.length} models performing well`
               }
             </div>
@@ -3047,7 +3125,7 @@ export default function Dashboard() {
         </div>
 
         {/* Historical 6-hour breakdown */}
-        {globalIndex && globalIndex.history && (
+        {globalIndex && globalIndex.history && globalIndex.history.length > 0 && (
           <div style={{ marginTop: '20px', borderTop: '1px solid rgba(0, 255, 65, 0.3)', paddingTop: '16px' }}>
             <div className="terminal-text--dim" style={{ textAlign: 'center', fontSize: '0.9em', marginBottom: '12px' }}>
               📊 PAST 24 HOURS BREAKDOWN
@@ -3081,7 +3159,7 @@ export default function Dashboard() {
         )}
 
         <div className="terminal-text--dim" style={{ textAlign: 'center', fontSize: '0.8em', marginTop: '16px' }}>
-          Based on {globalIndex ? globalIndex.totalModels : modelScores.length} monitored models 
+          Based on {globalIndex ? globalIndex.current.totalModels : modelScores.length} monitored models 
         </div>
       </div>
 
