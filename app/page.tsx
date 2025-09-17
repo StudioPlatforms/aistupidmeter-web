@@ -286,12 +286,15 @@ export default function Dashboard() {
   const [testLogs, setTestLogs] = useState<string[]>([]);
 
   // Fetch analytics data - now includes sortBy parameter for mode-specific recommendations
-  const fetchAnalyticsData = async (period?: 'latest' | '24h' | '7d' | '1m', sortBy?: string) => {
+  const fetchAnalyticsData = async (period?: 'latest' | '24h' | '7d' | '1m', sortBy?: string, silent: boolean = false) => {
     // Use the passed period or fall back to current state
     const selectedPeriod = period || analyticsPeriod;
     const selectedSortBy = sortBy || leaderboardSortBy;
     
-    setLoadingAnalytics(true);
+    // Only show loading indicators if not in silent mode
+    if (!silent) {
+      setLoadingAnalytics(true);
+    }
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       
@@ -314,7 +317,10 @@ export default function Dashboard() {
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
-      setLoadingAnalytics(false);
+      // Only clear loading indicators if not in silent mode
+      if (!silent) {
+        setLoadingAnalytics(false);
+      }
     }
   };
 
@@ -413,21 +419,8 @@ export default function Dashboard() {
         }, 10000);
       }
       
-      // Also refresh analytics data silently (could add caching here too)
-      const analyticsResponses = await Promise.all([
-        fetch(`${apiUrl}/api/analytics/degradations?period=${analyticsPeriod}`),
-        fetch(`${apiUrl}/api/analytics/recommendations?period=${analyticsPeriod}`),
-        fetch(`${apiUrl}/api/analytics/transparency?period=${analyticsPeriod}`)
-      ]);
-      
-      // Update analytics
-      const [degradationData, recommendationsData, transparencyData] = await Promise.all(
-        analyticsResponses.map(r => r.json())
-      );
-      
-      if (degradationData.success) setDegradations(degradationData.data);
-      if (recommendationsData.success) setRecommendations(recommendationsData.data);
-      if (transparencyData.success) setTransparencyMetrics(transparencyData.data);
+      // Also refresh analytics data silently using the analytics function
+      await fetchAnalyticsData(analyticsPeriod, leaderboardSortBy, true); // true = silent mode
       
     } catch (error) {
       console.error('Silent background update failed:', error);
@@ -443,32 +436,76 @@ export default function Dashboard() {
     return Date.now() - timestamp < maxAgeMinutes * 60 * 1000;
   };
 
-  // Fetch leaderboard data with smart caching
-  const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'price' = leaderboardSortBy, forceRefresh: boolean = false) => {
-    const cacheKey = getCacheKey(period, sortBy);
+  // Fetch all dashboard data from cached endpoints - INSTANT loading!
+  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false) => {
+    console.log(`⚡ Fetching cached dashboard data: ${period}/${sortBy}/${analyticsP}`);
     
-    // Check cache first unless forcing refresh
-    if (!forceRefresh) {
-      const cached = leaderboardCache.get(cacheKey);
-      if (cached && isCacheValid(cached.timestamp)) {
-        // Use cached data instantly - no loading state needed!
-        console.log(`Using cached data for ${cacheKey}`);
-        setModelScores(cached.data);
+    try {
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const cacheUrl = `${apiUrl}/dashboard/cached?period=${period}&sortBy=${sortBy}&analyticsPeriod=${analyticsP}`;
+      console.log(`🚀 Trying cache URL: ${cacheUrl}`);
+      const response = await fetch(cacheUrl);
+      const result = await response.json();
+      console.log(`📊 Cache response:`, result);
+      
+      if (result.success && result.data) {
+        console.log(`✅ Received cached data from ${result.meta?.cachedAt || 'unknown time'}`);
+        
+        // Extract all the data components
+        const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
+        
+        // Process model scores
+        if (modelScores && Array.isArray(modelScores)) {
+          const processedScores = modelScores.map((score: any) => ({
+            ...score,
+            lastUpdated: new Date(score.lastUpdated),
+            history: score.history || []
+          }));
+          
+          // Initialize previous scores on first load
+          if (previousScores.size === 0) {
+            const initialScores = new Map<string, number>();
+            processedScores.forEach((model: any) => {
+              if (typeof model.currentScore === 'number') {
+                initialScores.set(model.id, model.currentScore);
+              }
+            });
+            setPreviousScores(initialScores);
+          }
+          
+          setModelScores(processedScores);
+          console.log(`⚡ Loaded ${processedScores.length} models instantly from cache`);
+        }
+        
+        // Set all other data components
+        if (alerts) setAlerts(alerts);
+        if (globalIndex) setGlobalIndex(globalIndex);
+        if (degradations) setDegradations(degradations);
+        if (recommendations) setRecommendations(recommendations);
+        if (transparencyMetrics) setTransparencyMetrics(transparencyMetrics);
+        if (providerReliability) setProviderReliability(providerReliability);
+        
         setLastUpdateTime(new Date());
-        return;
+        
+        return true; // Success
+      } else {
+        console.warn(`⚠️ Cache miss or error: ${result.message || result.error}`);
+        return false; // Cache miss - will need to use fallback
       }
+    } catch (error) {
+      console.error('Error fetching cached dashboard data:', error);
+      return false; // Error - will need to use fallback
     }
-    
-    // Prevent multiple simultaneous requests for the same combination
-    if (!forceRefresh && loadingLeaderboard) {
-      return;
-    }
-    
+  };
+
+  // Legacy fetch function for fallback when cache misses
+  const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'price' = leaderboardSortBy, forceRefresh: boolean = false) => {
+    console.log(`🔄 Using fallback API for ${period}/${sortBy} (cache miss)`);
     setLoadingLeaderboard(true);
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/api/dashboard/scores?period=${period}&sortBy=${sortBy}`);
+      const response = await fetch(`${apiUrl}/dashboard/scores?period=${period}&sortBy=${sortBy}`);
       const data = await response.json();
       
       if (data.success) {
@@ -477,16 +514,6 @@ export default function Dashboard() {
           lastUpdated: new Date(score.lastUpdated),
           history: score.history || []
         }));
-        
-        // Cache the new data
-        const newCache = new Map(leaderboardCache);
-        newCache.set(cacheKey, {
-          data: processedScores,
-          timestamp: Date.now(),
-          period,
-          sortBy
-        });
-        setLeaderboardCache(newCache);
         
         // Initialize previous scores on first load
         if (previousScores.size === 0) {
@@ -501,7 +528,7 @@ export default function Dashboard() {
         
         setModelScores(processedScores);
         setLastUpdateTime(new Date());
-        console.log(`Cached new data for ${cacheKey}`);
+        console.log(`✅ Fallback data loaded for ${period}/${sortBy}`);
       } else {
         console.error('Failed to fetch leaderboard data:', data.error);
       }
@@ -512,56 +539,64 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch dashboard data
+  // Fetch dashboard data - now using INSTANT cached endpoints!
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Check batch status first to determine refresh behavior
+        // Check batch status first
         const batchStatusData = await fetchBatchStatus();
         
-        // Fetch alerts and global index in parallel with leaderboard
-        const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-        const [alertsResponse, globalIndexResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/dashboard/alerts`),
-          fetch(`${apiUrl}/api/dashboard/global-index`)
-        ]);
+        // Try to fetch ALL data from cache INSTANTLY
+        console.log('⚡ Attempting instant cache load...');
+        const cacheSuccess = await fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod);
         
-        const alertsData = await alertsResponse.json();
-        const globalIndexData = await globalIndexResponse.json();
-        
-        if (alertsData.success) {
-          // Convert date strings back to Date objects
-          const processedAlerts = alertsData.data.map((alert: any) => ({
-            ...alert,
-            detectedAt: new Date(alert.detectedAt)
-          }));
-          setAlerts(processedAlerts);
-        }
+        if (cacheSuccess) {
+          console.log('🚀 Dashboard loaded INSTANTLY from cache!');
+        } else {
+          console.log('🔄 Cache miss, falling back to individual API calls...');
+          
+          // Fallback to legacy approach if cache misses
+          const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+          console.log('🔄 Cache miss - using fallback APIs which should only show 16 core models');
+          
+          const [alertsResponse, globalIndexResponse] = await Promise.all([
+            fetch(`${apiUrl}/dashboard/alerts`),
+            fetch(`${apiUrl}/dashboard/global-index`)
+          ]);
+          
+          const alertsData = await alertsResponse.json();
+          const globalIndexData = await globalIndexResponse.json();
+          
+          if (alertsData.success) {
+            const processedAlerts = alertsData.data.map((alert: any) => ({
+              ...alert,
+              detectedAt: new Date(alert.detectedAt)
+            }));
+            setAlerts(processedAlerts);
+          }
 
-        if (globalIndexData.success) {
-          setGlobalIndex(globalIndexData.data);
+          if (globalIndexData.success) {
+            setGlobalIndex(globalIndexData.data);
+          }
+          
+          // Fallback leaderboard and analytics - these should be filtered to 16 models
+          console.log('🔄 Using fallback leaderboard API - should return only 16 core models');
+          await fetchLeaderboardData();
+          fetchAnalyticsData();
         }
         
-        // Always fetch leaderboard data to keep models visible
-        // The batch status indicator will show users when updates are in progress
-        await fetchLeaderboardData();
-        
-        // Fetch analytics data
-        fetchAnalyticsData();
-        
-        // Fetch visitor count
+        // Always fetch visitor count (not cached)
         fetchVisitorCount();
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
-        // Keep default empty arrays on error
       } finally {
         setLoading(false);
       }
     };
 
-    // Initial data load with loading indicators
+    // Initial data load
     fetchDashboardData();
     
     // Silent background updates every 2 minutes for real-time feel
@@ -586,19 +621,39 @@ export default function Dashboard() {
     };
   }, [showBatchRefreshing]);
 
-  // Effect for leaderboard controls changes
+  // Effect for leaderboard controls changes - now using INSTANT cache!
   useEffect(() => {
     if (!loading) {
-      fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
-      // CRITICAL: Also update analytics when leaderboard mode changes
-      fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+      console.log(`⚡ User changed to ${leaderboardPeriod}/${leaderboardSortBy}, trying cache...`);
+      
+      // Try cache first for instant loading
+      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod).then(cacheSuccess => {
+        if (!cacheSuccess) {
+          console.log('🔄 Cache miss on control change, using fallback...');
+          // Fallback to individual calls
+          fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
+          fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+        } else {
+          console.log('🚀 Control change loaded INSTANTLY from cache!');
+        }
+      });
     }
   }, [leaderboardPeriod, leaderboardSortBy]);
 
-  // Effect for analytics controls changes
+  // Effect for analytics controls changes - now using INSTANT cache!
   useEffect(() => {
     if (!loading) {
-      fetchAnalyticsData(analyticsPeriod, leaderboardSortBy); // Include current sort mode
+      console.log(`⚡ User changed analytics to ${analyticsPeriod}, trying cache...`);
+      
+      // Try cache first for instant loading
+      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod).then(cacheSuccess => {
+        if (!cacheSuccess) {
+          console.log('🔄 Cache miss on analytics change, using fallback...');
+          fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+        } else {
+          console.log('🚀 Analytics change loaded INSTANTLY from cache!');
+        }
+      });
     }
   }, [analyticsPeriod]);
 
