@@ -587,8 +587,12 @@ export default function Dashboard() {
           // Fallback leaderboard and analytics - these should be filtered to 16 models
           console.log('🔄 Using fallback leaderboard API - should return only 16 core models');
           await fetchLeaderboardData();
-          fetchAnalyticsData();
         }
+        
+        // ALWAYS call analytics APIs directly for Model Intelligence Center
+        // This ensures real-time degradation detection and accurate recommendations
+        console.log('🔄 Model Intelligence Center: Calling analytics APIs directly for real-time data...');
+        fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
         
         // Always fetch visitor count (not cached)
         fetchVisitorCount();
@@ -643,20 +647,12 @@ export default function Dashboard() {
     }
   }, [leaderboardPeriod, leaderboardSortBy]);
 
-  // Effect for analytics controls changes - now using INSTANT cache!
+  // Effect for analytics controls changes - BYPASS CACHE for Model Intelligence Center
   useEffect(() => {
     if (!loading) {
-      console.log(`⚡ User changed analytics to ${analyticsPeriod}, trying cache...`);
-      
-      // Try cache first for instant loading
-      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod).then(cacheSuccess => {
-        if (!cacheSuccess) {
-          console.log('🔄 Cache miss on analytics change, using fallback...');
-          fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
-        } else {
-          console.log('🚀 Analytics change loaded INSTANTLY from cache!');
-        }
-      });
+      console.log(`🔄 User changed analytics to ${analyticsPeriod}, calling analytics APIs directly...`);
+      // ALWAYS call analytics APIs directly for accurate real-time data
+      fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
     }
   }, [analyticsPeriod]);
 
