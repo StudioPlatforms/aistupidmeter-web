@@ -3358,7 +3358,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Welcome Popup - Two-Step Process */}
+      {/* Welcome Popup - Two-Step Process - Mobile Responsive */}
       {showWelcomePopup && (
         <div style={{
           position: 'fixed',
@@ -3370,27 +3370,30 @@ export default function Dashboard() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 2000
+          zIndex: 2000,
+          padding: '10px' // Add padding to prevent edge touching on mobile
         }}>
           <div className="crt-monitor" style={{
-            maxWidth: '600px',
-            width: '90%',
-            padding: '32px',
+            maxWidth: '500px', // Reduced from 600px
+            width: '95%', // Increased from 90% for more screen usage
+            maxHeight: '90vh', // Prevent popup from being taller than screen
+            overflowY: 'auto', // Allow scrolling if content is too tall
+            padding: window.innerWidth < 768 ? '16px' : '32px', // Responsive padding
             backgroundColor: 'var(--terminal-black)',
-            border: '3px solid var(--phosphor-green)',
-            borderRadius: '8px',
+            border: window.innerWidth < 768 ? '2px solid var(--phosphor-green)' : '3px solid var(--phosphor-green)', // Thinner border on mobile
+            borderRadius: '6px', // Slightly smaller radius
             boxShadow: '0 0 20px var(--phosphor-green)'
           }}>
             <div className="terminal-text">
               {welcomeStep === 'updates' && (
                 <>
-                  <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.4em', marginBottom: '16px', textAlign: 'center' }}>
                     <span className="terminal-text--green">🎉 NEW FEATURES UPDATE!</span>
                     <span className="blinking-cursor"></span>
                   </div>
                   
-                  <div style={{ marginBottom: '24px', lineHeight: '1.6' }}>
-                    <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '16px' }}>
+                  <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+                    <div className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.0em' : '1.1em', marginBottom: '12px' }}>
                       ✨ What's New in Stupid Meter:
                     </div>
                     
@@ -3475,34 +3478,34 @@ export default function Dashboard() {
 
               {welcomeStep === 'privacy' && (
                 <>
-                  <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.4em', marginBottom: '16px', textAlign: 'center' }}>
                     <span className="terminal-text--amber">🍪 PRIVACY NOTICE</span>
                     <span className="blinking-cursor"></span>
                   </div>
                   
-                  <div style={{ marginBottom: '24px', lineHeight: '1.6' }}>
-                    <div className="terminal-text--green" style={{ marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
+                    <div className="terminal-text--green" style={{ marginBottom: window.innerWidth < 768 ? '8px' : '12px' }}>
                       🔐 Your Privacy is Protected:
                     </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.95em', marginBottom: '16px' }}>
+                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em', marginBottom: '12px' }}>
                       We use Google Analytics to improve our AI benchmarking tool. This helps us understand usage patterns and optimize performance. 
                       We <strong>anonymize IP addresses</strong> and <strong>disable advertising features</strong> to protect your privacy.
                     </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px' }}>
+                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.8em' : '0.9em', marginBottom: '12px' }}>
                       By accepting, you consent to analytics cookies. You can change your preference anytime.
                     </div>
                     
                     <div style={{ 
-                      padding: '12px', 
+                      padding: window.innerWidth < 768 ? '8px' : '12px', 
                       backgroundColor: 'rgba(0, 255, 65, 0.05)', 
                       border: '1px solid rgba(0, 255, 65, 0.3)',
                       borderRadius: '4px',
-                      fontSize: '0.85em'
+                      fontSize: window.innerWidth < 768 ? '0.75em' : '0.85em'
                     }}>
-                      <div className="terminal-text--green" style={{ marginBottom: '8px' }}>
+                      <div className="terminal-text--green" style={{ marginBottom: '6px' }}>
                         📋 What we collect:
                       </div>
-                      <ul style={{ marginLeft: '20px', marginBottom: '8px' }}>
+                      <ul style={{ marginLeft: '16px', marginBottom: '6px' }}>
                         <li className="terminal-text--dim">Page views and user interactions</li>
                         <li className="terminal-text--dim">Performance metrics (anonymized)</li>
                         <li className="terminal-text--dim">General location data (country level)</li>
@@ -3510,7 +3513,7 @@ export default function Dashboard() {
                       <div className="terminal-text--red" style={{ marginBottom: '4px' }}>
                         ❌ What we DON'T collect:
                       </div>
-                      <ul style={{ marginLeft: '20px' }}>
+                      <ul style={{ marginLeft: '16px' }}>
                         <li className="terminal-text--dim">Personal information or emails</li>
                         <li className="terminal-text--dim">Your API keys or test results</li>
                         <li className="terminal-text--dim">Advertising profiles or tracking</li>
@@ -3560,16 +3563,16 @@ export default function Dashboard() {
 
               {welcomeStep === 'completed' && (
                 <>
-                  <div style={{ fontSize: '1.4em', marginBottom: '20px', textAlign: 'center' }}>
+                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.4em', marginBottom: '16px', textAlign: 'center' }}>
                     <span className="terminal-text--green">✅ ALL SET!</span>
                     <span className="blinking-cursor"></span>
                   </div>
                   
-                  <div style={{ marginBottom: '24px', lineHeight: '1.6', textAlign: 'center' }}>
-                    <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px' }}>
+                  <div style={{ marginBottom: '20px', lineHeight: '1.6', textAlign: 'center' }}>
+                    <div className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.0em' : '1.1em', marginBottom: '8px' }}>
                       🚀 Welcome to Stupid Meter!
                     </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.95em' }}>
+                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em' }}>
                       Thank you for your privacy preferences. You're now ready to explore our AI model rankings and intelligence monitoring system.
                     </div>
                   </div>
