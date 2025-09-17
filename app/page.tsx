@@ -324,7 +324,7 @@ export default function Dashboard() {
     }
   };
 
-  // Silent background data fetch without loading indicators - FIXED: No loading state changes
+  // Silent background data fetch without loading indicators - PRESERVES USER SELECTIONS
   const fetchDataSilently = async () => {
     if (backgroundUpdating) {
       console.log('⏸️ Silent refresh already in progress, skipping...');
@@ -333,15 +333,14 @@ export default function Dashboard() {
     
     setBackgroundUpdating(true);
     try {
-      // FIXED: Store current user selections to prevent them from being overridden
+      // CRITICAL: Store current user selections to prevent them from being overridden
       const currentPeriod = leaderboardPeriod;
       const currentSortBy = leaderboardSortBy;
       const currentAnalyticsPeriod = analyticsPeriod;
       
-      // Try to use cached endpoint for instant updates first
-      console.log(`⚡ Silent refresh: trying cached endpoint for ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod}`);
+      console.log(`⚡ Silent refresh: preserving user selections ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod}`);
       
-      // FIXED: Don't modify any loading states during silent refresh
+      // ONLY update data that matches current user selections
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       const cacheUrl = `${apiUrl}/dashboard/cached?period=${currentPeriod}&sortBy=${currentSortBy}&analyticsPeriod=${currentAnalyticsPeriod}`;
       
@@ -349,76 +348,85 @@ export default function Dashboard() {
       const result = await response.json();
       
       if (result.success && result.data) {
-        console.log(`✅ Silent refresh: received cached data from ${result.meta?.cachedAt || 'unknown time'}`);
+        console.log(`✅ Silent refresh: received data for ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod} from ${result.meta?.cachedAt || 'unknown time'}`);
         
-        // Extract all the data components
-        const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
-        
-        // Track score changes BEFORE updating state
-        const newChangedScores = new Set<string>();
-        const newPreviousScores = new Map<string, number>();
-        
-        // Batch all state updates to avoid multiple re-renders
-        const stateUpdates: any = {};
-        
-        if (modelScores && Array.isArray(modelScores)) {
-          const processedScores = modelScores.map((score: any) => ({
-            ...score,
-            lastUpdated: new Date(score.lastUpdated),
-            history: score.history || []
-          }));
+        // VERIFY: Only update if the data matches current user selections
+        // This prevents the silent refresh from overriding user choices
+        if (result.data.period === currentPeriod && result.data.sortBy === currentSortBy) {
+          const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
           
-          // Track score changes for highlighting
-          processedScores.forEach((newModel: any) => {
-            const prevScore = previousScores.get(newModel.id);
-            const currentScore = typeof newModel.currentScore === 'number' ? newModel.currentScore : null;
+          // Track score changes BEFORE updating state
+          const newChangedScores = new Set<string>();
+          const newPreviousScores = new Map<string, number>();
+          
+          // Batch all state updates to avoid multiple re-renders
+          const stateUpdates: any = {};
+          
+          if (modelScores && Array.isArray(modelScores)) {
+            const processedScores = modelScores.map((score: any) => ({
+              ...score,
+              lastUpdated: new Date(score.lastUpdated),
+              history: score.history || []
+            }));
             
-            if (prevScore !== undefined && currentScore !== null && Math.abs(prevScore - currentScore) >= 1) {
-              newChangedScores.add(newModel.id);
-            }
+            // Track score changes for highlighting
+            processedScores.forEach((newModel: any) => {
+              const prevScore = previousScores.get(newModel.id);
+              const currentScore = typeof newModel.currentScore === 'number' ? newModel.currentScore : null;
+              
+              if (prevScore !== undefined && currentScore !== null && Math.abs(prevScore - currentScore) >= 1) {
+                newChangedScores.add(newModel.id);
+              }
+              
+              if (currentScore !== null) {
+                newPreviousScores.set(newModel.id, currentScore);
+              }
+            });
             
-            if (currentScore !== null) {
-              newPreviousScores.set(newModel.id, currentScore);
+            stateUpdates.modelScores = processedScores;
+            console.log(`⚡ Silent refresh: prepared ${processedScores.length} models for batch update (preserving ${currentPeriod}/${currentSortBy})`);
+          }
+          
+          // Prepare all other data components for batch update (only if they match selections)
+          if (alerts) stateUpdates.alerts = alerts;
+          if (globalIndex) stateUpdates.globalIndex = globalIndex;
+          if (degradations) stateUpdates.degradations = degradations;
+          if (recommendations) stateUpdates.recommendations = recommendations;
+          if (transparencyMetrics) stateUpdates.transparencyMetrics = transparencyMetrics;
+          if (providerReliability) stateUpdates.providerReliability = providerReliability;
+          
+          // BATCH STATE UPDATES - Use requestAnimationFrame to prevent UI blocking
+          requestAnimationFrame(() => {
+            // CRITICAL: Only update states if user selections haven't changed during the request
+            if (leaderboardPeriod === currentPeriod && leaderboardSortBy === currentSortBy && analyticsPeriod === currentAnalyticsPeriod) {
+              if (stateUpdates.modelScores) setModelScores(stateUpdates.modelScores);
+              if (stateUpdates.alerts) setAlerts(stateUpdates.alerts);
+              if (stateUpdates.globalIndex) setGlobalIndex(stateUpdates.globalIndex);
+              if (stateUpdates.degradations) setDegradations(stateUpdates.degradations);
+              if (stateUpdates.recommendations) setRecommendations(stateUpdates.recommendations);
+              if (stateUpdates.transparencyMetrics) setTransparencyMetrics(stateUpdates.transparencyMetrics);
+              if (stateUpdates.providerReliability) setProviderReliability(stateUpdates.providerReliability);
+              
+              // Update tracking state
+              setPreviousScores(newPreviousScores);
+              setChangedScores(newChangedScores);
+              setLastUpdateTime(new Date());
+              
+              console.log(`🎯 Silent refresh: successfully updated data while preserving user selections ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod}`);
+            } else {
+              console.log(`🚫 Silent refresh: user changed selections during update, skipping state update to preserve user choice`);
             }
           });
           
-          stateUpdates.modelScores = processedScores;
-          console.log(`⚡ Silent refresh: prepared ${processedScores.length} models for batch update`);
+          // Clear changed highlights after 10 seconds
+          if (newChangedScores.size > 0) {
+            setTimeout(() => {
+              setChangedScores(new Set());
+            }, 10000);
+          }
+        } else {
+          console.log(`🚫 Silent refresh: data doesn't match current user selections (${currentPeriod}/${currentSortBy} vs ${result.data.period}/${result.data.sortBy}), skipping update`);
         }
-        
-        // Prepare all other data components for batch update
-        if (alerts) stateUpdates.alerts = alerts;
-        if (globalIndex) stateUpdates.globalIndex = globalIndex;
-        if (degradations) stateUpdates.degradations = degradations;
-        if (recommendations) stateUpdates.recommendations = recommendations;
-        if (transparencyMetrics) stateUpdates.transparencyMetrics = transparencyMetrics;
-        if (providerReliability) stateUpdates.providerReliability = providerReliability;
-        
-        // BATCH STATE UPDATES - Use requestAnimationFrame to prevent UI blocking
-        requestAnimationFrame(() => {
-          // Update all states in a single render cycle
-          if (stateUpdates.modelScores) setModelScores(stateUpdates.modelScores);
-          if (stateUpdates.alerts) setAlerts(stateUpdates.alerts);
-          if (stateUpdates.globalIndex) setGlobalIndex(stateUpdates.globalIndex);
-          if (stateUpdates.degradations) setDegradations(stateUpdates.degradations);
-          if (stateUpdates.recommendations) setRecommendations(stateUpdates.recommendations);
-          if (stateUpdates.transparencyMetrics) setTransparencyMetrics(stateUpdates.transparencyMetrics);
-          if (stateUpdates.providerReliability) setProviderReliability(stateUpdates.providerReliability);
-          
-          // Update tracking state
-          setPreviousScores(newPreviousScores);
-          setChangedScores(newChangedScores);
-          setLastUpdateTime(new Date());
-        });
-        
-        // Clear changed highlights after 10 seconds
-        if (newChangedScores.size > 0) {
-          setTimeout(() => {
-            setChangedScores(new Set());
-          }, 10000);
-        }
-        
-        console.log('🚀 Silent refresh completed successfully without UI disruption!');
       } else {
         console.warn(`⚠️ Silent refresh cache miss: ${result.message || result.error}`);
         // Don't fallback during silent refresh to avoid loading indicators
