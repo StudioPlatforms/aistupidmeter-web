@@ -865,9 +865,13 @@ export default function Dashboard() {
     }
     
     if (prov === 'xai' || prov === 'x.ai') {
-      if (name.includes('grok-4')) return { input: 5, output: 15 };
-      if (name.includes('grok-code-fast')) return { input: 5, output: 15 };
-      return { input: 5, output: 15 }; // Default xAI
+      // Updated with official xAI pricing
+      if (name.includes('grok-3') && name.includes('mini')) return { input: 0.30, output: 0.50 };
+      if (name.includes('grok-3')) return { input: 3, output: 15 }; // Grok 3 standard
+      if (name.includes('grok-4-0709')) return { input: 3, output: 15 };
+      if (name.includes('grok-code-fast')) return { input: 0.20, output: 1.50 };
+      if (name.includes('grok-4')) return { input: 3, output: 15 }; // Default Grok 4 pricing
+      return { input: 3, output: 15 }; // Default xAI
     }
     
     if (prov === 'google') {
