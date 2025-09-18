@@ -967,17 +967,17 @@ export default function Dashboard() {
           // Sort by score (lowest = most stupid) - consistent with leaderboard logic
           const sorted = [...availableModels].sort((a: any, b: any) => a.currentScore - b.currentScore);
           
-          // CRITICAL: Show warnings for models performing poorly in CURRENT mode
-          const criticalModels = availableModels.filter((m: any) => m.currentScore < 65);
-          const warningModels = availableModels.filter((m: any) => m.currentScore < 50);
+          // CONSISTENT: Use same thresholds as Model Intelligence Center (< 60 for warnings)
+          const criticalModels = availableModels.filter((m: any) => m.currentScore < 60);
+          const warningModels = availableModels.filter((m: any) => m.currentScore < 40);
           
-          // Show mode-specific warnings for critical models
+          // Show mode-specific warnings for critical models (consistent with analytics.ts)
           criticalModels.slice(0, 3).forEach((model: any) => {
             if (model.currentScore < 40) {
               content.push(`🚨 CRITICAL ${leaderboardSortBy.toUpperCase()}: ${getCompactName(model.name)} failing at ${model.currentScore} pts!`);
             } else if (model.currentScore < 50) {
               content.push(`⚠️ ${leaderboardSortBy.toUpperCase()} ALERT: ${getCompactName(model.name)} struggling at ${model.currentScore} pts`);
-            } else if (model.currentScore < 65) {
+            } else if (model.currentScore < 60) {
               content.push(`📉 ${leaderboardSortBy.toUpperCase()} WARNING: ${getCompactName(model.name)} below average at ${model.currentScore} pts`);
             }
           });
@@ -1051,12 +1051,16 @@ export default function Dashboard() {
             content.push(`🔵 Google ALERT: Gemini models experiencing issues`);
           }
           
-          // Critical count (consistent with actual data)
+          // Critical count (consistent with Model Intelligence Center - under 60 is concerning)
+          const concerningCount = availableModels.filter((m: any) => m.currentScore < 60).length;
           const criticalCount = availableModels.filter((m: any) => m.currentScore < 40).length;
+          
           if (criticalCount > 3) {
             content.push(`💀 APOCALYPSE: ${criticalCount} models currently failing basic intelligence tests!`);
+          } else if (concerningCount > 5) {
+            content.push(`⚠️ ${concerningCount} models performing below average (under 60 points)`);
           } else if (criticalCount > 0) {
-            content.push(`⚠️ ${criticalCount} models in critical performance range`);
+            content.push(`🚨 ${criticalCount} models in critical performance range (under 40 points)`);
           }
         }
       }
@@ -1074,8 +1078,8 @@ export default function Dashboard() {
             m.id === alert.modelId
           );
           
-          // Only show alert if model is actually performing poorly (score < 50)
-          if (currentModel && typeof currentModel.currentScore === 'number' && currentModel.currentScore < 50) {
+          // CONSISTENT: Only show alert if model performs poorly (≤ 55, same as analytics "Avoid Now")
+          if (currentModel && typeof currentModel.currentScore === 'number' && currentModel.currentScore <= 55) {
             if (alert.severity === 'critical') {
               content.push(`💀 CRITICAL: ${getCompactName(alert.name)} - ${alert.issue}`);
             } else {
@@ -1139,9 +1143,13 @@ export default function Dashboard() {
             basicContent.push(`📊 ${availableModels.length} models currently monitored and ranked`);
           }
           
+          const concerningCount = availableModels.filter((m: any) => m.currentScore < 60).length;
           const criticalCount = availableModels.filter((m: any) => m.currentScore < 40).length;
+          
           if (criticalCount > 0) {
-            basicContent.push(`⚠️ ${criticalCount} models in critical performance range`);
+            basicContent.push(`🚨 ${criticalCount} models in critical performance range (under 40 pts)`);
+          } else if (concerningCount > 0) {
+            basicContent.push(`⚠️ ${concerningCount} models performing below average (under 60 pts)`);
           }
           
           basicContent.push(`🔬 Real-time intelligence monitoring active`);
@@ -3143,19 +3151,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Coming Soon Section - Compact */}
-      <div style={{ 
-        backgroundColor: 'rgba(255, 165, 0, 0.08)', 
-        border: '1px solid rgba(255, 165, 0, 0.3)',
-        padding: '6px 12px', 
-        margin: '8px 0',
-        textAlign: 'center',
-        borderRadius: '2px'
-      }}>
-        <span className="terminal-text--amber" style={{ fontSize: '0.85em' }}>
-          🚧 Grok models coming soon • Test with your xAI keys in "Test Your Keys"
-        </span>
-      </div>
 
       {/* 24-Hour AI Stupidity Overview */}
       <div className="crt-monitor">
