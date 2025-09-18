@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import '../styles/vintage.css'
 
 export const metadata: Metadata = {
   title: {
@@ -262,9 +263,12 @@ export default function RootLayout({
         <meta name="revisit-after" content="1 day" />
         
         {/* Favicon and app icons */}
-        <link rel="icon" href="/smlogo.png" />
-        <link rel="apple-touch-icon" href="/smlogo.png" />
-        <link rel="shortcut icon" href="/smlogo.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="shortcut icon" href="/favicon.png" />
+        <meta name="msapplication-TileImage" content="/smlogo.png" />
+        <meta name="msapplication-TileColor" content="#00ff41" />
         
         {/* Preload critical resources */}
         <link rel="preload" href="/styles/vintage.css" as="style" />

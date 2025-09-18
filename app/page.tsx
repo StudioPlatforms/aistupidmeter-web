@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import TickerTape from '../components/TickerTape';
-import '../styles/vintage.css';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -80,6 +79,9 @@ export default function Dashboard() {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [changedScores, setChangedScores] = useState<Set<string>>(new Set());
   const [previousScores, setPreviousScores] = useState<Map<string, number>>(new Map());
+
+  // Force update counter to ensure React detects score changes
+  const [forceUpdateCounter, setForceUpdateCounter] = useState<number>(0);
 
   // Visitor count state
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
@@ -350,9 +352,9 @@ export default function Dashboard() {
       if (result.success && result.data) {
         console.log(`✅ Silent refresh: received data for ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod} from ${result.meta?.cachedAt || 'unknown time'}`);
         
-        // VERIFY: Only update if the data matches current user selections
-        // This prevents the silent refresh from overriding user choices
-        if (result.data.period === currentPeriod && result.data.sortBy === currentSortBy) {
+      // VERIFY: Only update if the data matches current user selections
+      // This prevents the silent refresh from overriding user choices
+      if (result.meta.period === currentPeriod && result.meta.sortBy === currentSortBy) {
           const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
           
           // Track score changes BEFORE updating state
@@ -484,8 +486,36 @@ export default function Dashboard() {
             setPreviousScores(initialScores);
           }
           
-          setModelScores(processedScores);
-          console.log(`⚡ Loaded ${processedScores.length} models instantly from cache`);
+          // Create completely new objects to force React state change
+          const timestamp = Date.now();
+          const scoresToSet = processedScores.map((score, index) => {
+            const newScore = {
+              // Create completely new object structure
+              id: score.id,
+              name: score.name,
+              displayName: score.displayName,
+              provider: score.provider,
+              currentScore: score.currentScore,
+              trend: score.trend,
+              lastUpdated: new Date(score.lastUpdated),
+              status: score.status,
+              weeklyBest: score.weeklyBest,
+              weeklyWorst: score.weeklyWorst,
+              unavailableReason: score.unavailableReason,
+              history: score.history ? [...score.history] : [], // Clone array
+              isNew: score.isNew,
+              // Force React to see this as a new object
+              _renderKey: `${score.id}_${period}_${sortBy}_${score.currentScore}_${timestamp}_${index}`,
+              _period: period,
+              _sortBy: sortBy
+            };
+            return newScore;
+          });
+          
+          // Force state update with completely new array
+          setModelScores([...scoresToSet]); // Create new array reference
+          setForceUpdateCounter(prev => prev + 1);
+          console.log(`⚡ Loaded ${processedScores.length} models with complete object recreation for ${period}/${sortBy}`);
         }
         
         // Set all other data components
@@ -496,7 +526,41 @@ export default function Dashboard() {
         if (transparencyMetrics) setTransparencyMetrics(transparencyMetrics);
         if (providerReliability) setProviderReliability(providerReliability);
         
+        // CRITICAL FIX: If cached globalIndex is null, fetch it directly (non-blocking)
+        if (!globalIndex) {
+          console.log('🔧 Cache returned null globalIndex, fetching directly...');
+          fetch(`${apiUrl}/dashboard/global-index`)
+            .then(response => response.json())
+            .then(globalIndexData => {
+              if (globalIndexData.success && globalIndexData.data) {
+                setGlobalIndex(globalIndexData.data);
+                console.log('✅ Successfully fetched globalIndex directly:', globalIndexData.data.current.globalScore);
+              }
+            })
+            .catch(error => {
+              console.error('❌ Failed to fetch globalIndex directly:', error);
+            });
+        }
+        
         setLastUpdateTime(new Date());
+        
+        // Debug: Log the first few scores to see what we got
+        if (modelScores && Array.isArray(modelScores) && modelScores.length > 0) {
+          console.log('🎯 First 3 models after cache load:', modelScores.slice(0, 3).map(m => ({
+            name: m.name,
+            currentScore: m.currentScore,
+            period: period,
+            sortBy: sortBy
+          })));
+          
+          // More detailed debugging to see if scores are different
+          console.log('🔍 DETAILED SCORE DEBUG for', period, sortBy, ':', {
+            'gpt-5-auto': modelScores.find(m => m.name === 'gpt-5-auto')?.currentScore,
+            'gemini-1.5-pro': modelScores.find(m => m.name === 'gemini-1.5-pro')?.currentScore,
+            'claude-3-5-sonnet-20241022': modelScores.find(m => m.name === 'claude-3-5-sonnet-20241022')?.currentScore,
+            'gpt-4o-2024-11-20': modelScores.find(m => m.name === 'gpt-4o-2024-11-20')?.currentScore
+          });
+        }
         
         return true; // Success
       } else {
@@ -650,6 +714,7 @@ export default function Dashboard() {
           fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
         } else {
           console.log('🚀 Control change loaded INSTANTLY from cache!');
+          console.log(`🎯 Current modelScores count: ${modelScores.length}`);
         }
       });
     }
@@ -1175,9 +1240,21 @@ export default function Dashboard() {
 
   // Helper function to render dynamic metric display with rich information
   const renderDynamicMetric = (model: any): JSX.Element => {
+    // AGGRESSIVE DEBUG: Log what renderDynamicMetric actually sees
+    console.log(`🔧 renderDynamicMetric for ${model.name}:`, {
+      currentScore: model.currentScore,
+      typeof: typeof model.currentScore,
+      _period: (model as any)._period,
+      _sortBy: (model as any)._sortBy,
+      wholeModel: model
+    });
+    
+    // FORCE React to recognize this as a new component every time with unique randomization
+    const forceRenderKey = `${model.id}_${model.currentScore}_${(model as any)._period}_${Date.now()}_${Math.random()}`;
+    
     if (model.currentScore === 'unavailable') {
       return (
-        <div className="score-display terminal-text--dim">
+        <div key={forceRenderKey} className="score-display terminal-text--dim">
           <div style={{ textAlign: 'center' }}>
             <div>N/A</div>
             <div style={{ fontSize: '0.6em', opacity: 0.7 }}>OFFLINE</div>
@@ -1238,7 +1315,7 @@ export default function Dashboard() {
     }
     
     return (
-      <div className={`score-display ${scoreColorClass(score)}`}>
+      <div key={forceRenderKey} className={`score-display ${scoreColorClass(score)}`}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', justifyContent: 'center', marginBottom: '1px' }}>
             <span style={{ fontSize: '0.8em' }}>{tierIcon}</span>
@@ -2577,7 +2654,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="leaderboard-table">
+          <div className="leaderboard-table" key={`${leaderboardPeriod}-${leaderboardSortBy}`}>
             <div className="leaderboard-header">
               <div className="col-rank">RANK</div>
               <div className="col-model">MODEL</div>
@@ -2622,9 +2699,11 @@ export default function Dashboard() {
                     return aScore - bScore; // Ascending order (lowest/stupidest first)
                   });
                 }
+                
+                
                 return sortedModels;
               })().map((model: any, index: number) => (
-                  <div key={model.id} 
+                  <div key={`${model.id}-${leaderboardPeriod}-${leaderboardSortBy}-${model.currentScore}-${forceUpdateCounter}`} 
                        className={`leaderboard-row ${changedScores.has(model.id) ? 'score-highlight' : ''}`} 
                        style={{ cursor: 'pointer' }}
                        onClick={() => router.push(`/models/${model.id}`)}>
