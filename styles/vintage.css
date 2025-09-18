@@ -1036,6 +1036,9 @@ input:checked + .toggle-slider::before {
   text-transform: uppercase;
   font-size: var(--font-size-xs);
   min-width: 320px;
+  /* Android grid safety */
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 @media (min-width: 480px) {
@@ -1069,6 +1072,13 @@ input:checked + .toggle-slider::before {
   /* Mobile touch improvements */
   min-height: var(--touch-target-sm);
   align-items: center;
+  
+  /* Android grid safety - prevent text overflow beyond grid boundaries */
+  overflow: hidden;
+  box-sizing: border-box;
+  /* Force grid to respect container boundaries */
+  width: 100%;
+  max-width: 100%;
 }
 
 @media (min-width: 480px) {
@@ -1111,6 +1121,12 @@ input:checked + .toggle-slider::before {
 .col-model {
   text-align: left;
   min-width: 0; /* Allow text truncation */
+  /* Android-specific container fixes */
+  overflow: hidden;
+  position: relative;
+  /* Force hard boundaries on Android */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .col-model .terminal-text {
@@ -1121,6 +1137,12 @@ input:checked + .toggle-slider::before {
   max-width: 100%;
   display: block;
   line-height: 1.2;
+  /* Android-specific text containment */
+  word-break: break-all;
+  word-wrap: break-word;
+  /* Force strict boundaries */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 480px) {
@@ -1132,6 +1154,9 @@ input:checked + .toggle-slider::before {
 @media (min-width: 768px) {
   .col-model .terminal-text {
     font-size: var(--font-size-md);
+    /* Desktop can be more relaxed */
+    word-break: normal;
+    word-wrap: normal;
   }
 }
 
@@ -1144,6 +1169,9 @@ input:checked + .toggle-slider::before {
   max-width: 100%;
   display: block;
   line-height: 1.1;
+  /* Android-specific provider text fixes */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 480px) {
