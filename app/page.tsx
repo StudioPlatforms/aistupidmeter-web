@@ -67,7 +67,7 @@ export default function Dashboard() {
   const [transparencyMetrics, setTransparencyMetrics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
-  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'price'>('combined');
+  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'price'>('speed');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   // Fixed analytics period since user controls were removed
   const analyticsPeriod: 'latest' | '24h' | '7d' | '1m' = 'latest';
