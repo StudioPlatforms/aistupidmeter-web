@@ -8,13 +8,18 @@ import '../../../styles/vintage.css';
 const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
 
 /**
- * Prefer backend-provided displayScore/currentScore.
- * If we only have stupidScore (z-score-ish), map ~1σ ≈ 10 pts.
- * Positive stupidScore = better → higher display.
+ * FIXED: Extract display score from actual API response format
+ * API returns: { score: 76, stupidScore: 76, timestamp: "...", axes: {...} }
  */
 const toDisplayScore = (point: any): number | null => {
   if (!point) return null;
 
+  // PRIORITY 1: Direct score field (what the API actually returns)
+  if (typeof point.score === 'number' && !Number.isNaN(point.score)) {
+    return clamp(Math.round(point.score));
+  }
+
+  // PRIORITY 2: Legacy displayScore/currentScore (for compatibility)
   const ds =
     typeof point.displayScore === 'number' ? point.displayScore :
     typeof point.currentScore === 'number' ? point.currentScore :
@@ -24,11 +29,19 @@ const toDisplayScore = (point: any): number | null => {
     return clamp(Math.round(ds));
   }
 
+  // PRIORITY 3: stupidScore fallback
   const z = typeof point.stupidScore === 'number' ? point.stupidScore : null;
-  if (z === null) return null;
+  if (z !== null && !Number.isNaN(z)) {
+    // If stupidScore is already in 0-100 range, use it directly
+    if (z >= 0 && z <= 100) {
+      return clamp(Math.round(z));
+    }
+    // Otherwise, convert z-score to 0-100 scale
+    return clamp(Math.round(50 + z * 10));
+  }
 
-  // 10 points per sigma; tweak if your backend uses a different scale
-  return clamp(Math.round(50 + z * 10));
+  console.warn('Unable to extract score from point:', point);
+  return null;
 };
 
 interface ModelDetails {
@@ -235,17 +248,14 @@ export default function ModelDetailPage() {
         // Fix sortBy parameter - backend expects '7axis' not 'speed'
         const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
         
-        // Get data from dashboard endpoint to ensure consistency with main page charts
-        const dashboardHistoryResponse = await fetch(`${apiUrl}/api/dashboard/scores?period=${selectedPeriod}&sortBy=${sortByParam}`);
+        // FIXED: Get model-specific history data from the correct endpoint
+        const dashboardHistoryResponse = await fetch(`${apiUrl}/api/dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
         let dashboardHistoryData = null;
         if (dashboardHistoryResponse.ok) {
-          const dashboardData = await dashboardHistoryResponse.json();
-          if (dashboardData.success) {
-            const modelFromDashboard = dashboardData.data.find((m: any) => m.id === modelId.toString());
-            if (modelFromDashboard && modelFromDashboard.history) {
-              dashboardHistoryData = modelFromDashboard.history;
-              console.log(`✅ Using dashboard history data for charts (${sortByParam}, ${selectedPeriod}):`, dashboardHistoryData.length, 'points');
-            }
+          const historyResponseData = await dashboardHistoryResponse.json();
+          if (historyResponseData.success && historyResponseData.data) {
+            dashboardHistoryData = historyResponseData.data;
+            console.log(`✅ Using model-specific history data for charts (${sortByParam}, ${selectedPeriod}):`, dashboardHistoryData.length, 'points');
           }
         }
       

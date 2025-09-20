@@ -9,13 +9,18 @@ type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
 
 /**
- * Prefer backend-provided displayScore/currentScore.
- * If we only have stupidScore (z-score-ish), map ~1σ ≈ 10 pts.
- * Positive stupidScore = better → higher display.
+ * FIXED: Extract display score from actual API response format
+ * API returns: { score: 76, stupidScore: 76, timestamp: "...", axes: {...} }
  */
 const toDisplayScore = (point: any): number | null => {
   if (!point) return null;
 
+  // PRIORITY 1: Direct score field (what the API actually returns)
+  if (typeof point.score === 'number' && !Number.isNaN(point.score)) {
+    return clamp(Math.round(point.score));
+  }
+
+  // PRIORITY 2: Legacy displayScore/currentScore (for compatibility)
   const ds =
     typeof point.displayScore === 'number' ? point.displayScore :
     typeof point.currentScore === 'number' ? point.currentScore :
@@ -25,11 +30,19 @@ const toDisplayScore = (point: any): number | null => {
     return clamp(Math.round(ds));
   }
 
+  // PRIORITY 3: stupidScore fallback
   const z = typeof point.stupidScore === 'number' ? point.stupidScore : null;
-  if (z === null) return null;
+  if (z !== null && !Number.isNaN(z)) {
+    // If stupidScore is already in 0-100 range, use it directly
+    if (z >= 0 && z <= 100) {
+      return clamp(Math.round(z));
+    }
+    // Otherwise, convert z-score to 0-100 scale
+    return clamp(Math.round(50 + z * 10));
+  }
 
-  // 10 points per sigma; tweak if your backend uses a different scale
-  return clamp(Math.round(50 + z * 10));
+  console.warn('Unable to extract score from point:', point);
+  return null;
 };
 
 interface ModelScore {
@@ -140,9 +153,72 @@ export default function Dashboard() {
     return null;
   };
 
-  // Mini chart component for leaderboard
-  const renderMiniChart = (history: any[], period: string = leaderboardPeriod) => {
-    if (!history || history.length === 0) {
+  // State for individual model history data
+  const [modelHistoryData, setModelHistoryData] = useState<Map<string, any[]>>(new Map());
+
+  // Track last fetch to prevent unnecessary refetching 
+  const lastFetchKey = useRef<string>('');
+
+  // Fetch individual model history data for all models - FIXED: Proper dependency management
+  useEffect(() => {
+    const fetchAllModelHistory = async () => {
+      if (!modelScores.length) return;
+      
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const sortByParam = leaderboardSortBy === 'speed' ? '7axis' : leaderboardSortBy;
+      
+      console.log(`🔄 Fetching individual model history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam})`);
+      
+      const historyPromises = modelScores.map(async (model: any) => {
+        try {
+          const response = await fetch(`${apiUrl}/api/dashboard/history/${model.id}?period=${leaderboardPeriod}&sortBy=${sortByParam}`);
+          if (response.ok) {
+            const historyData = await response.json();
+            if (historyData.success && historyData.data && historyData.data.length > 0) {
+              console.log(`✅ Got individual history for ${model.name}: ${historyData.data.length} points`);
+              return { modelId: model.id, history: historyData.data, success: true };
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to fetch history for model ${model.id}:`, error);
+        }
+        return { modelId: model.id, history: model.history || [], success: false };
+      });
+
+      const results = await Promise.all(historyPromises);
+      
+      // ALWAYS update with fresh individual data
+      setModelHistoryData(() => {
+        const historyMap = new Map();
+        results.forEach(result => {
+          if (result.success && result.history.length > 0) {
+            historyMap.set(result.modelId, result.history);
+          }
+        });
+        console.log(`✅ Individual model history updated for ${historyMap.size}/${results.length} models`);
+        return historyMap;
+      });
+    };
+
+    if (modelScores.length > 0) {
+      fetchAllModelHistory();
+    }
+  }, [leaderboardPeriod, leaderboardSortBy, modelScores.length]); // FIXED: Added modelScores.length to trigger when models are loaded
+
+  // FIXED: Chart rendering function that uses individual model data
+  const renderMiniChart = (history: any[], period: string = leaderboardPeriod, modelId?: string) => {
+    // Use individual model history data if available
+    const modelSpecificHistory = modelId ? modelHistoryData.get(modelId) : null;
+    const chartHistory = modelSpecificHistory || history || [];
+
+    console.log(`🎨 renderMiniChart for model ${modelId}:`, {
+      hasModelSpecificData: !!modelSpecificHistory,
+      historyLength: chartHistory?.length || 0,
+      period,
+      sortBy: leaderboardSortBy
+    });
+
+    if (!chartHistory || chartHistory.length === 0) {
       return (
         <div className="mini-chart-container">
           <svg width="80" height="40" className="desktop-only">
@@ -161,37 +237,17 @@ export default function Dashboard() {
       );
     }
 
-    // Filter history based on selected period
+    // FIXED: Don't do client-side time filtering since API already filters by period
+    // The API /scores?period=24h already returns only 24h data, so additional filtering causes empty charts
     const filteredHistory = (() => {
-      const now = Date.now();
-      let cutoffTime;
-      
-      switch (period) {
-        case '24h':
-          cutoffTime = now - (24 * 60 * 60 * 1000);
-          break;
-        case '7d':
-          cutoffTime = now - (7 * 24 * 60 * 60 * 1000);
-          break;
-        case '1m':
-          cutoffTime = now - (30 * 24 * 60 * 60 * 1000);
-          break;
-        default: // 'latest'
-          // Show last 24 data points for 'latest'
-          return history.slice(0, 24);
+      // For 'latest', limit to reasonable number of data points for chart readability
+      if (period === 'latest') {
+        return chartHistory.slice(0, 24);
       }
       
-      // Filter data by timestamp if timestamps are available
-      if (history[0]?.timestamp) {
-        return history.filter(h => {
-          const timestamp = new Date(h.timestamp).getTime();
-          return timestamp >= cutoffTime;
-        });
-      }
-      
-      // Fallback to showing proportional amount of data
-      const dataPointsToShow = period === '24h' ? 24 : period === '7d' ? 168 : 720;
-      return history.slice(0, Math.min(dataPointsToShow, history.length));
+      // For specific periods (24h/7d/1m), use ALL data from API since it's already filtered
+      // The API has already done the time filtering, so we shouldn't filter again
+      return chartHistory || [];
     })();
 
     // Reverse history to show oldest to newest (left to right) - same as model detail page
@@ -489,7 +545,7 @@ export default function Dashboard() {
           
           // Create completely new objects to force React state change
           const timestamp = Date.now();
-          const scoresToSet = processedScores.map((score, index) => {
+          const scoresToSet = processedScores.map((score: any, index: number) => {
             const newScore = {
               // Create completely new object structure
               id: score.id,
@@ -2748,7 +2804,7 @@ export default function Dashboard() {
                             {getProviderName(model.provider)}
                           </div>
                         </div>
-                        {renderMiniChart(model.history, leaderboardPeriod)}
+                        {renderMiniChart(model.history, leaderboardPeriod, model.id)}
                       </div>
                     </div>
                     <div className="col-score">
