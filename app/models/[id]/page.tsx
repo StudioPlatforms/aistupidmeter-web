@@ -249,7 +249,7 @@ export default function ModelDetailPage() {
         const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
         
         // FIXED: Get model-specific history data from the correct endpoint
-        const dashboardHistoryResponse = await fetch(`${apiUrl}/api/dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
+        const dashboardHistoryResponse = await fetch(`${apiUrl}/dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
         let dashboardHistoryData = null;
         if (dashboardHistoryResponse.ok) {
           const historyResponseData = await dashboardHistoryResponse.json();
@@ -620,7 +620,10 @@ export default function ModelDetailPage() {
 
     const points = data.map((point, index) => {
       const displayScore = toDisplayScore(point) ?? minScore; // safe fallback
-      const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+      // FIXED: Handle single data point case - when there's only 1 point, center it horizontally
+      const x = data.length === 1 ? 
+        chartWidth / 2 : 
+        (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
       const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
       return `${x},${y}`;
     }).join(' ');
@@ -677,7 +680,10 @@ export default function ModelDetailPage() {
             // Show all points for short periods (latest/24h with few points)
             data.map((point, index) => {
               const displayScore = toDisplayScore(point) ?? minScore;
-              const x = (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
+              // FIXED: Handle single data point case - when there's only 1 point, center it horizontally
+              const x = data.length === 1 ? 
+                chartWidth / 2 : 
+                (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
               const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
               return (
                 <circle

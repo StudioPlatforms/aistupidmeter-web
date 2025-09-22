@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import TickerTape from '../components/TickerTape';
+import StupidMeter from '../components/StupidMeter';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -124,7 +125,7 @@ export default function Dashboard() {
   const fetchVisitorCount = async () => {
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/api/visitors/stats`);
+      const response = await fetch(`${apiUrl}/visitors/stats`);
       const data = await response.json();
       
       if (data && data.totals && typeof data.totals.visits === 'number') {
@@ -350,6 +351,8 @@ export default function Dashboard() {
     const selectedPeriod = period || analyticsPeriod;
     const selectedSortBy = sortBy || leaderboardSortBy;
     
+    console.log(`🔍 fetchAnalyticsData called with period=${selectedPeriod}, sortBy=${selectedSortBy}, silent=${silent}`);
+    
     // Only show loading indicators if not in silent mode
     if (!silent) {
       setLoadingAnalytics(true);
@@ -357,24 +360,48 @@ export default function Dashboard() {
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       
+      console.log(`🌐 Making analytics API calls to ${apiUrl}`);
+      
       const [degradationResponse, reliabilityResponse, recommendationsResponse, transparencyResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/analytics/degradations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
-        fetch(`${apiUrl}/api/analytics/provider-reliability?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
-        fetch(`${apiUrl}/api/analytics/recommendations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
-        fetch(`${apiUrl}/api/analytics/transparency?period=${selectedPeriod}&sortBy=${selectedSortBy}`)
+        fetch(`${apiUrl}/analytics/degradations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
+        fetch(`${apiUrl}/analytics/provider-reliability?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
+        fetch(`${apiUrl}/analytics/recommendations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
+        fetch(`${apiUrl}/analytics/transparency?period=${selectedPeriod}&sortBy=${selectedSortBy}`)
       ]);
+      
+      console.log(`📡 Analytics API responses received:`, {
+        degradations: degradationResponse.status,
+        reliability: reliabilityResponse.status,
+        recommendations: recommendationsResponse.status,
+        transparency: transparencyResponse.status
+      });
       
       const degradationData = await degradationResponse.json();
       const reliabilityData = await reliabilityResponse.json();
       const recommendationsData = await recommendationsResponse.json();
       const transparencyData = await transparencyResponse.json();
       
+      console.log(`📊 Analytics data parsed:`, {
+        degradations: degradationData.success,
+        reliability: reliabilityData.success,
+        recommendations: recommendationsData.success ? 'SUCCESS' : 'FAILED',
+        transparency: transparencyData.success,
+        recommendationsData: recommendationsData.success ? recommendationsData.data : 'NO DATA'
+      });
+      
       if (degradationData.success) setDegradations(degradationData.data);
       if (reliabilityData.success) setProviderReliability(reliabilityData.data);
-      if (recommendationsData.success) setRecommendations(recommendationsData.data);
+      if (recommendationsData.success) {
+        console.log(`✅ Setting recommendations data:`, recommendationsData.data);
+        setRecommendations(recommendationsData.data);
+      } else {
+        console.error(`❌ Recommendations API failed:`, recommendationsData);
+      }
       if (transparencyData.success) setTransparencyMetrics(transparencyData.data);
+      
+      console.log(`🎯 Analytics data fetch completed successfully`);
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      console.error('❌ Error fetching analytics data:', error);
     } finally {
       // Only clear loading indicators if not in silent mode
       if (!silent) {
@@ -400,7 +427,7 @@ export default function Dashboard() {
       console.log(`⚡ Silent refresh: preserving user selections ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod}`);
       
       // ONLY update data that matches current user selections
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'http://aistupidlevel.info:4000' : 'http://localhost:4000';
       const cacheUrl = `${apiUrl}/dashboard/cached?period=${currentPeriod}&sortBy=${currentSortBy}&analyticsPeriod=${currentAnalyticsPeriod}`;
       
       const response = await fetch(cacheUrl);
@@ -1004,7 +1031,8 @@ export default function Dashboard() {
         // Best recommendations (consistent with Model Intelligence Center)
         if (recommendations.bestForCode) {
           const best = recommendations.bestForCode;
-          content.push(`✅ ACTUALLY WORKS: ${getCompactName(best.name)} can still write code (${best.correctness}% accuracy)`);
+          const accuracy = best.correctness || best.score || 'N/A';
+          content.push(`✅ ACTUALLY WORKS: ${getCompactName(best.name)} can still write code (${accuracy}% accuracy)`);
         }
         
         if (recommendations.mostReliable) {
@@ -2372,6 +2400,12 @@ export default function Dashboard() {
             {/* Mobile Ticker Tape */}
             <div className="mobile-only">
               <TickerTape key="mobile-ticker" items={tickerContent} />
+              <StupidMeter 
+                globalIndex={globalIndex}
+                degradations={degradations}
+                modelScores={modelScores}
+                loading={loading}
+              />
             </div>
           </div>
           
@@ -2424,6 +2458,12 @@ export default function Dashboard() {
         {/* Desktop Ticker Tape */}
         <div className="desktop-only">
           <TickerTape key="desktop-ticker" items={tickerContent} />
+          <StupidMeter 
+            globalIndex={globalIndex}
+            degradations={degradations}
+            modelScores={modelScores}
+            loading={loading}
+          />
         </div>
         </div>
       </header>
@@ -2570,29 +2610,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Mobile Stupid Meter Toggle */}
-              <div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                  View Mode:
-                </div>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => {
-                      const newMode = stupidMeterMode === 'smart' ? 'stupid' : 'smart';
-                      setStupidMeterMode(newMode);
-                      localStorage.setItem('stupidmeter-mode', newMode);
-                    }}
-                    className={`vintage-btn ${stupidMeterMode === 'stupid' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                  >
-                    {stupidMeterMode === 'smart' ? '🧠 SMART' : '🤡 STUPID'}
-                  </button>
-                </div>
-              </div>
             </div>
 
             {/* Desktop Layout */}
@@ -2656,23 +2673,6 @@ export default function Dashboard() {
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* Stupid Meter Toggle */}
-                  <button
-                    onClick={() => {
-                      const newMode = stupidMeterMode === 'smart' ? 'stupid' : 'smart';
-                      setStupidMeterMode(newMode);
-                      localStorage.setItem('stupidmeter-mode', newMode);
-                    }}
-                    className={`vintage-btn ${stupidMeterMode === 'stupid' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px',
-                      marginRight: '12px'
-                    }}
-                  >
-                    {stupidMeterMode === 'smart' ? '🧠 SMART' : '🤡 STUPID'}
-                  </button>
                   <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>Sort By:</span>
                   <button
                     onClick={() => setLeaderboardSortBy('combined')}

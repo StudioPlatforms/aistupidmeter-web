@@ -1800,6 +1800,202 @@ input:checked + .toggle-slider::before {
   }
 }
 
+/* 90s Retro Stupid Meter Progress Bar - Integrated with Ticker Tape */
+.stupid-meter-progress-bar {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) 0;
+}
+
+/* STUPID/SMART Labels */
+.stupid-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stupid-label {
+  color: var(--red-alert);
+  text-shadow: 0 0 4px var(--red-alert);
+  animation: stupid-pulse 2s infinite;
+}
+
+.smart-label {
+  color: var(--phosphor-green);
+  text-shadow: 0 0 4px var(--phosphor-green);
+  animation: smart-glow 3s infinite;
+}
+
+@keyframes stupid-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes smart-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* 90s Retro Progress Bar Track */
+.retro-progress-track {
+  position: relative;
+  height: 12px;
+  background: #000000;
+  border: 2px inset #c0c0c0;
+  box-shadow: 
+    inset -1px -1px 0px #808080,
+    inset 1px 1px 0px #ffffff,
+    inset -2px -2px 0px #404040,
+    inset 2px 2px 0px #dfdfdf;
+  overflow: hidden;
+  /* Pixelated effect */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 90s Retro Progress Bar Fill */
+.retro-progress-fill {
+  height: 100%;
+  transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  /* Pixelated blocks effect */
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      currentColor 0px,
+      currentColor 2px,
+      rgba(255, 255, 255, 0.2) 2px,
+      rgba(255, 255, 255, 0.2) 3px,
+      currentColor 3px,
+      currentColor 5px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      currentColor 0px,
+      currentColor 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 3px,
+      currentColor 3px,
+      currentColor 5px
+    );
+  /* 90s bevel effect */
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  /* Pixelated rendering */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* 90s Progress Bar Animation */
+.retro-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: retro-sweep 3s infinite;
+}
+
+@keyframes retro-sweep {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Loading state with 90s style */
+.retro-progress-fill.loading {
+  animation: retro-loading-pulse 1.5s infinite;
+  background: var(--amber-warning) !important;
+  width: 50% !important;
+}
+
+@keyframes retro-loading-pulse {
+  0%, 100% { 
+    opacity: 0.8;
+    filter: brightness(1);
+  }
+  50% { 
+    opacity: 1;
+    filter: brightness(1.2);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .stupid-meter-progress-bar {
+    margin-top: var(--space-xs);
+    padding: var(--space-xs) 0;
+  }
+  
+  .retro-progress-track {
+    height: 10px;
+  }
+  
+  .stupid-meter-labels {
+    font-size: 8px;
+  }
+}
+
+/* Desktop enhancements */
+@media (min-width: 768px) {
+  .stupid-meter-labels {
+    font-size: var(--font-size-sm);
+  }
+  
+  .retro-progress-track {
+    height: 14px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .retro-progress-fill {
+    transition: none;
+  }
+  
+  .retro-progress-fill::after,
+  .stupid-label,
+  .smart-label {
+    animation: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .retro-progress-track {
+    border: 3px solid #ffffff;
+    background: #000000;
+  }
+  
+  .stupid-label {
+    color: #ff0000;
+    text-shadow: none;
+  }
+  
+  .smart-label {
+    color: #00ff00;
+    text-shadow: none;
+  }
+}
+
 /* Mobile Controls Container - Live Model Rankings */
 .mobile-controls-container {
   display: flex;

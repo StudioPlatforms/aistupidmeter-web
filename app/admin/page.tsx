@@ -74,14 +74,14 @@ export default function AdminPage() {
       const apiUrl = getApiUrl();
       
       // Fetch visitor statistics
-      const statsResponse = await fetch(`${apiUrl}/api/visitors/stats`);
+      const statsResponse = await fetch(`${apiUrl}/visitors/stats`);
       if (statsResponse.ok) {
         const statsData = await statsResponse.json();
         setVisitorStats(statsData);
       }
 
       // Fetch recent visitors
-      const recentResponse = await fetch(`${apiUrl}/api/visitors/recent`);
+      const recentResponse = await fetch(`${apiUrl}/visitors/recent`);
       if (recentResponse.ok) {
         const recentData = await recentResponse.json();
         setRecentVisitors(recentData.visitors || []);
@@ -96,7 +96,7 @@ export default function AdminPage() {
   const updateDailyStats = async () => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/visitors/update-daily-stats`, {
+      const response = await fetch(`${apiUrl}/visitors/update-daily-stats`, {
         method: 'POST'
       });
       if (response.ok) {
