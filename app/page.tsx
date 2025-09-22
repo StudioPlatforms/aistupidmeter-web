@@ -3265,7 +3265,7 @@ export default function Dashboard() {
             } else {
               // Regular 4-hourly tests (0, 4, 8, 12, 16, 20)
               const fourHourSlots = [0, 4, 8, 12, 16, 20];
-              let nextFourHourSlot = fourHourSlots.find(slot => slot > currentHour || (slot === currentHour && minutes === 0));
+              let nextFourHourSlot = fourHourSlots.find(slot => slot > currentHour);
               
               if (!nextFourHourSlot) {
                 // If no slot found today, use first slot tomorrow
