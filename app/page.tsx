@@ -3273,7 +3273,7 @@ export default function Dashboard() {
               }
               
               const nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), nextFourHourSlot, 0, 0, 0);
-              if (nextFourHourSlot <= currentHour) {
+              if (!nextFourHourSlot || nextFourHourSlot <= currentHour) {
                 // Next run is tomorrow
                 nextRun.setDate(nextRun.getDate() + 1);
               }
