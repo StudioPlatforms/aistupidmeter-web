@@ -2285,7 +2285,7 @@ export default function Dashboard() {
             <div className="terminal-text--dim" style={{ lineHeight: '1.6', fontSize: '0.9em' }}>
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How does Stupid Meter detect AI model degradation?</div>
-                <div>A: Our system continuously monitors AI model performance through <span className="terminal-text--green">automated benchmarking every hour</span>. We execute 147 unique coding challenges against each model, measuring performance across 7 key axes. Statistical analysis using <span className="terminal-text--green">z-score standardization</span> against 28-day rolling baselines detects significant performance drops. Our <span className="terminal-text--green">CUSUM algorithm</span> identifies persistent degradation patterns that indicate when AI companies reduce model capability to save computational costs.</div>
+                <div>A: Our system continuously monitors AI model performance through <span className="terminal-text--green">automated benchmarking every 4 hours</span>. We execute 147 unique coding challenges against each model, measuring performance across 7 key axes. Statistical analysis using <span className="terminal-text--green">z-score standardization</span> against 28-day rolling baselines detects significant performance drops. Our <span className="terminal-text--green">CUSUM algorithm</span> identifies persistent degradation patterns that indicate when AI companies reduce model capability to save computational costs.</div>
               </div>
               
               <div style={{ marginBottom: '20px' }}>
@@ -3274,6 +3274,7 @@ export default function Dashboard() {
           Next automated benchmark run in: {(() => {
             if (!currentTime) return '...';
             const now = currentTime;
+            const currentHour = now.getHours();
             const minutes = now.getMinutes();
             
             if (leaderboardSortBy === 'reasoning') {
@@ -3290,23 +3291,31 @@ export default function Dashboard() {
               const nextTime = nextDeepRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
               return `~${hoursUntil} hours (${nextTime}) - Deep reasoning tests`;
             } else {
-              // Regular hourly tests
-              let nextRun;
-              if (minutes === 0) {
-                nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
-              } else {
-                nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0, 0);
+              // Regular 4-hourly tests (0, 4, 8, 12, 16, 20)
+              const fourHourSlots = [0, 4, 8, 12, 16, 20];
+              let nextFourHourSlot = fourHourSlots.find(slot => slot > currentHour || (slot === currentHour && minutes === 0));
+              
+              if (!nextFourHourSlot) {
+                // If no slot found today, use first slot tomorrow
+                nextFourHourSlot = fourHourSlots[0];
               }
+              
+              const nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate(), nextFourHourSlot, 0, 0, 0);
+              if (nextFourHourSlot <= currentHour) {
+                // Next run is tomorrow
+                nextRun.setDate(nextRun.getDate() + 1);
+              }
+              
               const minutesUntil = Math.ceil((nextRun.getTime() - now.getTime()) / 60000);
               const nextTime = nextRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-              return `${minutesUntil} minutes (${nextTime})`;
+              return `${Math.floor(minutesUntil / 60)}h ${minutesUntil % 60}m (${nextTime})`;
             }
           })()} <br/>
           {leaderboardSortBy === 'reasoning' ? 
             'Deep reasoning benchmarks run daily • Scores based on complex multi-step challenges' :
             leaderboardSortBy === 'speed' ?
-            '7-axis benchmarks refresh hourly • Scores based on rapid coding tasks' :
-            'Combined benchmarks refresh every hour • Scores based on 7-axis + deep reasoning metrics'
+            '7-axis benchmarks refresh every 4 hours • Scores based on rapid coding tasks' :
+            'Combined benchmarks refresh every 4 hours • Scores based on 7-axis + deep reasoning metrics'
           }{visitorCount && (
             <> • <span className="terminal-text--green">VISITORS {(() => {
               if (visitorCount >= 1000000) {
