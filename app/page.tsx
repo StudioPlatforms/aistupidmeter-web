@@ -105,6 +105,9 @@ export default function Dashboard() {
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
   const [welcomeStep, setWelcomeStep] = useState<'updates' | 'privacy' | 'completed'>('updates');
 
+  // Fund Us popup state
+  const [showFundUsPopup, setShowFundUsPopup] = useState(false);
+
   // Smart caching system for leaderboard data
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
     data: ModelScore[];
@@ -3230,37 +3233,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Buy Me a Coffee Section - Compact */}
-      <div style={{ 
-        backgroundColor: 'rgba(255, 165, 0, 0.03)',
-        border: '1px solid rgba(255, 165, 0, 0.2)',
-        padding: '12px 16px',
-        margin: '16px 0',
-        textAlign: 'center',
-        borderRadius: '2px',
-        fontSize: '0.85em'
-      }}>
-        <div className="terminal-text">
-          <span className="terminal-text--amber">☕ Like our work? </span>
-          <a 
-            href="https://buymeacoffee.com/goatgamedev" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="coffee-link-pulsing"
-            style={{ 
-              color: 'var(--phosphor-green)', 
-              textDecoration: 'none',
-              borderBottom: '1px dotted var(--phosphor-green)',
-              fontSize: '0.9em'
-            }}
-            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
-            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
-          >
-            Buy us a coffee
-          </a>
-          <span className="terminal-text--dim"> • Your support keeps this free for everyone</span>
-        </div>
-      </div>
 
       {/* Footer */}
       <div style={{ 
@@ -3408,7 +3380,25 @@ export default function Dashboard() {
           >
             Server
           </a>
-          {' '} • Star us on GitHub!
+          {' '} • Star us on GitHub! • {' '}
+          <button
+            onClick={() => setShowFundUsPopup(true)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--phosphor-green)',
+              textDecoration: 'none',
+              borderBottom: '1px dotted var(--phosphor-green)',
+              cursor: 'pointer',
+              fontSize: 'inherit',
+              fontFamily: 'inherit',
+              padding: '0'
+            }}
+            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
+            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
+          >
+            Fund Us
+          </button>
         </div>
       </div>
 
@@ -3670,6 +3660,211 @@ export default function Dashboard() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fund Us Popup - Themed with 3 funding options */}
+      {showFundUsPopup && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '10px'
+        }}>
+          <div className="crt-monitor" style={{
+            maxWidth: '500px',
+            width: '95%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: window.innerWidth < 768 ? '16px' : '24px',
+            backgroundColor: 'var(--terminal-black)',
+            border: '2px solid var(--phosphor-green)',
+            borderRadius: '6px',
+            boxShadow: '0 0 20px var(--phosphor-green)'
+          }}>
+            <div className="terminal-text">
+              <div style={{ fontSize: '1.3em', marginBottom: '16px', textAlign: 'center' }}>
+                <span className="terminal-text--amber">💰 FUND STUPID METER</span>
+                <span className="blinking-cursor"></span>
+              </div>
+              
+              <div style={{ marginBottom: '20px', lineHeight: '1.6', textAlign: 'center' }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px' }}>
+                  🚀 Help Keep AI Monitoring Free for Everyone!
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px' }}>
+                  Your support helps us maintain our servers, develop new features, and keep Stupid Meter completely ad-free. 
+                  Choose your preferred way to contribute:
+                </div>
+              </div>
+
+              {/* Funding Options */}
+              <div style={{ marginBottom: '24px' }}>
+                {/* Option 1: Buy Me a Coffee */}
+                <div style={{ 
+                  marginBottom: '16px',
+                  padding: '12px',
+                  border: '1px solid rgba(255, 165, 0, 0.3)',
+                  backgroundColor: 'rgba(255, 165, 0, 0.05)',
+                  borderRadius: '4px'
+                }}>
+                  <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                    ☕ Buy Us a Coffee
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '8px' }}>
+                    Quick and easy one-time support. Perfect for showing appreciation!
+                  </div>
+                  <a
+                    href="https://buymeacoffee.com/goatgamedev"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vintage-btn"
+                    style={{
+                      display: 'inline-block',
+                      padding: '8px 16px',
+                      textDecoration: 'none',
+                      fontSize: '0.9em'
+                    }}
+                  >
+                    SUPPORT WITH COFFEE
+                  </a>
+                </div>
+
+                {/* Option 2: 4fund.com Campaign */}
+                <div style={{ 
+                  marginBottom: '16px',
+                  padding: '12px',
+                  border: '1px solid rgba(0, 255, 65, 0.3)',
+                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  borderRadius: '4px'
+                }}>
+                  <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                    🎯 Donation Campaign
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '8px' }}>
+                    Join our official fundraising campaign to help us scale and improve our AI monitoring infrastructure.
+                  </div>
+                  <a
+                    href="https://4fund.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="vintage-btn"
+                    style={{
+                      display: 'inline-block',
+                      padding: '8px 16px',
+                      textDecoration: 'none',
+                      fontSize: '0.9em'
+                    }}
+                  >
+                    VISIT CAMPAIGN
+                  </a>
+                </div>
+
+                {/* Option 3: Crypto Donations */}
+                <div style={{ 
+                  marginBottom: '16px',
+                  padding: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '4px'
+                }}>
+                  <div className="terminal-text" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                    ₿ Crypto Donations
+                  </div>
+                  <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '12px' }}>
+                    Support us with cryptocurrency. Click addresses to copy:
+                  </div>
+                  
+                  {/* EVM Address */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <div className="terminal-text--amber" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
+                      EVM (Ethereum, Polygon, BSC, etc.):
+                    </div>
+                    <div
+                      onClick={() => {
+                        navigator.clipboard.writeText('0x9B050a775D5E2652569677F1E99AaD582A19AE6D');
+                        alert('EVM address copied to clipboard!');
+                      }}
+                      style={{
+                        fontSize: '0.75em',
+                        fontFamily: 'var(--font-mono)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        padding: '4px 8px',
+                        borderRadius: '2px',
+                        cursor: 'pointer',
+                        wordBreak: 'break-all',
+                        border: '1px solid rgba(255, 255, 255, 0.2)'
+                      }}
+                      className="terminal-text--green"
+                    >
+                      0x9B050a775D5E2652569677F1E99AaD582A19AE6D
+                    </div>
+                  </div>
+
+                  {/* Solana Address */}
+                  <div>
+                    <div className="terminal-text--amber" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
+                      Solana:
+                    </div>
+                    <div
+                      onClick={() => {
+                        navigator.clipboard.writeText('HNrhcSoJTHoVDBxqmYGxCx6izMMfP8GbjK1yhDQctjPy');
+                        alert('Solana address copied to clipboard!');
+                      }}
+                      style={{
+                        fontSize: '0.75em',
+                        fontFamily: 'var(--font-mono)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        padding: '4px 8px',
+                        borderRadius: '2px',
+                        cursor: 'pointer',
+                        wordBreak: 'break-all',
+                        border: '1px solid rgba(255, 255, 255, 0.2)'
+                      }}
+                      className="terminal-text--green"
+                    >
+                      HNrhcSoJTHoVDBxqmYGxCx6izMMfP8GbjK1yhDQctjPy
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thank you message */}
+              <div style={{ 
+                textAlign: 'center',
+                marginBottom: '20px',
+                padding: '12px',
+                backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(0, 255, 65, 0.2)',
+                borderRadius: '4px'
+              }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                  🙏 Thank You for Your Support!
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                  Every contribution helps us maintain this free service and develop new features to better monitor AI intelligence.
+                </div>
+              </div>
+              
+              {/* Close Button */}
+              <div style={{ textAlign: 'center' }}>
+                <button 
+                  onClick={() => setShowFundUsPopup(false)}
+                  className="vintage-btn"
+                  style={{ padding: '8px 24px', fontSize: '1.0em' }}
+                >
+                  CLOSE
+                </button>
+              </div>
             </div>
           </div>
         </div>
