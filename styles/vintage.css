@@ -93,7 +93,7 @@ body {
   }
 }
 
-/* CRT Monitor Effect */
+/* CRT Monitor Effect - Professional Refined */
 .crt-monitor {
   position: relative;
   background: var(--terminal-black);
@@ -102,7 +102,7 @@ body {
   padding: var(--space-md);
   margin: var(--space-sm);
   box-shadow: 
-    0 0 20px rgba(0, 255, 65, 0.3),
+    0 0 8px rgba(0, 255, 65, 0.15),
     inset 0 0 20px rgba(0, 0, 0, 0.5);
   
   /* Mobile optimization */
@@ -162,27 +162,28 @@ body {
   }
 }
 
-/* Terminal Text */
+/* Terminal Text - Refined Professional Styling */
 .terminal-text {
   font-family: var(--font-mono);
   color: var(--phosphor-green);
   font-weight: normal;
-  text-shadow: 0 0 5px currentColor;
+  text-shadow: 0 0 2px currentColor;
   letter-spacing: 0.5px;
 }
 
 .terminal-text--dim {
   color: var(--phosphor-dim);
+  text-shadow: none;
 }
 
 .terminal-text--amber {
   color: var(--amber-warning);
-  text-shadow: 0 0 5px var(--amber-warning);
+  text-shadow: 0 0 2px var(--amber-warning);
 }
 
 .terminal-text--red {
   color: var(--red-alert);
-  text-shadow: 0 0 5px var(--red-alert);
+  text-shadow: 0 0 2px var(--red-alert);
 }
 
 /* Blinking Cursor */
@@ -298,7 +299,7 @@ input:checked + .toggle-slider::before {
   }
 }
 
-/* Status LED */
+/* Status LED - Professional Refined */
 .status-led {
   display: inline-block;
   width: 12px;
@@ -308,43 +309,34 @@ input:checked + .toggle-slider::before {
   position: relative;
   box-shadow: 
     inset 0 1px 2px rgba(0, 0, 0, 0.5),
-    0 0 5px currentColor;
+    0 0 3px rgba(0, 0, 0, 0.3);
 }
 
 .status-led--green {
   background: var(--phosphor-green);
   color: var(--phosphor-green);
-  animation: pulse-green 2s infinite;
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(0, 255, 65, 0.4);
 }
 
 .status-led--amber {
   background: var(--amber-warning);
   color: var(--amber-warning);
-  animation: pulse-amber 1.5s infinite;
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(255, 176, 0, 0.4);
 }
 
 .status-led--red {
   background: var(--red-alert);
   color: var(--red-alert);
-  animation: pulse-red 1s infinite;
+  box-shadow: 
+    inset 0 1px 2px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(255, 45, 0, 0.4);
 }
 
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes pulse-amber {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* Gauge Display */
+/* Gauge Display - Professional Refined */
 .vintage-gauge {
   position: relative;
   width: 200px;
@@ -355,7 +347,7 @@ input:checked + .toggle-slider::before {
   background: radial-gradient(circle, #1a1a1a, #0a0a0a);
   box-shadow: 
     inset 0 0 20px rgba(0, 0, 0, 0.8),
-    0 0 20px rgba(0, 255, 65, 0.3);
+    0 0 8px rgba(0, 255, 65, 0.2);
 }
 
 /* Mobile gauge scaling */
@@ -508,8 +500,8 @@ input:checked + .toggle-slider::before {
 
 .vintage-btn:hover {
   background: linear-gradient(135deg, #444, #333);
-  box-shadow: 0 0 10px var(--phosphor-green);
-  text-shadow: 0 0 5px currentColor;
+  box-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
+  text-shadow: 0 0 2px currentColor;
 }
 
 .vintage-btn:active {
