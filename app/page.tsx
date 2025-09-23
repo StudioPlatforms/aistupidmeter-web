@@ -2116,7 +2116,7 @@ export default function Dashboard() {
             </div>
             <div className="terminal-text--dim" style={{ lineHeight: '1.6', fontSize: '0.9em' }}>
               <div className="terminal-text--amber" style={{ fontSize: '1.2em', marginBottom: '12px', textAlign: 'center' }}>
-                🚨 LATEST UPDATE: DEEP REASONING + ANTI-GAMING REVOLUTION
+                🚨 LATEST UPDATE: TOOL CALLING + INTELLIGENCE CENTER REVOLUTION
               </div>
               <div style={{ 
                 padding: '12px', 
@@ -2125,19 +2125,21 @@ export default function Dashboard() {
                 borderRadius: '4px',
                 marginBottom: '20px'
               }}>
-                <p><span className="terminal-text--green">🎯 NEW: COMBINED INTELLIGENCE SCORING</span></p>
-                <p>We've enhanced AI evaluation with our <strong>Combined Score System</strong>:</p>
-                <p>• <span className="terminal-text--green">70% Speed & Coding Benchmarks</span> - Traditional 7-axis performance</p>
-                <p>• <span className="terminal-text--green">30% Deep Reasoning Challenges</span> - Complex multi-step problem solving</p>
+                <p><span className="terminal-text--green">🔧 WORLD-FIRST: TOOL CALLING EVALUATION SYSTEM</span></p>
+                <p>Revolutionary breakthrough in AI model assessment:</p>
+                <p>• <span className="terminal-text--green">Real System Commands</span> - Models execute actual file operations, searches, and system tasks</p>
+                <p>• <span className="terminal-text--green">Multi-Step Task Chains</span> - Complex workflows requiring tool coordination and reasoning</p>
+                <p>• <span className="terminal-text--green">Sandbox Execution</span> - Secure, isolated environment for authentic tool usage testing</p>
+                <p>• <span className="terminal-text--green">171+ Successful Sessions</span> - Proven differentiation between model capabilities</p>
                 <br/>
                 
-                <p><span className="terminal-text--green">🛡️ ENHANCED EVALUATION METHODOLOGY</span></p>
-                <p>We've improved our evaluation accuracy with advanced techniques:</p>
-                <p>• <strong>Real Code Execution</strong> - Code runs in actual pytest sandboxes for authentic validation</p>
-                <p>• <strong>Quality-Focused Scoring</strong> - Emphasis on correctness and functionality over response length</p>
-                <p>• <strong>Balanced Efficiency Metrics</strong> - Fair evaluation that considers both speed and reasoning depth</p>
-                <p>• <strong>Advanced Consistency Analysis</strong> - Sophisticated tracking of logical coherence across responses</p>
-                <p>• <strong>Context-Aware QA</strong> - Document-anchored questions requiring genuine comprehension</p>
+                <p><span className="terminal-text--green">🚨 ADVANCED INTELLIGENCE CENTER</span></p>
+                <p>Completely redesigned analytics engine with enterprise-grade monitoring:</p>
+                <p>• <strong>5 Warning Categories</strong> - Performance trends, cost alerts, stability issues, regional variations, service disruptions</p>
+                <p>• <strong>29 Detection Types</strong> - From basic degradation to complex multi-dimensional analysis</p>
+                <p>• <strong>Real-Time Recommendations</strong> - Intelligent model selection based on current performance data</p>
+                <p>• <strong>Proactive Alerts</strong> - Early warning system for cost-performance issues and capability reductions</p>
+                <p>• <strong>Provider Trust Scores</strong> - Comprehensive reliability metrics across all AI providers</p>
               </div>
 
               <p><strong>The AI Intelligence Degradation Detection System</strong> - a production-grade monitoring platform that continuously tracks AI model performance to detect when providers reduce capability to save costs or implement undisclosed model changes.</p>
@@ -2359,6 +2361,21 @@ export default function Dashboard() {
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How do you differentiate between degradation and natural performance variations?</div>
                 <div>A: We distinguish degradation from normal variation through multiple statistical filters: <strong>Significance Testing</strong> requiring p &lt; 0.05 confidence levels, <strong>Effect Size Analysis</strong> ensuring detected changes are practically meaningful (Cohen's d &gt; 0.5), <strong>Duration Thresholds</strong> requiring sustained degradation over 48+ hours, and <strong>Magnitude Requirements</strong> filtering out minor fluctuations below ±5% from baseline. Our algorithms account for expected variations from API load, time zones, and infrastructure changes while flagging genuine capability reductions.</div>
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: What is the new Tool Calling evaluation system and how does it work?</div>
+                <div>A: Our <span className="terminal-text--green">world-first Tool Calling evaluation system</span> tests AI models' ability to use real system tools and execute multi-step workflows. Models must successfully use tools like execute-command, read-file, write-file, list-files, and search-files to complete complex tasks. We run these evaluations in secure sandbox environments with comprehensive error handling and real-time monitoring. This breakthrough allows us to measure practical AI capabilities beyond simple text generation, providing insights into how models perform in real-world scenarios requiring tool coordination and systematic problem-solving.</div>
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How does the enhanced Intelligence Center improve model recommendations?</div>
+                <div>A: Our redesigned <span className="terminal-text--green">Intelligence Center features 29 comprehensive warning categories</span> across 5 major detection types: performance trends, cost-efficiency alerts, stability monitoring, regional variations, and service disruptions. The system provides real-time recommendations for "Best for Code," "Most Reliable," and "Fastest Response" models based on current performance data. Our <strong>proactive alert system</strong> warns users about cost-performance issues and capability reductions before they impact your applications. The Intelligence Center also includes Provider Trust Scores that track reliability metrics across all AI providers, helping you make informed decisions about which services to depend on.</div>
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: What makes your Tool Calling benchmarks different from other AI evaluations?</div>
+                <div>A: Unlike traditional text-based evaluations, our Tool Calling system requires models to <span className="terminal-text--green">execute actual system commands and coordinate multiple tools</span> to complete real-world tasks. Models must demonstrate practical capabilities like file manipulation, data processing, and multi-step problem solving in secure sandbox environments. We've completed <strong>171+ successful tool calling sessions</strong> that clearly differentiate model capabilities in ways that simple Q&A tests cannot. This evaluation method reveals which models can actually perform useful work versus those that only excel at generating plausible-sounding text responses.</div>
               </div>
             </div>
             <button 
