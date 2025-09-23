@@ -1110,16 +1110,18 @@ export default function Dashboard() {
             content.push(`🥇 WORST ${leaderboardSortBy.toUpperCase()}: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
           }
           
-          // Best value models (price-to-performance)
-          const modelsWithPricing = availableModels.map((m: any) => {
-            const pricing = getModelPricing(m.name, m.provider);
-            const estimatedCost = (pricing.input * 0.4) + (pricing.output * 0.6);
-            return {
-              ...m,
-              valueScore: m.currentScore / estimatedCost,
-              estimatedCost
-            };
-          }).sort((a: any, b: any) => b.valueScore - a.valueScore);
+          // Best value models (price-to-performance) - FIXED: Don't recommend models that are flagged as problematic
+          const modelsWithPricing = availableModels
+            .filter((m: any) => m.currentScore >= 60) // Only consider models with decent performance for "best value"
+            .map((m: any) => {
+              const pricing = getModelPricing(m.name, m.provider);
+              const estimatedCost = (pricing.input * 0.4) + (pricing.output * 0.6);
+              return {
+                ...m,
+                valueScore: m.currentScore / estimatedCost,
+                estimatedCost
+              };
+            }).sort((a: any, b: any) => b.valueScore - a.valueScore);
           
           if (modelsWithPricing[0] && modelsWithPricing[0].valueScore > 10) {
             content.push(`💰 BEST VALUE: ${getCompactName(modelsWithPricing[0].name)} - ${modelsWithPricing[0].currentScore} pts for $${modelsWithPricing[0].estimatedCost.toFixed(2)}/1M tokens`);
