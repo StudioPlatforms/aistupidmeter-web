@@ -1004,81 +1004,115 @@ export default function Dashboard() {
   // Helper function to generate consistent ticker content using the same data as Model Intelligence Center
   const generateTickerContent = () => {
     const content: string[] = [];
+    const seenMessages = new Set<string>(); // Deduplication tracker
     
     try {
       // Use the same data that's already loaded for the Model Intelligence Center
       // This ensures consistency between ticker tape and analytics
       
-      // 1. Use degradations data (same as Model Intelligence Center) - FIXED: Filter out 0% degradations
+      // Helper function to add unique content
+      const addUniqueContent = (message: string) => {
+        // Create a normalized version for deduplication (remove emojis and extra spaces)
+        const normalized = message.replace(/[🚨⚠️📉🚫✅🛡️⚡💰📊🏆🎯🔴🟠🟡🔵💀🤡🥇📈]/g, '').replace(/\s+/g, ' ').trim().toLowerCase();
+        
+        if (!seenMessages.has(normalized) && message.trim()) {
+          seenMessages.add(normalized);
+          content.push(message);
+          return true;
+        }
+        return false;
+      };
+      
+      // 1. Use degradations data (same as Model Intelligence Center) - FIXED: Proper deduplication and model name validation
       if (degradations.length > 0) {
         degradations.slice(0, 3).forEach((deg: any) => {
+          // Ensure we have a valid model name
+          const modelName = deg.modelName || 'UNKNOWN MODEL';
+          
           // CRITICAL FIX: Only show actual degradations (dropPercentage > 0) or use the message directly
-          if (deg.type === 'unstable_performance' || deg.type === 'service_disruption' || deg.dropPercentage === 0) {
-            // For non-degradation alerts, use the message directly
-            content.push(`${deg.message}`);
-          } else if (deg.dropPercentage > 0) {
-            // For actual degradations, show the drop percentage
-            if (deg.severity === 'critical') {
-              content.push(`🚨 BREAKING: ${getCompactName(deg.modelName)} just CRASHED ${deg.dropPercentage}% in 24h!`);
-            } else if (deg.severity === 'major') {
-              content.push(`⚠️ ALERT: ${getCompactName(deg.modelName)} degraded ${deg.dropPercentage}% (${deg.currentScore} from ${deg.baselineScore})`);
-            } else {
-              content.push(`📉 ${getCompactName(deg.modelName)} slipping: -${deg.dropPercentage}% performance`);
+          if (deg.type === 'unstable_performance' || deg.type === 'service_disruption') {
+            // For performance variance alerts, use the message directly but ensure model name is included
+            let message = deg.message || '';
+            if (message && !message.toLowerCase().includes(modelName.toLowerCase()) && modelName !== 'UNKNOWN MODEL') {
+              message = `${getCompactName(modelName)}: ${message}`;
             }
+            addUniqueContent(message);
+          } else if (deg.dropPercentage > 0) {
+            // For actual degradations, show the drop percentage with model name
+            let message = '';
+            if (deg.severity === 'critical') {
+              message = `🚨 BREAKING: ${getCompactName(modelName)} just CRASHED ${deg.dropPercentage}% in 24h!`;
+            } else if (deg.severity === 'major') {
+              message = `⚠️ ALERT: ${getCompactName(modelName)} degraded ${deg.dropPercentage}% (${deg.currentScore} from ${deg.baselineScore})`;
+            } else {
+              message = `📉 ${getCompactName(modelName)} slipping: -${deg.dropPercentage}% performance`;
+            }
+            addUniqueContent(message);
           }
         });
       }
       
-        // 2. Use recommendations data (same as Model Intelligence Center) - FIXED: Better data validation
-        if (recommendations && typeof recommendations === 'object') {
-          // CRITICAL FIX: Avoid logical contradictions - don't recommend models that are in degradations
-          const degradedModelNames = degradations.map((deg: any) => deg.modelName?.toLowerCase()).filter(Boolean);
-          
-          // Avoid Now recommendations (consistent with Model Intelligence Center)
-          if (recommendations.avoidNow && Array.isArray(recommendations.avoidNow) && recommendations.avoidNow.length > 0) {
-            recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
-              if (model && model.name) {
-                content.push(`🚫 AVOID: ${getCompactName(model.name)} - ${model.reason || 'Poor performance detected'}`);
-              }
-            });
-          }
-          
-          // Best recommendations (consistent with Model Intelligence Center) - FIXED: Avoid contradictions
-          if (recommendations.bestForCode && recommendations.bestForCode.name) {
-            const best = recommendations.bestForCode;
-            const bestNameLower = best.name.toLowerCase();
-            
-            // CRITICAL: Don't recommend a model that's currently degraded
-            if (!degradedModelNames.includes(bestNameLower)) {
-              const accuracy = best.correctness ? `${Math.round(best.correctness)}%` : 
-                              best.score ? `${Math.round(best.score)}%` : 
-                              'High';
-              content.push(`✅ ACTUALLY WORKS: ${getCompactName(best.name)} can still write code (${accuracy} accuracy)`);
+      // 2. Use recommendations data (same as Model Intelligence Center) - FIXED: Better data validation and contradiction avoidance
+      if (recommendations && typeof recommendations === 'object') {
+        // CRITICAL FIX: Avoid logical contradictions - don't recommend models that are in degradations
+        const degradedModelNames = new Set(
+          degradations
+            .filter((deg: any) => deg.dropPercentage > 10 || deg.severity === 'critical' || deg.type === 'service_disruption')
+            .map((deg: any) => deg.modelName?.toLowerCase())
+            .filter(Boolean)
+        );
+        
+        console.log('🚫 Degraded models to exclude from recommendations:', Array.from(degradedModelNames));
+        
+        // Avoid Now recommendations (consistent with Model Intelligence Center)
+        if (recommendations.avoidNow && Array.isArray(recommendations.avoidNow) && recommendations.avoidNow.length > 0) {
+          recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
+            if (model && model.name) {
+              const message = `🚫 AVOID: ${getCompactName(model.name)} - ${model.reason || 'Poor performance detected'}`;
+              addUniqueContent(message);
             }
-          }
+          });
+        }
+        
+        // Best recommendations (consistent with Model Intelligence Center) - FIXED: Avoid contradictions
+        if (recommendations.bestForCode && recommendations.bestForCode.name) {
+          const best = recommendations.bestForCode;
+          const bestNameLower = best.name.toLowerCase();
           
-          if (recommendations.mostReliable && recommendations.mostReliable.name) {
-            const reliable = recommendations.mostReliable;
-            const reliableNameLower = reliable.name.toLowerCase();
-            
-            // CRITICAL: Don't recommend a model that's currently degraded
-            if (!degradedModelNames.includes(reliableNameLower)) {
-              content.push(`🛡️ MOST RELIABLE: ${getCompactName(reliable.name)} - ${reliable.reason || 'Consistent performance'}`);
-            }
-          }
-          
-          if (recommendations.fastestResponse && recommendations.fastestResponse.name) {
-            const fastest = recommendations.fastestResponse;
-            const fastestNameLower = fastest.name.toLowerCase();
-            
-            // CRITICAL: Don't recommend a model that's currently degraded
-            if (!degradedModelNames.includes(fastestNameLower)) {
-              content.push(`⚡ FASTEST: ${getCompactName(fastest.name)} - ${fastest.reason || 'Quick response time'}`);
-            }
+          // CRITICAL: Don't recommend a model that's currently seriously degraded
+          if (!degradedModelNames.has(bestNameLower)) {
+            const accuracy = best.correctness ? `${Math.round(best.correctness)}%` : 
+                            best.score ? `${Math.round(best.score)}%` : 
+                            'High';
+            const message = `✅ BEST FOR CODE: ${getCompactName(best.name)} (${accuracy} accuracy)`;
+            addUniqueContent(message);
           }
         }
+        
+        if (recommendations.mostReliable && recommendations.mostReliable.name) {
+          const reliable = recommendations.mostReliable;
+          const reliableNameLower = reliable.name.toLowerCase();
+          
+          // CRITICAL: Don't recommend a model that's currently seriously degraded
+          if (!degradedModelNames.has(reliableNameLower)) {
+            const message = `🛡️ MOST RELIABLE: ${getCompactName(reliable.name)} - ${reliable.reason || 'Consistent performance'}`;
+            addUniqueContent(message);
+          }
+        }
+        
+        if (recommendations.fastestResponse && recommendations.fastestResponse.name) {
+          const fastest = recommendations.fastestResponse;
+          const fastestNameLower = fastest.name.toLowerCase();
+          
+          // CRITICAL: Don't recommend a model that's currently seriously degraded
+          if (!degradedModelNames.has(fastestNameLower)) {
+            const message = `⚡ FASTEST: ${getCompactName(fastest.name)} - ${fastest.reason || 'Quick response time'}`;
+            addUniqueContent(message);
+          }
+        }
+      }
       
-      // 3. Use model scores data (MODE-AWARE - reflects current leaderboard selection)
+      // 3. Use model scores data (MODE-AWARE - reflects current leaderboard selection) - FIXED: Proper deduplication
       if (modelScores.length > 0) {
         const availableModels = modelScores.filter((m: any) => 
           m.currentScore !== 'unavailable' && typeof m.currentScore === 'number'
@@ -1090,24 +1124,25 @@ export default function Dashboard() {
           
           // CONSISTENT: Use same thresholds as Model Intelligence Center (< 60 for warnings)
           const criticalModels = availableModels.filter((m: any) => m.currentScore < 60);
-          const warningModels = availableModels.filter((m: any) => m.currentScore < 40);
           
-          // Show mode-specific warnings for critical models (consistent with analytics.ts)
-          criticalModels.slice(0, 3).forEach((model: any) => {
+          // Show mode-specific warnings for critical models (consistent with analytics.ts) - FIXED: Use addUniqueContent
+          criticalModels.slice(0, 2).forEach((model: any) => {
+            let message = '';
             if (model.currentScore < 40) {
-              content.push(`🚨 CRITICAL ${leaderboardSortBy.toUpperCase()}: ${getCompactName(model.name)} failing at ${model.currentScore} pts!`);
+              message = `🚨 CRITICAL ${leaderboardSortBy.toUpperCase()}: ${getCompactName(model.name)} failing at ${model.currentScore} pts!`;
             } else if (model.currentScore < 50) {
-              content.push(`⚠️ ${leaderboardSortBy.toUpperCase()} ALERT: ${getCompactName(model.name)} struggling at ${model.currentScore} pts`);
+              message = `⚠️ ${leaderboardSortBy.toUpperCase()} ALERT: ${getCompactName(model.name)} struggling at ${model.currentScore} pts`;
             } else if (model.currentScore < 60) {
-              content.push(`📉 ${leaderboardSortBy.toUpperCase()} WARNING: ${getCompactName(model.name)} below average at ${model.currentScore} pts`);
+              message = `📉 ${leaderboardSortBy.toUpperCase()} WARNING: ${getCompactName(model.name)} below average at ${model.currentScore} pts`;
             }
+            if (message) addUniqueContent(message);
           });
           
-          // Worst performers with stupidity awards (mode-specific)
+          // Worst performers with stupidity awards (mode-specific) - FIXED: Use addUniqueContent
           if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 30) {
-            content.push(`🤡 ${leaderboardSortBy.toUpperCase()} STUPIDITY WINNER: ${getCompactName(sorted[0].name)} - ${sorted[0].currentScore} pts!`);
+            addUniqueContent(`🤡 ${leaderboardSortBy.toUpperCase()} STUPIDITY WINNER: ${getCompactName(sorted[0].name)} - ${sorted[0].currentScore} pts!`);
           } else if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
-            content.push(`🥇 WORST ${leaderboardSortBy.toUpperCase()}: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
+            addUniqueContent(`🥇 WORST ${leaderboardSortBy.toUpperCase()}: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
           }
           
           // Best value models (price-to-performance) - FIXED: Don't recommend models that are flagged as problematic
@@ -1124,66 +1159,68 @@ export default function Dashboard() {
             }).sort((a: any, b: any) => b.valueScore - a.valueScore);
           
           if (modelsWithPricing[0] && modelsWithPricing[0].valueScore > 10) {
-            content.push(`💰 BEST VALUE: ${getCompactName(modelsWithPricing[0].name)} - ${modelsWithPricing[0].currentScore} pts for $${modelsWithPricing[0].estimatedCost.toFixed(2)}/1M tokens`);
+            const message = `💰 BEST VALUE: ${getCompactName(modelsWithPricing[0].name)} - ${modelsWithPricing[0].currentScore} pts for $${modelsWithPricing[0].estimatedCost.toFixed(2)}/1M tokens`;
+            addUniqueContent(message);
           }
           
-          // Most expensive disasters
+          // Most expensive disasters - FIXED: Use addUniqueContent
           const expensiveWorst = modelsWithPricing.filter(m => m.currentScore < 60 && m.estimatedCost > 20);
           if (expensiveWorst.length > 0) {
             const worst = expensiveWorst[0];
-            content.push(`💸 EXPENSIVE DISASTER: ${getCompactName(worst.name)} charges $${worst.estimatedCost.toFixed(0)}/1M for ${worst.currentScore} pts performance!`);
+            const message = `💸 EXPENSIVE DISASTER: ${getCompactName(worst.name)} charges $${worst.estimatedCost.toFixed(0)}/1M for ${worst.currentScore} pts performance!`;
+            addUniqueContent(message);
           }
           
-          // Best performers (consistent with actual rankings)
+          // Best performers (consistent with actual rankings) - FIXED: Use addUniqueContent
           const bestModels = sorted.slice(-3).reverse(); // Top 3 performers
           if (bestModels[0] && typeof bestModels[0].currentScore === 'number' && bestModels[0].currentScore >= 70) {
-            content.push(`🏆 ACTUALLY SMART: ${getCompactName(bestModels[0].name)} leading at ${bestModels[0].currentScore} pts`);
+            addUniqueContent(`🏆 ACTUALLY SMART: ${getCompactName(bestModels[0].name)} leading at ${bestModels[0].currentScore} pts`);
           }
           
-          // Trending analysis (consistent with model data)
+          // Trending analysis (consistent with model data) - FIXED: Use addUniqueContent and limit messages
           const improving = availableModels.filter((m: any) => m.trend === 'up');
           const declining = availableModels.filter((m: any) => m.trend === 'down');
           
           if (improving.length > 0) {
-            content.push(`📈 RECOVERING: ${improving.length} models getting smarter (finally!)`);
+            addUniqueContent(`📈 RECOVERING: ${improving.length} models getting smarter (finally!)`);
             if (improving[0]) {
-              content.push(`🎉 MIRACLE: ${getCompactName(improving[0].name)} actually improved today!`);
+              addUniqueContent(`🎉 MIRACLE: ${getCompactName(improving[0].name)} actually improved today!`);
             }
           }
           
           if (declining.length > 0) {
-            content.push(`📉 TRENDING STUPID: ${declining.length} models losing brain cells`);
+            addUniqueContent(`📉 TRENDING STUPID: ${declining.length} models losing brain cells`);
           }
           
-          // Provider trends (consistent with actual provider performance)
+          // Provider trends (consistent with actual provider performance) - FIXED: Use addUniqueContent
           const openaiModels = availableModels.filter((m: any) => m.provider === 'openai' && m.trend === 'down');
           const anthropicModels = availableModels.filter((m: any) => m.provider === 'anthropic' && m.trend === 'down');
           const xaiModels = availableModels.filter((m: any) => m.provider === 'xai' && m.trend === 'down');
           const googleModels = availableModels.filter((m: any) => m.provider === 'google' && m.trend === 'down');
           
           if (openaiModels.length >= 2) {
-            content.push(`🔴 OpenAI ALERT: Multiple models degrading simultaneously!`);
+            addUniqueContent(`🔴 OpenAI ALERT: Multiple models degrading simultaneously!`);
           }
           if (anthropicModels.length >= 2) {
-            content.push(`🟠 Anthropic WARNING: Performance issues detected across models`);
+            addUniqueContent(`🟠 Anthropic WARNING: Performance issues detected across models`);
           }
           if (xaiModels.length >= 1) {
-            content.push(`🟡 xAI NOTICE: Grok models showing performance variations`);
+            addUniqueContent(`🟡 xAI NOTICE: Grok models showing performance variations`);
           }
           if (googleModels.length >= 2) {
-            content.push(`🔵 Google ALERT: Gemini models experiencing issues`);
+            addUniqueContent(`🔵 Google ALERT: Gemini models experiencing issues`);
           }
           
-          // Critical count (consistent with Model Intelligence Center - under 60 is concerning)
+          // Critical count (consistent with Model Intelligence Center - under 60 is concerning) - FIXED: Use addUniqueContent
           const concerningCount = availableModels.filter((m: any) => m.currentScore < 60).length;
           const criticalCount = availableModels.filter((m: any) => m.currentScore < 40).length;
           
           if (criticalCount > 3) {
-            content.push(`💀 APOCALYPSE: ${criticalCount} models currently failing basic intelligence tests!`);
+            addUniqueContent(`💀 APOCALYPSE: ${criticalCount} models currently failing basic intelligence tests!`);
           } else if (concerningCount > 5) {
-            content.push(`⚠️ ${concerningCount} models performing below average (under 60 points)`);
+            addUniqueContent(`⚠️ ${concerningCount} models performing below average (under 60 points)`);
           } else if (criticalCount > 0) {
-            content.push(`🚨 ${criticalCount} models in critical performance range (under 40 points)`);
+            addUniqueContent(`🚨 ${criticalCount} models in critical performance range (under 40 points)`);
           }
         }
       }
