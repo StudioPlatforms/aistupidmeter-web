@@ -81,7 +81,7 @@ export default function Dashboard() {
   const [transparencyMetrics, setTransparencyMetrics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
-  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'price'>('speed');
+  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'>('speed');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   // Fixed analytics period since user controls were removed
   const analyticsPeriod: 'latest' | '24h' | '7d' | '1m' = 'latest';
@@ -537,7 +537,7 @@ export default function Dashboard() {
   };
 
   // Fetch all dashboard data from cached endpoints - INSTANT loading!
-  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false) => {
+  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false) => {
     console.log(`⚡ Fetching cached dashboard data: ${period}/${sortBy}/${analyticsP}`);
     
     try {
@@ -661,7 +661,7 @@ export default function Dashboard() {
   };
 
   // Legacy fetch function for fallback when cache misses
-  const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'price' = leaderboardSortBy, forceRefresh: boolean = false) => {
+  const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, forceRefresh: boolean = false) => {
     console.log(`🔄 Using fallback API for ${period}/${sortBy} (cache miss)`);
     setLoadingLeaderboard(true);
     
@@ -2600,6 +2600,17 @@ export default function Dashboard() {
                     7AXIS
                   </button>
                   <button
+                    onClick={() => setLeaderboardSortBy('tooling')}
+                    className={`vintage-btn ${leaderboardSortBy === 'tooling' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 6px', 
+                      fontSize: '0.7em',
+                      minHeight: '20px'
+                    }}
+                  >
+                    TOOLING
+                  </button>
+                  <button
                     onClick={() => setLeaderboardSortBy('price')}
                     className={`vintage-btn ${leaderboardSortBy === 'price' ? 'vintage-btn--active' : ''}`}
                     style={{ 
@@ -2709,6 +2720,17 @@ export default function Dashboard() {
                     }}
                   >
                     7AXIS
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardSortBy('tooling')}
+                    className={`vintage-btn ${leaderboardSortBy === 'tooling' ? 'vintage-btn--active' : ''}`}
+                    style={{ 
+                      padding: '2px 8px', 
+                      fontSize: '0.75em',
+                      minHeight: '22px'
+                    }}
+                  >
+                    TOOLING
                   </button>
                   <button
                     onClick={() => setLeaderboardSortBy('price')}
