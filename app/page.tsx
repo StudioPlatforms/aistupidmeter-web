@@ -1009,45 +1009,74 @@ export default function Dashboard() {
       // Use the same data that's already loaded for the Model Intelligence Center
       // This ensures consistency between ticker tape and analytics
       
-      // 1. Use degradations data (same as Model Intelligence Center)
+      // 1. Use degradations data (same as Model Intelligence Center) - FIXED: Filter out 0% degradations
       if (degradations.length > 0) {
         degradations.slice(0, 3).forEach((deg: any) => {
-          if (deg.severity === 'critical') {
-            content.push(`🚨 BREAKING: ${getCompactName(deg.modelName)} just CRASHED ${deg.dropPercentage}% in 24h!`);
-          } else if (deg.severity === 'major') {
-            content.push(`⚠️ ALERT: ${getCompactName(deg.modelName)} degraded ${deg.dropPercentage}% (${deg.currentScore} from ${deg.baselineScore})`);
-          } else {
-            content.push(`📉 ${getCompactName(deg.modelName)} slipping: -${deg.dropPercentage}% performance`);
+          // CRITICAL FIX: Only show actual degradations (dropPercentage > 0) or use the message directly
+          if (deg.type === 'unstable_performance' || deg.type === 'service_disruption' || deg.dropPercentage === 0) {
+            // For non-degradation alerts, use the message directly
+            content.push(`${deg.message}`);
+          } else if (deg.dropPercentage > 0) {
+            // For actual degradations, show the drop percentage
+            if (deg.severity === 'critical') {
+              content.push(`🚨 BREAKING: ${getCompactName(deg.modelName)} just CRASHED ${deg.dropPercentage}% in 24h!`);
+            } else if (deg.severity === 'major') {
+              content.push(`⚠️ ALERT: ${getCompactName(deg.modelName)} degraded ${deg.dropPercentage}% (${deg.currentScore} from ${deg.baselineScore})`);
+            } else {
+              content.push(`📉 ${getCompactName(deg.modelName)} slipping: -${deg.dropPercentage}% performance`);
+            }
           }
         });
       }
       
-      // 2. Use recommendations data (same as Model Intelligence Center)
-      if (recommendations) {
-        // Avoid Now recommendations (consistent with Model Intelligence Center)
-        if (recommendations.avoidNow && recommendations.avoidNow.length > 0) {
-          recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
-            content.push(`🚫 AVOID: ${getCompactName(model.name)} - ${model.reason}`);
-          });
+        // 2. Use recommendations data (same as Model Intelligence Center) - FIXED: Better data validation
+        if (recommendations && typeof recommendations === 'object') {
+          // CRITICAL FIX: Avoid logical contradictions - don't recommend models that are in degradations
+          const degradedModelNames = degradations.map((deg: any) => deg.modelName?.toLowerCase()).filter(Boolean);
+          
+          // Avoid Now recommendations (consistent with Model Intelligence Center)
+          if (recommendations.avoidNow && Array.isArray(recommendations.avoidNow) && recommendations.avoidNow.length > 0) {
+            recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
+              if (model && model.name) {
+                content.push(`🚫 AVOID: ${getCompactName(model.name)} - ${model.reason || 'Poor performance detected'}`);
+              }
+            });
+          }
+          
+          // Best recommendations (consistent with Model Intelligence Center) - FIXED: Avoid contradictions
+          if (recommendations.bestForCode && recommendations.bestForCode.name) {
+            const best = recommendations.bestForCode;
+            const bestNameLower = best.name.toLowerCase();
+            
+            // CRITICAL: Don't recommend a model that's currently degraded
+            if (!degradedModelNames.includes(bestNameLower)) {
+              const accuracy = best.correctness ? `${Math.round(best.correctness)}%` : 
+                              best.score ? `${Math.round(best.score)}%` : 
+                              'High';
+              content.push(`✅ ACTUALLY WORKS: ${getCompactName(best.name)} can still write code (${accuracy} accuracy)`);
+            }
+          }
+          
+          if (recommendations.mostReliable && recommendations.mostReliable.name) {
+            const reliable = recommendations.mostReliable;
+            const reliableNameLower = reliable.name.toLowerCase();
+            
+            // CRITICAL: Don't recommend a model that's currently degraded
+            if (!degradedModelNames.includes(reliableNameLower)) {
+              content.push(`🛡️ MOST RELIABLE: ${getCompactName(reliable.name)} - ${reliable.reason || 'Consistent performance'}`);
+            }
+          }
+          
+          if (recommendations.fastestResponse && recommendations.fastestResponse.name) {
+            const fastest = recommendations.fastestResponse;
+            const fastestNameLower = fastest.name.toLowerCase();
+            
+            // CRITICAL: Don't recommend a model that's currently degraded
+            if (!degradedModelNames.includes(fastestNameLower)) {
+              content.push(`⚡ FASTEST: ${getCompactName(fastest.name)} - ${fastest.reason || 'Quick response time'}`);
+            }
+          }
         }
-        
-        // Best recommendations (consistent with Model Intelligence Center)
-        if (recommendations.bestForCode) {
-          const best = recommendations.bestForCode;
-          const accuracy = best.correctness || best.score || 'N/A';
-          content.push(`✅ ACTUALLY WORKS: ${getCompactName(best.name)} can still write code (${accuracy}% accuracy)`);
-        }
-        
-        if (recommendations.mostReliable) {
-          const reliable = recommendations.mostReliable;
-          content.push(`🛡️ MOST RELIABLE: ${getCompactName(reliable.name)} - ${reliable.reason}`);
-        }
-        
-        if (recommendations.fastestResponse) {
-          const fastest = recommendations.fastestResponse;
-          content.push(`⚡ FASTEST: ${getCompactName(fastest.name)} - ${fastest.reason}`);
-        }
-      }
       
       // 3. Use model scores data (MODE-AWARE - reflects current leaderboard selection)
       if (modelScores.length > 0) {
@@ -3793,7 +3822,7 @@ export default function Dashboard() {
                     Join our official fundraising campaign to help us scale and improve our AI monitoring infrastructure.
                   </div>
                   <a
-                    href="https://4fund.com"
+                    href="https://4fund.com/tks229"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="vintage-btn"

@@ -1841,10 +1841,10 @@ input:checked + .toggle-slider::before {
   50% { opacity: 0.8; }
 }
 
-/* 90s Retro Progress Bar Track */
+/* 90s Retro Progress Bar Track - Chunky and Tall */
 .retro-progress-track {
   position: relative;
-  height: 12px;
+  height: 24px; /* 2x taller for chunky retro feel */
   background: #000000;
   border: 2px inset #c0c0c0;
   box-shadow: 
@@ -1860,42 +1860,210 @@ input:checked + .toggle-slider::before {
   image-rendering: crisp-edges;
 }
 
-/* 90s Retro Progress Bar Fill */
+/* 90s Retro Progress Bar Fill - Ultra Pixelated */
 .retro-progress-fill {
   height: 100%;
   transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  /* Pixelated blocks effect */
+  /* Force pixelated rendering */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  /* Enhanced 90s bevel effect */
+  border-top: 2px solid rgba(255, 255, 255, 0.8);
+  border-left: 2px solid rgba(255, 255, 255, 0.6);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+  border-right: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+/* Ultra-pixelated variant for maximum retro effect */
+.retro-progress-fill.ultra-pixelated {
+  /* Large pixelated blocks pattern */
   background-image: 
     repeating-linear-gradient(
       90deg,
       currentColor 0px,
-      currentColor 2px,
-      rgba(255, 255, 255, 0.2) 2px,
-      rgba(255, 255, 255, 0.2) 3px,
-      currentColor 3px,
-      currentColor 5px
+      currentColor 4px,
+      rgba(255, 255, 255, 0.4) 4px,
+      rgba(255, 255, 255, 0.4) 6px,
+      currentColor 6px,
+      currentColor 10px,
+      rgba(0, 0, 0, 0.3) 10px,
+      rgba(0, 0, 0, 0.3) 12px
     ),
     repeating-linear-gradient(
       0deg,
       currentColor 0px,
-      currentColor 2px,
-      rgba(0, 0, 0, 0.1) 2px,
-      rgba(0, 0, 0, 0.1) 3px,
-      currentColor 3px,
-      currentColor 5px
+      currentColor 4px,
+      rgba(0, 0, 0, 0.2) 4px,
+      rgba(0, 0, 0, 0.2) 6px,
+      currentColor 6px,
+      currentColor 10px,
+      rgba(255, 255, 255, 0.2) 10px,
+      rgba(255, 255, 255, 0.2) 12px
     );
-  /* 90s bevel effect */
-  border-top: 1px solid rgba(255, 255, 255, 0.5);
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  /* More pronounced bevel */
+  border-top: 3px solid rgba(255, 255, 255, 0.9);
+  border-left: 3px solid rgba(255, 255, 255, 0.7);
+  border-bottom: 3px solid rgba(0, 0, 0, 0.7);
+  border-right: 3px solid rgba(0, 0, 0, 0.5);
+  /* Enhanced texture */
+  box-shadow: 
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3),
+    inset 0 0 6px rgba(0, 0, 0, 0.4),
+    0 0 4px currentColor;
+}
+
+/* Ultra-pixelated blocks overlay for maximum retro effect */
+.ultra-pixel-blocks {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    /* Large chunky pixels - horizontal */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(255, 255, 255, 0.2) 3px,
+      rgba(255, 255, 255, 0.2) 5px,
+      transparent 5px,
+      transparent 8px,
+      rgba(0, 0, 0, 0.15) 8px,
+      rgba(0, 0, 0, 0.15) 10px
+    ),
+    /* Large chunky pixels - vertical */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(255, 255, 255, 0.1) 3px,
+      rgba(255, 255, 255, 0.1) 5px,
+      transparent 5px,
+      transparent 8px,
+      rgba(0, 0, 0, 0.1) 8px,
+      rgba(0, 0, 0, 0.1) 10px
+    );
+  /* Force ultra-pixelated rendering */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  pointer-events: none;
+  /* Add subtle animation for retro effect */
+  animation: pixel-shimmer 4s infinite;
+}
+
+@keyframes pixel-shimmer {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+/* Legacy pixelated blocks overlay for compatibility */
+.pixel-blocks-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, 0.1) 2px,
+      rgba(255, 255, 255, 0.1) 3px,
+      transparent 3px,
+      transparent 5px,
+      rgba(0, 0, 0, 0.1) 5px,
+      rgba(0, 0, 0, 0.1) 6px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, 0.05) 2px,
+      rgba(255, 255, 255, 0.05) 3px,
+      transparent 3px,
+      transparent 5px,
+      rgba(0, 0, 0, 0.05) 5px,
+      rgba(0, 0, 0, 0.05) 6px
+    );
   /* Pixelated rendering */
   image-rendering: -moz-crisp-edges;
   image-rendering: -webkit-crisp-edges;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  pointer-events: none;
+}
+
+/* Progress bar notches for authentic 90s look */
+.progress-notches {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.progress-notch {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 1px 0 0 rgba(255, 255, 255, 0.2);
+  /* Pixelated rendering */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Retro score display */
+.retro-score-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: #000000;
+  border: 2px inset #c0c0c0;
+  box-shadow: 
+    inset -1px -1px 0px #808080,
+    inset 1px 1px 0px #ffffff,
+    inset -2px -2px 0px #404040,
+    inset 2px 2px 0px #dfdfdf;
+  font-family: var(--font-mono);
+  /* Pixelated rendering */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.score-value {
+  font-size: var(--font-size-md);
+  font-weight: bold;
+  text-shadow: 0 0 4px currentColor;
+  letter-spacing: 1px;
+  /* Pixelated text rendering */
+  text-rendering: geometricPrecision;
+}
+
+.score-label {
+  font-size: var(--font-size-xs);
+  color: var(--phosphor-dim);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+  /* Pixelated text rendering */
+  text-rendering: geometricPrecision;
 }
 
 /* 90s Progress Bar Animation */
@@ -1938,7 +2106,7 @@ input:checked + .toggle-slider::before {
   }
 }
 
-/* Mobile optimizations */
+/* Mobile optimizations - Chunky and tall */
 @media (max-width: 767px) {
   .stupid-meter-progress-bar {
     margin-top: var(--space-xs);
@@ -1946,7 +2114,7 @@ input:checked + .toggle-slider::before {
   }
   
   .retro-progress-track {
-    height: 10px;
+    height: 20px; /* 2x taller on mobile too for chunky feel */
   }
   
   .stupid-meter-labels {
@@ -1954,14 +2122,14 @@ input:checked + .toggle-slider::before {
   }
 }
 
-/* Desktop enhancements */
+/* Desktop enhancements - Even chunkier */
 @media (min-width: 768px) {
   .stupid-meter-labels {
     font-size: var(--font-size-sm);
   }
   
   .retro-progress-track {
-    height: 14px;
+    height: 28px; /* Even taller on desktop for maximum chunkiness */
   }
 }
 

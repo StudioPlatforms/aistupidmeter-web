@@ -76,13 +76,21 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
       </div>
       <div className="retro-progress-track">
         <div 
-          className="retro-progress-fill"
+          className="retro-progress-fill ultra-pixelated"
           style={{ 
             width: `${animatedScore}%`,
-            backgroundColor: scoreColor,
-            boxShadow: `0 0 8px ${scoreColor}40`
+            backgroundColor: scoreColor
           }}
-        ></div>
+        >
+          {/* Ultra-pixelated blocks overlay for maximum retro effect */}
+          <div className="ultra-pixel-blocks"></div>
+        </div>
+        {/* More pronounced progress bar notches */}
+        <div className="progress-notches">
+          {Array.from({ length: 20 }, (_, i) => (
+            <div key={i} className="progress-notch" style={{ left: `${(i + 1) * 5}%` }}></div>
+          ))}
+        </div>
       </div>
     </div>
   );
