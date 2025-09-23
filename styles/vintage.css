@@ -500,8 +500,8 @@ input:checked + .toggle-slider::before {
 
 .vintage-btn:hover {
   background: linear-gradient(135deg, #444, #333);
-  box-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
-  text-shadow: 0 0 2px currentColor;
+  box-shadow: 0 0 2px rgba(0, 255, 65, 0.2);
+  text-shadow: 0 0 1px currentColor;
 }
 
 .vintage-btn:active {
@@ -571,8 +571,8 @@ input:checked + .toggle-slider::before {
 }
 
 .mobile-nav-btn:hover {
-  box-shadow: 0 0 8px var(--phosphor-green);
-  text-shadow: 0 0 4px currentColor;
+  box-shadow: 0 0 3px rgba(0, 255, 65, 0.3);
+  text-shadow: 0 0 1px currentColor;
 }
 
 /* Mobile Header Optimization */
@@ -1223,7 +1223,7 @@ input:checked + .toggle-slider::before {
 .vintage-btn--active {
   background: var(--phosphor-green);
   color: var(--terminal-black);
-  box-shadow: 0 0 15px var(--phosphor-green);
+  box-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
 }
 
 /* Mobile-Optimized Content Pages (About/FAQ) */
@@ -2275,10 +2275,10 @@ input:checked + .toggle-slider::before {
   background: linear-gradient(135deg, #444, #333);
   border-color: var(--phosphor-green);
   box-shadow: 
-    0 0 8px rgba(0, 255, 65, 0.4),
+    0 0 3px rgba(0, 255, 65, 0.2),
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
     0 2px 4px rgba(0, 0, 0, 0.3);
-  text-shadow: 0 0 4px currentColor;
+  text-shadow: 0 0 1px currentColor;
   transform: translateY(-1px);
 }
 
@@ -2294,7 +2294,7 @@ input:checked + .toggle-slider::before {
   color: var(--terminal-black);
   border-color: var(--phosphor-green);
   box-shadow: 
-    0 0 15px rgba(0, 255, 65, 0.6),
+    0 0 5px rgba(0, 255, 65, 0.3),
     inset 0 1px 2px rgba(255, 255, 255, 0.2),
     0 2px 6px rgba(0, 0, 0, 0.4);
   text-shadow: none;
@@ -2304,7 +2304,7 @@ input:checked + .toggle-slider::before {
 .mobile-control-btn--active:hover {
   background: linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim));
   box-shadow: 
-    0 0 20px rgba(0, 255, 65, 0.8),
+    0 0 8px rgba(0, 255, 65, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.3),
     0 2px 8px rgba(0, 0, 0, 0.5);
   transform: translateY(-1px);
@@ -2313,7 +2313,7 @@ input:checked + .toggle-slider::before {
 .mobile-control-btn--active:active {
   transform: translateY(0px);
   box-shadow: 
-    0 0 12px rgba(0, 255, 65, 0.6),
+    0 0 6px rgba(0, 255, 65, 0.3),
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
     0 1px 3px rgba(0, 0, 0, 0.4);
 }
