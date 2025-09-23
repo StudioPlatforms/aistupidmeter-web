@@ -3493,37 +3493,37 @@ export default function Dashboard() {
                     
                     <div style={{ marginBottom: '16px' }}>
                       <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        🔥 COMBINED Scoring
+                        🔧 TOOLING Benchmarks - That's a world first!
                       </div>
                       <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        Smart blend of speed benchmarks + deep reasoning challenges for better AI rankings
+                        World's first tool calling evaluation system! Test real AI capabilities with system commands, file operations, and complex multi-step tasks
                       </div>
                     </div>
 
                     <div style={{ marginBottom: '16px' }}>
                       <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        🧠 REASONING Mode
+                        🚨 Advanced Intelligence Center
                       </div>
                       <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        See which AI models excel at complex multi-step problem solving
+                        Completely redesigned with 5 powerful warning types: performance trends, cost-efficiency alerts, stability monitoring, regional variations, and service disruptions
                       </div>
                     </div>
 
                     <div style={{ marginBottom: '16px' }}>
                       <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        ⚡ 7AXIS Mode
+                        📊 Enhanced Analytics Engine
                       </div>
                       <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        Traditional speed benchmarks for rapid coding and efficiency rankings
+                        29 comprehensive warning categories with real-time degradation detection, proactive cost-performance analysis, and intelligent model recommendations
                       </div>
                     </div>
 
                     <div style={{ marginBottom: '20px' }}>
                       <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        💰 PRICE Mode
+                        🎯 Production-Ready Results
                       </div>
                       <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        Compare value-for-money with real pricing and performance-per-dollar metrics
+                        171+ successful tool calling sessions • Real performance differentiation across models • Enterprise-grade infrastructure with comprehensive monitoring
                       </div>
                     </div>
 
