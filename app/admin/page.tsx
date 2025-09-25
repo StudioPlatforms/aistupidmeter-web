@@ -133,6 +133,7 @@ export default function AdminPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter admin password"
+                  autoComplete="new-password"
                   style={{
                     width: '100%',
                     padding: '8px',
@@ -287,7 +288,13 @@ export default function AdminPage() {
                 <div className="terminal-text--dim">
                   {new Date(visitor.timestamp).toLocaleString()}
                   {visitor.country && ` • ${visitor.country}`}
-                  {visitor.referer && ` • From: ${new URL(visitor.referer).hostname}`}
+                  {visitor.referer && (() => {
+                    try {
+                      return ` • From: ${new URL(visitor.referer).hostname}`;
+                    } catch {
+                      return ` • From: ${visitor.referer}`;
+                    }
+                  })()}
                 </div>
               </div>
             ))}
