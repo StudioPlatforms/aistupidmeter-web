@@ -1018,7 +1018,7 @@ input:checked + .toggle-slider::before {
 
 .leaderboard-header {
   display: grid;
-  grid-template-columns: 35px minmax(100px, 1fr) 55px 35px 55px;
+  grid-template-columns: 50px 1fr 80px 50px 80px;
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   background: linear-gradient(135deg, #333, #222);
@@ -1027,7 +1027,7 @@ input:checked + .toggle-slider::before {
   font-weight: bold;
   text-transform: uppercase;
   font-size: var(--font-size-xs);
-  min-width: 320px;
+  width: 100%;
   /* Android grid safety */
   overflow: hidden;
   box-sizing: border-box;
@@ -1035,7 +1035,7 @@ input:checked + .toggle-slider::before {
 
 @media (min-width: 480px) {
   .leaderboard-header {
-    grid-template-columns: 45px minmax(140px, 1fr) 70px 45px 75px;
+    grid-template-columns: 60px 1fr 100px 60px 100px;
     gap: var(--space-sm);
     padding: var(--space-sm);
     font-size: var(--font-size-sm);
@@ -1044,7 +1044,7 @@ input:checked + .toggle-slider::before {
 
 @media (min-width: 768px) {
   .leaderboard-header {
-    grid-template-columns: 80px 1fr 100px 80px 120px;
+    grid-template-columns: 80px 1fr 120px 80px 140px;
     font-size: var(--font-size-md);
     padding: var(--space-md);
   }
@@ -1052,14 +1052,14 @@ input:checked + .toggle-slider::before {
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 35px minmax(100px, 1fr) 55px 35px 55px;
+  grid-template-columns: 50px 1fr 80px 50px 80px;
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--metal-silver);
   border-top: none;
   background: linear-gradient(135deg, #1a1a1a, #0a0a0a);
   transition: background 0.2s ease;
-  min-width: 320px;
+  width: 100%;
   
   /* Mobile touch improvements */
   min-height: var(--touch-target-sm);
@@ -1069,13 +1069,16 @@ input:checked + .toggle-slider::before {
   overflow: hidden;
   box-sizing: border-box;
   /* Force grid to respect container boundaries */
-  width: 100%;
   max-width: 100%;
+  
+  /* CRITICAL FIX: Force all rows to have identical width */
+  min-width: 100%;
+  display: grid !important;
 }
 
 @media (min-width: 480px) {
   .leaderboard-row {
-    grid-template-columns: 45px minmax(140px, 1fr) 70px 45px 75px;
+    grid-template-columns: 60px 1fr 100px 60px 100px;
     gap: var(--space-sm);
     padding: var(--space-sm);
     min-height: var(--touch-target);
@@ -1084,7 +1087,7 @@ input:checked + .toggle-slider::before {
 
 @media (min-width: 768px) {
   .leaderboard-row {
-    grid-template-columns: 80px 1fr 100px 80px 120px;
+    grid-template-columns: 80px 1fr 120px 80px 140px;
     padding: var(--space-md);
   }
 }
@@ -1119,6 +1122,8 @@ input:checked + .toggle-slider::before {
   /* Force hard boundaries on Android */
   max-width: 100%;
   box-sizing: border-box;
+  /* CRITICAL FIX: Force consistent width for all model rows */
+  width: 100%;
 }
 
 .col-model .terminal-text {
@@ -1503,6 +1508,64 @@ input:checked + .toggle-slider::before {
 .mobile-form-select:focus {
   outline: 2px solid var(--phosphor-green);
   outline-offset: 2px;
+}
+
+/* Model Tooltip Styles - Ensure proper display */
+.model-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999 !important;
+  background-color: var(--terminal-black) !important;
+  border: 2px solid var(--phosphor-green) !important;
+  border-radius: 4px;
+  padding: 12px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 255, 65, 0.3) !important;
+  font-size: 0.75em;
+  line-height: 1.3;
+  margin-top: 8px;
+  pointer-events: none;
+  opacity: 1;
+}
+
+/* Ensure tooltip appears above everything */
+.model-tooltip-container {
+  position: relative;
+  display: inline-block;
+  z-index: 1;
+}
+
+/* Tooltip fade in animation */
+@keyframes tooltipFadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateX(-50%) translateY(-5px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0); 
+  }
+}
+
+.model-tooltip {
+  animation: tooltipFadeIn 0.2s ease-in;
+}
+
+/* Tooltip arrow */
+.model-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid var(--phosphor-green);
 }
 
 /* Mini Chart Styles for Leaderboard */
@@ -2373,4 +2436,289 @@ input:checked + .toggle-slider::before {
 /* Ensure proper positioning for pseudo-elements */
 .mobile-control-btn {
   position: relative;
+}
+
+/* Health Status Display - Retro Terminal Style */
+.health-status-container {
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-top: 1px solid rgba(0, 255, 65, 0.2);
+}
+
+@media (min-width: 768px) {
+  .health-status-container {
+    padding-bottom: var(--space-xs);
+  }
+}
+
+.health-status-grid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 480px) {
+  .health-status-grid {
+    gap: var(--space-md);
+    flex-wrap: nowrap;
+  }
+}
+
+.health-provider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  transition: all 0.2s ease;
+  cursor: help;
+  
+  /* Retro terminal styling */
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 480px) {
+  .health-provider {
+    font-size: var(--font-size-sm);
+    padding: var(--space-sm);
+  }
+}
+
+.health-provider:hover {
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(0, 255, 65, 0.4);
+  box-shadow: 
+    0 0 3px rgba(0, 255, 65, 0.2),
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.provider-name {
+  color: var(--phosphor-dim);
+  text-shadow: 0 0 2px currentColor;
+}
+
+.status-indicator {
+  font-size: var(--font-size-md);
+  text-shadow: 0 0 4px currentColor;
+  animation: status-pulse 2s infinite;
+}
+
+@media (max-width: 479px) {
+  .status-indicator {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* Status-specific colors and animations */
+.health-provider.operational .provider-name {
+  color: var(--phosphor-green);
+}
+
+.health-provider.operational .status-indicator {
+  color: var(--phosphor-green);
+  animation: operational-glow 3s infinite;
+}
+
+.health-provider.degraded .provider-name {
+  color: var(--amber-warning);
+}
+
+.health-provider.degraded .status-indicator {
+  color: var(--amber-warning);
+  animation: degraded-pulse 1.5s infinite;
+}
+
+.health-provider.down .provider-name {
+  color: var(--red-alert);
+}
+
+.health-provider.down .status-indicator {
+  color: var(--red-alert);
+  animation: down-blink 1s infinite;
+}
+
+.health-provider.unknown .provider-name {
+  color: var(--phosphor-dim);
+}
+
+.health-provider.unknown .status-indicator {
+  color: var(--phosphor-dim);
+  animation: unknown-fade 2s infinite;
+}
+
+/* Health status animations */
+@keyframes operational-glow {
+  0%, 100% { 
+    opacity: 1; 
+    text-shadow: 0 0 4px currentColor;
+  }
+  50% { 
+    opacity: 0.8; 
+    text-shadow: 0 0 8px currentColor, 0 0 12px currentColor;
+  }
+}
+
+@keyframes degraded-pulse {
+  0%, 100% { 
+    opacity: 1; 
+    text-shadow: 0 0 4px currentColor;
+  }
+  50% { 
+    opacity: 0.6; 
+    text-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+  }
+}
+
+@keyframes down-blink {
+  0%, 100% { 
+    opacity: 1; 
+    text-shadow: 0 0 6px currentColor, 0 0 12px currentColor;
+  }
+  50% { 
+    opacity: 0.3; 
+    text-shadow: 0 0 2px currentColor;
+  }
+}
+
+@keyframes unknown-fade {
+  0%, 100% { 
+    opacity: 0.5; 
+    text-shadow: 0 0 2px currentColor;
+  }
+  50% { 
+    opacity: 0.8; 
+    text-shadow: 0 0 4px currentColor;
+  }
+}
+
+@keyframes status-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* Health status loading state */
+.health-status-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--phosphor-dim);
+  animation: loading-dots 1.5s infinite;
+}
+
+.health-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.health-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.health-dot:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+@keyframes loading-dots {
+  0%, 80%, 100% { 
+    opacity: 0.3; 
+    transform: scale(0.8);
+  }
+  40% { 
+    opacity: 1; 
+    transform: scale(1.2);
+    box-shadow: 0 0 4px var(--phosphor-green);
+  }
+}
+
+/* Stupid Meter Container - Updated to include health status */
+.stupid-meter-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-md) 0 var(--space-xs) 0;
+}
+
+@media (min-width: 768px) {
+  .stupid-meter-container {
+    padding: var(--space-lg) 0 var(--space-sm) 0;
+  }
+}
+
+/* Mobile responsiveness for health status */
+@media (max-width: 479px) {
+  .health-status-grid {
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+  }
+  
+  .health-provider {
+    padding: var(--space-xs);
+    font-size: 8px;
+    min-width: 50px;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .provider-name {
+    font-size: 7px;
+    line-height: 1;
+  }
+  
+  .status-indicator {
+    font-size: 12px;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .status-indicator,
+  .health-dot {
+    animation: none;
+  }
+  
+  .health-provider {
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .health-provider.operational .status-indicator {
+    color: #00ff00;
+    text-shadow: none;
+  }
+  
+  .health-provider.degraded .status-indicator {
+    color: #ffff00;
+    text-shadow: none;
+  }
+  
+  .health-provider.down .status-indicator {
+    color: #ff0000;
+    text-shadow: none;
+  }
+  
+  .health-provider.unknown .status-indicator {
+    color: #888888;
+    text-shadow: none;
+  }
 }
