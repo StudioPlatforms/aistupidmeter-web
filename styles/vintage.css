@@ -1018,7 +1018,8 @@ input:checked + .toggle-slider::before {
 
 .leaderboard-header {
   display: grid;
-  grid-template-columns: 50px 1fr 80px 50px 80px;
+  /* MOBILE UX FIX: Reduce score column width, move trend closer to score, give more space to model names */
+  grid-template-columns: 40px 1fr 60px 40px 70px;
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   background: linear-gradient(135deg, #333, #222);
@@ -1052,7 +1053,8 @@ input:checked + .toggle-slider::before {
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 50px 1fr 80px 50px 80px;
+  /* MOBILE UX FIX: Match header - more space for model names, compact score/trend */
+  grid-template-columns: 40px 1fr 60px 40px 70px;
   gap: var(--space-xs);
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--metal-silver);
@@ -1127,7 +1129,8 @@ input:checked + .toggle-slider::before {
 }
 
 .col-model .terminal-text {
-  font-size: var(--font-size-xs);
+  /* MOBILE UX FIX: Smaller font size to fit more text in available space */
+  font-size: 10px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1140,25 +1143,33 @@ input:checked + .toggle-slider::before {
   /* Force strict boundaries */
   width: 100%;
   box-sizing: border-box;
+  /* Better text rendering on small screens */
+  font-weight: 500;
+  letter-spacing: 0.2px;
 }
 
 @media (min-width: 480px) {
   .col-model .terminal-text {
-    font-size: var(--font-size-sm);
+    /* TABLET: Slightly larger but still compact */
+    font-size: 11px;
   }
 }
 
 @media (min-width: 768px) {
   .col-model .terminal-text {
+    /* DESKTOP: Full size restored */
     font-size: var(--font-size-md);
     /* Desktop can be more relaxed */
     word-break: normal;
     word-wrap: normal;
+    font-weight: normal;
+    letter-spacing: 0.5px;
   }
 }
 
 .col-model .terminal-text--dim {
-  font-size: 8px;
+  /* MOBILE UX FIX: Even smaller provider text to maximize model name space */
+  font-size: 7px;
   margin-top: 1px;
   white-space: nowrap;
   overflow: hidden;
@@ -1169,12 +1180,25 @@ input:checked + .toggle-slider::before {
   /* Android-specific provider text fixes */
   width: 100%;
   box-sizing: border-box;
+  /* Better readability */
+  opacity: 0.8;
+  font-weight: 400;
 }
 
 @media (min-width: 480px) {
   .col-model .terminal-text--dim {
-    font-size: var(--font-size-xs);
+    /* TABLET: Slightly larger */
+    font-size: 9px;
     margin-top: 2px;
+  }
+}
+
+@media (min-width: 768px) {
+  .col-model .terminal-text--dim {
+    /* DESKTOP: Full size restored */
+    font-size: var(--font-size-xs);
+    opacity: 0.7;
+    font-weight: normal;
   }
 }
 
