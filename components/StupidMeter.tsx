@@ -2,6 +2,15 @@
 
 import { useEffect, useState } from 'react';
 
+interface HealthStatus {
+  [key: string]: {
+    status: 'operational' | 'degraded' | 'down' | 'unknown';
+    responseTime: number | null;
+    lastChecked: string | null;
+    error: string | null;
+  };
+}
+
 interface StupidMeterProps {
   globalIndex: any;
   degradations: any[];
@@ -11,6 +20,8 @@ interface StupidMeterProps {
 
 export default function StupidMeter({ globalIndex, degradations, modelScores, loading }: StupidMeterProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [healthStatus, setHealthStatus] = useState<HealthStatus>({});
+  const [healthLoading, setHealthLoading] = useState(true);
 
   // Calculate the intelligence score based on latest combined model scores
   const calculateIntelligenceScore = (): number => {
@@ -70,6 +81,39 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
 
   const currentScore = calculateIntelligenceScore();
 
+  // Fetch health status
+  useEffect(() => {
+    const fetchHealthStatus = async () => {
+      try {
+        console.log('🔍 Fetching health status from:', `${process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000'}/providers`);
+        const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000'}/providers`);
+        console.log('📡 Health status response:', response.status, response.ok);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📊 Health status data:', data);
+          if (data.success) {
+            console.log('✅ Setting health status:', data.data);
+            setHealthStatus(data.data);
+          } else {
+            console.error('❌ Health status API returned success=false:', data);
+          }
+        } else {
+          console.error('❌ Health status API response not ok:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('❌ Failed to fetch health status:', error);
+      } finally {
+        setHealthLoading(false);
+      }
+    };
+
+    fetchHealthStatus();
+    
+    // Refresh health status every 30 seconds
+    const interval = setInterval(fetchHealthStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Animate score changes
   useEffect(() => {
     if (loading) return;
@@ -104,44 +148,109 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
 
   const scoreColor = getScoreColor(animatedScore);
 
+  // Health status component
+  const renderHealthStatus = () => {
+    if (healthLoading) {
+      return (
+        <div className="health-status-container">
+          <div className="health-status-loading">
+            <span className="health-dot loading"></span>
+            <span className="health-dot loading"></span>
+            <span className="health-dot loading"></span>
+            <span className="health-dot loading"></span>
+          </div>
+        </div>
+      );
+    }
+
+    const providers = [
+      { key: 'openai', name: 'GPT' },
+      { key: 'anthropic', name: 'CLAUDE' },
+      { key: 'google', name: 'GEMINI' },
+      { key: 'xai', name: 'GROK' }
+    ];
+
+    return (
+      <div className="health-status-container">
+        <div className="health-status-grid">
+          {providers.map(({ key, name }) => {
+            const status = healthStatus[key]?.status || 'unknown';
+            const responseTime = healthStatus[key]?.responseTime;
+            
+            let statusClass = 'unknown';
+            let statusSymbol = '?';
+            
+            if (status === 'operational') {
+              statusClass = 'operational';
+              statusSymbol = '●';
+            } else if (status === 'degraded') {
+              statusClass = 'degraded';
+              statusSymbol = '●';
+            } else if (status === 'down') {
+              statusClass = 'down';
+              statusSymbol = '●';
+            }
+
+            return (
+              <div 
+                key={key} 
+                className={`health-provider ${statusClass}`}
+                title={`${name}: ${status.toUpperCase()}${responseTime ? ` (${responseTime}ms)` : ''}`}
+              >
+                <span className="provider-name">{name}</span>
+                <span className={`status-indicator ${statusClass}`}>{statusSymbol}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
+      <div className="stupid-meter-container">
+        <div className="stupid-meter-progress-bar">
+          <div className="stupid-meter-labels">
+            <span className="stupid-label">STUPID</span>
+            <span className="smart-label">SMART</span>
+          </div>
+          <div className="retro-progress-track">
+            <div className="retro-progress-fill loading" style={{ width: '50%' }}></div>
+          </div>
+        </div>
+        {renderHealthStatus()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="stupid-meter-container">
       <div className="stupid-meter-progress-bar">
         <div className="stupid-meter-labels">
           <span className="stupid-label">STUPID</span>
           <span className="smart-label">SMART</span>
         </div>
         <div className="retro-progress-track">
-          <div className="retro-progress-fill loading" style={{ width: '50%' }}></div>
+          <div 
+            className="retro-progress-fill ultra-pixelated"
+            style={{ 
+              width: `${animatedScore}%`,
+              backgroundColor: scoreColor
+            }}
+          >
+            {/* Ultra-pixelated blocks overlay for maximum retro effect */}
+            <div className="ultra-pixel-blocks"></div>
+          </div>
+          {/* More pronounced progress bar notches */}
+          <div className="progress-notches">
+            {Array.from({ length: 20 }, (_, i) => (
+              <div key={i} className="progress-notch" style={{ left: `${(i + 1) * 5}%` }}></div>
+            ))}
+          </div>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <div className="stupid-meter-progress-bar">
-      <div className="stupid-meter-labels">
-        <span className="stupid-label">STUPID</span>
-        <span className="smart-label">SMART</span>
-      </div>
-      <div className="retro-progress-track">
-        <div 
-          className="retro-progress-fill ultra-pixelated"
-          style={{ 
-            width: `${animatedScore}%`,
-            backgroundColor: scoreColor
-          }}
-        >
-          {/* Ultra-pixelated blocks overlay for maximum retro effect */}
-          <div className="ultra-pixel-blocks"></div>
-        </div>
-        {/* More pronounced progress bar notches */}
-        <div className="progress-notches">
-          {Array.from({ length: 20 }, (_, i) => (
-            <div key={i} className="progress-notch" style={{ left: `${(i + 1) * 5}%` }}></div>
-          ))}
-        </div>
-      </div>
+      {renderHealthStatus()}
     </div>
   );
 }
