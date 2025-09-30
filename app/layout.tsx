@@ -136,20 +136,11 @@ export default function RootLayout({
                   function gtag(){dataLayer.push(arguments);}
                   gtag('js', new Date());
                   
-                  // Initialize with consent mode defaults
-                  gtag('consent', 'default', {
-                    'analytics_storage': 'denied',
-                    'ad_storage': 'denied',
-                    'functionality_storage': 'denied',
-                    'personalization_storage': 'denied',
-                    'security_storage': 'granted',
-                    'wait_for_update': 500,
-                  });
-                  
                   gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
                     anonymize_ip: true,
                     allow_google_signals: false,
-                    allow_ad_personalization_signals: false
+                    allow_ad_personalization_signals: false,
+                    cookie_flags: 'SameSite=None;Secure'
                   });
                 `,
               }}

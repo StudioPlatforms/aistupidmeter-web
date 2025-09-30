@@ -531,12 +531,24 @@ export default function ModelDetailPage() {
   // Mobile-responsive detail chart
   const renderDetailChart = (historyData: any[], period: string = selectedPeriod) => {
     if (!historyData || historyData.length === 0) {
+      // Provide context-specific messages based on scoring mode
+      let message = 'NO HISTORICAL DATA AVAILABLE';
+      let suggestion = 'Check back after the model runs some benchmarks';
+      
+      if (selectedScoringMode === 'reasoning' && (period === '24h' || period === 'latest')) {
+        message = 'INSUFFICIENT DATA FOR 24H REASONING VIEW';
+        suggestion = 'Deep reasoning benchmarks run daily. Try selecting 7d or 1m period for better data.';
+      } else if (selectedScoringMode === 'tooling' && (period === '24h' || period === 'latest')) {
+        message = 'INSUFFICIENT DATA FOR 24H TOOLING VIEW';
+        suggestion = 'Tool calling benchmarks run daily. Try selecting 7d or 1m period for better data.';
+      }
+      
       return (
         <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
+          <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '20px' }}>
             <div style={{ fontSize: '3em', marginBottom: '16px', opacity: 0.3 }}>📊</div>
-            <div>NO HISTORICAL DATA AVAILABLE</div>
-            <div style={{ fontSize: '0.8em', marginTop: '8px' }}>Check back after the model runs some benchmarks</div>
+            <div style={{ marginBottom: '12px', fontWeight: 'bold' }}>{message}</div>
+            <div style={{ fontSize: '0.8em', marginTop: '8px', maxWidth: '400px', margin: '0 auto' }}>{suggestion}</div>
           </div>
         </div>
       );
@@ -580,12 +592,24 @@ export default function ModelDetailPage() {
     const data = [...filteredHistory].reverse();
     
     if (data.length === 0) {
+      // Provide context-specific messages based on scoring mode
+      let message = 'NO DATA FOR SELECTED PERIOD';
+      let suggestion = 'Try selecting a longer time period';
+      
+      if (selectedScoringMode === 'reasoning' && period === '24h') {
+        message = 'INSUFFICIENT DATA FOR 24H REASONING VIEW';
+        suggestion = 'Deep reasoning benchmarks run daily. Select 7d or 1m period to see historical trends.';
+      } else if (selectedScoringMode === 'tooling' && period === '24h') {
+        message = 'INSUFFICIENT DATA FOR 24H TOOLING VIEW';
+        suggestion = 'Tool calling benchmarks run daily. Select 7d or 1m period to see historical trends.';
+      }
+      
       return (
         <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
+          <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '20px' }}>
             <div style={{ fontSize: '3em', marginBottom: '16px', opacity: 0.3 }}>📊</div>
-            <div>NO DATA FOR SELECTED PERIOD</div>
-            <div style={{ fontSize: '0.8em', marginTop: '8px' }}>Try selecting a longer time period</div>
+            <div style={{ marginBottom: '12px', fontWeight: 'bold' }}>{message}</div>
+            <div style={{ fontSize: '0.8em', marginTop: '8px', maxWidth: '400px', margin: '0 auto' }}>{suggestion}</div>
           </div>
         </div>
       );
