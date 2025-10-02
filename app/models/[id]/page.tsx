@@ -170,7 +170,7 @@ export default function ModelDetailPage() {
       setIsRefreshing(true);
     }
 
-    let modelData: any = null; // Declare at function level for scope access
+    let modelData: any = null;
 
     try {
       if (!showRefreshIndicator) {
@@ -178,208 +178,64 @@ export default function ModelDetailPage() {
       }
 
       const modelIdStr = params.id as string;
-      // Use production URL to ensure we're hitting the real API
-      const apiUrl = 'https://aistupidlevel.info';
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       
-      console.log('🔍 Fetching model details for ID:', modelIdStr);
-      console.log('🌐 Using API URL:', apiUrl);
-      
-      // Dashboard always provides numeric IDs as strings, so parse directly
       const modelId = parseInt(modelIdStr);
-      console.log('📊 Parsed model ID:', modelId);
       
       if (isNaN(modelId)) {
         throw new Error(`Invalid model ID: ${modelIdStr}`);
       }
 
-      // First, verify we're getting the right model by checking dashboard data
-      console.log('🔍 Verifying model exists in dashboard data...');
-      const dashboardResponse = await fetch(`${apiUrl}/api/dashboard/scores?period=${selectedPeriod}`);
-      const dashboardData = await dashboardResponse.json();
+      // Fix sortBy parameter - backend expects '7axis' not 'speed'
+      const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
       
-      if (dashboardData.success) {
-        const dashboardModel = dashboardData.data.find((m: any) => m.id === modelId.toString());
-        if (dashboardModel) {
-          console.log('✅ Found model in dashboard:', {
-            id: dashboardModel.id,
-            name: dashboardModel.name,
-            score: dashboardModel.currentScore,
-            provider: dashboardModel.provider,
-            lastUpdate: dashboardModel.lastUpdate
-          });
-          
-          // Store dashboard data as the source of truth for verification
-          window.dashboardModelData = dashboardModel;
-          
-          // Verify this is actually the model we expect
-          console.log('🔍 Model verification:', {
-            requestedId: modelId,
-            foundId: dashboardModel.id,
-            modelName: dashboardModel.name,
-            dashboardScore: dashboardModel.currentScore
-          });
-        } else {
-          console.log('⚠️ Model not found in dashboard data for period:', selectedPeriod);
-          console.log('Available models:', dashboardData.data.map((m: any) => ({ id: m.id, name: m.name })));
-          throw new Error(`Model ${modelId} not found in dashboard data`);
-        }
-      }
+      // SIMPLIFIED: Use ONLY dashboard history endpoint (same as main page)
+      console.log(`📊 Fetching chart data: /dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
       
-      if (modelId) {
-        // CRITICAL FIX: Get mode-specific data from dashboard endpoint since individual model endpoints don't support sortBy
-        console.log(`🔄 Fetching mode-specific data from dashboard API (${selectedPeriod}, ${selectedScoringMode})`);
-        
-        // Get the correct score and data for the selected mode from dashboard endpoint
-        const dashboardModeResponse = await fetch(`${apiUrl}/api/dashboard/scores?period=${selectedPeriod}&sortBy=${selectedScoringMode}`);
-        let dashboardModeData = null;
-        if (dashboardModeResponse.ok) {
-          const dashboardData = await dashboardModeResponse.json();
-          if (dashboardData.success) {
-            dashboardModeData = dashboardData.data.find((m: any) => m.id === modelId.toString());
-            console.log('✅ Found mode-specific model data from dashboard:', {
-              id: dashboardModeData?.id,
-              name: dashboardModeData?.name,
-              score: dashboardModeData?.currentScore,
-              mode: selectedScoringMode
-            });
-          }
-        }
-        
-        // Fix sortBy parameter - backend expects '7axis' not 'speed'
-        const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
-        
-        // FIXED: Get model-specific history data from the correct endpoint
-        const dashboardHistoryResponse = await fetch(`${apiUrl}/dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
-        let dashboardHistoryData = null;
-        if (dashboardHistoryResponse.ok) {
-          const historyResponseData = await dashboardHistoryResponse.json();
-          if (historyResponseData.success && historyResponseData.data) {
-            dashboardHistoryData = historyResponseData.data;
-            console.log(`✅ Using model-specific history data for charts (${sortByParam}, ${selectedPeriod}):`, dashboardHistoryData.length, 'points');
-          }
-        }
-      
-      const [modelResponse, historyResponse, statsResponse, performanceResponse] = await Promise.all([
-        fetch(`${apiUrl}/api/models/${modelId}?period=${selectedPeriod}`),
-        fetch(`${apiUrl}/api/models/${modelId}/history?days=30&period=${selectedPeriod}&sortBy=${sortByParam}`),  // Use corrected sortBy parameter
-        fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`),
-        fetch(`${apiUrl}/api/models/${modelId}/performance?period=${selectedPeriod}`)
+      const [modelResponse, historyResponse, statsResponse] = await Promise.all([
+        fetch(`${apiUrl}/api/models/${modelId}`),
+        fetch(`${apiUrl}/dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`),
+        fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`)
       ]);
         
         if (modelResponse.ok) {
           modelData = await modelResponse.json();
-          console.log('✅ Model data loaded successfully from API:', modelData);
-          console.log('🎯 Current score:', modelData.latestScore?.displayScore || 'Not available');
           setModelDetails(modelData);
         } else {
           throw new Error('Model not found');
         }
         
-        // ALWAYS use dashboard data as primary source - same as main page charts
-        if (dashboardHistoryData && dashboardHistoryData.length > 0) {
-          console.log(`✅ Using dashboard history data (${sortByParam}, ${selectedPeriod}):`, dashboardHistoryData.length, 'points');
-          setHistory({
-            modelId,
-            period: selectedPeriod,
-            dataPoints: dashboardHistoryData.length,
-            history: dashboardHistoryData.map((point: any) => ({
-              timestamp: point.timestamp || new Date().toISOString(),
-              stupidScore: point.stupidScore,
-              displayScore: point.displayScore || point.currentScore || toDisplayScore(point),
-              axes: point.axes || {}
-            }))
-          });
-        } else if (historyResponse.ok) {
-          // Fallback to individual endpoint only if dashboard fails
+        // UNIFIED DATA HANDLING: Same as main page
+        if (historyResponse.ok) {
           const historyData = await historyResponse.json();
-          console.log(`⚠️ Dashboard history not available, using individual model endpoint:`, historyData);
-          
-          // Ensure display scores are included for chart rendering
-          if (historyData.history && historyData.history.length > 0) {
-            historyData.history = historyData.history.map((point: any) => ({
-              ...point,
-              displayScore: point.displayScore || point.currentScore || toDisplayScore(point)
-            }));
+          if (historyData.success && historyData.data && historyData.data.length > 0) {
+            console.log(`✅ Chart data loaded: ${historyData.data.length} points for ${selectedPeriod}/${sortByParam}`);
+            setHistory({
+              modelId,
+              period: selectedPeriod,
+              dataPoints: historyData.data.length,
+              history: historyData.data.map((point: any) => ({
+                timestamp: point.timestamp || new Date().toISOString(),
+                stupidScore: point.stupidScore || 0,
+                displayScore: point.score || point.displayScore || toDisplayScore(point),
+                axes: point.axes || {}
+              }))
+            });
+          } else {
+            console.log(`⚠️ No chart data for ${selectedPeriod}/${sortByParam}`);
+            setHistory({ modelId, period: selectedPeriod, dataPoints: 0, history: [] });
           }
-          
-          setHistory(historyData);
         } else {
-          console.log('⚠️ No history data available from any source');
+          console.log('⚠️ History endpoint failed');
           setHistory({ modelId, period: selectedPeriod, dataPoints: 0, history: [] });
         }
         
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
-          console.log('✅ Stats data loaded successfully from API for period', selectedPeriod, ':', statsData);
-          console.log('📈 Performance metrics for period', selectedPeriod, '- Score:', statsData.currentScore, 'Runs:', statsData.totalRuns, 'Success Rate:', statsData.successRate + '%');
-          
-          // CRITICAL FIX: Override with mode-specific score from dashboard
-          if (dashboardModeData && typeof dashboardModeData.currentScore === 'number') {
-            const originalScore = statsData.currentScore;
-            statsData.currentScore = dashboardModeData.currentScore;
-            console.log(`✅ OVERRIDING score with ${selectedScoringMode} mode data:`, {
-              originalScore,
-              modeSpecificScore: dashboardModeData.currentScore,
-              scoringMode: selectedScoringMode,
-              difference: Math.abs(originalScore - dashboardModeData.currentScore)
-            });
-            
-            // Also override model's latest score for consistency
-            if (modelData?.latestScore) {
-              modelData.latestScore.displayScore = dashboardModeData.currentScore;
-              console.log('✅ Also updated model latest score for consistency');
-            }
-          }
-          
-          // Legacy consistency check for non-mode-specific scenarios
-          else if (window.dashboardModelData && selectedPeriod === 'latest' && selectedScoringMode === 'combined') {
-            const dashboardScore = window.dashboardModelData.currentScore;
-            const detailScore = statsData.currentScore;
-            const modelScore = modelData?.latestScore?.displayScore;
-            
-            console.log('🔍 Legacy score consistency check:', {
-              dashboardScore,
-              detailStatsScore: detailScore,
-              modelLatestScore: modelScore,
-              modelName: window.dashboardModelData.name
-            });
-            
-            if (Math.abs(dashboardScore - detailScore) > 1) {
-              console.warn('⚠️ SCORE INCONSISTENCY DETECTED!', {
-                dashboardScore,
-                detailScore,
-                difference: Math.abs(dashboardScore - detailScore),
-                modelName: window.dashboardModelData.name,
-                period: selectedPeriod
-              });
-              
-              // Use dashboard score as source of truth for consistency
-              statsData.currentScore = dashboardScore;
-              console.log('✅ Using dashboard score as source of truth:', dashboardScore);
-            }
-          }
-          
           setStats(statsData);
         } else {
-          console.log('⚠️ No stats data from API, using empty state');
           setStats({ modelId, currentScore: 0, totalRuns: 0, successfulRuns: 0, successRate: 0, averageCorrectness: 0, averageLatency: 0 });
         }
-
-        if (performanceResponse.ok) {
-          const performanceData = await performanceResponse.json();
-          console.log('✅ Performance data loaded successfully from API:', performanceData);
-          console.log('🔧 Task performance breakdown:', performanceData.taskPerformance?.length || 0, 'tasks');
-          setPerformance(performanceData);
-        } else {
-          console.log('⚠️ No performance data from API, using empty state');
-          setPerformance({ modelId, taskPerformance: [] });
-        }
-        
-        console.log('🎉 All model data successfully loaded from real API endpoints!');
-        
-      } else {
-        throw new Error('Model ID could not be resolved');
-      }
       
     } catch (error) {
       console.error('❌ Failed to fetch model details:', error);
@@ -528,311 +384,382 @@ export default function ModelDetailPage() {
     return `${days}d ago`;
   };
 
-  // Mobile-responsive detail chart
+  // PRODUCTION-READY CHART: Clear, informative, and visually appealing
   const renderDetailChart = (historyData: any[], period: string = selectedPeriod) => {
-    if (!historyData || historyData.length === 0) {
-      // Provide context-specific messages based on scoring mode
-      let message = 'NO HISTORICAL DATA AVAILABLE';
-      let suggestion = 'Check back after the model runs some benchmarks';
-      
-      if (selectedScoringMode === 'reasoning' && (period === '24h' || period === 'latest')) {
-        message = 'INSUFFICIENT DATA FOR 24H REASONING VIEW';
-        suggestion = 'Deep reasoning benchmarks run daily. Try selecting 7d or 1m period for better data.';
-      } else if (selectedScoringMode === 'tooling' && (period === '24h' || period === 'latest')) {
-        message = 'INSUFFICIENT DATA FOR 24H TOOLING VIEW';
-        suggestion = 'Tool calling benchmarks run daily. Try selecting 7d or 1m period for better data.';
-      }
-      
-      return (
-        <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '20px' }}>
-            <div style={{ fontSize: '3em', marginBottom: '16px', opacity: 0.3 }}>📊</div>
-            <div style={{ marginBottom: '12px', fontWeight: 'bold' }}>{message}</div>
-            <div style={{ fontSize: '0.8em', marginTop: '8px', maxWidth: '400px', margin: '0 auto' }}>{suggestion}</div>
-          </div>
-        </div>
-      );
-    }
+    const chartHistory = historyData || [];
 
-    // EXACT SAME LOGIC as main page renderMiniChart
-    // Filter history based on selected period
-    const filteredHistory = (() => {
-      const now = Date.now();
-      let cutoffTime;
-      
-      switch (period) {
-        case '24h':
-          cutoffTime = now - (24 * 60 * 60 * 1000);
-          break;
-        case '7d':
-          cutoffTime = now - (7 * 24 * 60 * 60 * 1000);
-          break;
-        case '1m':
-          cutoffTime = now - (30 * 24 * 60 * 60 * 1000);
-          break;
-        default: // 'latest'
-          // Show last 24 data points for 'latest'
-          return historyData.slice(0, 24);
-      }
-      
-      // Filter data by timestamp if timestamps are available
-      if (historyData[0]?.timestamp) {
-        return historyData.filter(h => {
-          const timestamp = new Date(h.timestamp).getTime();
-          return timestamp >= cutoffTime;
-        });
-      }
-      
-      // Fallback to showing proportional amount of data
-      const dataPointsToShow = period === '24h' ? 24 : period === '7d' ? 168 : 720;
-      return historyData.slice(0, Math.min(dataPointsToShow, historyData.length));
-    })();
+    console.log(`🎨 renderDetailChart:`, {
+      historyLength: chartHistory?.length || 0,
+      period,
+      sortBy: selectedScoringMode
+    });
 
-    // Reverse history to show oldest to newest (left to right) - same as model detail page
-    const data = [...filteredHistory].reverse();
-    
-    if (data.length === 0) {
-      // Provide context-specific messages based on scoring mode
-      let message = 'NO DATA FOR SELECTED PERIOD';
-      let suggestion = 'Try selecting a longer time period';
+    // Empty state
+    if (!chartHistory || chartHistory.length === 0) {
+      let message = 'NO DATA AVAILABLE';
+      let suggestion = 'Try selecting a different time period or scoring mode';
       
       if (selectedScoringMode === 'reasoning' && period === '24h') {
-        message = 'INSUFFICIENT DATA FOR 24H REASONING VIEW';
-        suggestion = 'Deep reasoning benchmarks run daily. Select 7d or 1m period to see historical trends.';
+        message = 'REASONING DATA UNAVAILABLE FOR 24H';
+        suggestion = 'Deep reasoning tests run daily. Try 7d or 1m period.';
       } else if (selectedScoringMode === 'tooling' && period === '24h') {
-        message = 'INSUFFICIENT DATA FOR 24H TOOLING VIEW';
-        suggestion = 'Tool calling benchmarks run daily. Select 7d or 1m period to see historical trends.';
+        message = 'TOOLING DATA UNAVAILABLE FOR 24H';
+        suggestion = 'Tool calling tests run daily. Try 7d or 1m period.';
       }
       
       return (
-        <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '20px' }}>
-            <div style={{ fontSize: '3em', marginBottom: '16px', opacity: 0.3 }}>📊</div>
-            <div style={{ marginBottom: '12px', fontWeight: 'bold' }}>{message}</div>
-            <div style={{ fontSize: '0.8em', marginTop: '8px', maxWidth: '400px', margin: '0 auto' }}>{suggestion}</div>
+        <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+          <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '4em', marginBottom: '20px', opacity: 0.3 }}>📊</div>
+            <div style={{ fontSize: '1.2em', marginBottom: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{message}</div>
+            <div style={{ fontSize: '0.9em', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>{suggestion}</div>
           </div>
         </div>
       );
     }
-    
-    const displayScores = data
-      .map((d) => toDisplayScore(d))
-      .filter((v) => typeof v === 'number') as number[];
+
+    // Filter data (limit 'latest' to 24 points for readability)
+    const filteredHistory = period === 'latest' ? chartHistory.slice(0, 24) : chartHistory;
+    const data = [...filteredHistory].reverse(); // Oldest to newest (left to right)
+
+    if (data.length === 0) {
+      return (
+        <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+          <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ fontSize: '4em', marginBottom: '20px', opacity: 0.3 }}>📊</div>
+            <div style={{ fontSize: '1.2em', marginBottom: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>NO DATA FOR SELECTED PERIOD</div>
+            <div style={{ fontSize: '0.9em' }}>Try selecting a longer time period</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Extract scores
+    const displayScores = data.map((d) => toDisplayScore(d)).filter((v) => typeof v === 'number') as number[];
 
     if (displayScores.length === 0) {
       return (
-        <div className="mini-chart-container" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
           <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
-            <div>NO VALID SCORE DATA</div>
+            <div style={{ fontSize: '1.2em', color: 'var(--red-alert)' }}>NO VALID SCORE DATA</div>
           </div>
         </div>
       );
     }
 
+    // Calculate chart dimensions and ranges
     const maxScore = Math.max(...displayScores);
     const minScore = Math.min(...displayScores);
     const range = maxScore - minScore || 1;
+    const avgScore = displayScores.reduce((a, b) => a + b, 0) / displayScores.length;
 
-    // Responsive chart dimensions
-    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
-    const chartWidth = isMobile ? 350 : 600;
-    const chartHeight = isMobile ? 240 : 300; // Increased mobile height to accommodate timeline text
-    const padding = isMobile ? 30 : 40;
-    const fontSize = isMobile ? 8 : 10;
-    const strokeWidth = isMobile ? 2 : 3;
-    const pointRadius = isMobile ? 2 : 4;
+    // Responsive dimensions
+    const chartWidth = 800;
+    const chartHeight = 400;
+    const paddingLeft = 60;
+    const paddingRight = 40;
+    const paddingTop = 40;
+    const paddingBottom = 80;
 
+    // Calculate points for the line chart
     const points = data.map((point, index) => {
-      const displayScore = toDisplayScore(point) ?? minScore; // safe fallback
-      // FIXED: Handle single data point case - when there's only 1 point, center it horizontally
-      const x = data.length === 1 ? 
-        chartWidth / 2 : 
-        (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
-      const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
-      return `${x},${y}`;
-    }).join(' ');
+      const displayScore = toDisplayScore(point) ?? minScore;
+      const x = paddingLeft + (index / Math.max(1, data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+      const y = paddingTop + (1 - (displayScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
+      return { x, y, score: displayScore, timestamp: point.timestamp };
+    });
 
-    // Adaptive styling based on data density
-    const isHighDensity = data.length > 50; // 7d/1m periods usually have many points
-    const adaptivePointRadius = isHighDensity ? 1 : pointRadius;
-    const adaptivePointOpacity = isHighDensity ? 0.3 : 0.7;
-    const showAllPoints = data.length <= 30; // Only show all points for short periods
-    
+    const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
+
+    // Generate grid lines
+    const gridLines = 5;
+    const yGridLines = Array.from({ length: gridLines + 1 }, (_, i) => {
+      const score = minScore + (range * i / gridLines);
+      const y = paddingTop + (1 - (i / gridLines)) * (chartHeight - paddingTop - paddingBottom);
+      return { y, score };
+    });
+
+    // Time labels
+    const numTimeLabels = Math.min(8, data.length);
+    const timeLabels = Array.from({ length: numTimeLabels }, (_, i) => {
+      const index = Math.floor((i / (numTimeLabels - 1)) * (data.length - 1));
+      const point = points[index];
+      if (!point) return null;
+      
+      const date = new Date(data[index].timestamp);
+      let label = '';
+      
+      if (period === '24h') {
+        label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } else if (period === '7d') {
+        label = date.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
+      } else if (period === '1m') {
+        label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      } else {
+        label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      }
+      
+      return { x: point.x, label };
+    }).filter(Boolean);
+
     return (
-      <div className="mini-chart-container" style={{ 
+      <div style={{ 
         display: 'flex', 
-        justifyContent: 'center', 
-        padding: isMobile ? '10px' : '20px',
-        overflowX: 'auto'
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '20px',
+        background: 'rgba(0,0,0,0.2)',
+        borderRadius: '8px'
       }}>
+        {/* Chart Stats Summary */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '30px', 
+          marginBottom: '20px',
+          fontSize: '0.9em'
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="terminal-text--dim">Data Points</div>
+            <div className="terminal-text--green" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{data.length}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div className="terminal-text--dim">Average Score</div>
+            <div className="terminal-text" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{Math.round(avgScore)}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div className="terminal-text--dim">Peak Score</div>
+            <div className="terminal-text--green" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{Math.round(maxScore)}</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div className="terminal-text--dim">Low Score</div>
+            <div className={minScore < 50 ? "terminal-text--red" : "terminal-text"} style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{Math.round(minScore)}</div>
+          </div>
+        </div>
+
+        {/* SVG Chart */}
         <svg 
           width={chartWidth} 
-          height={chartHeight} 
-          className="mini-chart" 
+          height={chartHeight}
           style={{ 
-            background: 'rgba(0, 0, 0, 0.2)', 
+            background: 'rgba(0, 0, 0, 0.3)', 
             borderRadius: '8px',
-            minWidth: isMobile ? '350px' : 'auto'
+            border: '1px solid rgba(0, 255, 65, 0.2)'
           }}
         >
-          {/* Grid lines */}
-          {Array.from({length: isMobile ? 4 : 6}).map((_, i) => {
-            const y = padding + (i * (chartHeight - 2 * padding) / (isMobile ? 3 : 5));
-            const value = maxScore - (i * range / (isMobile ? 3 : 5));
-            return (
-              <g key={`grid-${i}`}>
-                <line x1={padding} y1={y} x2={chartWidth - padding} y2={y} stroke="rgba(0, 255, 65, 0.1)" strokeWidth="1"/>
-                <text x={padding - 5} y={y + 4} fill="var(--phosphor-green)" fontSize={fontSize} textAnchor="end" opacity="0.7">
-                  {Math.round(value)}
-                </text>
-              </g>
-            );
-          })}
-          
-          {/* Main chart line - EXACTLY like main page */}
-          <polyline
-            points={points}
-            fill="none"
-            stroke="var(--phosphor-green)"
-            strokeWidth={strokeWidth}
-            opacity="0.8"
-            filter="drop-shadow(0 0 4px var(--phosphor-green))"
+          {/* Horizontal grid lines */}
+          {yGridLines.map((line, i) => (
+            <g key={`grid-${i}`}>
+              <line 
+                x1={paddingLeft} 
+                y1={line.y} 
+                x2={chartWidth - paddingRight} 
+                y2={line.y} 
+                stroke="rgba(0, 255, 65, 0.15)" 
+                strokeWidth="1"
+                strokeDasharray={i === 0 || i === gridLines ? "0" : "4,4"}
+              />
+              <text 
+                x={paddingLeft - 10} 
+                y={line.y + 4} 
+                fill="var(--phosphor-green)" 
+                fontSize="12" 
+                textAnchor="end"
+                opacity="0.8"
+              >
+                {Math.round(line.score)}
+              </text>
+            </g>
+          ))}
+
+          {/* Performance zones with labels */}
+          <rect 
+            x={paddingLeft} 
+            y={paddingTop} 
+            width={chartWidth - paddingLeft - paddingRight} 
+            height={(chartHeight - paddingTop - paddingBottom) / 3} 
+            fill="rgba(0,255,65,0.05)" 
           />
-          
-          {/* Data points - adaptive rendering based on density */}
-          {showAllPoints ? (
-            // Show all points for short periods (latest/24h with few points)
-            data.map((point, index) => {
-              const displayScore = toDisplayScore(point) ?? minScore;
-              // FIXED: Handle single data point case - when there's only 1 point, center it horizontally
-              const x = data.length === 1 ? 
-                chartWidth / 2 : 
-                (index / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
-              const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
-              return (
-                <circle
-                  key={index}
-                  cx={x}
-                  cy={y}
-                  r={adaptivePointRadius}
+          <text 
+            x={chartWidth - paddingRight - 10} 
+            y={paddingTop + 20} 
+            fill="var(--phosphor-green)" 
+            fontSize="11" 
+            textAnchor="end"
+            opacity="0.5"
+          >
+            EXCELLENT
+          </text>
+
+          <rect 
+            x={paddingLeft} 
+            y={paddingTop + (chartHeight - paddingTop - paddingBottom) / 3} 
+            width={chartWidth - paddingLeft - paddingRight} 
+            height={(chartHeight - paddingTop - paddingBottom) / 3} 
+            fill="rgba(255,176,0,0.05)" 
+          />
+          <text 
+            x={chartWidth - paddingRight - 10} 
+            y={paddingTop + (chartHeight - paddingTop - paddingBottom) / 3 + 20} 
+            fill="var(--amber-warning)" 
+            fontSize="11" 
+            textAnchor="end"
+            opacity="0.5"
+          >
+            GOOD
+          </text>
+
+          <rect 
+            x={paddingLeft} 
+            y={paddingTop + 2 * (chartHeight - paddingTop - paddingBottom) / 3} 
+            width={chartWidth - paddingLeft - paddingRight} 
+            height={(chartHeight - paddingTop - paddingBottom) / 3} 
+            fill="rgba(255,45,0,0.05)" 
+          />
+          <text 
+            x={chartWidth - paddingRight - 10} 
+            y={paddingTop + 2 * (chartHeight - paddingTop - paddingBottom) / 3 + 20} 
+            fill="var(--red-alert)" 
+            fontSize="11" 
+            textAnchor="end"
+            opacity="0.5"
+          >
+            NEEDS WORK
+          </text>
+
+          {/* Average line */}
+          <line 
+            x1={paddingLeft} 
+            y1={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom)} 
+            x2={chartWidth - paddingRight} 
+            y2={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom)} 
+            stroke="var(--amber-warning)" 
+            strokeWidth="2" 
+            strokeDasharray="8,4"
+            opacity="0.6"
+          />
+          <text 
+            x={chartWidth - paddingRight + 5} 
+            y={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom) + 4} 
+            fill="var(--amber-warning)" 
+            fontSize="11"
+            opacity="0.8"
+          >
+            AVG
+          </text>
+
+          {/* Main chart line with gradient */}
+          <defs>
+            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="var(--phosphor-green)" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="var(--phosphor-green)" stopOpacity="1" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <polyline
+            points={polylinePoints}
+            fill="none"
+            stroke="url(#lineGradient)"
+            strokeWidth="3"
+            filter="url(#glow)"
+          />
+
+          {/* Data points with hover effect */}
+          {points.map((point, index) => (
+            <g key={index}>
+              <circle
+                cx={point.x}
+                cy={point.y}
+                r="5"
+                fill="var(--phosphor-green)"
+                stroke="var(--terminal-black)"
+                strokeWidth="2"
+                opacity="0.9"
+                style={{ cursor: 'pointer' }}
+              />
+              {/* Show score on hover - simplified for now */}
+              {index % Math.ceil(data.length / 10) === 0 && (
+                <text
+                  x={point.x}
+                  y={point.y - 12}
                   fill="var(--phosphor-green)"
-                  stroke="var(--terminal-black)"
-                  strokeWidth="1"
-                  opacity={adaptivePointOpacity}
-                  filter="drop-shadow(0 0 2px var(--phosphor-green))"
-                />
-              );
-            })
-          ) : (
-            // Show only key points for high-density periods (7d/1m)
-            data.filter((_, index) => index % Math.ceil(data.length / 20) === 0).map((point, filteredIndex) => {
-              const originalIndex = filteredIndex * Math.ceil(data.length / 20);
-              const displayScore = toDisplayScore(point) ?? minScore;
-              const x = (originalIndex / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
-              const y = chartHeight - padding - ((displayScore - minScore) / range) * (chartHeight - 2 * padding);
-              return (
-                <circle
-                  key={originalIndex}
-                  cx={x}
-                  cy={y}
-                  r={adaptivePointRadius}
-                  fill="var(--phosphor-green)"
-                  stroke="var(--terminal-black)"
-                  strokeWidth="1"
-                  opacity={adaptivePointOpacity}
-                />
-              );
-            })
-          )}
-          
-          {/* X-axis time labels */}
-          {data.length > 1 && (() => {
-            // Smart label positioning based on data distribution
-            const numLabels = isMobile ? 3 : Math.min(5, data.length);
-            const labelIndices = [];
-            
-            if (data.length <= numLabels) {
-              // Show all data points if we have few points
-              for (let i = 0; i < data.length; i++) {
-                labelIndices.push(i);
-              }
-            } else {
-              // Distribute labels evenly across the timeline
-              labelIndices.push(0); // Always show first
-              for (let i = 1; i < numLabels - 1; i++) {
-                const index = Math.floor((i / (numLabels - 1)) * (data.length - 1));
-                labelIndices.push(index);
-              }
-              labelIndices.push(data.length - 1); // Always show last
-            }
-            
-            return labelIndices.map((dataIndex, i) => {
-              const point = data[dataIndex];
-              const x = (dataIndex / Math.max(1, data.length - 1)) * (chartWidth - 2 * padding) + padding;
-              
-              if (point?.timestamp) {
-                const date = new Date(point.timestamp);
-                let label: string;
-                
-                // Smart formatting based on period and data age
-                const now = new Date();
-                const hoursDiff = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-                
-                switch (period) {
-                  case '24h':
-                    label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    break;
-                  case '7d':
-                    if (hoursDiff < 24) {
-                      label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    } else {
-                      label = date.toLocaleDateString([], {weekday: 'short'});
-                    }
-                    break;
-                  case '1m':
-                    if (hoursDiff < 24) {
-                      label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    } else {
-                      label = date.toLocaleDateString([], {month: 'short', day: 'numeric'});
-                    }
-                    break;
-                  default: // 'latest'
-                    if (hoursDiff < 24) {
-                      label = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                    } else if (hoursDiff < 24 * 7) {
-                      label = date.toLocaleDateString([], {weekday: 'short'});
-                    } else {
-                      label = date.toLocaleDateString([], {month: 'short', day: 'numeric'});
-                    }
-                    break;
-                }
-                
-                return (
-                  <text 
-                    key={`time-${dataIndex}`}
-                    x={x} 
-                    y={chartHeight - (isMobile ? 25 : 30)} 
-                    fill="var(--phosphor-green)" 
-                    fontSize={fontSize - 1} 
-                    textAnchor="middle" 
-                    opacity="0.7"
-                  >
-                    {label}
-                  </text>
-                );
-              }
-              return null;
-            }).filter(Boolean);
-          })()}
+                  fontSize="10"
+                  textAnchor="middle"
+                  opacity="0.7"
+                >
+                  {Math.round(point.score)}
+                </text>
+              )}
+            </g>
+          ))}
+
+          {/* Time labels on X-axis */}
+          {timeLabels.map((label, i) => label && (
+            <text
+              key={i}
+              x={label.x}
+              y={chartHeight - paddingBottom + 25}
+              fill="var(--phosphor-green)"
+              fontSize="11"
+              textAnchor="middle"
+              opacity="0.8"
+            >
+              {label.label}
+            </text>
+          ))}
 
           {/* Axis labels */}
-          <text x={chartWidth/2} y={chartHeight - (isMobile ? 15 : 10)} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold">
-            Timeline ({period.toUpperCase()})
+          <text 
+            x={chartWidth / 2} 
+            y={chartHeight - 20} 
+            fill="var(--phosphor-green)" 
+            fontSize="14" 
+            textAnchor="middle" 
+            fontWeight="bold"
+          >
+            Timeline — {period.toUpperCase()} ({data.length} data points)
           </text>
-          <text x={20} y={chartHeight/2} fill="var(--phosphor-green)" fontSize={fontSize + 2} textAnchor="middle" fontWeight="bold" transform={`rotate(-90, 20, ${chartHeight/2})`}>
-            Score
+          
+          <text 
+            x={20} 
+            y={chartHeight / 2} 
+            fill="var(--phosphor-green)" 
+            fontSize="14" 
+            textAnchor="middle" 
+            fontWeight="bold" 
+            transform={`rotate(-90, 20, ${chartHeight / 2})`}
+          >
+            Performance Score (0-100)
           </text>
         </svg>
+
+        {/* Legend */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '20px', 
+          marginTop: '15px',
+          fontSize: '0.85em',
+          opacity: 0.8
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '20px', height: '3px', background: 'var(--phosphor-green)' }}></div>
+            <span className="terminal-text--dim">Score Trend</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '20px', height: '2px', background: 'var(--amber-warning)', borderTop: '2px dashed var(--amber-warning)' }}></div>
+            <span className="terminal-text--dim">Average ({Math.round(avgScore)})</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--phosphor-green)', border: '2px solid var(--terminal-black)' }}></div>
+            <span className="terminal-text--dim">Data Point</span>
+          </div>
+        </div>
       </div>
     );
   };
