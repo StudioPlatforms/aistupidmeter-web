@@ -134,6 +134,16 @@ export default function RootLayout({
                 __html: `
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
+                  
+                  // Set default consent mode BEFORE gtag initialization
+                  gtag('consent', 'default', {
+                    'analytics_storage': 'granted',
+                    'ad_storage': 'denied',
+                    'ad_user_data': 'denied',
+                    'ad_personalization': 'denied',
+                    'wait_for_update': 500
+                  });
+                  
                   gtag('js', new Date());
                   
                   gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {

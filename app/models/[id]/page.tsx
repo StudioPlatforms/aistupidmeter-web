@@ -670,34 +670,125 @@ export default function ModelDetailPage() {
             filter="url(#glow)"
           />
 
-          {/* Data points with hover effect */}
-          {points.map((point, index) => (
-            <g key={index}>
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r="5"
-                fill="var(--phosphor-green)"
-                stroke="var(--terminal-black)"
-                strokeWidth="2"
-                opacity="0.9"
-                style={{ cursor: 'pointer' }}
+          {/* Confidence interval band (shaded area) */}
+          {(() => {
+            const ciPoints = data.map((point, index) => {
+              const displayScore = toDisplayScore(point) ?? minScore;
+              const ciLower = point.confidence_lower ?? displayScore;
+              const ciUpper = point.confidence_upper ?? displayScore;
+              const x = paddingLeft + (index / Math.max(1, data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
+              const yScore = paddingTop + (1 - (displayScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
+              const yLower = paddingTop + (1 - (ciLower - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
+              const yUpper = paddingTop + (1 - (ciUpper - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
+              return { x, yScore, yLower, yUpper, ciWidth: ciUpper - ciLower };
+            });
+            
+            // Only show CI band if we have valid CI data
+            const hasValidCI = ciPoints.some(p => p.ciWidth > 0);
+            if (!hasValidCI) return null;
+            
+            // Calculate average CI width to determine color
+            const avgCIWidth = ciPoints.reduce((sum, p) => sum + p.ciWidth, 0) / ciPoints.length;
+            const ciColor = avgCIWidth < 5 ? 'rgba(0, 255, 65, 0.15)' : 
+                           avgCIWidth < 10 ? 'rgba(255, 176, 0, 0.15)' : 'rgba(255, 45, 0, 0.15)';
+            
+            // Create polygon path for CI band
+            const upperPath = ciPoints.map(p => `${p.x},${p.yUpper}`).join(' ');
+            const lowerPath = ciPoints.map(p => `${p.x},${p.yLower}`).reverse().join(' ');
+            
+            return (
+              <polygon
+                points={`${upperPath} ${lowerPath}`}
+                fill={ciColor}
+                opacity="0.5"
               />
-              {/* Show score on hover - simplified for now */}
-              {index % Math.ceil(data.length / 10) === 0 && (
-                <text
-                  x={point.x}
-                  y={point.y - 12}
+            );
+          })()}
+
+          {/* Data points with hover effect and error bars */}
+          {points.map((point, index) => {
+            const dataPoint = data[index];
+            const displayScore = toDisplayScore(dataPoint) ?? minScore;
+            const ciLower = dataPoint.confidence_lower ?? displayScore;
+            const ciUpper = dataPoint.confidence_upper ?? displayScore;
+            const yLower = paddingTop + (1 - (ciLower - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
+            const yUpper = paddingTop + (1 - (ciUpper - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
+            const hasCI = ciUpper > ciLower;
+            
+            // Show error bars every 5th point on details page (less cluttered than main page)
+            const showErrorBar = hasCI && index % 5 === 0;
+            
+            return (
+              <g key={index}>
+                {/* Error bar (vertical line with caps) */}
+                {showErrorBar && (
+                  <>
+                    <line
+                      x1={point.x}
+                      y1={yUpper}
+                      x2={point.x}
+                      y2={yLower}
+                      stroke="var(--phosphor-green)"
+                      strokeWidth="1.5"
+                      opacity="0.6"
+                    />
+                    {/* Error bar caps */}
+                    <line
+                      x1={point.x - 3}
+                      y1={yUpper}
+                      x2={point.x + 3}
+                      y2={yUpper}
+                      stroke="var(--phosphor-green)"
+                      strokeWidth="1.5"
+                      opacity="0.6"
+                    />
+                    <line
+                      x1={point.x - 3}
+                      y1={yLower}
+                      x2={point.x + 3}
+                      y2={yLower}
+                      stroke="var(--phosphor-green)"
+                      strokeWidth="1.5"
+                      opacity="0.6"
+                    />
+                  </>
+                )}
+                
+                {/* Data point circle */}
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="5"
                   fill="var(--phosphor-green)"
-                  fontSize="10"
-                  textAnchor="middle"
-                  opacity="0.7"
+                  stroke="var(--terminal-black)"
+                  strokeWidth="2"
+                  opacity="0.9"
+                  style={{ cursor: 'pointer' }}
                 >
-                  {Math.round(point.score)}
-                </text>
-              )}
-            </g>
-          ))}
+                  {/* Enhanced tooltip with CI information */}
+                  <title>
+                    Score: {Math.round(point.score)}
+                    {hasCI && ` | 95% CI: ${Math.round(ciLower)}-${Math.round(ciUpper)} (±${Math.round((ciUpper - ciLower) / 2)} pts)`}
+                    {dataPoint.timestamp && ` | ${new Date(dataPoint.timestamp).toLocaleString()}`}
+                  </title>
+                </circle>
+                
+                {/* Show score labels on some points */}
+                {index % Math.ceil(data.length / 10) === 0 && (
+                  <text
+                    x={point.x}
+                    y={point.y - 12}
+                    fill="var(--phosphor-green)"
+                    fontSize="10"
+                    textAnchor="middle"
+                    opacity="0.7"
+                  >
+                    {Math.round(point.score)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
 
           {/* Time labels on X-axis */}
           {timeLabels.map((label, i) => label && (

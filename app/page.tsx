@@ -209,7 +209,7 @@ export default function Dashboard() {
     }
   }, [leaderboardPeriod, leaderboardSortBy, modelScores.length]); // FIXED: Added modelScores.length to trigger when models are loaded
 
-  // FIXED: Chart rendering function that uses individual model data
+  // FIXED: Chart rendering function that uses individual model data with CI support
   const renderMiniChart = (history: any[], period: string = leaderboardPeriod, modelId?: string) => {
     // Use individual model history data if available
     const modelSpecificHistory = modelId ? modelHistoryData.get(modelId) : null;
@@ -316,20 +316,105 @@ export default function Dashboard() {
             opacity="0.8"
           />
           
-          {/* Data point indicators */}
+          {/* Confidence interval bands (subtle shading) */}
+          {data.length > 1 && (() => {
+            const ciPoints = data.map((point, index) => {
+              const displayScore = toDisplayScore(point) ?? minScore;
+              const ciLower = point.confidence_lower ?? displayScore;
+              const ciUpper = point.confidence_upper ?? displayScore;
+              const x = (index / Math.max(1, data.length - 1)) * 66 + 12;
+              const yScore = 36 - ((displayScore - minScore) / range) * 32;
+              const yLower = 36 - ((ciLower - minScore) / range) * 32;
+              const yUpper = 36 - ((ciUpper - minScore) / range) * 32;
+              return { x, yScore, yLower, yUpper, ciWidth: ciUpper - ciLower };
+            });
+            
+            // Only show CI band if we have valid CI data
+            const hasValidCI = ciPoints.some(p => p.ciWidth > 0);
+            if (!hasValidCI) return null;
+            
+            // Calculate average CI width to determine color
+            const avgCIWidth = ciPoints.reduce((sum, p) => sum + p.ciWidth, 0) / ciPoints.length;
+            const ciColor = avgCIWidth < 5 ? 'rgba(0, 255, 65, 0.15)' : 
+                           avgCIWidth < 10 ? 'rgba(255, 176, 0, 0.15)' : 'rgba(255, 45, 0, 0.15)';
+            
+            // Create polygon path for CI band
+            const upperPath = ciPoints.map(p => `${p.x},${p.yUpper}`).join(' ');
+            const lowerPath = ciPoints.map(p => `${p.x},${p.yLower}`).reverse().join(' ');
+            
+            return (
+              <polygon
+                points={`${upperPath} ${lowerPath}`}
+                fill={ciColor}
+                opacity="0.6"
+              />
+            );
+          })()}
+          
+          {/* Data point indicators with error bars */}
           {data.map((point, index) => {
             const displayScore = toDisplayScore(point) ?? minScore;
+            const ciLower = point.confidence_lower ?? displayScore;
+            const ciUpper = point.confidence_upper ?? displayScore;
             const x = (index / Math.max(1, data.length - 1)) * 66 + 12;
             const y = 36 - ((displayScore - minScore) / range) * 32;
+            const yLower = 36 - ((ciLower - minScore) / range) * 32;
+            const yUpper = 36 - ((ciUpper - minScore) / range) * 32;
+            const hasCI = ciUpper > ciLower;
+            
+            // Show error bars every 3rd point to avoid clutter
+            const showErrorBar = hasCI && index % 3 === 0;
+            
             return (
-              <circle
-                key={index}
-                cx={x}
-                cy={y}
-                r="1"
-                fill="var(--phosphor-green)"
-                opacity="0.7"
-              />
+              <g key={index}>
+                {/* Error bar (vertical line) */}
+                {showErrorBar && (
+                  <>
+                    <line
+                      x1={x}
+                      y1={yUpper}
+                      x2={x}
+                      y2={yLower}
+                      stroke="var(--phosphor-green)"
+                      strokeWidth="0.5"
+                      opacity="0.6"
+                    />
+                    {/* Error bar caps */}
+                    <line
+                      x1={x - 1}
+                      y1={yUpper}
+                      x2={x + 1}
+                      y2={yUpper}
+                      stroke="var(--phosphor-green)"
+                      strokeWidth="0.5"
+                      opacity="0.6"
+                    />
+                    <line
+                      x1={x - 1}
+                      y1={yLower}
+                      x2={x + 1}
+                      y2={yLower}
+                      stroke="var(--phosphor-green)"
+                      strokeWidth="0.5"
+                      opacity="0.6"
+                    />
+                  </>
+                )}
+                {/* Data point */}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r="1"
+                  fill="var(--phosphor-green)"
+                  opacity="0.7"
+                >
+                  {/* Tooltip on hover */}
+                  <title>
+                    Score: {Math.round(displayScore)}
+                    {hasCI && ` (CI: ${Math.round(ciLower)}-${Math.round(ciUpper)})`}
+                  </title>
+                </circle>
+              </g>
             );
           })}
         </svg>
@@ -2306,14 +2391,6 @@ export default function Dashboard() {
               <p>• Third-party audits by AI research institutions</p>
               <br/>
               
-              <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🎯 WHAT THIS MEANS FOR YOU</div>
-              <p><span className="terminal-text--green">More Accurate Model Rankings:</span></p>
-              <p>• Claude Haiku and GPT-4o-mini can no longer fake high scores</p>
-              <p>• GPT-5, Claude Opus 4, and O3 models rank based on real capability</p>
-              <p>• Price-to-performance ratios reflect genuine value</p>
-              <p>• Combined scores balance speed and reasoning ability</p>
-              <br/>
-              
               <p><span className="terminal-text--green">Better AI Model Selection:</span></p>
               <p>• Choose models based on actual performance, not marketing</p>
               <p>• Understand which models excel at speed vs. complex reasoning</p>
@@ -2833,6 +2910,58 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* CI Legend - Desktop only */}
+          <div className="desktop-only" style={{
+            marginBottom: '12px',
+            padding: '8px 12px',
+            backgroundColor: 'rgba(0, 255, 65, 0.05)',
+            border: '1px solid rgba(0, 255, 65, 0.2)',
+            borderRadius: '3px',
+            fontSize: '0.8em'
+          }}>
+            <div className="terminal-text--green" style={{ marginBottom: '4px', fontWeight: 'bold' }}>
+              📊 Reliability Badges:
+            </div>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{
+                  backgroundColor: 'var(--phosphor-green)',
+                  color: 'var(--terminal-black)',
+                  fontSize: '0.9em',
+                  fontWeight: 'bold',
+                  padding: '2px 6px',
+                  borderRadius: '2px'
+                }}>HIGH</span>
+                <span className="terminal-text--dim">Very consistent</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{
+                  backgroundColor: 'var(--amber-warning)',
+                  color: 'var(--terminal-black)',
+                  fontSize: '0.9em',
+                  fontWeight: 'bold',
+                  padding: '2px 6px',
+                  borderRadius: '2px'
+                }}>MED</span>
+                <span className="terminal-text--dim">Moderate variance</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{
+                  backgroundColor: 'var(--red-alert)',
+                  color: 'var(--terminal-black)',
+                  fontSize: '0.9em',
+                  fontWeight: 'bold',
+                  padding: '2px 6px',
+                  borderRadius: '2px'
+                }}>LOW</span>
+                <span className="terminal-text--dim">High variance</span>
+              </div>
+            </div>
+            <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px', fontStyle: 'italic' }}>
+              Hover badges for details • See FAQ for methodology
+            </div>
+          </div>
+
           <div className="leaderboard-table" key={`${leaderboardPeriod}-${leaderboardSortBy}`}>
             <div className="leaderboard-header">
               <div className="col-rank">RANK</div>
@@ -2894,7 +3023,7 @@ export default function Dashboard() {
                     <div className="col-model">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <div className="terminal-text">{(model.displayName || model.name).toUpperCase()}</div>
                             {model.isNew && (
                               <span style={{
@@ -2909,6 +3038,49 @@ export default function Dashboard() {
                                 NEW
                               </span>
                             )}
+                            {/* CI Reliability Badge - Desktop only */}
+                            {(() => {
+                              // Get latest score with CI data from individual model history
+                              const modelHistory = modelHistoryData.get(model.id) || model.history || [];
+                              const latestWithCI = modelHistory.find((h: any) => 
+                                h.confidence_lower !== null && 
+                                h.confidence_upper !== null &&
+                                h.confidence_lower !== undefined &&
+                                h.confidence_upper !== undefined &&
+                                typeof h.confidence_lower === 'number' &&
+                                typeof h.confidence_upper === 'number'
+                              );
+                              
+                              // Only show badge if we have valid CI data
+                              if (!latestWithCI) return null;
+                              
+                              const ciWidth = latestWithCI.confidence_upper - latestWithCI.confidence_lower;
+                              
+                              // Don't show badge if CI width is invalid or zero
+                              if (ciWidth <= 0 || !isFinite(ciWidth)) return null;
+                              
+                              const reliability = ciWidth < 5 ? 'HIGH' : ciWidth < 10 ? 'MED' : 'LOW';
+                              const color = ciWidth < 5 ? 'var(--phosphor-green)' : 
+                                           ciWidth < 10 ? 'var(--amber-warning)' : 'var(--red-alert)';
+                              
+                              return (
+                                <span 
+                                  className="desktop-only"
+                                  style={{
+                                    backgroundColor: color,
+                                    color: 'var(--terminal-black)',
+                                    fontSize: '0.55em',
+                                    fontWeight: 'bold',
+                                    padding: '2px 4px',
+                                    borderRadius: '2px',
+                                    cursor: 'help'
+                                  }}
+                                  title={`Reliability: ${reliability} (±${Math.round(ciWidth / 2)} pts variation)\n95% Confidence Interval: [${Math.round(latestWithCI.confidence_lower)}-${Math.round(latestWithCI.confidence_upper)}]\nLower variation = more consistent performance`}
+                                >
+                                  {reliability}
+                                </span>
+                              );
+                            })()}
                           </div>
                           <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
                             {getProviderName(model.provider)}
@@ -3113,6 +3285,107 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Model Reliability & Consistency */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+              <span className="terminal-text--amber">📊 MODEL RELIABILITY & CONSISTENCY</span>
+            </div>
+            <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '12px' }}>
+              Performance variance based on 95% confidence intervals from 5 test runs per measurement
+            </div>
+            {(() => {
+              // Calculate reliability metrics for all models with CI data
+              const modelsWithCI = modelScores
+                .map((model: any) => {
+                  const modelHistory = modelHistoryData.get(model.id) || model.history || [];
+                  const latestWithCI = modelHistory.find((h: any) => 
+                    h.confidence_lower !== null && 
+                    h.confidence_upper !== null &&
+                    typeof h.confidence_lower === 'number' &&
+                    typeof h.confidence_upper === 'number'
+                  );
+                  
+                  if (!latestWithCI) return null;
+                  
+                  const ciWidth = latestWithCI.confidence_upper - latestWithCI.confidence_lower;
+                  if (ciWidth <= 0 || !isFinite(ciWidth)) return null;
+                  
+                  return {
+                    ...model,
+                    ciWidth,
+                    ciLower: latestWithCI.confidence_lower,
+                    ciUpper: latestWithCI.confidence_upper,
+                    reliability: ciWidth < 5 ? 'HIGH' : ciWidth < 10 ? 'MED' : 'LOW'
+                  };
+                })
+                .filter(Boolean)
+                .sort((a: any, b: any) => a.ciWidth - b.ciWidth); // Sort by most reliable first
+
+              if (modelsWithCI.length === 0) {
+                return (
+                  <div style={{ 
+                    padding: '12px', 
+                    border: '1px solid rgba(255, 176, 0, 0.3)',
+                    backgroundColor: 'rgba(255, 176, 0, 0.05)',
+                    fontSize: '0.85em',
+                    textAlign: 'center'
+                  }}>
+                    <span className="terminal-text--amber">⏳ Collecting reliability data...</span>
+                    <br/>
+                    <span className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                      Confidence intervals will be available after sufficient test runs
+                    </span>
+                  </div>
+                );
+              }
+
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
+                  {modelsWithCI.slice(0, 6).map((model: any, index: number) => {
+                    const color = model.reliability === 'HIGH' ? 'rgba(0, 255, 65, 0.3)' : 
+                                 model.reliability === 'MED' ? 'rgba(255, 176, 0, 0.3)' : 'rgba(255, 45, 0, 0.3)';
+                    const bgColor = model.reliability === 'HIGH' ? 'rgba(0, 255, 65, 0.05)' : 
+                                   model.reliability === 'MED' ? 'rgba(255, 176, 0, 0.05)' : 'rgba(255, 45, 0, 0.05)';
+                    
+                    return (
+                      <div key={model.id} style={{ 
+                        padding: '8px', 
+                        border: `1px solid ${color}`,
+                        backgroundColor: bgColor,
+                        fontSize: '0.85em',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => router.push(`/models/${model.id}`)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span className="terminal-text" style={{ fontWeight: 'bold' }}>
+                            {(model.displayName || model.name).toUpperCase()}
+                          </span>
+                          <span style={{
+                            backgroundColor: model.reliability === 'HIGH' ? 'var(--phosphor-green)' : 
+                                           model.reliability === 'MED' ? 'var(--amber-warning)' : 'var(--red-alert)',
+                            color: 'var(--terminal-black)',
+                            fontSize: '0.75em',
+                            fontWeight: 'bold',
+                            padding: '2px 6px',
+                            borderRadius: '2px'
+                          }}>
+                            {model.reliability}
+                          </span>
+                        </div>
+                        <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
+                          Variance: ±{Math.round(model.ciWidth / 2)} pts
+                        </div>
+                        <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+                          95% CI: [{Math.round(model.ciLower)}-{Math.round(model.ciUpper)}]
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Provider Trust Scores */}
