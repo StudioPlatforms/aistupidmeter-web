@@ -76,6 +76,7 @@ export default function Dashboard() {
   const [globalIndex, setGlobalIndex] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [degradations, setDegradations] = useState<any[]>([]);
+  const [driftIncidents, setDriftIncidents] = useState<any[]>([]);
   const [providerReliability, setProviderReliability] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any>(null);
   const [transparencyMetrics, setTransparencyMetrics] = useState<any>(null);
@@ -432,6 +433,22 @@ export default function Dashboard() {
   const [userBenchmarkResult, setUserBenchmarkResult] = useState<any>(null);
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [testLogs, setTestLogs] = useState<string[]>([]);
+
+  // Fetch drift incidents
+  const fetchDriftIncidents = async (period: string = '7d') => {
+    try {
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/dashboard/incidents?period=${period}&limit=50`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setDriftIncidents(data.data);
+        console.log(`📊 Loaded ${data.data.length} drift incidents for ${period}`);
+      }
+    } catch (error) {
+      console.error('Error fetching drift incidents:', error);
+    }
+  };
 
   // Fetch analytics data - now includes sortBy parameter for mode-specific recommendations
   const fetchAnalyticsData = async (period?: 'latest' | '24h' | '7d' | '1m', sortBy?: string, silent: boolean = false) => {
@@ -837,6 +854,9 @@ export default function Dashboard() {
         // This ensures real-time degradation detection and accurate recommendations
         console.log('🔄 Model Intelligence Center: Calling analytics APIs directly for real-time data...');
         fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+        
+        // Fetch drift incidents for Intelligence Center
+        fetchDriftIncidents('7d');
         
         // Always fetch visitor count (not cached)
         fetchVisitorCount();
@@ -3038,6 +3058,47 @@ export default function Dashboard() {
                                 NEW
                               </span>
                             )}
+                            {/* Drift Warning Indicator */}
+                            {(() => {
+                              // Check if this model has recent drift incidents
+                              const modelDriftIncidents = driftIncidents.filter((incident: any) => 
+                                incident.modelName?.toLowerCase() === model.name.toLowerCase() ||
+                                incident.modelId === parseInt(model.id)
+                              );
+                              
+                              if (modelDriftIncidents.length === 0) return null;
+                              
+                              // Find the most severe recent incident
+                              const criticalIncidents = modelDriftIncidents.filter((inc: any) => inc.severity === 'critical');
+                              const warningIncidents = modelDriftIncidents.filter((inc: any) => inc.severity === 'warning');
+                              
+                              const mostSevere = criticalIncidents.length > 0 ? criticalIncidents[0] : 
+                                               warningIncidents.length > 0 ? warningIncidents[0] : 
+                                               modelDriftIncidents[0];
+                              
+                              if (!mostSevere) return null;
+                              
+                              const isCritical = mostSevere.severity === 'critical';
+                              const hoursAgo = Math.round((Date.now() - new Date(mostSevere.detectedAt).getTime()) / (1000 * 60 * 60));
+                              
+                              return (
+                                <span 
+                                  style={{
+                                    backgroundColor: isCritical ? 'var(--red-alert)' : 'var(--amber-warning)',
+                                    color: 'var(--terminal-black)',
+                                    fontSize: '0.6em',
+                                    fontWeight: 'bold',
+                                    padding: '2px 4px',
+                                    borderRadius: '2px',
+                                    cursor: 'help',
+                                    animation: isCritical ? 'pulse 2s infinite' : 'none'
+                                  }}
+                                  title={`${mostSevere.incidentType.replace('_', ' ').toUpperCase()}: ${mostSevere.description} (${hoursAgo}h ago)`}
+                                >
+                                  {isCritical ? '🚨' : '⚠️'}
+                                </span>
+                              );
+                            })()}
                             {/* CI Reliability Badge - Desktop only */}
                             {(() => {
                               // Get latest score with CI data from individual model history
@@ -3419,6 +3480,71 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Drift Incidents */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+              <span className="terminal-text--red">🚨 DRIFT INCIDENTS (7 DAYS)</span>
+            </div>
+            {driftIncidents && driftIncidents.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '8px' }}>
+                {driftIncidents.slice(0, 6).map((incident: any, index: number) => {
+                  const hoursAgo = Math.round((Date.now() - new Date(incident.detectedAt).getTime()) / (1000 * 60 * 60));
+                  const isCritical = incident.severity === 'critical';
+                  
+                  return (
+                    <div key={index} style={{ 
+                      padding: '8px', 
+                      border: `1px solid ${isCritical ? 'rgba(255, 45, 0, 0.3)' : 'rgba(255, 176, 0, 0.3)'}`,
+                      backgroundColor: `${isCritical ? 'rgba(255, 45, 0, 0.05)' : 'rgba(255, 176, 0, 0.05)'}`,
+                      fontSize: '0.85em',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => router.push(`/models/${incident.modelId}`)}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span className="terminal-text" style={{ fontWeight: 'bold' }}>
+                          {incident.modelName?.toUpperCase() || 'UNKNOWN MODEL'}
+                        </span>
+                        <span style={{
+                          backgroundColor: isCritical ? 'var(--red-alert)' : 'var(--amber-warning)',
+                          color: 'var(--terminal-black)',
+                          fontSize: '0.75em',
+                          fontWeight: 'bold',
+                          padding: '2px 6px',
+                          borderRadius: '2px'
+                        }}>
+                          {incident.severity.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '4px' }}>
+                        {incident.incidentType.replace('_', ' ').toUpperCase()}
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '4px' }}>
+                        {incident.description}
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                        {hoursAgo < 1 ? 'Just now' : `${hoursAgo}h ago`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ 
+                padding: '12px', 
+                border: '1px solid rgba(0, 255, 65, 0.3)',
+                backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                fontSize: '0.85em',
+                textAlign: 'center'
+              }}>
+                <span className="terminal-text--green">✅ No drift incidents detected in the past 7 days</span>
+                <br/>
+                <span className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                  All models are performing within expected stability ranges
+                </span>
+              </div>
+            )}
+          </div>
 
           {/* Data Transparency */}
           {transparencyMetrics && (
