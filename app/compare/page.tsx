@@ -234,7 +234,7 @@ export default function ComparePage() {
                   Real production API calls with actual latency and token measurements
                 </li>
                 <li className="terminal-text--dim" style={{ marginBottom: '6px' }}>
-                  Independent verification available through "Test Your Keys" feature
+                  Independent verification available through open source benchmarks
                 </li>
               </ul>
             </div>

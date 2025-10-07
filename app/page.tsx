@@ -2397,14 +2397,14 @@ export default function Dashboard() {
               <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>🔍 COMPLETE TRANSPARENCY & VERIFICATION</div>
               <p><span className="terminal-text--green">Open Source Commitment:</span></p>
               <p>• Full benchmark source code available on GitHub</p>
-              <p>• "Test Your Keys" provides identical evaluation experience</p>
+              <p>• Complete transparency in evaluation methodology</p>
               <p>• Academic paper submitted for peer review</p>
               <p>• Regular community audits and feedback integration</p>
               <p>• Historical data export for independent research</p>
               <br/>
               
               <p><span className="terminal-text--green">Independent Verification:</span></p>
-              <p>• Run our exact benchmarks using your own API keys</p>
+              <p>• Open source benchmarks for independent validation</p>
               <p>• Compare results across different access methods</p>
               <p>• Real-time validation of our public scores</p>
               <p>• Complete methodology documentation available</p>
@@ -2483,10 +2483,6 @@ export default function Dashboard() {
                 <div>A: Models show "unavailable" when we lack API access (missing keys), encounter consistent API failures, or detect rate limiting. We maintain <span className="terminal-text--green">strict data integrity</span> - if we can't directly test a model, we never display estimated or interpolated scores. This ensures our rankings reflect only verified, real-time performance data. We believe showing fake scores would undermine trust in our methodology and mislead users making important AI model decisions.</div>
               </div>
               
-              <div style={{ marginBottom: '20px' }}>
-                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How does "Test Your Keys" provide verification?</div>
-                <div>A: Our <span className="terminal-text--green">"Test Your Keys"</span> feature runs identical benchmarks using your API credentials, providing complete transparency. You execute the same 147 coding challenges with identical prompts, temperature settings, and evaluation criteria. This allows independent verification of our public scores and demonstrates that our methodology produces consistent results across different API access points. Your keys are used only for the single test session and are never logged, stored, or cached anywhere in our system.</div>
-              </div>
               
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How accurate and representative are your performance measurements?</div>
@@ -2500,7 +2496,7 @@ export default function Dashboard() {
               
               <div style={{ marginBottom: '20px' }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '4px' }}>Q: How do you ensure data privacy and ethical API usage?</div>
-                <div>A: We maintain strict data privacy: only benchmark outputs and aggregated metrics are stored - never model weights, training data, or proprietary information. All API usage complies with provider Terms of Service through rate limiting, appropriate request patterns, and legitimate use cases. <span className="terminal-text--green">User API keys in "Test Your Keys" are never logged</span> - they exist only in memory during the test session. We undergo regular security audits and maintain SOC 2 compliance for data handling.</div>
+                <div>A: We maintain strict data privacy: only benchmark outputs and aggregated metrics are stored - never model weights, training data, or proprietary information. All API usage complies with provider Terms of Service through rate limiting, appropriate request patterns, and legitimate use cases. We undergo regular security audits and maintain SOC 2 compliance for data handling.</div>
               </div>
               
               <div style={{ marginBottom: '20px' }}>
@@ -2620,12 +2616,6 @@ export default function Dashboard() {
           gap: '16px',
           marginTop: '24px'
         }}>
-          <button 
-            onClick={() => setSelectedView('test')}
-            className={getButtonClassName('test')}
-          >
-            TEST YOUR KEYS
-          </button>
           <button 
             onClick={() => setSelectedView('about')}
             className={getButtonClassName('about')}
@@ -3806,9 +3796,9 @@ export default function Dashboard() {
           )}
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-          Made by{' '}
+          A product of{' '}
           <a 
-            href="https://x.com/GOATGameDev" 
+            href="https://studioplatforms.eu" 
             target="_blank" 
             rel="noopener noreferrer"
             style={{ 
@@ -3819,9 +3809,9 @@ export default function Dashboard() {
             onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
             onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
           >
-            The Architect
+            Studio Platforms
           </a>
-          {' '} • © 2025 Studio Platforms
+          {' '} • © 2025
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
           Join our community: {' '}
@@ -3915,12 +3905,6 @@ export default function Dashboard() {
           onClick={() => setSelectedView('dashboard')}
         >
           DASH
-        </button>
-        <button 
-          className={getButtonClassName('test').replace('vintage-btn', 'mobile-nav-btn')}
-          onClick={() => setSelectedView('test')}
-        >
-          TEST
         </button>
         <button 
           className={getButtonClassName('about').replace('vintage-btn', 'mobile-nav-btn')}
