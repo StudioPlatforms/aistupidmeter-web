@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { Providers } from '../components/Providers'
+import VisitorTracker from '../components/VisitorTracker'
 import '../styles/vintage.css'
 
 export const metadata: Metadata = {
@@ -275,7 +277,10 @@ export default function RootLayout({
         <link rel="preload" href="/styles/vintage.css" as="style" />
       </head>
       <body>
-        {children}
+        <Providers>
+          <VisitorTracker />
+          {children}
+        </Providers>
       </body>
     </html>
   )

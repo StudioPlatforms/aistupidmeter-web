@@ -61,10 +61,7 @@ export default function AdminPage() {
   };
 
   const getApiUrl = () => {
-    // Check if we're on localhost or production
-    if (typeof window !== 'undefined') {
-      return window.location.hostname === 'localhost' ? 'http://localhost:4000' : 'https://aistupidlevel.info';
-    }
+    // Always use the production API URL since we're running in production
     return 'https://aistupidlevel.info';
   };
 

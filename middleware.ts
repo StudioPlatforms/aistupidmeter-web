@@ -1,72 +1,47 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+/**
+ * Simple cookie-based middleware for NextAuth v5
+ * Edge Runtime compatible - no database access
+ */
 export function middleware(request: NextRequest) {
-  // Track page visits by making an async call to the API
-  // Don't await this to avoid blocking the response
-  trackVisit(request);
+  const { pathname } = request.nextUrl;
+  
+  // Get NextAuth v5 (Auth.js) session token from cookies
+  // Note: v5 renamed cookies from 'next-auth.*' to 'authjs.*'
+  const sessionToken = request.cookies.get('authjs.session-token') || 
+                       request.cookies.get('__Secure-authjs.session-token');
+  
+  const isLoggedIn = !!sessionToken;
+  
+  // Skip middleware for:
+  // - API routes (handled by NextAuth)
+  // - Static files
+  // - Auth pages (let NextAuth handle)
+  // - Home page
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/images') ||
+    pathname.startsWith('/assets') ||
+    pathname.startsWith('/auth') ||
+    pathname === '/'
+  ) {
+    return NextResponse.next();
+  }
+  
+  // Protect /router routes - require authentication
+  if (pathname.startsWith('/router') && !isLoggedIn) {
+    const signInUrl = new URL('/auth/signin', request.url);
+    signInUrl.searchParams.set('callbackUrl', pathname);
+    return NextResponse.redirect(signInUrl);
+  }
   
   return NextResponse.next();
 }
 
-async function trackVisit(request: NextRequest) {
-  try {
-    // Skip tracking for static assets, API routes, and admin pages
-    const url = new URL(request.url);
-    const pathname = url.pathname;
-    
-    // Skip static assets and Next.js internals
-    if (pathname.startsWith('/_next') || 
-        pathname.startsWith('/static') ||
-        pathname.includes('.') ||
-        pathname.startsWith('/api/') ||
-        pathname === '/favicon.ico') {
-      return;
-    }
-    
-    const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 
-              request.headers.get('x-real-ip') || 
-              request.ip || 
-              'unknown';
-    
-    const userAgent = request.headers.get('user-agent') || 'unknown';
-    const referer = request.headers.get('referer') || null;
-    
-    // Call API to record the visit
-    const response = await fetch('http://localhost:4000/track-visit', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ip,
-        userAgent,
-        referer,
-        path: pathname,
-        timestamp: new Date().toISOString()
-      })
-    });
-    
-    if (!response.ok) {
-      console.warn('Failed to track visit:', response.statusText);
-    }
-  } catch (error) {
-    console.warn('Error tracking visit:', error);
-    // Don't fail the request if tracking fails
-  }
-}
-
-// Configure which paths the middleware runs on
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

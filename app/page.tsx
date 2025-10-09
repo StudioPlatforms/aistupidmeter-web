@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import TickerTape from '../components/TickerTape';
 import StupidMeter from '../components/StupidMeter';
+import ProFeatureModal from '../components/ProFeatureModal';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -84,6 +86,15 @@ export default function Dashboard() {
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
   const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'>('combined');
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  
+  // Pro feature modal state
+  const [showProModal, setShowProModal] = useState(false);
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix'>('historical-data');
+  
+  // Session and subscription checking
+  const { data: session } = useSession();
+  const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active' || 
+                       (session?.user as any)?.subscriptionStatus === 'trialing';
   // Fixed analytics period since user controls were removed
   const analyticsPeriod: 'latest' | '24h' | '7d' | '1m' = 'latest';
   const [stupidMeterMode, setStupidMeterMode] = useState<'smart' | 'stupid'>('smart');
@@ -2628,6 +2639,19 @@ export default function Dashboard() {
           >
             FAQ
           </button>
+          <button 
+            onClick={() => router.push('/router')}
+            className="vintage-btn"
+            style={{
+              backgroundColor: '#00BFFF',
+              color: '#00BFFF',
+              fontWeight: 'bold',
+              border: '2px solid #00BFFF',
+              boxShadow: '0 0 10px #00BFFF'
+            }}
+          >
+            PRO
+          </button>
         </div>
 
         {/* Desktop Ticker Tape */}
@@ -2695,7 +2719,14 @@ export default function Dashboard() {
                     LATEST
                   </button>
                   <button
-                    onClick={() => setLeaderboardPeriod('24h')}
+                    onClick={() => {
+                      if (!hasProAccess) {
+                        setProModalFeature('historical-data');
+                        setShowProModal(true);
+                      } else {
+                        setLeaderboardPeriod('24h');
+                      }
+                    }}
                     className={`vintage-btn ${leaderboardPeriod === '24h' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 6px', 
@@ -2704,10 +2735,17 @@ export default function Dashboard() {
                     }}
                     disabled={loadingLeaderboard}
                   >
-                    24H
+                    24H {!hasProAccess && '🔒'}
                   </button>
                   <button
-                    onClick={() => setLeaderboardPeriod('7d')}
+                    onClick={() => {
+                      if (!hasProAccess) {
+                        setProModalFeature('historical-data');
+                        setShowProModal(true);
+                      } else {
+                        setLeaderboardPeriod('7d');
+                      }
+                    }}
                     className={`vintage-btn ${leaderboardPeriod === '7d' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 6px', 
@@ -2716,10 +2754,17 @@ export default function Dashboard() {
                     }}
                     disabled={loadingLeaderboard}
                   >
-                    7D
+                    7D {!hasProAccess && '🔒'}
                   </button>
                   <button
-                    onClick={() => setLeaderboardPeriod('1m')}
+                    onClick={() => {
+                      if (!hasProAccess) {
+                        setProModalFeature('historical-data');
+                        setShowProModal(true);
+                      } else {
+                        setLeaderboardPeriod('1m');
+                      }
+                    }}
                     className={`vintage-btn ${leaderboardPeriod === '1m' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 6px', 
@@ -2728,7 +2773,7 @@ export default function Dashboard() {
                     }}
                     disabled={loadingLeaderboard}
                   >
-                    1M
+                    1M {!hasProAccess && '🔒'}
                   </button>
                 </div>
               </div>
@@ -2821,7 +2866,14 @@ export default function Dashboard() {
                     LATEST
                   </button>
                   <button
-                    onClick={() => setLeaderboardPeriod('24h')}
+                    onClick={() => {
+                      if (!hasProAccess) {
+                        setProModalFeature('historical-data');
+                        setShowProModal(true);
+                      } else {
+                        setLeaderboardPeriod('24h');
+                      }
+                    }}
                     className={`vintage-btn ${leaderboardPeriod === '24h' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 8px', 
@@ -2830,10 +2882,17 @@ export default function Dashboard() {
                     }}
                     disabled={loadingLeaderboard}
                   >
-                    24H
+                    24H {!hasProAccess && '🔒'}
                   </button>
                   <button
-                    onClick={() => setLeaderboardPeriod('7d')}
+                    onClick={() => {
+                      if (!hasProAccess) {
+                        setProModalFeature('historical-data');
+                        setShowProModal(true);
+                      } else {
+                        setLeaderboardPeriod('7d');
+                      }
+                    }}
                     className={`vintage-btn ${leaderboardPeriod === '7d' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 8px', 
@@ -2842,10 +2901,17 @@ export default function Dashboard() {
                     }}
                     disabled={loadingLeaderboard}
                   >
-                    7D
+                    7D {!hasProAccess && '🔒'}
                   </button>
                   <button
-                    onClick={() => setLeaderboardPeriod('1m')}
+                    onClick={() => {
+                      if (!hasProAccess) {
+                        setProModalFeature('historical-data');
+                        setShowProModal(true);
+                      } else {
+                        setLeaderboardPeriod('1m');
+                      }
+                    }}
                     className={`vintage-btn ${leaderboardPeriod === '1m' ? 'vintage-btn--active' : ''}`}
                     style={{ 
                       padding: '2px 8px', 
@@ -2854,7 +2920,7 @@ export default function Dashboard() {
                     }}
                     disabled={loadingLeaderboard}
                   >
-                    1M
+                    1M {!hasProAccess && '🔒'}
                   </button>
                 </div>
                 
@@ -3876,25 +3942,7 @@ export default function Dashboard() {
           >
             Server
           </a>
-          {' '} • Star us on GitHub! • {' '}
-          <button
-            onClick={() => setShowFundUsPopup(true)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--phosphor-green)',
-              textDecoration: 'none',
-              borderBottom: '1px dotted var(--phosphor-green)',
-              cursor: 'pointer',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              padding: '0'
-            }}
-            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
-            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
-          >
-            Fund Us
-          </button>
+          {' '} • Star us on GitHub!
         </div>
       </div>
 
@@ -3918,6 +3966,19 @@ export default function Dashboard() {
         >
           FAQ
         </button>
+        <button 
+          className="mobile-nav-btn"
+          onClick={() => router.push('/router')}
+          style={{
+            backgroundColor: '#00BFFF',
+            color: '#00BFFF',
+            fontWeight: 'bold',
+            border: '2px solid #00BFFF',
+            boxShadow: '0 0 10px #00BFFF'
+          }}
+        >
+          PRO
+        </button>
       </div>
 
       {/* Welcome Popup - Two-Step Process - Mobile Responsive */}
@@ -3936,92 +3997,104 @@ export default function Dashboard() {
           padding: '10px' // Add padding to prevent edge touching on mobile
         }}>
           <div className="crt-monitor" style={{
-            maxWidth: '500px', // Reduced from 600px
-            width: '95%', // Increased from 90% for more screen usage
-            maxHeight: '90vh', // Prevent popup from being taller than screen
-            overflowY: 'auto', // Allow scrolling if content is too tall
-            padding: window.innerWidth < 768 ? '16px' : '32px', // Responsive padding
+            maxWidth: window.innerWidth < 768 ? '500px' : '700px', // Wider on desktop
+            width: '95%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: window.innerWidth < 768 ? '16px' : '32px',
             backgroundColor: 'var(--terminal-black)',
-            border: window.innerWidth < 768 ? '2px solid var(--phosphor-green)' : '3px solid var(--phosphor-green)', // Thinner border on mobile
-            borderRadius: '6px', // Slightly smaller radius
+            border: window.innerWidth < 768 ? '2px solid var(--phosphor-green)' : '3px solid var(--phosphor-green)',
+            borderRadius: '6px',
             boxShadow: '0 0 20px var(--phosphor-green)'
           }}>
             <div className="terminal-text">
               {welcomeStep === 'updates' && (
                 <>
-                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.4em', marginBottom: '16px', textAlign: 'center' }}>
-                    <span className="terminal-text--green">🎉 NEW FEATURES UPDATE!</span>
+                  <div style={{ fontSize: window.innerWidth < 768 ? '1.2em' : '1.5em', marginBottom: '16px', textAlign: 'center' }}>
+                    <span className="terminal-text--green">🚀 INTRODUCING AI ROUTER PRO</span>
                     <span className="blinking-cursor"></span>
                   </div>
                   
                   <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                    <div className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.0em' : '1.1em', marginBottom: '12px' }}>
-                      ✨ What's New in Stupid Meter:
+                    <div className="terminal-text--amber" style={{ fontSize: window.innerWidth < 768 ? '1.0em' : '1.2em', marginBottom: '16px', textAlign: 'center' }}>
+                      Your Intelligent Gateway to the Best AI Models
                     </div>
                     
-                    <div style={{ marginBottom: '16px' }}>
-                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        🔧 TOOLING Benchmarks - That's a world first!
+                    <div style={{ 
+                      padding: '20px', 
+                      backgroundColor: 'rgba(0, 191, 255, 0.1)', 
+                      border: '2px solid rgba(0, 191, 255, 0.5)',
+                      borderRadius: '6px',
+                      marginBottom: '20px'
+                    }}>
+                      <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px', textAlign: 'center' }}>
+                        ⚡ What is AI Router PRO?
                       </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        World's first tool calling evaluation system! Test real AI capabilities with system commands, file operations, and complex multi-step tasks
+                      <div className="terminal-text--dim" style={{ fontSize: '0.95em', marginBottom: '16px' }}>
+                        Stop wasting time and money on underperforming AI models. AI Router PRO automatically routes your requests to the best-performing model based on real-time intelligence data from Stupid Meter.
                       </div>
-                    </div>
+                      
+                      <div style={{ marginBottom: '12px' }}>
+                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                          ✓ Smart Model Selection
+                        </div>
+                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                          Automatically choose the best model for each task based on live performance data
+                        </div>
+                      </div>
 
-                    <div style={{ marginBottom: '16px' }}>
-                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        🚨 Advanced Intelligence Center
+                      <div style={{ marginBottom: '12px' }}>
+                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                          ✓ Cost Optimization
+                        </div>
+                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                          Balance performance and cost with intelligent routing strategies
+                        </div>
                       </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        Completely redesigned with 5 powerful warning types: performance trends, cost-efficiency alerts, stability monitoring, regional variations, and service disruptions
-                      </div>
-                    </div>
 
-                    <div style={{ marginBottom: '16px' }}>
-                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        📊 Enhanced Analytics Engine
+                      <div style={{ marginBottom: '12px' }}>
+                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                          ✓ Degradation Protection
+                        </div>
+                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                          Automatically avoid models experiencing performance issues
+                        </div>
                       </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        29 comprehensive warning categories with real-time degradation detection, proactive cost-performance analysis, and intelligent model recommendations
-                      </div>
-                    </div>
 
-                    <div style={{ marginBottom: '20px' }}>
-                      <div className="terminal-text--amber" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                        🎯 Production-Ready Results
-                      </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                        171+ successful tool calling sessions • Real performance differentiation across models • Enterprise-grade infrastructure with comprehensive monitoring
+                      <div>
+                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
+                          ✓ One API for All Models
+                        </div>
+                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
+                          Access GPT, Claude, Grok, and Gemini through a single unified interface
+                        </div>
                       </div>
                     </div>
 
                     <div style={{ 
                       padding: '16px', 
-                      backgroundColor: 'rgba(255, 165, 0, 0.1)', 
-                      border: '1px solid rgba(255, 165, 0, 0.4)',
+                      backgroundColor: 'rgba(0, 255, 65, 0.1)', 
+                      border: '1px solid rgba(0, 255, 65, 0.3)',
                       borderRadius: '4px',
-                      marginTop: '20px'
+                      textAlign: 'center'
                     }}>
-                      <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px', textAlign: 'center' }}>
-                        ☕ Support Our Work!
+                      <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                        💎 Limited Time Offer
                       </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.9em', textAlign: 'center' }}>
-                        Help us keep Stupid Meter ad-free for everyone by{' '}
-                        <a 
-                          href="https://buymeacoffee.com/goatgamedev" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={{ 
-                            color: 'var(--phosphor-green)', 
-                            textDecoration: 'none',
-                            fontWeight: 'bold'
-                          }}
-                          onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--amber-warning)'}
-                          onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--phosphor-green)'}
-                        >
-                          buying us a coffee
-                        </a>
-                        ! Your support means the world to us.
+                      <div style={{ marginBottom: '8px' }}>
+                        <span className="terminal-text--dim" style={{ 
+                          fontSize: '1.1em', 
+                          textDecoration: 'line-through',
+                          marginRight: '12px'
+                        }}>
+                          $49.99
+                        </span>
+                        <span className="terminal-text--green" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
+                          $19.99/month
+                        </span>
+                      </div>
+                      <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+                        7-day free trial • Cancel anytime • No hidden fees
                       </div>
                     </div>
                   </div>
@@ -4154,6 +4227,13 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* Pro Feature Modal */}
+      <ProFeatureModal
+        isOpen={showProModal}
+        onClose={() => setShowProModal(false)}
+        feature={proModalFeature}
+      />
 
       {/* Fund Us Popup - Themed with 3 funding options */}
       {showFundUsPopup && (

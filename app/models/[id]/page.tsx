@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import '../../../styles/vintage.css';
+import ProFeatureModal from '../../../components/ProFeatureModal';
+import ProFeatureBlur from '../../../components/ProFeatureBlur';
 
 // Add the same helper functions from the main page
 const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
@@ -151,6 +154,12 @@ export default function ModelDetailPage() {
   const [stats, setStats] = useState<ModelStats | null>(null);
   const [performance, setPerformance] = useState<ModelPerformance | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Enhanced loading states for smart polling
+  const [loadingStage, setLoadingStage] = useState<string>('Initializing...');
+  const [loadingAttempts, setLoadingAttempts] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isDataComplete, setIsDataComplete] = useState(false);
 
   // UI control states
   const [selectedPeriod, setSelectedPeriod] = useState<HistoricalPeriod>('latest');
@@ -165,7 +174,61 @@ export default function ModelDetailPage() {
   // Chart animation state
   const [chartAnimationProgress, setChartAnimationProgress] = useState(0);
 
-  const fetchModelData = async (showRefreshIndicator = false) => {
+  // Pro feature modal state
+  const [showProModal, setShowProModal] = useState(false);
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix'>('historical-data');
+  
+  // Session and subscription checking
+  const { data: session } = useSession();
+  const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active' || 
+                       (session?.user as any)?.subscriptionStatus === 'trialing';
+
+  // Validate if fetched data is complete and usable
+  const validateDataCompleteness = (modelData: any, historyData: any, statsData: any): boolean => {
+    // Check if we have valid model details
+    if (!modelData || !modelData.name) {
+      console.log('❌ Validation failed: No model data');
+      return false;
+    }
+    
+    // CRITICAL FIX: Check if we have a MEANINGFUL score (> 0), not just that it exists
+    // This prevents showing the page with 0 scores
+    const hasValidScore = statsData?.currentScore && statsData.currentScore > 0;
+    
+    // Check if history has meaningful data with non-zero scores
+    const hasValidHistory = historyData?.data && historyData.data.length > 0 && 
+      historyData.data.some((point: any) => {
+        const score = point.score || point.displayScore || 0;
+        return score > 0;
+      });
+    
+    // Check if stats show actual runs with meaningful data
+    const hasValidStats = statsData?.totalRuns && statsData.totalRuns > 0;
+    
+    // Data is complete ONLY if we have a valid score > 0
+    // This ensures we don't show the page until real benchmark data is available
+    const isComplete = hasValidScore && (hasValidHistory || hasValidStats);
+    
+    console.log('📊 Data validation:', {
+      hasValidScore,
+      hasValidHistory,
+      hasValidStats,
+      score: statsData?.currentScore,
+      historyPoints: historyData?.data?.length || 0,
+      totalRuns: statsData?.totalRuns || 0,
+      isComplete,
+      reason: !isComplete ? (
+        !hasValidScore ? 'Score is 0 or missing' :
+        !hasValidHistory && !hasValidStats ? 'No valid history or stats' :
+        'Unknown'
+      ) : 'Data is complete'
+    });
+    
+    // Data is complete ONLY if we have meaningful scores
+    return isComplete;
+  };
+
+  const fetchModelData = async (showRefreshIndicator = false, attemptNumber = 0) => {
     if (showRefreshIndicator) {
       setIsRefreshing(true);
     }
@@ -175,6 +238,8 @@ export default function ModelDetailPage() {
     try {
       if (!showRefreshIndicator) {
         setLoading(true);
+        setLoadingAttempts(attemptNumber);
+        setLoadingProgress(Math.min(10 + (attemptNumber * 8), 90));
       }
 
       const modelIdStr = params.id as string;
@@ -186,28 +251,51 @@ export default function ModelDetailPage() {
         throw new Error(`Invalid model ID: ${modelIdStr}`);
       }
 
+      // Update loading stage
+      if (!showRefreshIndicator) {
+        setLoadingStage('Fetching model details...');
+      }
+
       // Fix sortBy parameter - backend expects '7axis' not 'speed'
       const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
       
       // SIMPLIFIED: Use ONLY dashboard history endpoint (same as main page)
-      console.log(`📊 Fetching chart data: /dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
+      console.log(`📊 Fetching chart data (attempt ${attemptNumber + 1}): /dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
       
       const [modelResponse, historyResponse, statsResponse] = await Promise.all([
         fetch(`${apiUrl}/api/models/${modelId}`),
         fetch(`${apiUrl}/dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`),
-        fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}`)
+        fetch(`${apiUrl}/api/models/${modelId}/stats?period=${selectedPeriod}&sortBy=${sortByParam}`)
       ]);
+        
+        if (!showRefreshIndicator) {
+          setLoadingStage('Processing model data...');
+          setLoadingProgress(Math.min(30 + (attemptNumber * 8), 90));
+        }
+        
+        // Check for server errors (500, 502, 503)
+        if (modelResponse.status >= 500) {
+          throw new Error(`Server error: ${modelResponse.status}`);
+        }
         
         if (modelResponse.ok) {
           modelData = await modelResponse.json();
           setModelDetails(modelData);
-        } else {
+        } else if (modelResponse.status === 404) {
           throw new Error('Model not found');
+        } else {
+          throw new Error(`HTTP error: ${modelResponse.status}`);
+        }
+        
+        if (!showRefreshIndicator) {
+          setLoadingStage('Loading performance history...');
+          setLoadingProgress(Math.min(50 + (attemptNumber * 8), 90));
         }
         
         // UNIFIED DATA HANDLING: Same as main page
+        let historyData: any = null;
         if (historyResponse.ok) {
-          const historyData = await historyResponse.json();
+          historyData = await historyResponse.json();
           if (historyData.success && historyData.data && historyData.data.length > 0) {
             console.log(`✅ Chart data loaded: ${historyData.data.length} points for ${selectedPeriod}/${sortByParam}`);
             setHistory({
@@ -230,25 +318,96 @@ export default function ModelDetailPage() {
           setHistory({ modelId, period: selectedPeriod, dataPoints: 0, history: [] });
         }
         
+        if (!showRefreshIndicator) {
+          setLoadingStage('Computing statistics...');
+          setLoadingProgress(Math.min(70 + (attemptNumber * 8), 90));
+        }
+        
+        let statsData: any = null;
         if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
+          statsData = await statsResponse.json();
           setStats(statsData);
         } else {
           setStats({ modelId, currentScore: 0, totalRuns: 0, successfulRuns: 0, successRate: 0, averageCorrectness: 0, averageLatency: 0 });
         }
+        
+        // Validate data completeness
+        const dataIsComplete = validateDataCompleteness(modelData, historyData, statsData);
+        setIsDataComplete(dataIsComplete);
+        
+        if (!dataIsComplete && !showRefreshIndicator && attemptNumber < 10) {
+          // Data is incomplete, schedule retry with exponential backoff
+          const retryDelay = Math.min(2000 * Math.pow(1.5, attemptNumber), 10000);
+          console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+          
+          setLoadingStage(`Data incomplete, retrying in ${Math.round(retryDelay / 1000)}s...`);
+          setLoadingProgress(Math.min(70 + (attemptNumber * 3), 95));
+          
+          setTimeout(() => {
+            fetchModelData(false, attemptNumber + 1);
+          }, retryDelay);
+          
+          return; // Don't set loading to false yet
+        }
+        
+        if (!dataIsComplete && attemptNumber >= 10) {
+          console.log('⚠️ Max retry attempts reached, showing available data');
+          setLoadingStage('Max retries reached, showing available data');
+        } else if (dataIsComplete) {
+          console.log('✅ Data validation passed, showing page');
+          setLoadingStage('Complete!');
+        }
+        
+        // CRITICAL FIX: Set loading to false immediately when data is complete
+        if (dataIsComplete || attemptNumber >= 10 || showRefreshIndicator) {
+          setLoading(false);
+          setLoadingProgress(100);
+        }
       
     } catch (error) {
       console.error('❌ Failed to fetch model details:', error);
-      console.log('🔄 Using fallback data generation...');
       
-      // Enhanced fallback that tries to be more realistic
-      const mockModel = generateFallbackData(params.id as string);
-      setModelDetails(mockModel);
-      setHistory({ modelId: parseInt(params.id as string) || 1, period: 'mock data', dataPoints: 0, history: [] });
-      setStats({ modelId: parseInt(params.id as string) || 1, currentScore: 0, totalRuns: 0, successfulRuns: 0, successRate: 0, averageCorrectness: 0, averageLatency: 0 });
-      setPerformance({ modelId: parseInt(params.id as string) || 1, taskPerformance: [] });
-    } finally {
+      // CRITICAL FIX: Differentiate between error types
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isServerError = errorMessage.includes('Server error:') || 
+                           errorMessage.includes('500') || 
+                           errorMessage.includes('502') || 
+                           errorMessage.includes('503');
+      const isNotFound = errorMessage.includes('Model not found') || errorMessage.includes('404');
+      
+      if (isServerError && !showRefreshIndicator && attemptNumber < 10) {
+        // Server error - retry with exponential backoff
+        const retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber), 15000);
+        console.log(`⚠️ Server error, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+        
+        setLoadingStage(`Fetching benchmark data, please wait...`);
+        setLoadingProgress(Math.min(50 + (attemptNumber * 5), 95));
+        
+        setTimeout(() => {
+          fetchModelData(false, attemptNumber + 1);
+        }, retryDelay);
+        
+        return; // Don't set loading to false, keep retrying
+      }
+      
+      if (isNotFound) {
+        // Model truly doesn't exist - show error state
+        console.log('❌ Model not found in database');
+        setModelDetails(null);
+        setLoading(false);
+        return;
+      }
+      
+      // Max retries reached or other error - show error state
+      if (attemptNumber >= 10) {
+        console.log('❌ Max retry attempts reached');
+        setLoadingStage('Unable to load model data after multiple attempts');
+      }
+      
       setLoading(false);
+    } finally {
+      // Clean up refresh indicator
+      
       if (showRefreshIndicator) {
         setIsRefreshing(false);
       }
@@ -855,22 +1014,138 @@ export default function ModelDetailPage() {
     );
   };
 
-  // Loading screen
+  // Enhanced retro loading screen with progress tracking
   if (loading) {
     return (
       <div className="vintage-container">
-        <div className="crt-monitor" style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div className="terminal-text">
-            <div style={{ fontSize: '2em', marginBottom: '24px' }}>
-              <span className="terminal-text--green">LOADING MODEL ANALYTICS</span>
+        <div className="crt-monitor" style={{ 
+          textAlign: 'center', 
+          padding: 'var(--space-lg) var(--space-md)',
+          minHeight: '400px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div className="terminal-text" style={{ width: '100%', maxWidth: '600px' }}>
+            {/* Model name header */}
+            <div style={{ 
+              fontSize: 'var(--font-size-xl)', 
+              marginBottom: 'var(--space-lg)',
+              wordWrap: 'break-word'
+            }}>
+              <span className="terminal-text--green">
+                {params.id ? String(params.id).toUpperCase().replace(/-/g, ' ') : 'MODEL'}
+              </span>
+              <span className="blinking-cursor"></span>
             </div>
-            <div style={{ fontSize: '4em', marginBottom: '16px', opacity: 0.6 }}>⚡</div>
-            <div className="vintage-loading" style={{ fontSize: '1.2em' }}></div>
-            <div className="terminal-text--dim" style={{ marginTop: '16px' }}>
-              Fetching performance data, historical metrics, and analytics...
+            
+            {/* Loading icon */}
+            <div style={{ 
+              fontSize: '3em', 
+              marginBottom: 'var(--space-lg)', 
+              opacity: 0.7,
+              animation: 'pulse 2s infinite'
+            }}>
+              ⚡
             </div>
+            
+            {/* Retro progress bar */}
+            <div style={{ 
+              width: '100%', 
+              marginBottom: 'var(--space-lg)',
+              padding: '0 var(--space-sm)'
+            }}>
+              <div className="retro-progress-track" style={{ 
+                height: '20px',
+                marginBottom: 'var(--space-sm)'
+              }}>
+                <div 
+                  className="retro-progress-fill ultra-pixelated"
+                  style={{ 
+                    width: `${loadingProgress}%`,
+                    background: loadingProgress < 30 ? 'var(--red-alert)' :
+                               loadingProgress < 70 ? 'var(--amber-warning)' :
+                               'var(--phosphor-green)',
+                    transition: 'width 0.5s ease, background 0.3s ease'
+                  }}
+                >
+                  <div className="ultra-pixel-blocks"></div>
+                </div>
+              </div>
+              
+              {/* Progress percentage */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                fontSize: 'var(--font-size-xs)',
+                marginBottom: 'var(--space-md)'
+              }}>
+                <span className="terminal-text--dim">PROGRESS</span>
+                <span className="terminal-text--green" style={{ fontWeight: 'bold' }}>
+                  {loadingProgress}%
+                </span>
+              </div>
+            </div>
+            
+            {/* Status message */}
+            <div style={{ 
+              fontSize: 'var(--font-size-md)', 
+              marginBottom: 'var(--space-md)',
+              minHeight: '24px'
+            }}>
+              <span className="terminal-text">{loadingStage}</span>
+            </div>
+            
+            {/* Loading animation dots */}
+            <div className="vintage-loading" style={{ 
+              fontSize: 'var(--font-size-lg)',
+              marginBottom: 'var(--space-md)'
+            }}></div>
+            
+            {/* Attempt counter */}
+            {loadingAttempts > 0 && (
+              <div style={{ 
+                fontSize: 'var(--font-size-sm)',
+                marginTop: 'var(--space-md)',
+                padding: 'var(--space-sm)',
+                background: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(0, 255, 65, 0.2)',
+                borderRadius: '4px'
+              }}>
+                <span className="terminal-text--dim">Attempt: </span>
+                <span className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
+                  {loadingAttempts + 1}/10
+                </span>
+              </div>
+            )}
+            
+            {/* Helpful message for slow loads */}
+            {loadingAttempts >= 3 && (
+              <div style={{ 
+                fontSize: 'var(--font-size-xs)',
+                marginTop: 'var(--space-md)',
+                color: 'var(--phosphor-dim)',
+                lineHeight: '1.4'
+              }}>
+                <div style={{ marginBottom: 'var(--space-xs)' }}>
+                  ⏳ Waiting for benchmark data to be available...
+                </div>
+                <div>
+                  This model may be newly added or currently being tested.
+                </div>
+              </div>
+            )}
           </div>
         </div>
+        
+        {/* Add pulse animation */}
+        <style jsx>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -1016,8 +1291,41 @@ export default function ModelDetailPage() {
     };
   };
 
-  // Use API data directly instead of client-side calculations
-  const currentScore = stats?.currentScore || modelDetails.latestScore?.displayScore || 0;
+  // FIXED: Use period-specific score from stats API which calculates averages for the selected period
+  const getCurrentScore = (): number => {
+    // Priority 1: Use stats API which calculates period-specific averages
+    // This matches the main dashboard behavior where changing periods changes the score
+    if (stats?.currentScore && typeof stats.currentScore === 'number') {
+      console.log(`📊 Using period-specific score from stats API: ${stats.currentScore} (period: ${selectedPeriod}, mode: ${selectedScoringMode})`);
+      return stats.currentScore;
+    }
+    
+    // Priority 2: Calculate from history data if stats API failed
+    if (history && history.history && history.history.length > 0) {
+      // Calculate average score from all data points in the period (same as stats API logic)
+      const validScores = history.history
+        .map(point => toDisplayScore(point))
+        .filter((score): score is number => score !== null);
+      
+      if (validScores.length > 0) {
+        const periodAverage = Math.round(
+          validScores.reduce((sum, score) => sum + score, 0) / validScores.length
+        );
+        console.log(`📊 Calculated period average from history: ${periodAverage} (${validScores.length} data points)`);
+        return periodAverage;
+      }
+    }
+    
+    // Priority 3: Final fallback to model's latest score
+    if (modelDetails.latestScore?.displayScore) {
+      console.log(`📊 Using model's latest score: ${modelDetails.latestScore.displayScore} (fallback)`);
+      return modelDetails.latestScore.displayScore;
+    }
+    
+    return 0;
+  };
+
+  const currentScore = getCurrentScore();
   const status = getStatusFromScore(currentScore);
   const trend = getTrendFromHistory();
 
@@ -1100,7 +1408,14 @@ export default function ModelDetailPage() {
               {(['latest', '24h', '7d', '1m'] as HistoricalPeriod[]).map(period => (
                 <button
                   key={period}
-                  onClick={() => setSelectedPeriod(period)}
+                  onClick={() => {
+                    if (period !== 'latest' && !hasProAccess) {
+                      setProModalFeature('historical-data');
+                      setShowProModal(true);
+                    } else {
+                      setSelectedPeriod(period);
+                    }
+                  }}
                   className={`vintage-btn period-tab ${selectedPeriod === period ? 'vintage-btn--active' : ''}`}
                   style={{ 
                     color: selectedPeriod === period ? 'var(--terminal-black)' : 'var(--phosphor-green)',
@@ -1108,7 +1423,7 @@ export default function ModelDetailPage() {
                   }}
                   disabled={isRefreshing}
                 >
-                  {period.toUpperCase()}
+                  {period.toUpperCase()} {period !== 'latest' && !hasProAccess && '🔒'}
                 </button>
               ))}
             </div>
@@ -1285,28 +1600,58 @@ export default function ModelDetailPage() {
             )}
           </div>
 
-          {modelDetails.latestScore && modelDetails.latestScore.axes && (
-            <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-              {(() => {
-                const axes = modelDetails.latestScore.axes;
-                const axisConfig = [
-                  { key: 'correctness', label: 'CORRECTNESS', icon: '✅', weight: '35%', description: 'Code functionality and accuracy' },
-                  { key: 'spec', label: 'SPEC COMPLIANCE', icon: '📋', weight: '15%', description: 'Following instructions and format' },
-                  { key: 'codeQuality', label: 'CODE QUALITY', icon: '🎨', weight: '15%', description: 'Readability and best practices' },
-                  { key: 'efficiency', label: 'EFFICIENCY', icon: '⚡', weight: '10%', description: 'Response speed and optimization' },
-                  { key: 'stability', label: 'STABILITY', icon: '🔄', weight: '10%', description: 'Consistent performance' },
-                  { key: 'refusal', label: 'REFUSAL RATE', icon: '🚫', weight: '10%', description: 'Appropriate task acceptance' },
-                  { key: 'recovery', label: 'RECOVERY', icon: '🔧', weight: '5%', description: 'Error correction ability' }
-                ];
-
-                return axisConfig.map((axis, index) => {
-                  const value = axes[axis.key as keyof typeof axes] || 0;
+          {(() => {
+            // Get axes from history data (most recent point) instead of modelDetails.latestScore
+            // This matches how the Intelligence Center works
+            let axesData = null;
+            if (history && history.history && history.history.length > 0) {
+              const latestPoint = history.history[0];
+              const apiAxes = latestPoint.axes as any;
+              if (apiAxes) {
+                // Map API field names to frontend field names (same as Intelligence Center)
+                axesData = {
+                  correctness: apiAxes.correctness || 0,
+                  spec: apiAxes.complexity || apiAxes.spec || 0,
+                  codeQuality: apiAxes.codeQuality || 0,
+                  efficiency: apiAxes.efficiency || 0,
+                  stability: apiAxes.stability || 0,
+                  refusal: apiAxes.edgeCases || apiAxes.refusal || 0,
+                  recovery: apiAxes.debugging || apiAxes.recovery || 0
+                };
+              }
+            }
+            
+            if (!axesData) {
+              return (
+                <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255, 45, 0, 0.1)', borderRadius: '8px' }}>
+                  <div className="terminal-text--red">No 7-axis data available for this period</div>
+                  <div className="terminal-text--dim" style={{ marginTop: '8px', fontSize: '0.9em' }}>
+                    Try selecting a different time period or check back later
+                  </div>
+                </div>
+              );
+            }
+            
+            const axisConfig = [
+              { key: 'correctness', label: 'CORRECTNESS', icon: '✅', weight: '35%', description: 'Code functionality and accuracy' },
+              { key: 'spec', label: 'SPEC COMPLIANCE', icon: '📋', weight: '15%', description: 'Following instructions and format' },
+              { key: 'codeQuality', label: 'CODE QUALITY', icon: '🎨', weight: '15%', description: 'Readability and best practices' },
+              { key: 'efficiency', label: 'EFFICIENCY', icon: '⚡', weight: '10%', description: 'Response speed and optimization' },
+              { key: 'stability', label: 'STABILITY', icon: '🔄', weight: '10%', description: 'Consistent performance' },
+              { key: 'refusal', label: 'REFUSAL RATE', icon: '🚫', weight: '10%', description: 'Appropriate task acceptance' },
+              { key: 'recovery', label: 'RECOVERY', icon: '🔧', weight: '5%', description: 'Error correction ability' }
+            ];
+            
+            return (
+              <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                {axisConfig.map((axis, index) => {
+                  const value = axesData[axis.key as keyof typeof axesData] || 0;
                   const numericValue = typeof value === 'number' ? value : parseFloat(value) || 0;
                   const percentage = Math.max(0, Math.min(100, numericValue * 100));
                   const color = percentage >= 80 ? 'terminal-text--green' : 
                                percentage >= 60 ? 'terminal-text--amber' : 'terminal-text--red';
                   
-                  return (
+                  const metricContainer = (
                     <div key={axis.key} 
                          style={{ 
                            padding: '16px', 
@@ -1386,10 +1731,29 @@ export default function ModelDetailPage() {
                       </div>
                     </div>
                   );
-                });
-              })()}
-            </div>
-          )}
+
+                  // Blur containers after the first one for non-pro users
+                  if (index === 0 || hasProAccess) {
+                    return metricContainer;
+                  } else {
+                    return (
+                      <ProFeatureBlur
+                        key={axis.key}
+                        isLocked={true}
+                        onUnlock={() => {
+                          setProModalFeature('performance-matrix');
+                          setShowProModal(true);
+                        }}
+                        title="Performance Matrix"
+                      >
+                        {metricContainer}
+                      </ProFeatureBlur>
+                    );
+                  }
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1427,15 +1791,15 @@ export default function ModelDetailPage() {
 
               return reasoningMetrics.map((metric, index) => {
                 const percentage = Math.max(0, Math.min(100, metric.value));
-                const color = percentage >= 80 ? 'terminal-text--green' : 
+                const color = percentage >= 80 ? 'terminal-text--green' :
                              percentage >= 60 ? 'terminal-text--amber' : 'terminal-text--red';
-                
-                return (
-                  <div key={metric.key} 
-                       style={{ 
-                         padding: '16px', 
-                         background: 'rgba(138, 43, 226, 0.03)', 
-                         border: '1px solid rgba(138, 43, 226, 0.2)', 
+
+                const metricContainer = (
+                  <div key={metric.key}
+                       style={{
+                         padding: '16px',
+                         background: 'rgba(138, 43, 226, 0.03)',
+                         border: '1px solid rgba(138, 43, 226, 0.2)',
                          borderRadius: '6px',
                          position: 'relative',
                          overflow: 'hidden'
@@ -1510,6 +1874,25 @@ export default function ModelDetailPage() {
                     </div>
                   </div>
                 );
+
+                // Blur containers after the first one for non-pro users
+                if (index === 0 || hasProAccess) {
+                  return metricContainer;
+                } else {
+                  return (
+                    <ProFeatureBlur
+                      key={metric.key}
+                      isLocked={true}
+                      onUnlock={() => {
+                        setProModalFeature('performance-matrix');
+                        setShowProModal(true);
+                      }}
+                      title="Performance Matrix"
+                    >
+                      {metricContainer}
+                    </ProFeatureBlur>
+                  );
+                }
               });
             })()}
           </div>
@@ -1702,7 +2085,7 @@ export default function ModelDetailPage() {
                 const color = percentage >= 80 ? 'terminal-text--green' : 
                              percentage >= 60 ? 'terminal-text--amber' : 'terminal-text--red';
                 
-                return (
+                const metricContainer = (
                   <div key={metric.key} 
                        style={{ 
                          padding: '16px', 
@@ -1782,12 +2165,37 @@ export default function ModelDetailPage() {
                     </div>
                   </div>
                 );
+
+                // Blur containers after the first one for non-pro users
+                if (index === 0 || hasProAccess) {
+                  return metricContainer;
+                } else {
+                  return (
+                    <ProFeatureBlur
+                      key={metric.key}
+                      isLocked={true}
+                      onUnlock={() => {
+                        setProModalFeature('performance-matrix');
+                        setShowProModal(true);
+                      }}
+                      title="Performance Matrix"
+                    >
+                      {metricContainer}
+                    </ProFeatureBlur>
+                  );
+                }
               });
             })()}
           </div>
         </div>
       )}
 
+      {/* Pro Feature Modal */}
+      <ProFeatureModal
+        isOpen={showProModal}
+        onClose={() => setShowProModal(false)}
+        feature={proModalFeature}
+      />
     </div>
   );
 }
