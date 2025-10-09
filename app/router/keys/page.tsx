@@ -318,24 +318,26 @@ export default function RouterKeysPage() {
                 </>
               ) : (
                 <>
-                  <div className="crt-monitor" style={{ 
-                    borderColor: 'var(--phosphor-green)', 
+                  {/* Success Message - Compact */}
+                  <div style={{ 
+                    border: '2px solid var(--phosphor-green)', 
                     backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                    marginBottom: '16px'
+                    padding: '12px',
+                    marginBottom: '16px',
+                    borderRadius: '4px'
                   }}>
-                    <div className="terminal-text">
-                      <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <PixelIcon name="check" size={20} />
-                        KEY CREATED SUCCESSFULLY!
-                      </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                        Make sure to copy your key now. You won't be able to see it again!
-                      </div>
+                    <div className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <PixelIcon name="check" size={16} />
+                      KEY CREATED SUCCESSFULLY!
+                    </div>
+                    <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
+                      Copy your key now - you won't be able to see it again!
                     </div>
                   </div>
                   
-                  <div style={{ marginBottom: '16px' }}>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '8px' }}>
+                  {/* API Key Display */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '6px' }}>
                       YOUR API KEY:
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -345,34 +347,35 @@ export default function RouterKeysPage() {
                         readOnly
                         style={{
                           flex: 1,
-                          padding: '8px',
+                          padding: '6px 8px',
                           background: 'var(--terminal-black)',
                           border: '2px solid var(--phosphor-green)',
                           borderRadius: '4px',
                           color: 'var(--phosphor-green)',
                           fontFamily: 'var(--font-mono)',
-                          fontSize: '12px'
+                          fontSize: '11px'
                         }}
                       />
                       <button
                         onClick={() => handleCopyKey(createdKey)}
                         className="vintage-btn"
+                        style={{ padding: '6px 12px', fontSize: '0.8em' }}
                       >
                         COPY
                       </button>
                     </div>
                   </div>
                   
-                  <div className="crt-monitor" style={{ 
-                    borderColor: 'var(--amber-warning)', 
+                  {/* Warning - Compact */}
+                  <div style={{ 
+                    border: '2px solid var(--amber-warning)', 
                     backgroundColor: 'rgba(255, 176, 0, 0.05)',
-                    marginBottom: '16px'
+                    padding: '10px',
+                    marginBottom: '16px',
+                    borderRadius: '4px'
                   }}>
-                    <div className="terminal-text">
-                      <div className="terminal-text--amber" style={{ fontSize: '0.85em', lineHeight: '1.5' }}>
-                        <strong>IMPORTANT:</strong> Store this key securely. For security reasons, 
-                        we cannot show it to you again. If you lose this key, you'll need to create a new one.
-                      </div>
+                    <div className="terminal-text--amber" style={{ fontSize: '0.8em', lineHeight: '1.4' }}>
+                      <strong>IMPORTANT:</strong> Store this key securely. We cannot show it again.
                     </div>
                   </div>
                   
