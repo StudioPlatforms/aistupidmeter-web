@@ -4010,91 +4010,54 @@ export default function Dashboard() {
             <div className="terminal-text">
               {welcomeStep === 'updates' && (
                 <>
-                  <div style={{ fontSize: window.innerWidth < 768 ? '1.2em' : '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-                    <span className="terminal-text--green">🚀 INTRODUCING AI ROUTER PRO</span>
+                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.5em', marginBottom: '12px', textAlign: 'center' }}>
+                    <span className="terminal-text--green">🚀 AI ROUTER PRO</span>
                     <span className="blinking-cursor"></span>
                   </div>
                   
-                  <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                    <div className="terminal-text--amber" style={{ fontSize: window.innerWidth < 768 ? '1.0em' : '1.2em', marginBottom: '16px', textAlign: 'center' }}>
-                      Your Intelligent Gateway to the Best AI Models
+                  <div style={{ marginBottom: '16px', lineHeight: '1.4', textAlign: 'center' }}>
+                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em', marginBottom: '12px' }}>
+                      Intelligent gateway to the best AI models. Auto-routes to top performers based on real-time data.
                     </div>
                     
                     <div style={{ 
-                      padding: '20px', 
+                      padding: window.innerWidth < 768 ? '12px' : '16px', 
                       backgroundColor: 'rgba(0, 191, 255, 0.1)', 
                       border: '2px solid rgba(0, 191, 255, 0.5)',
                       borderRadius: '6px',
-                      marginBottom: '20px'
+                      marginBottom: '12px',
+                      fontSize: window.innerWidth < 768 ? '0.8em' : '0.9em'
                     }}>
-                      <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px', textAlign: 'center' }}>
-                        ⚡ What is AI Router PRO?
-                      </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.95em', marginBottom: '16px' }}>
-                        Stop wasting time and money on underperforming AI models. AI Router PRO automatically routes your requests to the best-performing model based on real-time intelligence data from Stupid Meter.
-                      </div>
-                      
-                      <div style={{ marginBottom: '12px' }}>
-                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                          ✓ Smart Model Selection
-                        </div>
-                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                          Automatically choose the best model for each task based on live performance data
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '12px' }}>
-                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                          ✓ Cost Optimization
-                        </div>
-                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                          Balance performance and cost with intelligent routing strategies
-                        </div>
-                      </div>
-
-                      <div style={{ marginBottom: '12px' }}>
-                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                          ✓ Degradation Protection
-                        </div>
-                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                          Automatically avoid models experiencing performance issues
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '6px' }}>
-                          ✓ One API for All Models
-                        </div>
-                        <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '16px' }}>
-                          Access GPT, Claude, Grok, and Gemini through a single unified interface
-                        </div>
+                      <div className="terminal-text--green" style={{ marginBottom: '8px' }}>
+                        ✓ Smart Selection • ✓ Cost Optimization<br/>
+                        ✓ Degradation Protection • ✓ One API
                       </div>
                     </div>
 
                     <div style={{ 
-                      padding: '16px', 
+                      padding: window.innerWidth < 768 ? '10px' : '12px', 
                       backgroundColor: 'rgba(0, 255, 65, 0.1)', 
                       border: '1px solid rgba(0, 255, 65, 0.3)',
                       borderRadius: '4px',
                       textAlign: 'center'
                     }}>
-                      <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
-                        💎 Limited Time Offer
+                      <div className="terminal-text--amber" style={{ fontSize: window.innerWidth < 768 ? '0.9em' : '1.0em', marginBottom: '6px' }}>
+                        💎 Limited Offer
                       </div>
-                      <div style={{ marginBottom: '8px' }}>
+                      <div style={{ marginBottom: '4px' }}>
                         <span className="terminal-text--dim" style={{ 
-                          fontSize: '1.1em', 
+                          fontSize: window.innerWidth < 768 ? '0.9em' : '1.0em', 
                           textDecoration: 'line-through',
-                          marginRight: '12px'
+                          marginRight: '8px'
                         }}>
                           $49.99
                         </span>
-                        <span className="terminal-text--green" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
-                          $19.99/month
+                        <span className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.2em' : '1.4em', fontWeight: 'bold' }}>
+                          $19.99/mo
                         </span>
                       </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                        7-day free trial • Cancel anytime • No hidden fees
+                      <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.7em' : '0.8em' }}>
+                        7-day free trial • Cancel anytime
                       </div>
                     </div>
                   </div>
@@ -4103,7 +4066,7 @@ export default function Dashboard() {
                     <button 
                       onClick={() => handleWelcomeStep('privacy')}
                       className="vintage-btn vintage-btn--active"
-                      style={{ padding: '12px 32px', fontSize: '1.1em' }}
+                      style={{ padding: window.innerWidth < 768 ? '10px 24px' : '12px 32px', fontSize: window.innerWidth < 768 ? '1.0em' : '1.1em' }}
                     >
                       CONTINUE
                     </button>
