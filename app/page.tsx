@@ -2314,16 +2314,16 @@ export default function Dashboard() {
               marginBottom: '24px'
             }}>
               <StatCounter 
-                value={147} 
-                label="BENCHMARK TESTS" 
-                icon="🧪"
+                value={25} 
+                label="AI MODELS TRACKED" 
+                icon="🤖"
                 color="green"
                 delay={0}
               />
               <StatCounter 
-                value={12} 
-                label="AI MODELS TRACKED" 
-                icon="🤖"
+                value={14} 
+                label="BENCHMARK SUITES" 
+                icon="🧪"
                 color="blue"
                 delay={200}
               />
