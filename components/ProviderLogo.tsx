@@ -1,5 +1,5 @@
 interface ProviderLogoProps {
-  provider: 'openai' | 'anthropic' | 'xai' | 'google';
+  provider: 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
   size?: number;
   className?: string;
 }
@@ -24,6 +24,46 @@ export default function ProviderLogo({ provider, size = 48, className = '' }: Pr
     google: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
         <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+      </svg>
+    ),
+    glm: (
+      <svg width={size} height={size} viewBox="0 0 120 120" fill="currentColor" className={className}>
+        <defs>
+          <linearGradient id={`gradZ-${size}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="currentColor"/>
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.7"/>
+          </linearGradient>
+        </defs>
+        <circle cx="60" cy="60" r="55" fill="none" stroke={`url(#gradZ-${size})`} strokeWidth="10"/>
+        <circle cx="60" cy="20" r="8" fill="currentColor"/>
+        <circle cx="60" cy="100" r="8" fill="currentColor"/>
+        <circle cx="20" cy="60" r="8" fill="currentColor"/>
+        <circle cx="100" cy="60" r="8" fill="currentColor"/>
+        <circle cx="35" cy="35" r="6" fill="currentColor" fillOpacity="0.7"/>
+        <circle cx="85" cy="35" r="6" fill="currentColor" fillOpacity="0.7"/>
+        <circle cx="35" cy="85" r="6" fill="currentColor" fillOpacity="0.7"/>
+        <circle cx="85" cy="85" r="6" fill="currentColor" fillOpacity="0.7"/>
+      </svg>
+    ),
+    deepseek: (
+      <svg width={size} height={size} viewBox="0 0 120 120" fill="currentColor" className={className}>
+        <path d="M20 30 Q20 20 30 20 L90 20 Q100 20 100 30 L100 50 Q100 60 90 60 L80 60 L80 70 Q80 80 70 80 L50 80 Q40 80 40 70 L40 50 Q40 40 50 40 L70 40 L70 30 L30 30 Q20 30 20 40 L20 60 Q20 70 30 70 L40 70 L40 80 Q40 90 50 90 L90 90 Q100 90 100 80 L100 70 Q100 60 90 60 L80 60 L80 50 L90 50 Q100 50 100 40 L100 30 Q100 20 90 20 L30 20 Q20 20 20 30 Z" fill="currentColor"/>
+        <circle cx="25" cy="35" r="3" fill="currentColor"/>
+        <circle cx="35" cy="25" r="2" fill="currentColor"/>
+        <path d="M60 45 Q65 40 70 45 Q75 50 70 55 Q65 60 60 55 Q55 50 60 45 Z" fill="currentColor"/>
+      </svg>
+    ),
+    kimi: (
+      <svg width={size} height={size} viewBox="0 0 120 120" fill="currentColor" className={className}>
+        <defs>
+          <radialGradient id={`gradK-${size}`} cx="50%" cy="50%" r="50%" fx="40%" fy="40%">
+            <stop offset="0%" stopColor="currentColor"/>
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.7"/>
+          </radialGradient>
+        </defs>
+        <circle cx="60" cy="60" r="55" fill="none" stroke={`url(#gradK-${size})`} strokeWidth="8"/>
+        <path d="M40,40 L60,60 L40,80" fill="none" stroke={`url(#gradK-${size})`} strokeWidth="8" strokeLinecap="round"/>
+        <path d="M60,60 L80,40 L80,80" fill="none" stroke={`url(#gradK-${size})`} strokeWidth="8" strokeLinecap="round"/>
       </svg>
     ),
   };

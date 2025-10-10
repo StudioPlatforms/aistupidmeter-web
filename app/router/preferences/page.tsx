@@ -55,7 +55,7 @@ const ROUTING_STRATEGIES = [
   },
 ];
 
-const PROVIDERS = ['openai', 'anthropic', 'xai', 'google'];
+const PROVIDERS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'];
 
 export default function RouterPreferencesPage() {
   const { data: session, status } = useSession();

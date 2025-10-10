@@ -9,7 +9,7 @@ import ProviderLogo from '@/components/ProviderLogo';
 import { apiClient } from '@/lib/api-client';
 import type { ProviderKey } from '@/lib/api-client';
 
-type Provider = 'openai' | 'anthropic' | 'xai' | 'google';
+type Provider = 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
 
 const PROVIDERS = [
   {
@@ -43,6 +43,30 @@ const PROVIDERS = [
     description: 'Gemini 2.5 Pro/Flash, Gemini 1.5 Pro/Flash',
     keyFormat: 'AIza...',
     docsUrl: 'console.cloud.google.com/apis/credentials',
+  },
+  {
+    id: 'glm' as Provider,
+    name: 'GLM',
+    iconName: 'chip',
+    description: 'GLM-4.6 - Advanced Chinese language model with 128K context',
+    keyFormat: 'API key format varies',
+    docsUrl: 'open.bigmodel.cn/pricing',
+  },
+  {
+    id: 'deepseek' as Provider,
+    name: 'DeepSeek',
+    iconName: 'search',
+    description: 'DeepSeek R1, V3 - Reasoning and MoE models with off-peak pricing',
+    keyFormat: 'API key format varies',
+    docsUrl: 'api-docs.deepseek.com',
+  },
+  {
+    id: 'kimi' as Provider,
+    name: 'Kimi',
+    iconName: 'moon',
+    description: 'Moonshot K2 - 1T parameter MoE model with vision support',
+    keyFormat: 'API key format varies',
+    docsUrl: 'platform.moonshot.ai/docs/guide/start-using-kimi-api',
   },
 ];
 

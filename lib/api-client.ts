@@ -20,7 +20,7 @@ export interface UniversalKey {
 
 export interface ProviderKey {
   id: number;
-  provider: 'openai' | 'anthropic' | 'xai' | 'google';
+  provider: 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
   isActive: boolean;
   createdAt: string;
   lastValidated: string | null;
