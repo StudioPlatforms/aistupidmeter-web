@@ -4267,7 +4267,6 @@ export default function Dashboard() {
           {' '} • Star us on GitHub!
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
-          Try it on Hugging Face! {' '}
           <a 
             href="https://huggingface.co/spaces/AIStupidLevel/" 
             target="_blank" 
@@ -4282,7 +4281,6 @@ export default function Dashboard() {
           >
             🤗 Hugging Face Space
           </a>
-          {' '} • Interactive demo available!
         </div>
       </div>
 
