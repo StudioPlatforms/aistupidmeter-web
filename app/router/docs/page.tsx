@@ -37,7 +37,7 @@ export default function DocsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
             <QuickRefCard
               label="Base URL"
-              value="http://aistupidlevel.info:4000"
+              value="https://aistupidlevel.info"
               icon="globe"
             />
             <QuickRefCard
@@ -78,7 +78,7 @@ export default function DocsPage() {
 
               <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Base URL</h3>
               <CodeBlock language="bash">
-                http://aistupidlevel.info:4000
+                https://aistupidlevel.info
               </CodeBlock>
 
               <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Authentication</h3>
@@ -170,7 +170,7 @@ export default function DocsPage() {
               <h4 className="terminal-text--amber" style={{ fontSize: '0.95em', marginBottom: '10px', marginTop: '20px' }}>Code Examples</h4>
               <CodeTabs activeTab={activeTab} setActiveTab={setActiveTab}>
                 <CodeTab id="curl" label="cURL">
-{`curl -X POST http://aistupidlevel.info:4000/v1/chat/completions \\
+{`curl -X POST https://aistupidlevel.info/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer aism_your_key_here" \\
   -d '{
@@ -185,7 +185,7 @@ export default function DocsPage() {
 
 client = OpenAI(
     api_key="aism_your_key_here",
-    base_url="http://aistupidlevel.info:4000/v1"
+    base_url="https://aistupidlevel.info/v1"
 )
 
 response = client.chat.completions.create(
@@ -202,7 +202,7 @@ print(response.choices[0].message.content)`}
 
 const client = new OpenAI({
     apiKey: 'aism_your_key_here',
-    baseURL: 'http://aistupidlevel.info:4000/v1'
+    baseURL: 'https://aistupidlevel.info/v1'
 });
 
 const response = await client.chat.completions.create({
@@ -250,7 +250,7 @@ for chunk in stream:
 
               <h4 className="terminal-text--amber" style={{ fontSize: '0.95em', marginBottom: '10px', marginTop: '20px' }}>Request</h4>
               <CodeBlock language="bash">
-{`curl http://aistupidlevel.info:4000/v1/models \\
+{`curl https://aistupidlevel.info/v1/models \\
   -H "Authorization: Bearer aism_your_key_here"`}
               </CodeBlock>
 
@@ -329,7 +329,7 @@ for chunk in stream:
                 method="GET"
                 path="/router/keys"
                 description="List all universal API keys"
-                example={`curl http://aistupidlevel.info:4000/router/keys \\
+                example={`curl https://aistupidlevel.info/router/keys \\
   -H "x-user-id: YOUR_USER_ID"`}
               />
 
@@ -337,7 +337,7 @@ for chunk in stream:
                 method="POST"
                 path="/router/keys"
                 description="Create a new universal API key"
-                example={`curl -X POST http://aistupidlevel.info:4000/router/keys \\
+                example={`curl -X POST https://aistupidlevel.info/router/keys \\
   -H "x-user-id: YOUR_USER_ID" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "My App Key"}'`}
@@ -347,7 +347,7 @@ for chunk in stream:
                 method="DELETE"
                 path="/router/keys/:id"
                 description="Revoke a universal API key"
-                example={`curl -X DELETE http://aistupidlevel.info:4000/router/keys/123 \\
+                example={`curl -X DELETE https://aistupidlevel.info/router/keys/123 \\
   -H "x-user-id: YOUR_USER_ID"`}
               />
 
@@ -355,7 +355,7 @@ for chunk in stream:
                 method="GET"
                 path="/router/provider-keys"
                 description="List all provider API keys"
-                example={`curl http://aistupidlevel.info:4000/router/provider-keys \\
+                example={`curl https://aistupidlevel.info/router/provider-keys \\
   -H "x-user-id: YOUR_USER_ID"`}
               />
 
@@ -363,7 +363,7 @@ for chunk in stream:
                 method="POST"
                 path="/router/provider-keys"
                 description="Add a provider API key"
-                example={`curl -X POST http://aistupidlevel.info:4000/router/provider-keys \\
+                example={`curl -X POST https://aistupidlevel.info/router/provider-keys \\
   -H "x-user-id: YOUR_USER_ID" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -376,7 +376,7 @@ for chunk in stream:
                 method="POST"
                 path="/router/provider-keys/:id/validate"
                 description="Validate a provider API key"
-                example={`curl -X POST http://aistupidlevel.info:4000/router/provider-keys/123/validate \\
+                example={`curl -X POST https://aistupidlevel.info/router/provider-keys/123/validate \\
   -H "x-user-id: YOUR_USER_ID"`}
               />
             </div>
@@ -399,7 +399,7 @@ for chunk in stream:
                 method="GET"
                 path="/router/analytics/overview"
                 description="Get overview statistics"
-                example={`curl http://aistupidlevel.info:4000/router/analytics/overview \\
+                example={`curl https://aistupidlevel.info/router/analytics/overview \\
   -H "x-user-id: YOUR_USER_ID"`}
                 response={`{
   "overview": {
@@ -417,7 +417,7 @@ for chunk in stream:
                 method="GET"
                 path="/router/analytics/cost-savings"
                 description="Calculate cost savings vs worst case"
-                example={`curl http://aistupidlevel.info:4000/router/analytics/cost-savings \\
+                example={`curl https://aistupidlevel.info/router/analytics/cost-savings \\
   -H "x-user-id: YOUR_USER_ID"`}
                 response={`{
   "actualCost": "12.50",
@@ -431,7 +431,7 @@ for chunk in stream:
                 method="GET"
                 path="/router/analytics/recent-requests"
                 description="Get recent request history"
-                example={`curl http://aistupidlevel.info:4000/router/analytics/recent-requests?limit=10 \\
+                example={`curl https://aistupidlevel.info/router/analytics/recent-requests?limit=10 \\
   -H "x-user-id: YOUR_USER_ID"`}
               />
 
@@ -439,7 +439,7 @@ for chunk in stream:
                 method="GET"
                 path="/router/analytics/model-performance"
                 description="Get performance metrics per model"
-                example={`curl http://aistupidlevel.info:4000/router/analytics/model-performance \\
+                example={`curl https://aistupidlevel.info/router/analytics/model-performance \\
   -H "x-user-id: YOUR_USER_ID"`}
               />
             </div>
@@ -496,7 +496,7 @@ for chunk in stream:
 llm = ChatOpenAI(
     model="best_for_coding",
     openai_api_key="aism_your_key_here",
-    openai_api_base="http://aistupidlevel.info:4000/v1"
+    openai_api_base="https://aistupidlevel.info/v1"
 )
 
 response = llm.invoke("Write a Python function")
@@ -510,7 +510,7 @@ print(response.content)`}
 llm = OpenAI(
     model="best_for_coding",
     api_key="aism_your_key_here",
-    api_base="http://aistupidlevel.info:4000/v1"
+    api_base="https://aistupidlevel.info/v1"
 )
 
 response = llm.complete("Explain quantum computing")
@@ -523,7 +523,7 @@ print(response.text)`}
 import { generateText } from 'ai';
 
 const customProvider = openai.provider({
-  baseURL: 'http://aistupidlevel.info:4000/v1',
+  baseURL: 'https://aistupidlevel.info/v1',
   apiKey: 'aism_your_key_here'
 });
 

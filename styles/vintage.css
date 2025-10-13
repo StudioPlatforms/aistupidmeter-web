@@ -3795,3 +3795,394 @@ input:checked + .toggle-slider::before {
     transform: none;
   }
 }
+
+/* ============================================================================
+   LIGHT THEME OVERRIDES - Paper Terminal Mode
+   ============================================================================ */
+
+[data-theme="light"] {
+  /* Invert shadows for light theme */
+  --light-shadow: rgba(0, 0, 0, 0.1);
+  --light-shadow-strong: rgba(0, 0, 0, 0.2);
+}
+
+/* Body and base elements */
+[data-theme="light"] body {
+  color: var(--phosphor-green);
+}
+
+/* Buttons - Light theme styling */
+[data-theme="light"] .vintage-btn {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  color: var(--phosphor-green);
+  border-color: var(--phosphor-green);
+  box-shadow: 0 2px 4px var(--light-shadow);
+}
+
+[data-theme="light"] .vintage-btn:hover {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  box-shadow: 0 2px 6px var(--light-shadow-strong);
+}
+
+[data-theme="light"] .vintage-btn--active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+}
+
+/* Control Panel */
+[data-theme="light"] .control-panel {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  border-color: var(--phosphor-green);
+  box-shadow: 0 2px 5px var(--light-shadow);
+}
+
+/* CRT Monitor */
+[data-theme="light"] .crt-monitor {
+  background: var(--terminal-black);
+  border-color: var(--phosphor-green);
+  box-shadow: 0 0 8px var(--light-shadow-strong);
+}
+
+/* Leaderboard */
+[data-theme="light"] .leaderboard-header {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .leaderboard-row {
+  background: linear-gradient(135deg, #f0f0e0, #e8e8d0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .leaderboard-row:hover {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+}
+
+/* Mobile Navigation */
+[data-theme="light"] .mobile-nav {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  border-top-color: var(--phosphor-green);
+  box-shadow: 0 -4px 20px var(--light-shadow-strong);
+}
+
+[data-theme="light"] .mobile-nav-btn {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  border-color: var(--phosphor-green);
+  color: var(--phosphor-green);
+}
+
+[data-theme="light"] .mobile-nav-btn:active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+}
+
+/* Dashboard Components */
+[data-theme="light"] .metric-card {
+  background: linear-gradient(135deg, #f0f0e0, #e8e8d0);
+  border-color: var(--phosphor-green);
+  box-shadow: 0 2px 8px var(--light-shadow);
+}
+
+[data-theme="light"] .metric-card:hover {
+  box-shadow: 0 4px 12px var(--light-shadow-strong);
+}
+
+[data-theme="light"] .section-card {
+  background: linear-gradient(135deg, #f0f0e0, #e8e8d0);
+  border-color: var(--phosphor-green);
+  box-shadow: 0 2px 8px var(--light-shadow);
+}
+
+[data-theme="light"] .dashboard-header {
+  background: linear-gradient(135deg, rgba(42, 42, 42, 0.05), rgba(42, 42, 42, 0.02));
+  border-color: var(--phosphor-green);
+  box-shadow: 0 0 8px var(--light-shadow);
+}
+
+/* Activity and Provider Items */
+[data-theme="light"] .activity-item,
+[data-theme="light"] .provider-item {
+  background: rgba(42, 42, 42, 0.03);
+  border-color: rgba(42, 42, 42, 0.2);
+}
+
+[data-theme="light"] .activity-item:hover,
+[data-theme="light"] .provider-item:hover {
+  background: rgba(42, 42, 42, 0.05);
+  border-color: rgba(42, 42, 42, 0.4);
+}
+
+/* Action Buttons */
+[data-theme="light"] .action-button {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .action-button:hover {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  box-shadow: 0 0 10px var(--light-shadow-strong);
+}
+
+/* Time Range Buttons */
+[data-theme="light"] .time-range-btn {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  color: var(--phosphor-dim);
+  border-color: var(--phosphor-dim);
+}
+
+[data-theme="light"] .time-range-btn:hover {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .time-range-btn.active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+}
+
+/* Analytics Items */
+[data-theme="light"] .analytics-item {
+  background: rgba(42, 42, 42, 0.03);
+  border-color: rgba(42, 42, 42, 0.2);
+}
+
+[data-theme="light"] .analytics-item:hover {
+  background: rgba(42, 42, 42, 0.05);
+  border-color: rgba(42, 42, 42, 0.4);
+}
+
+/* Chart Container */
+[data-theme="light"] .chart-container {
+  background: rgba(42, 42, 42, 0.02);
+  border-color: rgba(42, 42, 42, 0.2);
+}
+
+/* Mobile Control Buttons */
+[data-theme="light"] .mobile-control-btn {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  color: var(--phosphor-green);
+  border-color: var(--phosphor-dim);
+  box-shadow: 0 2px 4px var(--light-shadow);
+}
+
+[data-theme="light"] .mobile-control-btn:hover {
+  background: linear-gradient(135deg, #c8c8b0, #b8b8a0);
+  border-color: var(--phosphor-green);
+  box-shadow: 0 2px 6px var(--light-shadow-strong);
+}
+
+[data-theme="light"] .mobile-control-btn--active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+  border-color: var(--phosphor-green);
+}
+
+/* Health Provider Status */
+[data-theme="light"] .health-provider {
+  background: rgba(42, 42, 42, 0.03);
+  border-color: rgba(42, 42, 42, 0.2);
+  box-shadow: 0 1px 2px var(--light-shadow);
+}
+
+[data-theme="light"] .health-provider:hover {
+  background: rgba(42, 42, 42, 0.05);
+  border-color: rgba(42, 42, 42, 0.4);
+}
+
+/* Form Inputs */
+[data-theme="light"] .mobile-form-input,
+[data-theme="light"] .mobile-form-select {
+  background: #ffffff;
+  border-color: var(--phosphor-green);
+  color: var(--phosphor-green);
+}
+
+[data-theme="light"] .mobile-form-input:focus,
+[data-theme="light"] .mobile-form-select:focus {
+  border-color: var(--phosphor-green);
+  box-shadow: 0 0 8px var(--light-shadow-strong);
+}
+
+/* Requests Table */
+[data-theme="light"] .requests-table thead {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .requests-table tbody tr:hover {
+  background: rgba(42, 42, 42, 0.05);
+}
+
+/* Progress Bars */
+[data-theme="light"] .progress-bar {
+  background: rgba(42, 42, 42, 0.1);
+}
+
+/* Retro Progress Track */
+[data-theme="light"] .retro-progress-track {
+  background: #ffffff;
+  border-color: var(--phosphor-green);
+}
+
+/* Retro Score Display */
+[data-theme="light"] .retro-score-display {
+  background: #ffffff;
+  border-color: var(--phosphor-green);
+}
+
+/* Ticker Tape */
+[data-theme="light"] .ticker-tape-container {
+  background: rgba(42, 42, 42, 0.03);
+  border-top-color: var(--phosphor-green);
+  border-bottom-color: var(--phosphor-green);
+}
+
+/* Mobile Controls Container */
+[data-theme="light"] .mobile-controls-container {
+  background: linear-gradient(135deg, rgba(42, 42, 42, 0.03), rgba(42, 42, 42, 0.01));
+  border-color: rgba(42, 42, 42, 0.2);
+  box-shadow: inset 0 0 10px var(--light-shadow);
+}
+
+/* Period Tabs */
+[data-theme="light"] .period-tabs {
+  background: rgba(42, 42, 42, 0.02);
+  border-color: rgba(42, 42, 42, 0.2);
+}
+
+/* Savings Banner */
+[data-theme="light"] .savings-banner {
+  background: linear-gradient(135deg, rgba(42, 42, 42, 0.08), rgba(42, 42, 42, 0.04));
+  border-color: var(--phosphor-green);
+  box-shadow: 0 0 15px var(--light-shadow-strong);
+}
+
+/* Error Banner */
+[data-theme="light"] .error-banner {
+  background: rgba(255, 45, 0, 0.08);
+  border-color: var(--red-alert);
+  box-shadow: 0 0 10px rgba(255, 45, 0, 0.15);
+}
+
+/* Feature Items */
+[data-theme="light"] .feature-item {
+  background: rgba(42, 42, 42, 0.02);
+}
+
+/* Model Intelligence Cards */
+[data-theme="light"] .model-intelligence-card {
+  background: linear-gradient(135deg, #f0f0e0, #e8e8d0) !important;
+  border-color: var(--phosphor-green) !important;
+  box-shadow: 0 2px 8px var(--light-shadow) !important;
+  color: var(--phosphor-green) !important;
+}
+
+[data-theme="light"] .model-intelligence-card:hover {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0) !important;
+  box-shadow: 0 4px 15px var(--light-shadow-strong) !important;
+}
+
+/* Ensure text inside intelligence cards is visible */
+[data-theme="light"] .model-intelligence-card * {
+  color: inherit;
+}
+
+[data-theme="light"] .model-intelligence-card .terminal-text {
+  color: var(--phosphor-green) !important;
+}
+
+[data-theme="light"] .model-intelligence-card .terminal-text--dim {
+  color: var(--phosphor-dim) !important;
+}
+
+[data-theme="light"] .model-intelligence-card .terminal-text--green {
+  color: var(--phosphor-green) !important;
+}
+
+/* Gauge Display */
+[data-theme="light"] .vintage-gauge {
+  background: radial-gradient(circle, #f0f0e0, #e8e8d0);
+  border-color: var(--phosphor-green);
+  box-shadow: inset 0 0 20px var(--light-shadow), 0 0 8px var(--light-shadow-strong);
+}
+
+/* Toggle Slider */
+[data-theme="light"] .toggle-slider {
+  background: #d8d8c0;
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] input:checked + .toggle-slider {
+  background: var(--phosphor-green);
+}
+
+/* Model Tooltip */
+[data-theme="light"] .model-tooltip {
+  background-color: #ffffff !important;
+  border-color: var(--phosphor-green) !important;
+  box-shadow: 0 4px 12px var(--light-shadow-strong) !important;
+}
+
+/* Scrollbar for light theme */
+[data-theme="light"] .mobile-scroll-container::-webkit-scrollbar-track {
+  background: #e8e8d0;
+}
+
+[data-theme="light"] .mobile-scroll-container::-webkit-scrollbar-thumb {
+  background: var(--phosphor-green);
+}
+
+/* Professional Chart Container */
+[data-theme="light"] .professional-chart-container {
+  background: rgba(42, 42, 42, 0.02);
+}
+
+/* Model Detail Page - Period Tabs */
+[data-theme="light"] .period-tab {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  color: var(--phosphor-green);
+  border-color: var(--phosphor-dim);
+}
+
+[data-theme="light"] .period-tab:hover {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .period-tab.vintage-btn--active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+}
+
+/* Model Detail Page - Scoring Mode Tabs */
+[data-theme="light"] .scoring-mode-tab {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  color: var(--phosphor-green);
+  border-color: var(--phosphor-dim);
+}
+
+[data-theme="light"] .scoring-mode-tab:hover {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .scoring-mode-tab.vintage-btn--active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+}
+
+/* Model Control Buttons */
+[data-theme="light"] .model-control-btn {
+  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  color: var(--phosphor-green);
+  border-color: var(--phosphor-green);
+}
+
+[data-theme="light"] .model-control-btn:hover {
+  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+}
+
+[data-theme="light"] .model-control-btn.vintage-btn--active {
+  background: var(--phosphor-green);
+  color: var(--terminal-black);
+}

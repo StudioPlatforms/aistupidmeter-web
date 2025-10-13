@@ -6,6 +6,7 @@ export interface ThemeColors {
   backgroundDark: string;
   name: string;
   description: string;
+  isLight: boolean;  // Flag to indicate if this is a light theme
 }
 
 export const THEMES: ThemeColors[] = [
@@ -14,48 +15,54 @@ export const THEMES: ThemeColors[] = [
     description: 'Original phosphor green terminal',
     primary: '#00ff41',
     primaryDim: '#00cc33',
-    background: '#001a00',  // Dark green tint - authentic P1 phosphor glow
-    backgroundDark: '#000f00',
+    background: '#0a0a0a',  // Original pure dark background - no tint
+    backgroundDark: '#000000',  // Pure black for darkest areas
+    isLight: false,
   },
   {
     name: 'Amber Terminal',
     description: 'Warm IBM/DOS amber',
     primary: '#ffb000',
     primaryDim: '#cc8800',
-    background: '#1a0f00',  // Dark amber/brown - authentic amber monitor glow
-    backgroundDark: '#0f0800',
+    background: '#0f0a05',  // Very dark warm brown - subtle amber warmth
+    backgroundDark: '#080503',  // Deep warm black
+    isLight: false,
   },
   {
     name: 'Faded Blue',
     description: 'Classic IBM blue screen',
     primary: '#5c9ccc',
     primaryDim: '#4a7a9f',
-    background: '#1a2332',  // Faded blue-grey background
-    backgroundDark: '#0f1419',
+    background: '#0a0f14',  // Dark cool blue-grey - subtle blue tint
+    backgroundDark: '#050810',  // Deep cool black
+    isLight: false,
   },
   {
     name: 'Cyan Terminal',
     description: 'Cool DEC cyan phosphor',
     primary: '#00d4ff',
     primaryDim: '#0099cc',
-    background: '#001a1f',  // Dark blue tint - authentic cyan phosphor glow
-    backgroundDark: '#000f14',
+    background: '#050f12',  // Dark cyan-tinted background
+    backgroundDark: '#020a0c',  // Deep cyan black
+    isLight: false,
   },
   {
-    name: 'Faded Grey',
-    description: 'Classic monochrome CRT',
-    primary: '#c0c0c0',
-    primaryDim: '#808080',
-    background: '#1a1a1a',  // Faded grey background
-    backgroundDark: '#0f0f0f',
+    name: 'Paper Terminal',
+    description: 'Light mode - classic paper printout',
+    primary: '#2a2a2a',  // Dark grey text
+    primaryDim: '#4a4a4a',  // Medium grey
+    background: '#f5f5dc',  // Beige paper color
+    backgroundDark: '#e8e8d0',  // Slightly darker beige
+    isLight: true,  // This is the light theme!
   },
   {
     name: 'Soft Teal',
     description: 'Easy on eyes teal-green',
     primary: '#00cc88',
     primaryDim: '#009966',
-    background: '#001410',  // Dark teal tint - medical monitor style
-    backgroundDark: '#000a08',
+    background: '#050f0c',  // Dark teal-green tinted background
+    backgroundDark: '#020805',  // Deep teal black
+    isLight: false,
   },
 ];
 
@@ -72,6 +79,9 @@ export function applyTheme(theme: ThemeColors) {
   };
   
   document.documentElement.style.setProperty('--primary-rgb', hexToRgb(theme.primary));
+  
+  // Add data attribute for CSS to detect light/dark theme
+  document.documentElement.setAttribute('data-theme', theme.isLight ? 'light' : 'dark');
   
   // Update meta theme-color
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');

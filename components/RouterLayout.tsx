@@ -1,12 +1,19 @@
 'use client';
 
+import { useEffect } from 'react';
 import RouterSidebar from './RouterSidebar';
+import { initializeTheme } from '../lib/theme-config';
 
 interface RouterLayoutProps {
   children: React.ReactNode;
 }
 
 export default function RouterLayout({ children }: RouterLayoutProps) {
+  // Initialize theme on mount to ensure it persists across router pages
+  useEffect(() => {
+    initializeTheme();
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', backgroundColor: 'var(--terminal-black)' }}>
       <RouterSidebar />
