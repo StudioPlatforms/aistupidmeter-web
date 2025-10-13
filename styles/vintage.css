@@ -3546,6 +3546,14 @@ input:checked + .toggle-slider::before {
   padding: 0 var(--space-xs);
 }
 
+/* Light theme rank badge - ensure visibility */
+[data-theme="light"] .rank-badge {
+  background: linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim)) !important;
+  color: var(--terminal-black) !important;
+  border: 1px solid var(--phosphor-green);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 /* Empty State */
 .empty-state {
   text-align: center;
