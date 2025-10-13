@@ -9,6 +9,7 @@ import ProFeatureModal from '../components/ProFeatureModal';
 import FeatureCard from '../components/FeatureCard';
 import FAQItem from '../components/FAQItem';
 import StatCounter from '../components/StatCounter';
+import ThemeButton from '../components/ThemeButton';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -2949,6 +2950,7 @@ export default function Dashboard() {
           gap: '16px',
           marginTop: '24px'
         }}>
+          <ThemeButton />
           <button 
             onClick={() => setSelectedView('about')}
             className={getButtonClassName('about')}
@@ -4288,21 +4290,23 @@ export default function Dashboard() {
       <div className="mobile-nav">
         <button 
           className={getButtonClassName('dashboard').replace('vintage-btn', 'mobile-nav-btn')}
-          onClick={() => setSelectedView('dashboard')}
+          onClick={() => {
+            setSelectedView('dashboard');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          style={{ flexShrink: 0, minWidth: '70px' }}
         >
           DASH
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <ThemeButton />
+        </div>
         <button 
           className={getButtonClassName('about').replace('vintage-btn', 'mobile-nav-btn')}
           onClick={() => setSelectedView('about')}
+          style={{ flexShrink: 0, minWidth: '70px' }}
         >
           ABOUT
-        </button>
-        <button 
-          className={getButtonClassName('faq').replace('vintage-btn', 'mobile-nav-btn')}
-          onClick={() => setSelectedView('faq')}
-        >
-          FAQ
         </button>
         <button 
           className="mobile-nav-btn"
@@ -4312,10 +4316,19 @@ export default function Dashboard() {
             color: '#00BFFF',
             fontWeight: 'bold',
             border: '2px solid #00BFFF',
-            boxShadow: '0 0 10px #00BFFF'
+            boxShadow: '0 0 10px #00BFFF',
+            flexShrink: 0,
+            minWidth: '60px'
           }}
         >
           PRO
+        </button>
+        <button 
+          className={getButtonClassName('faq').replace('vintage-btn', 'mobile-nav-btn')}
+          onClick={() => setSelectedView('faq')}
+          style={{ flexShrink: 0, minWidth: '60px' }}
+        >
+          FAQ
         </button>
       </div>
 

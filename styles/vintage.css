@@ -12,6 +12,9 @@
   --terminal-black: #0a0a0a;
   --terminal-dark: #1a1a1a;
   
+  /* Dynamic color with opacity - for theme support */
+  --primary-rgb: 0, 255, 65;  /* Will be updated by theme */
+  
   /* Typography (Mobile-first scaling) - iOS Safari compatible monospace stack */
   --font-mono: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
   --font-display: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
@@ -517,10 +520,9 @@ input:checked + .toggle-slider::before {
   color: var(--amber-warning);
 }
 
-/* Mobile Navigation - Improved */
+/* Mobile Navigation - All buttons fit without scrolling */
 .mobile-nav {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex !important;
   gap: var(--space-xs);
   position: fixed;
   bottom: 0;
@@ -534,11 +536,14 @@ input:checked + .toggle-slider::before {
   
   /* Safe area for modern phones */
   padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom));
+  
+  /* Ensure buttons fit evenly */
+  justify-content: space-between;
 }
 
 @media (min-width: 768px) {
   .mobile-nav {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -546,21 +551,31 @@ input:checked + .toggle-slider::before {
   background: linear-gradient(135deg, #333, #222);
   border: 2px solid var(--phosphor-green);
   color: var(--phosphor-green);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-xs) 2px;
   border-radius: 6px;
   font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
+  font-size: 9px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   
-  /* Ensure proper touch target */
+  /* Ensure proper touch target and equal width */
   min-height: var(--touch-target);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+@media (min-width: 375px) {
+  .mobile-nav-btn {
+    font-size: var(--font-size-xs);
+    padding: var(--space-xs) var(--space-xs);
+  }
 }
 
 .mobile-nav-btn:active {

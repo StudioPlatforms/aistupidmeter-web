@@ -2196,6 +2196,65 @@ export default function ModelDetailPage() {
         onClose={() => setShowProModal(false)}
         feature={proModalFeature}
       />
+
+      {/* Mobile Navigation */}
+      <div className="mobile-nav">
+        <button 
+          className="mobile-nav-btn"
+          onClick={() => {
+            router.push('/');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          style={{ flexShrink: 0, minWidth: '70px' }}
+        >
+          DASH
+        </button>
+        <button 
+          className="mobile-nav-btn"
+          onClick={() => {
+            // Simple theme toggle for models page
+            const root = document.documentElement;
+            const currentTheme = root.getAttribute('data-theme') || 'green';
+            const themes = ['green', 'amber', 'blue', 'red', 'purple', 'cyan'];
+            const currentIndex = themes.indexOf(currentTheme);
+            const nextTheme = themes[(currentIndex + 1) % themes.length];
+            root.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('theme', nextTheme);
+          }}
+          style={{ flexShrink: 0 }}
+        >
+          THEME
+        </button>
+        <button 
+          className="mobile-nav-btn"
+          onClick={() => router.push('/')}
+          style={{ flexShrink: 0, minWidth: '70px' }}
+        >
+          ABOUT
+        </button>
+        <button 
+          className="mobile-nav-btn"
+          onClick={() => router.push('/router')}
+          style={{
+            backgroundColor: '#00BFFF',
+            color: '#00BFFF',
+            fontWeight: 'bold',
+            border: '2px solid #00BFFF',
+            boxShadow: '0 0 10px #00BFFF',
+            flexShrink: 0,
+            minWidth: '60px'
+          }}
+        >
+          PRO
+        </button>
+        <button 
+          className="mobile-nav-btn"
+          onClick={() => router.push('/')}
+          style={{ flexShrink: 0, minWidth: '60px' }}
+        >
+          FAQ
+        </button>
+      </div>
     </div>
   );
 }

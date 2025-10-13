@@ -167,7 +167,10 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
       { key: 'openai', name: 'GPT' },
       { key: 'anthropic', name: 'CLAUDE' },
       { key: 'google', name: 'GEMINI' },
-      { key: 'xai', name: 'GROK' }
+      { key: 'xai', name: 'GROK' },
+      { key: 'deepseek', name: 'DEEPSEEK' },
+      { key: 'glm', name: 'GLM' },
+      { key: 'kimi', name: 'KIMI' }
     ];
 
     return (
