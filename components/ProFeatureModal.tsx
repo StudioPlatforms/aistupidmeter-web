@@ -161,7 +161,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
               $49.99
             </span>
             <span className="terminal-text--green" style={{ fontSize: '2em', fontWeight: 'bold' }}>
-              $19.99/month
+              $4.99/month
             </span>
           </div>
           <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>

@@ -4404,7 +4404,7 @@ export default function Dashboard() {
                           $49.99
                         </span>
                         <span className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.2em' : '1.4em', fontWeight: 'bold' }}>
-                          $19.99/mo
+                          $4.99/mo
                         </span>
                       </div>
                       <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.7em' : '0.8em' }}>

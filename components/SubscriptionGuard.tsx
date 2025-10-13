@@ -178,7 +178,7 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
                 marginTop: 'var(--space-md)',
                 fontSize: 'clamp(0.8rem, 1.5vw, 0.95rem)'
               }}>
-                $19.99/month • 7-Day Free Trial • Cancel Anytime
+                $4.99/month • 7-Day Free Trial • Cancel Anytime
               </div>
             </div>
           </div>

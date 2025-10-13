@@ -377,7 +377,7 @@ export default function SalesOverlay() {
               lineHeight: '1',
               textShadow: '0 0 8px var(--amber-warning)'
             }}>
-              $19.99<span style={{ fontSize: '0.4em' }}>/mo</span>
+              $4.99<span style={{ fontSize: '0.4em' }}>/mo</span>
             </div>
           </div>
           

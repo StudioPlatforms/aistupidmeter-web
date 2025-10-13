@@ -194,7 +194,7 @@ export default function SubscriptionPage() {
                     {isPro ? 'Monthly Price' : 'Current Cost'}
                   </div>
                   <div className="terminal-text--green" style={{ fontSize: 'clamp(1.5em, 5vw, 2em)', fontWeight: 'bold' }}>
-                    ${isPro ? '19.99' : '0.00'}
+                    ${isPro ? '4.99' : '0.00'}
                   </div>
                   <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
                     per month
@@ -448,7 +448,7 @@ export default function SubscriptionPage() {
                     style={{ fontSize: 'clamp(0.95em, 2.5vw, 1.1em)', padding: '14px 28px', width: '100%', maxWidth: '400px' }}
                   >
                     <PixelIcon name="arrow-up" size={18} style={{ marginRight: '8px' }} />
-                    Upgrade to PRO - $19.99/month
+                    Upgrade to PRO - $4.99/month
                   </button>
                   <div className="terminal-text--dim" style={{ marginTop: '12px', fontSize: '0.8em' }}>
                     7-Day Free Trial • Cancel Anytime
