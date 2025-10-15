@@ -32,8 +32,8 @@ export function SignInForm() {
         return;
       }
 
-      // Redirect to router dashboard
-      router.push('/router');
+      // Use window.location for hard redirect to ensure session is properly loaded
+      window.location.href = '/router';
     } catch (err) {
       setError('An error occurred during sign in');
       setLoading(false);

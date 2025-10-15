@@ -4362,53 +4362,46 @@ export default function Dashboard() {
               {welcomeStep === 'updates' && (
                 <>
                   <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.5em', marginBottom: '12px', textAlign: 'center' }}>
-                    <span className="terminal-text--green">🚀 AI ROUTER PRO</span>
+                    <span className="terminal-text--green">🔬 WELCOME TO AI STUPID METER</span>
                     <span className="blinking-cursor"></span>
                   </div>
                   
                   <div style={{ marginBottom: '16px', lineHeight: '1.4', textAlign: 'center' }}>
                     <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em', marginBottom: '12px' }}>
-                      Intelligent gateway to the best AI models. Auto-routes to top performers based on real-time data.
+                      Track real-time AI model performance across GPT, Claude, Grok & Gemini
                     </div>
                     
                     <div style={{ 
                       padding: window.innerWidth < 768 ? '12px' : '16px', 
-                      backgroundColor: 'rgba(0, 191, 255, 0.1)', 
-                      border: '2px solid rgba(0, 191, 255, 0.5)',
+                      backgroundColor: 'rgba(0, 255, 65, 0.1)', 
+                      border: '2px solid rgba(0, 255, 65, 0.3)',
                       borderRadius: '6px',
                       marginBottom: '12px',
                       fontSize: window.innerWidth < 768 ? '0.8em' : '0.9em'
                     }}>
-                      <div className="terminal-text--green" style={{ marginBottom: '8px' }}>
-                        ✓ Smart Selection • ✓ Cost Optimization<br/>
-                        ✓ Degradation Protection • ✓ One API
+                      <div className="terminal-text--green" style={{ marginBottom: '8px', fontWeight: 'bold' }}>
+                        ✓ Free Features You Get:
+                      </div>
+                      <div className="terminal-text--dim" style={{ textAlign: 'left', marginLeft: '16px' }}>
+                        • Live model rankings updated every 4 hours<br/>
+                        • Real-time degradation alerts<br/>
+                        • 171+ benchmark results across 16+ models<br/>
+                        • Model Intelligence Center with recommendations
                       </div>
                     </div>
 
                     <div style={{ 
                       padding: window.innerWidth < 768 ? '10px' : '12px', 
-                      backgroundColor: 'rgba(0, 255, 65, 0.1)', 
-                      border: '1px solid rgba(0, 255, 65, 0.3)',
+                      backgroundColor: 'rgba(0, 191, 255, 0.08)', 
+                      border: '1px solid rgba(0, 191, 255, 0.3)',
                       borderRadius: '4px',
                       textAlign: 'center'
                     }}>
-                      <div className="terminal-text--amber" style={{ fontSize: window.innerWidth < 768 ? '0.9em' : '1.0em', marginBottom: '6px' }}>
-                        💎 Limited Offer
+                      <div className="terminal-text--amber" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.9em', marginBottom: '4px' }}>
+                        💎 Want automated AI routing?
                       </div>
-                      <div style={{ marginBottom: '4px' }}>
-                        <span className="terminal-text--dim" style={{ 
-                          fontSize: window.innerWidth < 768 ? '0.9em' : '1.0em', 
-                          textDecoration: 'line-through',
-                          marginRight: '8px'
-                        }}>
-                          $49.99
-                        </span>
-                        <span className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.2em' : '1.4em', fontWeight: 'bold' }}>
-                          $4.99/mo
-                        </span>
-                      </div>
-                      <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.7em' : '0.8em' }}>
-                        7-day free trial • Cancel anytime
+                      <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.75em' : '0.8em' }}>
+                        AI Router Pro available • $4.99/mo • 7-day free trial
                       </div>
                     </div>
                   </div>

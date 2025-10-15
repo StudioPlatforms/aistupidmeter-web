@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
-import SubscriptionGuard from '@/components/SubscriptionGuard';
+import IntelligencePreview from '@/components/IntelligencePreview';
 
 interface Model {
   id: string;
@@ -33,6 +33,8 @@ export default function ModelIntelligencePage() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [downloadingModel, setDownloadingModel] = useState<Model | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     fetchModelData();
@@ -107,18 +109,49 @@ export default function ModelIntelligencePage() {
   const categories = ['all', ...Array.from(new Set(models.map(m => m.category).filter((c): c is string => Boolean(c))))];
   const providers = ['all', ...Array.from(new Set(models.map(m => m.provider)))];
 
-  if (status === 'unauthenticated') {
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.email) {
+      checkSubscription();
+    } else if (status === 'unauthenticated') {
+      setChecking(false);
+      setHasAccess(false);
+    }
+  }, [status, session]);
+
+  const checkSubscription = async () => {
+    try {
+      const response = await fetch('/api/subscription/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: session!.user!.email!
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data.hasAccess) {
+        setHasAccess(true);
+      } else {
+        setHasAccess(false);
+      }
+    } catch (err) {
+      console.error('Failed to check subscription:', err);
+      setHasAccess(false);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  if (checking) {
     return (
       <RouterLayout>
         <div className="vintage-container">
-          <div className="error-banner">
-            <div className="terminal-text">
-              <div className="terminal-text--red" style={{ fontSize: '1.2em', marginBottom: '12px' }}>
-                ⚠️ AUTHENTICATION REQUIRED
-              </div>
-              <div className="terminal-text--dim">
-                Please sign in to access Model Intelligence
-              </div>
+          <div className="crt-monitor">
+            <div className="terminal-text terminal-text--green" style={{ fontSize: '1.5em', textAlign: 'center', padding: 'var(--space-xl)' }}>
+              CHECKING ACCESS<span className="vintage-loading"></span>
             </div>
           </div>
         </div>
@@ -126,9 +159,16 @@ export default function ModelIntelligencePage() {
     );
   }
 
+  if (!hasAccess) {
+    return (
+      <RouterLayout>
+        <IntelligencePreview />
+      </RouterLayout>
+    );
+  }
+
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="Intelligence">
       <div className="vintage-container">
         <div className="dashboard-header">
           <div>
@@ -575,7 +615,6 @@ export default function ModelIntelligencePage() {
           </div>
         </div>
       </div>
-      </SubscriptionGuard>
     </RouterLayout>
   );
 }

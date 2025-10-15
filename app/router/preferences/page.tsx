@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
-import SubscriptionGuard from '@/components/SubscriptionGuard';
+import PreferencesPreview from '@/components/PreferencesPreview';
 import PixelIcon from '@/components/PixelIcon';
 import { apiClient } from '@/lib/api-client';
 import type { UserPreferences } from '@/lib/api-client';
@@ -64,16 +64,47 @@ export default function RouterPreferencesPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       apiClient.setUserId(session.user.id);
+      checkSubscription();
       fetchPreferences();
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
       setLoading(false);
+      setChecking(false);
     }
   }, [status, session]);
+
+  const checkSubscription = async () => {
+    try {
+      const response = await fetch('/api/subscription/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: session!.user!.email!
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.data.hasAccess) {
+        setHasAccess(true);
+      } else {
+        setHasAccess(false);
+      }
+    } catch (err) {
+      console.error('Failed to check subscription:', err);
+      setHasAccess(false);
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const fetchPreferences = async () => {
     try {
@@ -136,9 +167,32 @@ export default function RouterPreferencesPage() {
     });
   };
 
+  if (checking) {
+    return (
+      <RouterLayout>
+        <div className="vintage-container">
+          <div className="crt-monitor">
+            <div className="terminal-text terminal-text--green" style={{ fontSize: '1.5em', textAlign: 'center', padding: 'var(--space-xl)' }}>
+              CHECKING ACCESS<span className="vintage-loading"></span>
+            </div>
+          </div>
+        </div>
+      </RouterLayout>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <RouterLayout>
+        <PreferencesPreview />
+      </RouterLayout>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="vintage-container">
+      <RouterLayout>
+        <div className="vintage-container">
         <div className="crt-monitor" style={{ textAlign: 'center', padding: '48px' }}>
           <div className="terminal-text">
             <div className="terminal-text--amber" style={{ fontSize: '1.5em' }}>
@@ -146,13 +200,15 @@ export default function RouterPreferencesPage() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </RouterLayout>
     );
   }
 
   if (error || !preferences) {
     return (
-      <div className="vintage-container">
+      <RouterLayout>
+        <div className="vintage-container">
         <div className="crt-monitor" style={{ borderColor: 'var(--red-alert)', backgroundColor: 'rgba(255, 45, 0, 0.05)' }}>
           <div className="terminal-text">
             <div className="terminal-text--red" style={{ fontSize: '1.5em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -167,13 +223,13 @@ export default function RouterPreferencesPage() {
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      </RouterLayout>
     );
   }
 
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="Preferences">
       <div className="vintage-container">
         {/* Header */}
       <div className="crt-monitor">
@@ -514,7 +570,6 @@ export default function RouterPreferencesPage() {
         </div>
       </div>
       </div>
-      </SubscriptionGuard>
     </RouterLayout>
   );
 }

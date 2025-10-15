@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
-import SalesOverlay from '@/components/SalesOverlay';
+import DashboardPreview from '@/components/DashboardPreview';
 import PixelIcon from '@/components/PixelIcon';
 
 export const dynamic = 'force-dynamic';
@@ -117,13 +117,11 @@ function RouterDashboardContent() {
     }
   };
 
-  // Show sales overlay for non-subscribers
+  // Show dashboard preview for non-subscribers
   if (showSalesOverlay && !hasAccess) {
     return (
       <RouterLayout>
-        <div className="vintage-container">
-          <SalesOverlay />
-        </div>
+        <DashboardPreview />
       </RouterLayout>
     );
   }
