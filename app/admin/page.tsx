@@ -41,6 +41,15 @@ interface RecentVisitor {
   isUnique: boolean;
 }
 
+interface UserStats {
+  total: number;
+  pro: number;
+  free: number;
+  today: number;
+  week: number;
+  month: number;
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
@@ -48,6 +57,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null);
   const [recentVisitors, setRecentVisitors] = useState<RecentVisitor[]>([]);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +92,15 @@ export default function AdminPage() {
       if (recentResponse.ok) {
         const recentData = await recentResponse.json();
         setRecentVisitors(recentData.visitors || []);
+      }
+
+      // Fetch user statistics
+      const userResponse = await fetch('/api/admin/users');
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        if (userData.success) {
+          setUserStats(userData.data);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch visitor data:', error);
@@ -187,6 +206,51 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* User Statistics */}
+      {userStats && (
+        <div className="crt-monitor">
+          <div className="terminal-text" style={{ marginBottom: '16px', textAlign: 'center' }}>
+            <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
+              👥 USER ACCOUNTS
+            </div>
+          </div>
+          
+          <div className="vintage-grid">
+            <div className="terminal-text" style={{ textAlign: 'center', padding: '12px', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '4px' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '4px' }}>TOTAL USERS</div>
+              <div className="terminal-text--green" style={{ fontSize: '2em', fontWeight: 'bold' }}>{userStats.total}</div>
+            </div>
+            
+            <div className="terminal-text" style={{ textAlign: 'center', padding: '12px', border: '1px solid rgba(255, 176, 0, 0.3)', borderRadius: '4px' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '4px' }}>PRO USERS</div>
+              <div className="terminal-text--amber" style={{ fontSize: '2em', fontWeight: 'bold' }}>{userStats.pro}</div>
+            </div>
+            
+            <div className="terminal-text" style={{ textAlign: 'center', padding: '12px', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '4px' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '4px' }}>FREE USERS</div>
+              <div className="terminal-text" style={{ fontSize: '2em', fontWeight: 'bold' }}>{userStats.free}</div>
+            </div>
+          </div>
+          
+          <div className="vintage-grid" style={{ marginTop: '12px' }}>
+            <div className="terminal-text" style={{ padding: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '4px' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>TODAY</div>
+              <div className="terminal-text--green">{userStats.today} new</div>
+            </div>
+            
+            <div className="terminal-text" style={{ padding: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '4px' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>7 DAYS</div>
+              <div className="terminal-text--green">{userStats.week} new</div>
+            </div>
+            
+            <div className="terminal-text" style={{ padding: '8px', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '4px' }}>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>30 DAYS</div>
+              <div className="terminal-text--green">{userStats.month} new</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics Overview */}
       {visitorStats && (
