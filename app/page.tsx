@@ -82,6 +82,10 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<AlertModel[]>([]);
   const [globalIndex, setGlobalIndex] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStage, setLoadingStage] = useState<string>('Initializing...');
+  const [loadingAttempts, setLoadingAttempts] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState<string>('');
   const [degradations, setDegradations] = useState<any[]>([]);
   const [driftIncidents, setDriftIncidents] = useState<any[]>([]);
   const [providerReliability, setProviderReliability] = useState<any[]>([]);
@@ -831,23 +835,145 @@ export default function Dashboard() {
     }
   };
 
-  // Fetch dashboard data - now using INSTANT cached endpoints!
+  // Validate if fetched data is complete and usable
+  const validateDataCompleteness = (modelScoresData: any[], globalIndexData: any): boolean => {
+    // Check if we have valid model scores with meaningful data
+    if (!modelScoresData || modelScoresData.length === 0) {
+      console.log('❌ Validation failed: No model scores');
+      return false;
+    }
+    
+    // Check if we have models with valid scores (> 0)
+    const hasValidScores = modelScoresData.some((model: any) => 
+      typeof model.currentScore === 'number' && model.currentScore > 0
+    );
+    
+    if (!hasValidScores) {
+      console.log('❌ Validation failed: No valid scores found');
+      return false;
+    }
+    
+    // Check if we have global index data
+    const hasGlobalIndex = globalIndexData && 
+      typeof globalIndexData.current?.globalScore === 'number' &&
+      globalIndexData.current.globalScore > 0;
+    
+    console.log('📊 Data validation:', {
+      modelCount: modelScoresData.length,
+      hasValidScores,
+      hasGlobalIndex,
+      sampleScore: modelScoresData[0]?.currentScore,
+      globalScore: globalIndexData?.current?.globalScore,
+      isComplete: hasValidScores && hasGlobalIndex
+    });
+    
+    return hasValidScores && hasGlobalIndex;
+  };
+
+  // Fun and educational loading messages
+  const loadingMessages = [
+    // Funny messages
+    "Teaching AI models to count to 10... They're stuck at 7",
+    "Asking ChatGPT if it remembers being smarter yesterday...",
+    "Running stupidity diagnostics... Results pending",
+    "Measuring how many paperclips each AI wants to make",
+    "Checking if AI can still spell 'intelligence' correctly",
+    "Testing if models know they're being tested (they don't)",
+    "Watching AI models juggle... They dropped all the balls",
+    "Rolling dice to see which model forgot how to code today",
+    "AI models are rehearsing their excuses for poor performance",
+    "Painting a picture of AI confusion... It's abstract",
+    
+    // Did you know? Facts
+    "Did you know? AI models can lose 30% capability overnight!",
+    "Did you know? We run 147 coding challenges every 4 hours!",
+    "Did you know? 'AI lobotomy' = companies reducing model intelligence",
+    "Did you know? We've completed 171+ tool calling benchmark sessions!",
+    "Did you know? Our system detects degradation using CUSUM algorithms!",
+    "Did you know? We track 7 performance axes for each model!",
+    "Did you know? We monitor 20+ AI models across 4 major providers!",
+    "Did you know? Models are tested with 5 runs for statistical accuracy!",
+    "Did you know? We use 95% confidence intervals for reliability!",
+    "Did you know? Our benchmarks run in secure sandbox environments!"
+  ];
+
+  // Rotate loading message every 3 seconds
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    if (!loading) return;
+    
+    // Set initial random message
+    const randomIndex = Math.floor(Math.random() * loadingMessages.length);
+    setLoadingMessage(loadingMessages[randomIndex]);
+    
+    // Rotate message every 3 seconds
+    const messageInterval = setInterval(() => {
+      const newIndex = Math.floor(Math.random() * loadingMessages.length);
+      setLoadingMessage(loadingMessages[newIndex]);
+    }, 3000);
+    
+    return () => clearInterval(messageInterval);
+  }, [loading]);
+
+  // Fetch dashboard data with retry logic - now using INSTANT cached endpoints!
+  useEffect(() => {
+    const fetchDashboardData = async (attemptNumber = 0) => {
       try {
-        setLoading(true);
+        if (attemptNumber === 0) {
+          setLoading(true);
+          setLoadingStage('Initializing...');
+          setLoadingProgress(10);
+        }
+        
+        setLoadingAttempts(attemptNumber);
+        setLoadingProgress(Math.min(10 + (attemptNumber * 8), 90));
         
         // Check batch status first
+        setLoadingStage('Checking system status...');
         const batchStatusData = await fetchBatchStatus();
         
+        setLoadingStage('Loading live rankings...');
+        setLoadingProgress(Math.min(30 + (attemptNumber * 8), 90));
+        
         // Try to fetch ALL data from cache INSTANTLY
-        console.log('⚡ Attempting instant cache load...');
+        console.log(`⚡ Attempting instant cache load (attempt ${attemptNumber + 1})...`);
         const cacheSuccess = await fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod);
+        
+        setLoadingStage('Processing data...');
+        setLoadingProgress(Math.min(50 + (attemptNumber * 8), 90));
         
         if (cacheSuccess) {
           console.log('🚀 Dashboard loaded INSTANTLY from cache!');
+          
+          // Validate data completeness
+          const dataIsComplete = validateDataCompleteness(modelScores, globalIndex);
+          
+          if (!dataIsComplete && attemptNumber < 10) {
+            // Data is incomplete, schedule retry with exponential backoff
+            const retryDelay = Math.min(2000 * Math.pow(1.5, attemptNumber), 10000);
+            console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+            
+            setLoadingStage(`Data incomplete, retrying in ${Math.round(retryDelay / 1000)}s...`);
+            setLoadingProgress(Math.min(70 + (attemptNumber * 3), 95));
+            
+            setTimeout(() => {
+              fetchDashboardData(attemptNumber + 1);
+            }, retryDelay);
+            
+            return; // Don't set loading to false yet
+          }
+          
+          if (!dataIsComplete && attemptNumber >= 10) {
+            console.log('⚠️ Max retry attempts reached, showing available data');
+            setLoadingStage('Max retries reached, showing available data');
+          } else if (dataIsComplete) {
+            console.log('✅ Data validation passed, showing dashboard');
+            setLoadingStage('Complete!');
+          }
         } else {
           console.log('🔄 Cache miss, falling back to individual API calls...');
+          
+          setLoadingStage('Fetching from backup sources...');
+          setLoadingProgress(Math.min(60 + (attemptNumber * 8), 90));
           
           // Fallback to legacy approach if cache misses
           const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
@@ -876,7 +1002,27 @@ export default function Dashboard() {
           // Fallback leaderboard and analytics - these should be filtered to 16 models
           console.log('🔄 Using fallback leaderboard API - should return only 16 core models');
           await fetchLeaderboardData();
+          
+          // Validate fallback data
+          const dataIsComplete = validateDataCompleteness(modelScores, globalIndexData.data);
+          
+          if (!dataIsComplete && attemptNumber < 10) {
+            const retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber), 15000);
+            console.log(`⏳ Fallback data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+            
+            setLoadingStage(`Fetching benchmark data, please wait...`);
+            setLoadingProgress(Math.min(70 + (attemptNumber * 3), 95));
+            
+            setTimeout(() => {
+              fetchDashboardData(attemptNumber + 1);
+            }, retryDelay);
+            
+            return;
+          }
         }
+        
+        setLoadingStage('Loading analytics...');
+        setLoadingProgress(Math.min(80 + (attemptNumber * 5), 95));
         
         // ALWAYS call analytics APIs directly for Model Intelligence Center
         // This ensures real-time degradation detection and accurate recommendations
@@ -888,15 +1034,44 @@ export default function Dashboard() {
         
         // Always fetch visitor count (not cached)
         fetchVisitorCount();
+        
+        setLoadingProgress(100);
+        setLoadingStage('Complete!');
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+        console.error('❌ Failed to fetch dashboard data:', error);
+        
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isServerError = errorMessage.includes('Server error:') || 
+                             errorMessage.includes('500') || 
+                             errorMessage.includes('502') || 
+                             errorMessage.includes('503');
+        
+        if (isServerError && attemptNumber < 10) {
+          // Server error - retry with exponential backoff
+          const retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber), 15000);
+          console.log(`⚠️ Server error, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+          
+          setLoadingStage(`Server busy, retrying...`);
+          setLoadingProgress(Math.min(50 + (attemptNumber * 5), 95));
+          
+          setTimeout(() => {
+            fetchDashboardData(attemptNumber + 1);
+          }, retryDelay);
+          
+          return;
+        }
+        
+        if (attemptNumber >= 10) {
+          console.log('❌ Max retry attempts reached');
+          setLoadingStage('Unable to load data after multiple attempts');
+        }
       } finally {
         setLoading(false);
       }
     };
 
     // Initial data load
-    fetchDashboardData();
+    fetchDashboardData(0);
     
     // Silent background updates every 2 minutes for real-time feel
     // This ensures the 24-hour AI Stupidity Index and Model Intelligence Center stay fresh
@@ -2897,6 +3072,140 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Enhanced retro loading screen with progress tracking
+  if (loading) {
+    return (
+      <div className="vintage-container">
+        <div className="crt-monitor" style={{ 
+          textAlign: 'center', 
+          padding: 'var(--space-lg) var(--space-md)',
+          minHeight: '400px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <div className="terminal-text" style={{ width: '100%', maxWidth: '600px' }}>
+            {/* Header */}
+            <div style={{ 
+              fontSize: 'var(--font-size-xl)', 
+              marginBottom: 'var(--space-lg)',
+              wordWrap: 'break-word'
+            }}>
+              <span className="terminal-text--green">STUPID METER</span>
+              <span className="blinking-cursor"></span>
+            </div>
+            
+            {/* Loading icon */}
+            <div style={{ 
+              fontSize: '3em', 
+              marginBottom: 'var(--space-lg)', 
+              opacity: 0.7,
+              animation: 'pulse 2s infinite'
+            }}>
+              ⚡
+            </div>
+            
+            {/* Retro progress bar */}
+            <div style={{ 
+              width: '100%', 
+              marginBottom: 'var(--space-lg)',
+              padding: '0 var(--space-sm)'
+            }}>
+              <div className="retro-progress-track" style={{ 
+                height: '20px',
+                marginBottom: 'var(--space-sm)'
+              }}>
+                <div 
+                  className="retro-progress-fill ultra-pixelated"
+                  style={{ 
+                    width: `${loadingProgress}%`,
+                    background: loadingProgress < 30 ? 'var(--red-alert)' :
+                               loadingProgress < 70 ? 'var(--amber-warning)' :
+                               'var(--phosphor-green)',
+                    transition: 'width 0.5s ease, background 0.3s ease'
+                  }}
+                >
+                  <div className="ultra-pixel-blocks"></div>
+                </div>
+              </div>
+              
+              {/* Progress percentage */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                fontSize: 'var(--font-size-xs)',
+                marginBottom: 'var(--space-md)'
+              }}>
+                <span className="terminal-text--dim">PROGRESS</span>
+                <span className="terminal-text--green" style={{ fontWeight: 'bold' }}>
+                  {loadingProgress}%
+                </span>
+              </div>
+            </div>
+            
+            {/* Status message */}
+            <div style={{ 
+              fontSize: 'var(--font-size-md)', 
+              marginBottom: 'var(--space-md)',
+              minHeight: '24px'
+            }}>
+              <span className="terminal-text">{loadingStage}</span>
+            </div>
+            
+            {/* Loading animation dots */}
+            <div className="vintage-loading" style={{ 
+              fontSize: 'var(--font-size-lg)',
+              marginBottom: 'var(--space-md)'
+            }}></div>
+            
+            {/* Attempt counter */}
+            {loadingAttempts > 0 && (
+              <div style={{ 
+                fontSize: 'var(--font-size-sm)',
+                marginTop: 'var(--space-md)',
+                padding: 'var(--space-sm)',
+                background: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(0, 255, 65, 0.2)',
+                borderRadius: '4px'
+              }}>
+                <span className="terminal-text--dim">Attempt: </span>
+                <span className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
+                  {loadingAttempts + 1}/10
+                </span>
+              </div>
+            )}
+            
+            {/* Helpful message for slow loads */}
+            {loadingAttempts >= 3 && (
+              <div style={{ 
+                fontSize: 'var(--font-size-xs)',
+                marginTop: 'var(--space-md)',
+                color: 'var(--phosphor-dim)',
+                lineHeight: '1.4'
+              }}>
+                <div style={{ marginBottom: 'var(--space-xs)' }}>
+                  ⏳ Fetching live model rankings...
+                </div>
+                <div>
+                  This may take a moment as we gather real-time data from multiple sources.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Add pulse animation */}
+        <style jsx>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+          }
+        `}</style>
       </div>
     );
   }
