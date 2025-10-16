@@ -44,30 +44,54 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'rankings';
     
-    // Fetch live data from API with timeout and error handling
+    // Fetch live data from API with timeout and retry logic
     const apiUrl = process.env.NODE_ENV === 'production' 
       ? 'https://aistupidlevel.info' 
       : 'http://localhost:4000';
     
     let data: any = null;
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-      
-      const response = await fetch(`${apiUrl}/dashboard/cached?period=latest&sortBy=combined&analyticsPeriod=latest`, {
-        signal: controller.signal,
-        headers: { 'User-Agent': 'OG-Generator' },
-        next: { revalidate: 60 }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        data = await response.json();
+    
+    // Retry logic with exponential backoff
+    const maxRetries = 3;
+    const baseTimeout = 10000; // 10 seconds base timeout
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = baseTimeout * (attempt + 1); // Increase timeout with each retry
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        console.log(`[OG] Attempt ${attempt + 1}/${maxRetries} - Fetching data with ${timeout}ms timeout`);
+        
+        const response = await fetch(`${apiUrl}/dashboard/cached?period=latest&sortBy=combined&analyticsPeriod=latest`, {
+          signal: controller.signal,
+          headers: { 
+            'User-Agent': 'OG-Generator',
+            'Accept': 'application/json'
+          },
+          next: { revalidate: 60 }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          data = await response.json();
+          console.log(`[OG] Successfully fetched data on attempt ${attempt + 1}`);
+          break; // Success, exit retry loop
+        } else {
+          console.error(`[OG] API returned status ${response.status} on attempt ${attempt + 1}`);
+          if (attempt < maxRetries - 1) {
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+          }
+        }
+      } catch (fetchError: any) {
+        console.error(`[OG] Fetch error on attempt ${attempt + 1}:`, fetchError.message);
+        if (attempt < maxRetries - 1) {
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+        }
       }
-    } catch (fetchError) {
-      console.error('Failed to fetch dashboard data:', fetchError);
-      // Continue with fallback data
     }
     
     // If no data, use fallback
