@@ -44,54 +44,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'rankings';
     
-    // Fetch live data from API with timeout and retry logic
+    // Use the CACHED endpoint for instant data - no timeouts!
     const apiUrl = process.env.NODE_ENV === 'production' 
       ? 'https://aistupidlevel.info' 
       : 'http://localhost:4000';
     
     let data: any = null;
     
-    // Retry logic with exponential backoff
-    const maxRetries = 3;
-    const baseTimeout = 10000; // 10 seconds base timeout
-    
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeout = baseTimeout * (attempt + 1); // Increase timeout with each retry
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
-        console.log(`[OG] Attempt ${attempt + 1}/${maxRetries} - Fetching data with ${timeout}ms timeout`);
-        
-        const response = await fetch(`${apiUrl}/dashboard/cached?period=latest&sortBy=combined&analyticsPeriod=latest`, {
-          signal: controller.signal,
-          headers: { 
-            'User-Agent': 'OG-Generator',
-            'Accept': 'application/json'
-          },
-          next: { revalidate: 60 }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
-          data = await response.json();
-          console.log(`[OG] Successfully fetched data on attempt ${attempt + 1}`);
-          break; // Success, exit retry loop
-        } else {
-          console.error(`[OG] API returned status ${response.status} on attempt ${attempt + 1}`);
-          if (attempt < maxRetries - 1) {
-            // Wait before retrying (exponential backoff)
-            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-          }
-        }
-      } catch (fetchError: any) {
-        console.error(`[OG] Fetch error on attempt ${attempt + 1}:`, fetchError.message);
-        if (attempt < maxRetries - 1) {
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
-        }
+    try {
+      console.log(`[OG] Fetching from cached endpoint (instant response)`);
+      
+      // Use cached endpoint - this should return instantly since data is pre-computed
+      const response = await fetch(`${apiUrl}/dashboard/cached?period=latest&sortBy=combined&analyticsPeriod=latest`, {
+        headers: { 
+          'User-Agent': 'OG-Generator',
+          'Accept': 'application/json'
+        },
+        next: { revalidate: 60 }
+      });
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log(`[OG] Successfully fetched cached data`);
+      } else {
+        console.error(`[OG] Cached API returned status ${response.status}`);
       }
+    } catch (fetchError: any) {
+      console.error(`[OG] Error fetching cached data:`, fetchError.message);
     }
     
     // If no data, use fallback
