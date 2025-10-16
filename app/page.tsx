@@ -10,6 +10,7 @@ import FeatureCard from '../components/FeatureCard';
 import FAQItem from '../components/FAQItem';
 import StatCounter from '../components/StatCounter';
 import ThemeButton from '../components/ThemeButton';
+import ShareButton from '../components/ShareButton';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -4540,6 +4541,15 @@ export default function Dashboard() {
         isOpen={showProModal}
         onClose={() => setShowProModal(false)}
         feature={proModalFeature}
+      />
+
+      {/* Share Button - Floating */}
+      <ShareButton 
+        type="rankings" 
+        data={{ 
+          modelScores: modelScores.slice(0, 3),
+          globalIndex 
+        }} 
       />
 
       {/* Fund Us Popup - Themed with 3 funding options */}

@@ -71,11 +71,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://stupidmeter.ai',
+    url: 'https://aistupidlevel.info',
     title: 'AI Benchmark Tool - Best AI Models 2025 | Compare Claude vs GPT vs Gemini',
     description: 'Ultimate AI benchmarking tool for 2025. Test AI performance, compare AI models, and find the best AI for coding. Real-time AI benchmark results and LLM performance tests.',
-    siteName: 'AI Benchmark Tool',
+    siteName: 'AI Stupid Level - Benchmark Tool',
     images: [
+      {
+        url: 'https://aistupidlevel.info/api/og?type=rankings',
+        width: 1200,
+        height: 630,
+        alt: 'AI Model Rankings - Live Performance Scores'
+      },
       {
         url: '/stupidmetermeta.png',
         width: 1200,
@@ -88,8 +94,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'AI Benchmark Tool - Best AI Models 2025 Rankings',
     description: 'Compare AI models with our comprehensive benchmarking tool. Test Claude vs GPT vs Gemini performance. Find the best AI for coding and development.',
-    creator: '@GOATGameDev',
-    images: ['/stupidmetermeta.png'],
+    creator: '@AIStupidlevel',
+    site: '@AIStupidlevel',
+    images: ['https://aistupidlevel.info/api/og?type=rankings'],
   },
   robots: {
     index: true,
