@@ -3163,6 +3163,25 @@ export default function Dashboard() {
               marginBottom: 'var(--space-md)'
             }}></div>
             
+            {/* Rotating loading message */}
+            {loadingMessage && (
+              <div style={{ 
+                fontSize: 'var(--font-size-sm)',
+                marginBottom: 'var(--space-md)',
+                padding: 'var(--space-sm)',
+                background: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(0, 255, 65, 0.2)',
+                borderRadius: '4px',
+                minHeight: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center'
+              }}>
+                <span className="terminal-text--dim">{loadingMessage}</span>
+              </div>
+            )}
+            
             {/* Attempt counter */}
             {loadingAttempts > 0 && (
               <div style={{ 
