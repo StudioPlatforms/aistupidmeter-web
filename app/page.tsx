@@ -671,7 +671,8 @@ export default function Dashboard() {
   };
 
   // Fetch all dashboard data from cached endpoints - INSTANT loading!
-  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false) => {
+  // FIXED: Now returns the fetched data for validation before state updates
+  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false): Promise<{ success: boolean; data?: any }> => {
     console.log(`⚡ Fetching cached dashboard data: ${period}/${sortBy}/${analyticsP}`);
     
     try {
@@ -783,14 +784,33 @@ export default function Dashboard() {
           });
         }
         
-        return true; // Success
+        // FIXED: Return the actual fetched data for validation
+        // Process model scores before returning
+        const processedScores = modelScores.map((score: any) => ({
+          ...score,
+          lastUpdated: new Date(score.lastUpdated),
+          history: score.history || []
+        }));
+        
+        return { 
+          success: true, 
+          data: { 
+            modelScores: processedScores, 
+            globalIndex,
+            alerts,
+            degradations,
+            recommendations,
+            transparencyMetrics,
+            providerReliability
+          } 
+        };
       } else {
         console.warn(`⚠️ Cache miss or error: ${result.message || result.error}`);
-        return false; // Cache miss - will need to use fallback
+        return { success: false }; // Cache miss - will need to use fallback
       }
     } catch (error) {
       console.error('Error fetching cached dashboard data:', error);
-      return false; // Error - will need to use fallback
+      return { success: false }; // Error - will need to use fallback
     }
   };
 
@@ -897,7 +917,7 @@ export default function Dashboard() {
     "Did you know? Our benchmarks run in secure sandbox environments!"
   ];
 
-  // Rotate loading message every 3 seconds
+  // Rotate loading message every 5-8 seconds with random intervals
   useEffect(() => {
     if (!loading) return;
     
@@ -905,13 +925,23 @@ export default function Dashboard() {
     const randomIndex = Math.floor(Math.random() * loadingMessages.length);
     setLoadingMessage(loadingMessages[randomIndex]);
     
-    // Rotate message every 3 seconds
-    const messageInterval = setInterval(() => {
-      const newIndex = Math.floor(Math.random() * loadingMessages.length);
-      setLoadingMessage(loadingMessages[newIndex]);
-    }, 3000);
+    // Function to schedule next message change with random interval
+    const scheduleNextMessage = () => {
+      // Random interval between 5-8 seconds (5000-8000ms)
+      const randomInterval = Math.floor(Math.random() * 3000) + 5000;
+      
+      return setTimeout(() => {
+        const newIndex = Math.floor(Math.random() * loadingMessages.length);
+        setLoadingMessage(loadingMessages[newIndex]);
+        // Schedule the next message change
+        timeoutId = scheduleNextMessage();
+      }, randomInterval);
+    };
     
-    return () => clearInterval(messageInterval);
+    // Start the rotation
+    let timeoutId = scheduleNextMessage();
+    
+    return () => clearTimeout(timeoutId);
   }, [loading]);
 
   // Fetch dashboard data with retry logic - now using INSTANT cached endpoints!
@@ -936,16 +966,19 @@ export default function Dashboard() {
         
         // Try to fetch ALL data from cache INSTANTLY
         console.log(`⚡ Attempting instant cache load (attempt ${attemptNumber + 1})...`);
-        const cacheSuccess = await fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod);
+        const cacheResult = await fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod);
         
         setLoadingStage('Processing data...');
         setLoadingProgress(Math.min(50 + (attemptNumber * 8), 90));
         
-        if (cacheSuccess) {
+        if (cacheResult.success && cacheResult.data) {
           console.log('🚀 Dashboard loaded INSTANTLY from cache!');
           
-          // Validate data completeness
-          const dataIsComplete = validateDataCompleteness(modelScores, globalIndex);
+          // FIXED: Validate the FETCHED data, not the state (which hasn't updated yet)
+          const dataIsComplete = validateDataCompleteness(
+            cacheResult.data.modelScores || [], 
+            cacheResult.data.globalIndex
+          );
           
           if (!dataIsComplete && attemptNumber < 10) {
             // Data is incomplete, schedule retry with exponential backoff
@@ -1002,6 +1035,9 @@ export default function Dashboard() {
           // Fallback leaderboard and analytics - these should be filtered to 16 models
           console.log('🔄 Using fallback leaderboard API - should return only 16 core models');
           await fetchLeaderboardData();
+          
+          // FIXED: Wait a bit for state to update, then validate
+          await new Promise(resolve => setTimeout(resolve, 100));
           
           // Validate fallback data
           const dataIsComplete = validateDataCompleteness(modelScores, globalIndexData.data);
