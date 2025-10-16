@@ -532,7 +532,8 @@ export default function Dashboard() {
   };
 
   // Silent background data fetch without loading indicators - PRESERVES USER SELECTIONS
-  const fetchDataSilently = async () => {
+  // Now with retry logic to ensure data is eventually fetched
+  const fetchDataSilently = async (retryCount = 0, maxRetries = 3) => {
     if (backgroundUpdating) {
       console.log('⏸️ Silent refresh already in progress, skipping...');
       return;
@@ -640,10 +641,21 @@ export default function Dashboard() {
       }
       
     } catch (error) {
-      console.error('Silent background update failed:', error);
-      // Silently fail - don't disrupt user experience
-    } finally {
-      setBackgroundUpdating(false);
+      console.error(`Silent background update failed (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+      
+      // Retry with exponential backoff if we haven't exceeded max retries
+      if (retryCount < maxRetries) {
+        const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Max 10 seconds
+        console.log(`⏳ Retrying in ${backoffDelay}ms...`);
+        
+        setTimeout(() => {
+          setBackgroundUpdating(false);
+          fetchDataSilently(retryCount + 1, maxRetries);
+        }, backoffDelay);
+      } else {
+        console.error('❌ Max retries exceeded for silent refresh');
+        setBackgroundUpdating(false);
+      }
     }
   };
 
@@ -887,7 +899,9 @@ export default function Dashboard() {
     fetchDashboardData();
     
     // Silent background updates every 2 minutes for real-time feel
+    // This ensures the 24-hour AI Stupidity Index and Model Intelligence Center stay fresh
     const silentUpdateTimer = setInterval(() => {
+      console.log('🔄 Starting scheduled silent refresh...');
       fetchDataSilently();
     }, 2 * 60 * 1000);
     
