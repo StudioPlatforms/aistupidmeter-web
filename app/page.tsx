@@ -475,56 +475,47 @@ export default function Dashboard() {
     // Use the passed period or fall back to current state
     const selectedPeriod = period || analyticsPeriod;
     const selectedSortBy = sortBy || leaderboardSortBy;
-    
+
     console.log(`🔍 fetchAnalyticsData called with period=${selectedPeriod}, sortBy=${selectedSortBy}, silent=${silent}`);
-    
+
     // Only show loading indicators if not in silent mode
     if (!silent) {
       setLoadingAnalytics(true);
     }
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+
+      console.log(`🌐 Fetching analytics from cached dashboard endpoint`);
+
+      // Use the cached dashboard endpoint which includes ALL analytics data
+      const response = await fetch(`${apiUrl}/dashboard/cached?period=${selectedPeriod}&sortBy=${selectedSortBy}&analyticsPeriod=${selectedPeriod}`);
       
-      console.log(`🌐 Making analytics API calls to ${apiUrl}`);
-      
-      const [degradationResponse, reliabilityResponse, recommendationsResponse, transparencyResponse] = await Promise.all([
-        fetch(`${apiUrl}/analytics/degradations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
-        fetch(`${apiUrl}/analytics/provider-reliability?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
-        fetch(`${apiUrl}/analytics/recommendations?period=${selectedPeriod}&sortBy=${selectedSortBy}`),
-        fetch(`${apiUrl}/analytics/transparency?period=${selectedPeriod}&sortBy=${selectedSortBy}`)
-      ]);
-      
-      console.log(`📡 Analytics API responses received:`, {
-        degradations: degradationResponse.status,
-        reliability: reliabilityResponse.status,
-        recommendations: recommendationsResponse.status,
-        transparency: transparencyResponse.status
-      });
-      
-      const degradationData = await degradationResponse.json();
-      const reliabilityData = await reliabilityResponse.json();
-      const recommendationsData = await recommendationsResponse.json();
-      const transparencyData = await transparencyResponse.json();
-      
-      console.log(`📊 Analytics data parsed:`, {
-        degradations: degradationData.success,
-        reliability: reliabilityData.success,
-        recommendations: recommendationsData.success ? 'SUCCESS' : 'FAILED',
-        transparency: transparencyData.success,
-        recommendationsData: recommendationsData.success ? recommendationsData.data : 'NO DATA'
-      });
-      
-      if (degradationData.success) setDegradations(degradationData.data);
-      if (reliabilityData.success) setProviderReliability(reliabilityData.data);
-      if (recommendationsData.success) {
-        console.log(`✅ Setting recommendations data:`, recommendationsData.data);
-        setRecommendations(recommendationsData.data);
-      } else {
-        console.error(`❌ Recommendations API failed:`, recommendationsData);
+      if (!response.ok) {
+        throw new Error(`Analytics fetch failed: ${response.status}`);
       }
-      if (transparencyData.success) setTransparencyMetrics(transparencyData.data);
-      
-      console.log(`🎯 Analytics data fetch completed successfully`);
+
+      const result = await response.json();
+
+      console.log(`📡 Analytics data received from cached endpoint:`, {
+        success: result.success,
+        hasDegradations: !!result.data?.degradations,
+        hasReliability: !!result.data?.providerReliability,
+        hasRecommendations: !!result.data?.recommendations,
+        hasTransparency: !!result.data?.transparencyMetrics
+      });
+
+      if (result.success && result.data) {
+        // Extract analytics data from cached response
+        if (result.data.degradations) setDegradations(result.data.degradations);
+        if (result.data.providerReliability) setProviderReliability(result.data.providerReliability);
+        if (result.data.recommendations) {
+          console.log(`✅ Setting recommendations data:`, result.data.recommendations);
+          setRecommendations(result.data.recommendations);
+        }
+        if (result.data.transparencyMetrics) setTransparencyMetrics(result.data.transparencyMetrics);
+        
+        console.log(`🎯 Analytics data fetch completed successfully`);
+      }
     } catch (error) {
       console.error('❌ Error fetching analytics data:', error);
     } finally {
@@ -686,6 +677,18 @@ export default function Dashboard() {
       if (result.success && result.data) {
         console.log(`✅ Received cached data from ${result.meta?.cachedAt || 'unknown time'}`);
         
+        // DEBUG: Log the entire result.data structure to see what we're getting
+        console.log('🔍 Full result.data structure:', {
+          hasModelScores: !!result.data.modelScores,
+          hasAlerts: !!result.data.alerts,
+          hasGlobalIndex: !!result.data.globalIndex,
+          hasDegradations: !!result.data.degradations,
+          hasRecommendations: !!result.data.recommendations,
+          hasTransparencyMetrics: !!result.data.transparencyMetrics,
+          hasProviderReliability: !!result.data.providerReliability,
+          recommendationsValue: result.data.recommendations
+        });
+        
         // Extract all the data components
         const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
         
@@ -744,7 +747,22 @@ export default function Dashboard() {
         if (alerts) setAlerts(alerts);
         if (globalIndex) setGlobalIndex(globalIndex);
         if (degradations) setDegradations(degradations);
-        if (recommendations) setRecommendations(recommendations);
+        
+        // CRITICAL: Always set recommendations, even if empty, to trigger UI update
+        console.log('🔍 Recommendations data from cache:', recommendations);
+        if (recommendations) {
+          console.log('✅ Setting recommendations from cached response:', {
+            hasBestForCode: !!recommendations.bestForCode,
+            hasMostReliable: !!recommendations.mostReliable,
+            hasFastestResponse: !!recommendations.fastestResponse,
+            hasAvoidNow: !!recommendations.avoidNow
+          });
+          setRecommendations(recommendations);
+        } else {
+          console.warn('⚠️ No recommendations in cached response, setting empty object');
+          setRecommendations({});
+        }
+        
         if (transparencyMetrics) setTransparencyMetrics(transparencyMetrics);
         if (providerReliability) setProviderReliability(providerReliability);
         
@@ -855,7 +873,31 @@ export default function Dashboard() {
     }
   };
 
-  // Validate if fetched data is complete and usable
+  // Health check to verify API is responsive
+  const healthCheck = async (): Promise<boolean> => {
+    try {
+      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
+      const response = await fetch(`${apiUrl}/health`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        console.log('✅ Health check passed');
+        return true;
+      }
+      console.warn('⚠️ Health check failed with status:', response.status);
+      return false;
+    } catch (error) {
+      console.error('❌ Health check error:', error);
+      return false;
+    }
+  };
+
+  // Enhanced validation - much stricter about data quality
   const validateDataCompleteness = (modelScoresData: any[], globalIndexData: any): boolean => {
     // Check if we have valid model scores with meaningful data
     if (!modelScoresData || modelScoresData.length === 0) {
@@ -863,13 +905,27 @@ export default function Dashboard() {
       return false;
     }
     
-    // Check if we have models with valid scores (> 0)
-    const hasValidScores = modelScoresData.some((model: any) => 
+    // STRICTER: Require at least 3 models (not just 1)
+    if (modelScoresData.length < 3) {
+      console.log('❌ Validation failed: Too few models', modelScoresData.length);
+      return false;
+    }
+    
+    // STRICTER: Check if we have models with valid scores (> 0)
+    const modelsWithValidScores = modelScoresData.filter((model: any) => 
       typeof model.currentScore === 'number' && model.currentScore > 0
     );
     
-    if (!hasValidScores) {
-      console.log('❌ Validation failed: No valid scores found');
+    // STRICTER: Require at least 3 models with valid scores
+    if (modelsWithValidScores.length < 3) {
+      console.log('❌ Validation failed: Not enough valid scores', modelsWithValidScores.length);
+      return false;
+    }
+    
+    // STRICTER: Reject if more than 50% of models are unavailable
+    const unavailableCount = modelScoresData.filter((m: any) => m.currentScore === 'unavailable').length;
+    if (unavailableCount > modelScoresData.length / 2) {
+      console.log('❌ Validation failed: Too many unavailable models', unavailableCount, '/', modelScoresData.length);
       return false;
     }
     
@@ -878,16 +934,17 @@ export default function Dashboard() {
       typeof globalIndexData.current?.globalScore === 'number' &&
       globalIndexData.current.globalScore > 0;
     
-    console.log('📊 Data validation:', {
-      modelCount: modelScoresData.length,
-      hasValidScores,
+    console.log('📊 Enhanced data validation:', {
+      totalModels: modelScoresData.length,
+      validScores: modelsWithValidScores.length,
+      unavailable: unavailableCount,
       hasGlobalIndex,
       sampleScore: modelScoresData[0]?.currentScore,
       globalScore: globalIndexData?.current?.globalScore,
-      isComplete: hasValidScores && hasGlobalIndex
+      isComplete: modelsWithValidScores.length >= 3 && hasGlobalIndex
     });
     
-    return hasValidScores && hasGlobalIndex;
+    return modelsWithValidScores.length >= 3 && hasGlobalIndex;
   };
 
   // Fun and educational loading messages
@@ -952,24 +1009,39 @@ export default function Dashboard() {
           setLoading(true);
           setLoadingStage('Initializing...');
           setLoadingProgress(10);
+          
+          // HEALTH CHECK: Verify API is responsive before attempting data fetch
+          setLoadingStage('Checking API health...');
+          const isHealthy = await healthCheck();
+          if (!isHealthy && attemptNumber < 15) {
+            // API unhealthy - faster retry for health check
+            const retryDelay = Math.min(500 * Math.pow(1.5, attemptNumber), 5000);
+            console.log(`⚠️ API health check failed, retrying in ${retryDelay}ms`);
+            setLoadingStage(`System starting up, retrying in ${Math.round(retryDelay / 1000)}s...`);
+            
+            setTimeout(() => {
+              fetchDashboardData(attemptNumber + 1);
+            }, retryDelay);
+            return;
+          }
         }
         
         setLoadingAttempts(attemptNumber);
-        setLoadingProgress(Math.min(10 + (attemptNumber * 8), 90));
+        setLoadingProgress(Math.min(10 + (attemptNumber * 6), 90));
         
         // Check batch status first
         setLoadingStage('Checking system status...');
         const batchStatusData = await fetchBatchStatus();
         
         setLoadingStage('Loading live rankings...');
-        setLoadingProgress(Math.min(30 + (attemptNumber * 8), 90));
+        setLoadingProgress(Math.min(30 + (attemptNumber * 6), 90));
         
         // Try to fetch ALL data from cache INSTANTLY
         console.log(`⚡ Attempting instant cache load (attempt ${attemptNumber + 1})...`);
         const cacheResult = await fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod);
         
         setLoadingStage('Processing data...');
-        setLoadingProgress(Math.min(50 + (attemptNumber * 8), 90));
+        setLoadingProgress(Math.min(50 + (attemptNumber * 6), 90));
         
         if (cacheResult.success && cacheResult.data) {
           console.log('🚀 Dashboard loaded INSTANTLY from cache!');
@@ -980,13 +1052,21 @@ export default function Dashboard() {
             cacheResult.data.globalIndex
           );
           
-          if (!dataIsComplete && attemptNumber < 10) {
-            // Data is incomplete, schedule retry with exponential backoff
-            const retryDelay = Math.min(2000 * Math.pow(1.5, attemptNumber), 10000);
-            console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+          if (!dataIsComplete && attemptNumber < 15) {
+            // AGGRESSIVE RETRY: Faster initial retries, then exponential backoff
+            let retryDelay;
+            if (attemptNumber < 3) {
+              // First 3 attempts: very fast (500ms, 1s, 2s)
+              retryDelay = 500 * Math.pow(2, attemptNumber);
+            } else {
+              // After 3 attempts: exponential backoff
+              retryDelay = Math.min(2000 * Math.pow(1.5, attemptNumber - 3), 10000);
+            }
             
-            setLoadingStage(`Data incomplete, retrying in ${Math.round(retryDelay / 1000)}s...`);
-            setLoadingProgress(Math.min(70 + (attemptNumber * 3), 95));
+            console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15)`);
+            
+            setLoadingStage(`Fetching models (${attemptNumber + 1}/15)...`);
+            setLoadingProgress(Math.min(70 + (attemptNumber * 2), 95));
             
             setTimeout(() => {
               fetchDashboardData(attemptNumber + 1);
@@ -995,9 +1075,9 @@ export default function Dashboard() {
             return; // Don't set loading to false yet
           }
           
-          if (!dataIsComplete && attemptNumber >= 10) {
+          if (!dataIsComplete && attemptNumber >= 15) {
             console.log('⚠️ Max retry attempts reached, showing available data');
-            setLoadingStage('Max retries reached, showing available data');
+            setLoadingStage('Showing available data (some models may be missing)');
           } else if (dataIsComplete) {
             console.log('✅ Data validation passed, showing dashboard');
             setLoadingStage('Complete!');
@@ -1006,7 +1086,7 @@ export default function Dashboard() {
           console.log('🔄 Cache miss, falling back to individual API calls...');
           
           setLoadingStage('Fetching from backup sources...');
-          setLoadingProgress(Math.min(60 + (attemptNumber * 8), 90));
+          setLoadingProgress(Math.min(60 + (attemptNumber * 6), 90));
           
           // Fallback to legacy approach if cache misses
           const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
@@ -1042,12 +1122,19 @@ export default function Dashboard() {
           // Validate fallback data
           const dataIsComplete = validateDataCompleteness(modelScores, globalIndexData.data);
           
-          if (!dataIsComplete && attemptNumber < 10) {
-            const retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber), 15000);
-            console.log(`⏳ Fallback data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+          if (!dataIsComplete && attemptNumber < 15) {
+            // AGGRESSIVE RETRY for fallback too
+            let retryDelay;
+            if (attemptNumber < 3) {
+              retryDelay = 1000 * Math.pow(2, attemptNumber);
+            } else {
+              retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber - 3), 15000);
+            }
             
-            setLoadingStage(`Fetching benchmark data, please wait...`);
-            setLoadingProgress(Math.min(70 + (attemptNumber * 3), 95));
+            console.log(`⏳ Fallback data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15)`);
+            
+            setLoadingStage(`Fetching benchmark data (${attemptNumber + 1}/15)...`);
+            setLoadingProgress(Math.min(70 + (attemptNumber * 2), 95));
             
             setTimeout(() => {
               fetchDashboardData(attemptNumber + 1);
@@ -1058,12 +1145,11 @@ export default function Dashboard() {
         }
         
         setLoadingStage('Loading analytics...');
-        setLoadingProgress(Math.min(80 + (attemptNumber * 5), 95));
+        setLoadingProgress(Math.min(80 + (attemptNumber * 3), 95));
         
-        // ALWAYS call analytics APIs directly for Model Intelligence Center
-        // This ensures real-time degradation detection and accurate recommendations
-        console.log('🔄 Model Intelligence Center: Calling analytics APIs directly for real-time data...');
-        fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+        // Analytics data is already loaded from the cached response above
+        // No need to make separate API calls - the data is already in state
+        console.log('✅ Analytics data already loaded from cached response');
         
         // Fetch drift incidents for Intelligence Center
         fetchDriftIncidents('7d');
@@ -1082,13 +1168,19 @@ export default function Dashboard() {
                              errorMessage.includes('502') || 
                              errorMessage.includes('503');
         
-        if (isServerError && attemptNumber < 10) {
-          // Server error - retry with exponential backoff
-          const retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber), 15000);
-          console.log(`⚠️ Server error, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/10)`);
+        if (isServerError && attemptNumber < 15) {
+          // Server error - AGGRESSIVE retry with faster initial attempts
+          let retryDelay;
+          if (attemptNumber < 3) {
+            retryDelay = 1000 * Math.pow(2, attemptNumber);
+          } else {
+            retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber - 3), 15000);
+          }
           
-          setLoadingStage(`Server busy, retrying...`);
-          setLoadingProgress(Math.min(50 + (attemptNumber * 5), 95));
+          console.log(`⚠️ Server error, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15)`);
+          
+          setLoadingStage(`Server busy, retrying (${attemptNumber + 1}/15)...`);
+          setLoadingProgress(Math.min(50 + (attemptNumber * 3), 95));
           
           setTimeout(() => {
             fetchDashboardData(attemptNumber + 1);
@@ -1097,9 +1189,9 @@ export default function Dashboard() {
           return;
         }
         
-        if (attemptNumber >= 10) {
+        if (attemptNumber >= 15) {
           console.log('❌ Max retry attempts reached');
-          setLoadingStage('Unable to load data after multiple attempts');
+          setLoadingStage('Unable to load data after 15 attempts');
         }
       } finally {
         setLoading(false);
@@ -1754,14 +1846,7 @@ export default function Dashboard() {
 
   // Helper function to render dynamic metric display with rich information
   const renderDynamicMetric = (model: any): JSX.Element => {
-    // AGGRESSIVE DEBUG: Log what renderDynamicMetric actually sees
-    console.log(`🔧 renderDynamicMetric for ${model.name}:`, {
-      currentScore: model.currentScore,
-      typeof: typeof model.currentScore,
-      _period: (model as any)._period,
-      _sortBy: (model as any)._sortBy,
-      wholeModel: model
-    });
+    // Debug logging removed for production performance
     
     // FORCE React to recognize this as a new component every time with unique randomization
     const forceRenderKey = `${model.id}_${model.currentScore}_${(model as any)._period}_${Date.now()}_${Math.random()}`;
