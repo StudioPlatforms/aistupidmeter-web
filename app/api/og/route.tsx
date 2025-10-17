@@ -18,17 +18,15 @@ function generateFallbackImage(type: string) {
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'monospace',
-          color: '#00FF41'
+          color: '#00FF41',
+          padding: '60px'
         }}
       >
-        <div style={{ fontSize: 60, marginBottom: 30 }}>
-          🔬 AI STUPID LEVEL
+        <div style={{ fontSize: 48, marginBottom: 25, color: '#FFB000' }}>
+          ⚠️ DATA TEMPORARILY UNAVAILABLE
         </div>
-        <div style={{ fontSize: 32, color: '#888', textAlign: 'center', maxWidth: '80%' }}>
-          Real-Time AI Intelligence Monitoring
-        </div>
-        <div style={{ fontSize: 28, marginTop: 40, color: '#888' }}>
-          aistupidlevel.info
+        <div style={{ fontSize: 28, color: '#888', textAlign: 'center', maxWidth: '80%' }}>
+          AI Intelligence monitoring data is currently being updated
         </div>
       </div>
     ),
@@ -95,6 +93,12 @@ export async function GET(request: NextRequest) {
       const criticalModels = modelScores.filter((m: any) => m.currentScore < 50);
       const hasAlerts = criticalModels.length > 0;
       
+      // Get bottom 3 models (worst performers)
+      const bottomModels = modelScores.slice(-3).reverse();
+      
+      // Get recommendations if available
+      const topRecommendations = recommendations?.slice(0, 2) || [];
+      
       return new ImageResponse(
         (
           <div
@@ -104,88 +108,79 @@ export async function GET(request: NextRequest) {
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
               fontFamily: 'monospace',
               color: '#00FF41',
-              padding: '40px'
+              padding: '40px 50px'
             }}
           >
-            {hasAlerts ? (
-              <>
-                <div style={{ fontSize: 48, marginBottom: 20, textAlign: 'center', color: '#FF2D00' }}>
-                  🚨 CRITICAL ALERTS
-                </div>
-                <div style={{ fontSize: 28, marginBottom: 30, color: '#FFB000' }}>
-                  {criticalModels.length} MODELS BELOW 50 POINTS
-                </div>
-                {criticalModels.slice(0, 3).map((model: any, index: number) => (
-                  <div
-                    key={model.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '80%',
-                      marginBottom: 12,
-                      padding: '12px 20px',
-                      background: 'rgba(255, 45, 0, 0.1)',
-                      border: '2px solid #FF2D00',
-                      borderRadius: 8
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                      <div style={{ fontSize: 32, color: '#FF2D00' }}>⚠️</div>
-                      <div style={{ fontSize: 24, color: '#FFB000' }}>
-                        {model.name.toUpperCase()}
-                      </div>
+            {/* Top Section: Best Models */}
+            <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 30 }}>
+              <div style={{ fontSize: 32, marginBottom: 15, color: '#00FF41', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span>✅</span>
+                <span>RECOMMENDED MODELS</span>
+              </div>
+              {topModels.map((model: any, index: number) => (
+                <div
+                  key={model.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                    padding: '8px 16px',
+                    background: 'rgba(0, 255, 65, 0.08)',
+                    border: '1px solid #00FF41',
+                    borderRadius: 6
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 28, color: index === 0 ? '#FFD700' : '#00FF41' }}>
+                      {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                     </div>
-                    <div style={{ fontSize: 32, fontWeight: 'bold', color: '#FF2D00' }}>
-                      {model.currentScore} pts
+                    <div style={{ fontSize: 20, color: '#00FF41' }}>
+                      {model.name}
                     </div>
                   </div>
-                ))}
-              </>
-            ) : (
-              <>
-                <div style={{ fontSize: 48, marginBottom: 30, textAlign: 'center' }}>
-                  🏆 TOP AI MODELS
+                  <div style={{ fontSize: 26, fontWeight: 'bold', color: '#00FF41' }}>
+                    {model.currentScore}
+                  </div>
                 </div>
-                <div style={{ fontSize: 32, marginBottom: 20, color: '#888' }}>
-                  LIVE PERFORMANCE SCORES
-                </div>
-                {topModels.map((model: any, index: number) => (
-                  <div
-                    key={model.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '80%',
-                      marginBottom: 15,
-                      padding: '15px 20px',
-                      background: 'rgba(0, 255, 65, 0.1)',
-                      border: '2px solid #00FF41',
-                      borderRadius: 8
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                      <div style={{ fontSize: 40, color: index === 0 ? '#FFD700' : '#00FF41' }}>
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                      </div>
-                      <div style={{ fontSize: 28 }}>
-                        {model.name.toUpperCase()}
-                      </div>
+              ))}
+            </div>
+
+            {/* Bottom Section: Models to Avoid */}
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ fontSize: 32, marginBottom: 15, color: '#FF2D00', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span>⚠️</span>
+                <span>AVOID THESE MODELS</span>
+              </div>
+              {bottomModels.map((model: any, index: number) => (
+                <div
+                  key={model.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                    padding: '8px 16px',
+                    background: 'rgba(255, 45, 0, 0.08)',
+                    border: '1px solid #FF2D00',
+                    borderRadius: 6
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ fontSize: 24, color: '#FF2D00' }}>
+                      ❌
                     </div>
-                    <div style={{ fontSize: 36, fontWeight: 'bold', color: '#00FF41' }}>
-                      {model.currentScore} pts
+                    <div style={{ fontSize: 20, color: '#FFB000' }}>
+                      {model.name}
                     </div>
                   </div>
-                ))}
-              </>
-            )}
-            <div style={{ fontSize: 24, marginTop: 30, color: '#888' }}>
-              aistupidlevel.info • Real-time AI monitoring
+                  <div style={{ fontSize: 26, fontWeight: 'bold', color: '#FF2D00' }}>
+                    {model.currentScore}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ),
@@ -201,6 +196,10 @@ export async function GET(request: NextRequest) {
       const status = score >= 70 ? 'PERFORMING WELL' : score >= 50 ? 'BELOW AVERAGE' : 'CONCERNING LEVELS';
       const color = score >= 70 ? '#00FF41' : score >= 50 ? '#FFB000' : '#FF2D00';
       
+      // Get degradations and recommendations
+      const topDegradations = degradations?.slice(0, 3) || [];
+      const topRecommendations = recommendations?.slice(0, 2) || [];
+      
       return new ImageResponse(
         (
           <div
@@ -210,24 +209,86 @@ export async function GET(request: NextRequest) {
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
               fontFamily: 'monospace',
-              color: '#00FF41'
+              color: '#00FF41',
+              padding: '40px 50px'
             }}
           >
-            <div style={{ fontSize: 48, marginBottom: 30 }}>
-              🌡️ AI STUPIDITY INDEX
+            {/* Global Score Section */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 35, paddingBottom: 20, borderBottom: '2px solid #333' }}>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 28, color: '#888', marginBottom: 8 }}>
+                  GLOBAL AI INDEX
+                </div>
+                <div style={{ fontSize: 72, fontWeight: 'bold', color }}>
+                  {score}/100
+                </div>
+              </div>
+              <div style={{ fontSize: 24, color, textAlign: 'right', maxWidth: '400px' }}>
+                {status}
+              </div>
             </div>
-            <div style={{ fontSize: 120, fontWeight: 'bold', color, marginBottom: 20 }}>
-              {score}/100
-            </div>
-            <div style={{ fontSize: 36, color: '#888', marginBottom: 40 }}>
-              {status}
-            </div>
-            <div style={{ fontSize: 28, color: '#888' }}>
-              Track AI performance at aistupidlevel.info
-            </div>
+
+            {/* Degradations or Top Models */}
+            {topDegradations.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 28, marginBottom: 12, color: '#FFB000', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span>📉</span>
+                  <span>RECENT DEGRADATIONS</span>
+                </div>
+                {topDegradations.map((deg: any, index: number) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                      padding: '8px 16px',
+                      background: 'rgba(255, 176, 0, 0.08)',
+                      border: '1px solid #FFB000',
+                      borderRadius: 6
+                    }}
+                  >
+                    <div style={{ fontSize: 18, color: '#FFB000' }}>
+                      {deg.modelName}
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 'bold', color: '#FF2D00' }}>
+                      -{deg.change}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 28, marginBottom: 12, color: '#00FF41', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span>🏆</span>
+                  <span>TOP PERFORMERS</span>
+                </div>
+                {topModels.slice(0, 3).map((model: any, index: number) => (
+                  <div
+                    key={model.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 8,
+                      padding: '8px 16px',
+                      background: 'rgba(0, 255, 65, 0.08)',
+                      border: '1px solid #00FF41',
+                      borderRadius: 6
+                    }}
+                  >
+                    <div style={{ fontSize: 18, color: '#00FF41' }}>
+                      {model.name}
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 'bold', color: '#00FF41' }}>
+                      {model.currentScore}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ),
         {
@@ -237,7 +298,7 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Default fallback
+    // Default fallback - show simple data-focused view
     return new ImageResponse(
       (
         <div
@@ -247,21 +308,41 @@ export async function GET(request: NextRequest) {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
             fontFamily: 'monospace',
-            color: '#00FF41'
+            color: '#00FF41',
+            padding: '40px 50px'
           }}
         >
-          <div style={{ fontSize: 60, marginBottom: 30 }}>
-            🔬 STUPID METER
+          <div style={{ fontSize: 32, marginBottom: 30, color: '#00FF41' }}>
+            📊 AI MODEL INTELLIGENCE REPORT
           </div>
-          <div style={{ fontSize: 32, color: '#888', textAlign: 'center', maxWidth: '80%' }}>
-            Real-Time AI Intelligence Monitoring
-          </div>
-          <div style={{ fontSize: 28, marginTop: 40, color: '#888' }}>
-            aistupidlevel.info
-          </div>
+          {topModels.map((model: any, index: number) => (
+            <div
+              key={model.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 12,
+                padding: '10px 18px',
+                background: 'rgba(0, 255, 65, 0.08)',
+                border: '1px solid #00FF41',
+                borderRadius: 6
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+                <div style={{ fontSize: 28, color: index === 0 ? '#FFD700' : '#00FF41' }}>
+                  {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                </div>
+                <div style={{ fontSize: 22, color: '#00FF41' }}>
+                  {model.name}
+                </div>
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 'bold', color: '#00FF41' }}>
+                {model.currentScore}
+              </div>
+            </div>
+          ))}
         </div>
       ),
       {
