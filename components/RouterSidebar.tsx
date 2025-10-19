@@ -57,6 +57,7 @@ export default function RouterSidebar() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const navigationItems = [
+    { iconName: 'arrow-left', label: '← Back to Rankings', href: '/', isExternal: true },
     { iconName: 'home', label: 'Dashboard', href: '/router' },
     { iconName: 'key', label: 'API Keys', href: '/router/keys' },
     { iconName: 'plug', label: 'Providers', href: '/router/providers' },
