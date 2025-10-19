@@ -236,11 +236,26 @@ export default function RouterPreferencesPage() {
         <div className="terminal-text">
           <div style={{ fontSize: '1.5em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <PixelIcon name="settings" size={28} className="terminal-text--green" />
-            <span className="terminal-text--green">ROUTING PREFERENCES</span>
+            <span className="terminal-text--green">SMART ROUTER PREFERENCES</span>
             <span className="blinking-cursor"></span>
           </div>
           <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px' }}>
-            Configure how the router selects models for your requests
+            Configure intelligent model selection powered by real-time benchmarks from AI Stupid Meter
+          </div>
+          <div style={{ 
+            padding: '12px', 
+            backgroundColor: 'rgba(0, 255, 65, 0.05)', 
+            border: '1px solid rgba(0, 255, 65, 0.2)',
+            borderRadius: '4px',
+            marginBottom: '16px'
+          }}>
+            <div className="terminal-text--green" style={{ fontSize: '0.85em', marginBottom: '4px', fontWeight: 'bold' }}>
+              💡 How Smart Routing Works:
+            </div>
+            <div className="terminal-text--dim" style={{ fontSize: '0.8em', lineHeight: '1.5' }}>
+              Your router automatically selects the best AI model for each request based on live performance data. 
+              Choose a strategy below, and the router will pick models that match your priorities while staying within your constraints.
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button onClick={handleReset} className="vintage-btn">
@@ -277,10 +292,20 @@ export default function RouterPreferencesPage() {
       <div className="crt-monitor">
         <div className="terminal-text" style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-            <span className="terminal-text--green">ROUTING STRATEGY</span>
+            <span className="terminal-text--green">SMART ROUTING STRATEGY</span>
           </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-            Choose how the router selects models for your requests
+          <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '8px' }}>
+            Select your routing mode - the router uses live benchmark data to pick the best model
+          </div>
+          <div style={{ 
+            padding: '8px 12px', 
+            backgroundColor: 'rgba(0, 191, 255, 0.05)', 
+            border: '1px solid rgba(0, 191, 255, 0.2)',
+            borderRadius: '3px',
+            fontSize: '0.8em'
+          }}>
+            <span className="terminal-text--amber">⚡ Pro Tip:</span>
+            <span className="terminal-text--dim"> "Best Overall" is recommended for most use cases. It balances performance, cost, and reliability using our 7-axis scoring system.</span>
           </div>
         </div>
         
@@ -558,13 +583,23 @@ export default function RouterPreferencesPage() {
       {/* Info Banner */}
       <div className="crt-monitor" style={{ borderColor: 'var(--phosphor-green)', backgroundColor: 'rgba(0, 255, 65, 0.05)' }}>
         <div className="terminal-text">
-          <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <PixelIcon name="lightbulb" size={20} />
-            HOW PREFERENCES WORK
+            HOW SMART ROUTING WORKS
+          </div>
+          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6', marginBottom: '12px' }}>
+            <strong className="terminal-text--green">Real-Time Intelligence:</strong> Your router uses live benchmark data from AI Stupid Meter 
+            to make intelligent decisions. Every 4 hours, we test 16+ models across 7 performance axes (correctness, code quality, 
+            efficiency, stability, etc.) and update our rankings.
+          </div>
+          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6', marginBottom: '12px' }}>
+            <strong className="terminal-text--green">Automatic Selection:</strong> Based on your chosen strategy and constraints, 
+            the router automatically picks the best model for each request. You get optimal performance without manually tracking 
+            which models are performing well.
           </div>
           <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
-            Your preferences are applied to every request. The router will only select models 
-            that meet all your constraints. If no models match, the request will fail with a 
+            <strong className="terminal-text--green">Constraint Enforcement:</strong> Your preferences are applied to every request. 
+            The router will only select models that meet all your constraints. If no models match, the request will fail with a 
             clear error message explaining why.
           </div>
         </div>

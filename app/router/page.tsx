@@ -198,11 +198,11 @@ function RouterDashboardContent() {
         <div className="dashboard-header">
           <div>
             <h1 className="dashboard-title">
-              <span className="terminal-text--green">AI ROUTER</span>
+              <span className="terminal-text--green">AI SMART ROUTER</span>
               <span className="blinking-cursor"></span>
             </h1>
             <p className="dashboard-subtitle terminal-text--dim">
-              Universal API Gateway • Intelligent Model Selection • Cost Optimization
+              Intelligent Model Selection Powered by Real-Time Benchmarks • Save 50-70% on AI Costs
             </p>
           </div>
           <div className="dashboard-status">
@@ -395,24 +395,39 @@ function RouterDashboardContent() {
               <div className="section-header">
                 <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <PixelIcon name="sparkles" size={20} />
-                  KEY FEATURES
+                  SMART ROUTING FEATURES
                 </span>
               </div>
               <div className="features-list">
                 <FeatureItem
                   iconName="target"
-                  title="Intelligent Routing"
-                  description="Auto-selects best model based on real-time benchmarks"
+                  title="Live Benchmark Data"
+                  description="Uses real-time performance data from AI Stupid Meter's 7-axis testing"
+                />
+                <FeatureItem
+                  iconName="brain"
+                  title="6 Routing Strategies"
+                  description="Best Overall, Coding, Reasoning, Creative, Cheapest, or Fastest"
                 />
                 <FeatureItem
                   iconName="money"
                   title="Cost Optimization"
-                  description="Save 50-70% on AI costs without sacrificing quality"
+                  description="Save 50-70% on AI costs by auto-selecting cost-effective models"
                 />
                 <FeatureItem
                   iconName="refresh"
                   title="Automatic Failover"
-                  description="Zero downtime with automatic failover"
+                  description="Zero downtime with intelligent fallback to alternative models"
+                />
+                <FeatureItem
+                  iconName="settings"
+                  title="Custom Constraints"
+                  description="Set max cost, latency limits, and feature requirements"
+                />
+                <FeatureItem
+                  iconName="chart"
+                  title="Performance Tracking"
+                  description="Monitor usage, costs, and savings across all your requests"
                 />
               </div>
             </div>
@@ -422,7 +437,7 @@ function RouterDashboardContent() {
         {/* Footer */}
         <div className="dashboard-footer">
           <div className="terminal-text--dim">
-            Powered by AI Stupid Meter • Real-time model intelligence • <a href="/" className="footer-link">View Live Rankings</a>
+            Powered by AI Stupid Meter • Real-time model intelligence from 16+ models tested every 4 hours • <a href="/" className="footer-link">View Live Rankings</a>
           </div>
         </div>
       </div>

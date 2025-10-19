@@ -3134,6 +3134,14 @@ export default function Dashboard() {
               isPopular={true}
               delay={600}
             />
+            
+            <FAQItem
+              question="What is the AI Smart Router and how does it use your benchmark data?"
+              answer="Our **AI Smart Router** is an intelligent API gateway that automatically selects the best AI model for each request based on our real-time benchmark data. Instead of manually choosing between GPT, Claude, Grok, or Gemini, the router analyzes your request and picks the optimal model using live performance rankings updated every 4 hours. You can choose from **6 routing strategies**: Best Overall (recommended), Best for Coding, Best for Reasoning, Best for Creative, Most Cost-Effective, or Fastest Response. The router uses our 7-axis scoring system (correctness, code quality, efficiency, stability, etc.) to make intelligent decisions, helping you **save 50-70% on AI costs** while maintaining quality. It includes automatic failover, custom constraints (max cost, latency limits), and detailed analytics. Available as part of our Pro subscription at $4.99/month with a 7-day free trial."
+              category="general"
+              isPopular={true}
+              delay={700}
+            />
           </div>
         </div>
 
