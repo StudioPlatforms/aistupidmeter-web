@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import TickerTape from '../components/TickerTape';
 import StupidMeter from '../components/StupidMeter';
@@ -74,8 +74,58 @@ interface AlertModel {
   detectedAt: Date;
 }
 
+// Sticky param hook with popstate support
+function useStickyParam<T extends string>(
+  key: string,
+  defaultValue: T,
+  {
+    lsKey = `aistupidlevel.${key}`,
+  }: { lsKey?: string } = {}
+) {
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const mounted = useRef(false);
+  const [value, setValue] = useState<T>(() => {
+    if (typeof window === 'undefined') return defaultValue;
+    const sp = new URLSearchParams(window.location.search);
+    const fromUrl = sp.get(key) as T | null;
+    if (fromUrl) return fromUrl;
+    const fromLs = localStorage.getItem(lsKey) as T | null;
+    return (fromLs ?? defaultValue) as T;
+  });
+
+  // Write to URL + LS whenever value changes (after mount)
+  useEffect(() => {
+    if (!mounted.current) return;
+    try {
+      localStorage.setItem(lsKey, value);
+      const sp = new URLSearchParams(window.location.search);
+      sp.set(key, value);
+      // preserve all other params, avoid scroll jump
+      window.history.replaceState(null, '', `${pathname}?${sp.toString()}`);
+    } catch {}
+  }, [value, key, lsKey, pathname]);
+
+  // On mount: listen to browser back/forward and rehydrate from URL
+  useEffect(() => {
+    mounted.current = true;
+    const onPop = () => {
+      const sp = new URLSearchParams(window.location.search);
+      const fromUrl = sp.get(key) as T | null;
+      if (fromUrl && fromUrl !== value) {
+        setValue(fromUrl);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [key, value]);
+
+  return [value, setValue] as const;
+}
+
 export default function Dashboard() {
   const router = useRouter();
+  const pathname = usePathname();
+  
   const [selectedView, setSelectedView] = useState<'dashboard' | 'test' | 'about' | 'faq'>('dashboard');
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [modelScores, setModelScores] = useState<ModelScore[]>([]);
@@ -92,8 +142,26 @@ export default function Dashboard() {
   const [recommendations, setRecommendations] = useState<any>(null);
   const [transparencyMetrics, setTransparencyMetrics] = useState<any>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
-  const [leaderboardPeriod, setLeaderboardPeriod] = useState<'latest' | '24h' | '7d' | '1m'>('latest');
-  const [leaderboardSortBy, setLeaderboardSortBy] = useState<'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'>('combined');
+  
+  // STICKY FILTERS: Use the new useStickyParam hook
+  const [leaderboardPeriod, setLeaderboardPeriod] = useStickyParam<'latest' | '24h' | '7d' | '1m'>('period', 'latest');
+  const [leaderboardSortBy, setLeaderboardSortBy] = useStickyParam<'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'>('sortBy', 'combined');
+  
+  // Ref to track user's current selection for validation
+  const userSelectionRef = useRef({ period: leaderboardPeriod, sortBy: leaderboardSortBy });
+  useEffect(() => {
+    userSelectionRef.current = { period: leaderboardPeriod, sortBy: leaderboardSortBy };
+  }, [leaderboardPeriod, leaderboardSortBy]);
+  
+  // CRITICAL FIX: Ref to prevent multiple initial data loads
+  const initialDataLoaded = useRef(false);
+  
+  // Helper to validate if data matches user's current selection
+  const matchesUserSelection = (period: string, sortBy: string) => {
+    const cur = userSelectionRef.current;
+    return cur.period === period && cur.sortBy === sortBy;
+  };
+  
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   
   // Pro feature modal state
@@ -560,14 +628,18 @@ export default function Dashboard() {
       return;
     }
     
+    isSilentRefresh.current = true;
+    
+    // CRITICAL: Capture user selections at the START of the fetch
+    const currentPeriod = userSelectionRef.current.period;
+    const currentSortBy = userSelectionRef.current.sortBy;
+    const currentAnalyticsPeriod = analyticsPeriod;
+    
     setBackgroundUpdating(true);
+    
     try {
-      // CRITICAL: Store current user selections to prevent them from being overridden
-      const currentPeriod = leaderboardPeriod;
-      const currentSortBy = leaderboardSortBy;
-      const currentAnalyticsPeriod = analyticsPeriod;
       
-      console.log(`⚡ Silent refresh: preserving user selections ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod}`);
+      console.log(`⚡ Silent refresh START: user has ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod} selected`);
       
       // ONLY update data that matches current user selections
       const apiUrl = process.env.NODE_ENV === 'production' ? 'http://aistupidlevel.info:4000' : 'http://localhost:4000';
@@ -670,7 +742,6 @@ export default function Dashboard() {
         console.log(`⏳ Retrying in ${backoffDelay}ms...`);
         
         setTimeout(() => {
-          setBackgroundUpdating(false);
           fetchDataSilently(retryCount + 1, maxRetries);
         }, backoffDelay);
       } else {
@@ -690,11 +761,13 @@ export default function Dashboard() {
   // Fetch all dashboard data from cached endpoints - INSTANT loading!
   // FIXED: Now returns the fetched data for validation before state updates
   const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false): Promise<{ success: boolean; data?: any }> => {
-    console.log(`⚡ Fetching cached dashboard data: ${period}/${sortBy}/${analyticsP}`);
+    // CRITICAL FIX: Convert 'speed' to '7axis' for API compatibility
+    const sortByParam = sortBy === 'speed' ? '7axis' : sortBy;
+    console.log(`⚡ Fetching cached dashboard data: ${period}/${sortByParam}/${analyticsP}`);
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const cacheUrl = `${apiUrl}/dashboard/cached?period=${period}&sortBy=${sortBy}&analyticsPeriod=${analyticsP}`;
+      const cacheUrl = `${apiUrl}/dashboard/cached?period=${period}&sortBy=${sortByParam}&analyticsPeriod=${analyticsP}`;
       console.log(`🚀 Trying cache URL: ${cacheUrl}`);
       const response = await fetch(cacheUrl);
       const result = await response.json();
@@ -714,6 +787,17 @@ export default function Dashboard() {
           hasProviderReliability: !!result.data.providerReliability,
           recommendationsValue: result.data.recommendations
         });
+        
+        // CRITICAL VALIDATION: Only update state if data matches user's CURRENT selection
+        const metaPeriod = result.meta?.period ?? period;
+        const metaSortBy = result.meta?.sortBy ?? sortByParam; // Use sortByParam (converted value) for comparison
+        
+        // Compare against the converted sortByParam, not the original sortBy
+        const currentSortByParam = userSelectionRef.current.sortBy === 'speed' ? '7axis' : userSelectionRef.current.sortBy;
+        if (metaPeriod !== userSelectionRef.current.period || metaSortBy !== currentSortByParam) {
+          console.log(`🚫 Skip state update: user changed filters meanwhile (expected ${userSelectionRef.current.period}/${currentSortByParam}, got ${metaPeriod}/${metaSortBy})`);
+          return { success: false };
+        }
         
         // Extract all the data components
         const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability, driftIncidents } = result.data;
@@ -861,12 +945,14 @@ export default function Dashboard() {
 
   // Legacy fetch function for fallback when cache misses
   const fetchLeaderboardData = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, forceRefresh: boolean = false) => {
-    console.log(`🔄 Using fallback API for ${period}/${sortBy} (cache miss)`);
+    // CRITICAL FIX: Convert 'speed' to '7axis' for API compatibility
+    const sortByParam = sortBy === 'speed' ? '7axis' : sortBy;
+    console.log(`🔄 Using fallback API for ${period}/${sortByParam} (cache miss)`);
     setLoadingLeaderboard(true);
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/dashboard/scores?period=${period}&sortBy=${sortBy}`);
+      const response = await fetch(`${apiUrl}/dashboard/scores?period=${period}&sortBy=${sortByParam}`);
       const data = await response.json();
       
       if (data.success) {
@@ -1032,10 +1118,25 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async (attemptNumber = 0) => {
       try {
+        // CRITICAL FIX: Always use CURRENT user selections, not initial values
+        const currentPeriod = userSelectionRef.current.period;
+        const currentSortBy = userSelectionRef.current.sortBy;
+        
         if (attemptNumber === 0) {
+          // CRITICAL FIX: Prevent multiple initial loads
+          if (initialDataLoaded.current) {
+            console.log('⏸️ Initial data already loaded, skipping duplicate fetch');
+            return;
+          }
+          initialDataLoaded.current = true;
+          
           setLoading(true);
           setLoadingStage('Initializing...');
           setLoadingProgress(10);
+          
+          // CRITICAL FIX: Initialize userSelectionRef with current URL/localStorage values BEFORE any fetches
+          console.log(`🎯 Initializing with user selection: ${leaderboardPeriod}/${leaderboardSortBy}`);
+          userSelectionRef.current = { period: leaderboardPeriod, sortBy: leaderboardSortBy };
           
           // HEALTH CHECK: Verify API is responsive before attempting data fetch
           setLoadingStage('Checking API health...');
@@ -1063,9 +1164,9 @@ export default function Dashboard() {
         setLoadingStage('Loading live rankings...');
         setLoadingProgress(Math.min(30 + (attemptNumber * 6), 90));
         
-        // Try to fetch ALL data from cache INSTANTLY
-        console.log(`⚡ Attempting instant cache load (attempt ${attemptNumber + 1})...`);
-        const cacheResult = await fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod);
+        // Try to fetch ALL data from cache INSTANTLY - ALWAYS use current user selections
+        console.log(`⚡ Attempting instant cache load (attempt ${attemptNumber + 1}) with current selections: ${currentPeriod}/${currentSortBy}...`);
+        const cacheResult = await fetchDashboardDataCached(currentPeriod, currentSortBy, analyticsPeriod);
         
         setLoadingStage('Processing data...');
         setLoadingProgress(Math.min(50 + (attemptNumber * 6), 90));
@@ -1090,11 +1191,13 @@ export default function Dashboard() {
               retryDelay = Math.min(2000 * Math.pow(1.5, attemptNumber - 3), 10000);
             }
             
-            console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15)`);
+            console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15) - will use current user selections`);
             
             setLoadingStage(`Fetching models (${attemptNumber + 1}/15)...`);
             setLoadingProgress(Math.min(70 + (attemptNumber * 2), 95));
             
+            // CRITICAL FIX: Don't retry if user has changed selections
+            // The new selection will trigger its own fetch via the useEffect
             setTimeout(() => {
               fetchDashboardData(attemptNumber + 1);
             }, retryDelay);
@@ -1115,9 +1218,9 @@ export default function Dashboard() {
           setLoadingStage('Fetching from backup sources...');
           setLoadingProgress(Math.min(60 + (attemptNumber * 6), 90));
           
-          // Fallback to legacy approach if cache misses
+          // Fallback to legacy approach if cache misses - use current user selections
           const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-          console.log('🔄 Cache miss - using fallback APIs which should only show 16 core models');
+          console.log(`🔄 Cache miss - using fallback APIs with current selections: ${currentPeriod}/${currentSortBy}`);
           
           const [alertsResponse, globalIndexResponse] = await Promise.all([
             fetch(`${apiUrl}/dashboard/alerts`),
@@ -1139,9 +1242,9 @@ export default function Dashboard() {
             setGlobalIndex(globalIndexData.data);
           }
           
-          // Fallback leaderboard and analytics - these should be filtered to 16 models
-          console.log('🔄 Using fallback leaderboard API - should return only 16 core models');
-          await fetchLeaderboardData();
+          // Fallback leaderboard and analytics - use current user selections
+          console.log(`🔄 Using fallback leaderboard API with current selections: ${currentPeriod}/${currentSortBy}`);
+          await fetchLeaderboardData(currentPeriod, currentSortBy);
           
           // FIXED: Wait a bit for state to update, then validate
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -1158,11 +1261,12 @@ export default function Dashboard() {
               retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber - 3), 15000);
             }
             
-            console.log(`⏳ Fallback data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15)`);
+            console.log(`⏳ Fallback data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15) - will use current user selections`);
             
             setLoadingStage(`Fetching benchmark data (${attemptNumber + 1}/15)...`);
             setLoadingProgress(Math.min(70 + (attemptNumber * 2), 95));
             
+            // CRITICAL FIX: Don't retry if user has changed selections
             setTimeout(() => {
               fetchDashboardData(attemptNumber + 1);
             }, retryDelay);
@@ -1204,7 +1308,7 @@ export default function Dashboard() {
             retryDelay = Math.min(3000 * Math.pow(1.5, attemptNumber - 3), 15000);
           }
           
-          console.log(`⚠️ Server error, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15)`);
+          console.log(`⚠️ Server error, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15) - will use current user selections`);
           
           setLoadingStage(`Server busy, retrying (${attemptNumber + 1}/15)...`);
           setLoadingProgress(Math.min(50 + (attemptNumber * 3), 95));
@@ -1257,18 +1361,50 @@ export default function Dashboard() {
     if (!loading) {
       console.log(`⚡ User changed to ${leaderboardPeriod}/${leaderboardSortBy}, trying cache...`);
       
+      // CRITICAL FIX: Reset the initial data loaded guard when user changes selections
+      // This allows data to load when switching tabs
+      initialDataLoaded.current = false;
+      
+      // CRITICAL FIX: Clear model scores immediately for optimistic update
+      setLoadingLeaderboard(true);
+      setModelScores([]); // Clear old data to prevent showing wrong data
+      
       // Try cache first for instant loading
-      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod).then(cacheSuccess => {
-        if (!cacheSuccess) {
-          console.log('🔄 Cache miss on control change, using fallback...');
-          // Fallback to individual calls
-          fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
-          fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
-        } else {
+      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod)
+        .then((res) => {
+          if (!res?.success) {
+            console.log('🔄 Cache miss on control change, using fallback...');
+            fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
+            fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+            return;
+          }
+          
+          // CRITICAL FIX: Verify metadata matches user selection
+          const metaPeriod = res.data?.meta?.period || leaderboardPeriod;
+          const metaSortBy = res.data?.meta?.sortBy || leaderboardSortBy;
+          
+          console.log(`📊 API returned: period=${metaPeriod}, sortBy=${metaSortBy}`);
+          console.log(`👤 User selected: period=${leaderboardPeriod}, sortBy=${leaderboardSortBy}`);
+          
+          if (metaPeriod !== leaderboardPeriod || metaSortBy !== leaderboardSortBy) {
+            console.error(`❌ METADATA MISMATCH! Expected ${leaderboardPeriod}/${leaderboardSortBy}, got ${metaPeriod}/${metaSortBy}`);
+            console.log('🔄 Retrying with fallback API...');
+            fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
+            fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+            return;
+          }
+          
+          console.log('✅ Metadata matches! Loading data...');
           console.log('🚀 Control change loaded INSTANTLY from cache!');
           console.log(`🎯 Current modelScores count: ${modelScores.length}`);
-        }
-      });
+          setLoadingLeaderboard(false);
+        })
+        .catch((error) => {
+          // Hard fallback on unexpected errors — do not change user selections
+          console.error('❌ Unexpected error in cache fetch:', error);
+          fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
+          fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
+        });
     }
   }, [leaderboardPeriod, leaderboardSortBy]);
 
@@ -1451,6 +1587,11 @@ export default function Dashboard() {
   // Use ref to track ticker content to prevent unnecessary updates
   const tickerContentRef = useRef<string[]>([]);
   const lastTickerUpdateRef = useRef(0);
+  
+  // Add refs for stable ticker management
+  const isSilentRefresh = useRef(false);
+  const knownTickerItems = useRef<Set<string>>(new Set());
+  const tickerInputsHashRef = useRef<string>('');
 
   // Helper function to check if ticker content is the same
   const sameTicker = (a: string[], b: string[]) =>
@@ -1875,8 +2016,8 @@ export default function Dashboard() {
   const renderDynamicMetric = (model: any): JSX.Element => {
     // Debug logging removed for production performance
     
-    // FORCE React to recognize this as a new component every time with unique randomization
-    const forceRenderKey = `${model.id}_${model.currentScore}_${(model as any)._period}_${Date.now()}_${Math.random()}`;
+    // STABLE KEY: Use deterministic key based on model data, not random values
+    const forceRenderKey = `${model.id}_${(model as any)._period}_${(model as any)._sortBy}_${model.currentScore}`;
     
     if (model.currentScore === 'unavailable') {
       return (
@@ -1896,6 +2037,9 @@ export default function Dashboard() {
       const estimatedCost = (pricing.input * 0.4) + (pricing.output * 0.6);
       const valueScore = score > 0 ? (score / estimatedCost).toFixed(1) : '0.0';
       
+      // FIXED: Convert to number for proper comparison (not lexicographic)
+      const vs = Number(valueScore);
+      
       return (
         <div className="score-display">
           <div style={{ textAlign: 'center', fontSize: '0.65em', lineHeight: '1.2' }}>
@@ -1912,7 +2056,7 @@ export default function Dashboard() {
               <span className="terminal-text--amber">${estimatedCost.toFixed(2)}</span>
             </div>
             <div style={{ fontSize: '0.9em' }}>
-              <span className={valueScore > '10' ? 'terminal-text--green' : valueScore > '5' ? 'terminal-text--amber' : 'terminal-text--red'}>
+              <span className={vs > 10 ? 'terminal-text--green' : vs > 5 ? 'terminal-text--amber' : 'terminal-text--red'}>
                 {valueScore} pts/$
               </span>
             </div>
@@ -3513,6 +3657,39 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+
+          {/* Loading Overlay */}
+          {loadingLeaderboard && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              borderRadius: '4px'
+            }}>
+              <div style={{
+                fontSize: '3em',
+                marginBottom: '16px',
+                animation: 'spin 1s linear infinite'
+              }}>
+                ⚡
+              </div>
+              <div className="terminal-text--green" style={{ fontSize: '1.2em', marginBottom: '8px' }}>
+                UPDATING RANKINGS
+              </div>
+              <div className="vintage-loading" style={{ fontSize: '1.5em' }}></div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginTop: '12px' }}>
+                Fetching latest scores...
+              </div>
+            </div>
+          )}
 
           {/* Historical Controls */}
           <div style={{ 
