@@ -41,11 +41,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = findUserByEmail(email);
 
         if (!user) {
-          throw new Error('Invalid email or password');
+          throw new Error('No account found with this email address');
         }
 
         // Check if user has a password (not OAuth-only account)
         if (!user.password_hash) {
+          if (user.oauth_provider) {
+            throw new Error(`This account uses ${user.oauth_provider === 'google' ? 'Google' : 'GitHub'} sign-in. Please use the social login button.`);
+          }
           throw new Error('This account uses social login. Please sign in with Google or GitHub.');
         }
 
@@ -53,7 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const isValid = await verifyPassword(password, user.password_hash);
 
         if (!isValid) {
-          throw new Error('Invalid email or password');
+          throw new Error('Incorrect password. Try again or reset your password.');
         }
 
         // Update last login

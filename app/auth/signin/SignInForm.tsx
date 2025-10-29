@@ -135,6 +135,22 @@ export function SignInForm() {
                   fontSize: '14px'
                 }}
               />
+              <div style={{ textAlign: 'right', marginTop: '8px' }}>
+                <Link 
+                  href="/auth/forgot-password" 
+                  className="terminal-text--amber"
+                  style={{ 
+                    fontSize: '0.9em',
+                    textDecoration: 'none',
+                    opacity: 0.8,
+                    transition: 'opacity 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.8'}
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
             
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>

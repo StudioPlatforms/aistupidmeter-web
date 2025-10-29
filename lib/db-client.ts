@@ -27,6 +27,9 @@ export interface User {
   subscription_ends_at: string | null;
   subscription_canceled_at: string | null;
   last_payment_at: string | null;
+  reset_token: string | null;
+  reset_token_expires: string | null;
+  reset_requested_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -332,4 +335,104 @@ export function checkSubscription(email: string): {
     trialEndsAt: user.trial_ends_at,
     subscriptionEndsAt: user.subscription_ends_at
   };
+}
+
+/**
+ * Create password reset token for user
+ * Returns the plain token (to send via email) and stores hashed version
+ */
+export function createPasswordResetToken(email: string): { token: string; expires: string } | null {
+  const user = findUserByEmail(email);
+  if (!user) {
+    return null;
+  }
+
+  const db = getDb();
+  try {
+    // Generate secure random token
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    // Hash the token before storing
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    
+    // Token expires in 1 hour
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1);
+    const expiresISO = expires.toISOString();
+    
+    // Store hashed token in database
+    db.prepare(`
+      UPDATE router_users SET
+        reset_token = ?,
+        reset_token_expires = ?,
+        reset_requested_at = datetime('now'),
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).run(tokenHash, expiresISO, user.id);
+    
+    // Return plain token (to send via email) and expiration
+    return { token, expires: expiresISO };
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Validate reset token and return user if valid
+ */
+export function validateResetToken(token: string): User | null {
+  const crypto = require('crypto');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  
+  const db = getDb();
+  try {
+    const user = db.prepare(`
+      SELECT * FROM router_users 
+      WHERE reset_token = ? 
+      AND reset_token_expires > datetime('now')
+    `).get(tokenHash) as User | undefined;
+    
+    return user || null;
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Update user password and clear reset token
+ */
+export function updatePassword(userId: number, newPasswordHash: string): void {
+  const db = getDb();
+  try {
+    db.prepare(`
+      UPDATE router_users SET
+        password_hash = ?,
+        reset_token = NULL,
+        reset_token_expires = NULL,
+        reset_requested_at = NULL,
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).run(newPasswordHash, userId);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Clear reset token (e.g., after failed attempts)
+ */
+export function clearResetToken(userId: number): void {
+  const db = getDb();
+  try {
+    db.prepare(`
+      UPDATE router_users SET
+        reset_token = NULL,
+        reset_token_expires = NULL,
+        updated_at = datetime('now')
+      WHERE id = ?
+    `).run(userId);
+  } finally {
+    db.close();
+  }
 }

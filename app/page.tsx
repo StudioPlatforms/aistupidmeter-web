@@ -454,19 +454,44 @@ export default function Dashboard() {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [testLogs, setTestLogs] = useState<string[]>([]);
 
-  // Fetch drift incidents
-  const fetchDriftIncidents = async (period: string = '7d') => {
+  // Fetch drift incidents with retry logic
+  const fetchDriftIncidents = async (period: string = '7d', retryCount: number = 0, maxRetries: number = 5) => {
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/api/dashboard/incidents?period=${period}&limit=50`);
+      const response = await fetch(`${apiUrl}/dashboard/incidents?period=${period}&limit=50`);
       const data = await response.json();
       
-      if (data.success) {
+      if (data.success && data.data) {
         setDriftIncidents(data.data);
         console.log(`📊 Loaded ${data.data.length} drift incidents for ${period}`);
+        
+        // If we got empty data and haven't exceeded retries, try again
+        if (data.data.length === 0 && retryCount < maxRetries) {
+          const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+          console.log(`⏳ No drift incidents found, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => {
+            fetchDriftIncidents(period, retryCount + 1, maxRetries);
+          }, retryDelay);
+        }
+      } else if (retryCount < maxRetries) {
+        // Retry on failure
+        const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        console.log(`⏳ Failed to fetch drift incidents, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => {
+          fetchDriftIncidents(period, retryCount + 1, maxRetries);
+        }, retryDelay);
       }
     } catch (error) {
       console.error('Error fetching drift incidents:', error);
+      
+      // Retry on error
+      if (retryCount < maxRetries) {
+        const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        console.log(`⏳ Error fetching drift incidents, retrying in ${retryDelay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => {
+          fetchDriftIncidents(period, retryCount + 1, maxRetries);
+        }, retryDelay);
+      }
     }
   };
 
@@ -508,6 +533,7 @@ export default function Dashboard() {
         // Extract analytics data from cached response
         if (result.data.degradations) setDegradations(result.data.degradations);
         if (result.data.providerReliability) setProviderReliability(result.data.providerReliability);
+        if (result.data.driftIncidents) setDriftIncidents(result.data.driftIncidents);
         if (result.data.recommendations) {
           console.log(`✅ Setting recommendations data:`, result.data.recommendations);
           setRecommendations(result.data.recommendations);
@@ -690,7 +716,7 @@ export default function Dashboard() {
         });
         
         // Extract all the data components
-        const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability } = result.data;
+        const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability, driftIncidents } = result.data;
         
         // Process model scores
         if (modelScores && Array.isArray(modelScores)) {
@@ -765,6 +791,7 @@ export default function Dashboard() {
         
         if (transparencyMetrics) setTransparencyMetrics(transparencyMetrics);
         if (providerReliability) setProviderReliability(providerReliability);
+        if (driftIncidents) setDriftIncidents(driftIncidents);
         
         // CRITICAL FIX: If cached globalIndex is null, fetch it directly (non-blocking)
         if (!globalIndex) {
@@ -1151,8 +1178,8 @@ export default function Dashboard() {
         // No need to make separate API calls - the data is already in state
         console.log('✅ Analytics data already loaded from cached response');
         
-        // Fetch drift incidents for Intelligence Center
-        fetchDriftIncidents('7d');
+        // Drift incidents are already loaded from cached response - no separate call needed
+        console.log('✅ Drift incidents already loaded from cached response');
         
         // Always fetch visitor count (not cached)
         fetchVisitorCount();
@@ -4341,7 +4368,26 @@ export default function Dashboard() {
             {driftIncidents && driftIncidents.length > 0 ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '8px' }}>
                 {driftIncidents.slice(0, 6).map((incident: any, index: number) => {
-                  const hoursAgo = Math.round((Date.now() - new Date(incident.detectedAt).getTime()) / (1000 * 60 * 60));
+                  // FIXED: Human-friendly time formatting
+                  const msAgo = Date.now() - new Date(incident.detectedAt).getTime();
+                  const minutesAgo = Math.round(msAgo / (1000 * 60));
+                  const hoursAgo = Math.round(msAgo / (1000 * 60 * 60));
+                  const daysAgo = Math.round(msAgo / (1000 * 60 * 60 * 24));
+                  
+                  let timeAgo: string;
+                  if (minutesAgo < 1) {
+                    timeAgo = 'Just now';
+                  } else if (minutesAgo < 60) {
+                    timeAgo = `${minutesAgo}m ago`;
+                  } else if (hoursAgo < 24) {
+                    timeAgo = `${hoursAgo}h ago`;
+                  } else if (daysAgo < 7) {
+                    timeAgo = `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`;
+                  } else {
+                    const weeksAgo = Math.round(daysAgo / 7);
+                    timeAgo = `${weeksAgo} week${weeksAgo === 1 ? '' : 's'} ago`;
+                  }
+                  
                   const isCritical = incident.severity === 'critical';
                   
                   return (
@@ -4375,7 +4421,7 @@ export default function Dashboard() {
                         {incident.description}
                       </div>
                       <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                        {hoursAgo < 1 ? 'Just now' : `${hoursAgo}h ago`}
+                        {timeAgo}
                       </div>
                     </div>
                   );
