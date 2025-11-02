@@ -197,6 +197,9 @@ export default function Dashboard() {
   // Fund Us popup state
   const [showFundUsPopup, setShowFundUsPopup] = useState(false);
 
+  // Price info modal state
+  const [showPriceInfoModal, setShowPriceInfoModal] = useState(false);
+
   // Smart caching system for leaderboard data
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
     data: ModelScore[];
@@ -3687,6 +3690,25 @@ export default function Dashboard() {
               <div className="vintage-loading" style={{ fontSize: '1.5em' }}></div>
               <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginTop: '12px' }}>
                 Fetching latest scores...
+              </div>
+            </div>
+          )}
+
+          {/* Price View Explanation - Shows when price sorting is active */}
+          {leaderboardSortBy === 'price' && (
+            <div style={{
+              padding: '12px',
+              backgroundColor: 'rgba(0, 255, 65, 0.05)',
+              border: '1px solid rgba(0, 255, 65, 0.2)',
+              borderRadius: '4px',
+              marginBottom: '12px'
+            }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                Value Rankings (Performance per Dollar)
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.5' }}>
+                Models sorted by <strong>pts/$</strong> (points per dollar) - the best quality-to-cost ratio.
+                Higher values = better value. Example: 238 pts/$ means you get 238 quality points for every $1 spent.
               </div>
             </div>
           )}
