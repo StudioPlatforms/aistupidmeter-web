@@ -11,6 +11,15 @@ export interface ThemeColors {
 
 export const THEMES: ThemeColors[] = [
   {
+    name: 'Halloween Spooky',
+    description: 'Spooky jack-o-lantern glow for Halloween',
+    primary: '#ff6b00',
+    primaryDim: '#cc5500',
+    background: '#0a0508',  // Deep purple-black night
+    backgroundDark: '#050204',  // Near-black with purple tint
+    isLight: false,
+  },
+  {
     name: 'Classic Green',
     description: 'Original phosphor green terminal',
     primary: '#00ff41',
@@ -91,9 +100,18 @@ export function applyTheme(theme: ThemeColors) {
 }
 
 export function getCurrentThemeIndex(): number {
-  if (typeof window === 'undefined') return 0;
+  if (typeof window === 'undefined') return getDefaultThemeIndex();
   const saved = localStorage.getItem('retro-theme-index');
-  return saved ? parseInt(saved, 10) : 0;
+  return saved ? parseInt(saved, 10) : getDefaultThemeIndex();
+}
+
+function getDefaultThemeIndex(): number {
+  // Check if today is Halloween (October 31st)
+  const today = new Date();
+  const isHalloween = today.getMonth() === 9 && today.getDate() === 31; // Month is 0-indexed
+  
+  // Return Halloween theme (index 0) on Oct 31, otherwise Classic Green (index 1)
+  return isHalloween ? 0 : 1;
 }
 
 export function saveThemeIndex(index: number) {

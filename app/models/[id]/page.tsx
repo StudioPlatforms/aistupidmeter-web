@@ -191,8 +191,13 @@ export default function ModelDetailPage() {
       return false;
     }
     
-    // CRITICAL FIX: Check if we have a MEANINGFUL score (> 0), not just that it exists
-    // This prevents showing the page with 0 scores
+    // FIXED: If we have model details with a latestScore, that's enough to show the page
+    // Even if there's no data for the specific scoring mode selected
+    const hasLatestScore = modelData.latestScore && 
+                          modelData.latestScore.axes && 
+                          Object.keys(modelData.latestScore.axes).length > 0;
+    
+    // Check if we have a meaningful score from stats API
     const hasValidScore = statsData?.currentScore && statsData.currentScore > 0;
     
     // Check if history has meaningful data with non-zero scores
@@ -205,11 +210,13 @@ export default function ModelDetailPage() {
     // Check if stats show actual runs with meaningful data
     const hasValidStats = statsData?.totalRuns && statsData.totalRuns > 0;
     
-    // Data is complete ONLY if we have a valid score > 0
-    // This ensures we don't show the page until real benchmark data is available
-    const isComplete = hasValidScore && (hasValidHistory || hasValidStats);
+    // Data is complete if:
+    // 1. We have a valid score from stats API, OR
+    // 2. We have model details with a latest score (fallback for when specific mode has no data)
+    const isComplete = hasValidScore || hasLatestScore;
     
     console.log('📊 Data validation:', {
+      hasLatestScore,
       hasValidScore,
       hasValidHistory,
       hasValidStats,
@@ -218,13 +225,11 @@ export default function ModelDetailPage() {
       totalRuns: statsData?.totalRuns || 0,
       isComplete,
       reason: !isComplete ? (
-        !hasValidScore ? 'Score is 0 or missing' :
-        !hasValidHistory && !hasValidStats ? 'No valid history or stats' :
+        !hasLatestScore && !hasValidScore ? 'No score data available' :
         'Unknown'
       ) : 'Data is complete'
     });
     
-    // Data is complete ONLY if we have meaningful scores
     return isComplete;
   };
 
@@ -259,7 +264,7 @@ export default function ModelDetailPage() {
       // Fix sortBy parameter - backend expects '7axis' not 'speed'
       const sortByParam = selectedScoringMode === 'speed' ? '7axis' : selectedScoringMode;
       
-      // SIMPLIFIED: Use ONLY dashboard history endpoint (same as main page)
+      // Use dashboard history endpoint which returns data in the expected format
       console.log(`📊 Fetching chart data (attempt ${attemptNumber + 1}): /dashboard/history/${modelId}?period=${selectedPeriod}&sortBy=${sortByParam}`);
       
       const [modelResponse, historyResponse, statsResponse] = await Promise.all([
@@ -1329,6 +1334,53 @@ export default function ModelDetailPage() {
   const status = getStatusFromScore(currentScore);
   const trend = getTrendFromHistory();
 
+  // Helper function to calculate period-specific average axes from all data points
+  const calculatePeriodAxes = () => {
+    if (!history || history.history.length === 0) return null;
+    
+    const totals = {
+      correctness: 0,
+      spec: 0,
+      codeQuality: 0,
+      efficiency: 0,
+      stability: 0,
+      refusal: 0,
+      recovery: 0
+    };
+    
+    let validPoints = 0;
+    
+    // Average all axes values across all points in the selected period
+    history.history.forEach(point => {
+      if (point.axes) {
+        const apiAxes = point.axes as any; // Type assertion to access alternative field names
+        totals.correctness += apiAxes.correctness || 0;
+        totals.spec += apiAxes.complexity || apiAxes.spec || 0;
+        totals.codeQuality += apiAxes.codeQuality || 0;
+        totals.efficiency += apiAxes.efficiency || 0;
+        totals.stability += apiAxes.stability || 0;
+        totals.refusal += apiAxes.edgeCases || apiAxes.refusal || 0;
+        totals.recovery += apiAxes.debugging || apiAxes.recovery || 0;
+        validPoints++;
+      }
+    });
+    
+    if (validPoints === 0) return null;
+    
+    console.log(`📊 Calculated period axes for ${selectedPeriod}/${selectedScoringMode}: ${validPoints} data points averaged`);
+    
+    // Return period averages
+    return {
+      correctness: totals.correctness / validPoints,
+      spec: totals.spec / validPoints,
+      codeQuality: totals.codeQuality / validPoints,
+      efficiency: totals.efficiency / validPoints,
+      stability: totals.stability / validPoints,
+      refusal: totals.refusal / validPoints,
+      recovery: totals.recovery / validPoints
+    };
+  };
+
   return (
     <div className="vintage-container">
       {/* Enhanced Header with Navigation */}
@@ -1601,27 +1653,11 @@ export default function ModelDetailPage() {
           </div>
 
           {(() => {
-            // Get axes from history data (most recent point) instead of modelDetails.latestScore
-            // This matches how the Intelligence Center works
-            let axesData = null;
-            if (history && history.history && history.history.length > 0) {
-              const latestPoint = history.history[0];
-              const apiAxes = latestPoint.axes as any;
-              if (apiAxes) {
-                // Map API field names to frontend field names (same as Intelligence Center)
-                axesData = {
-                  correctness: apiAxes.correctness || 0,
-                  spec: apiAxes.complexity || apiAxes.spec || 0,
-                  codeQuality: apiAxes.codeQuality || 0,
-                  efficiency: apiAxes.efficiency || 0,
-                  stability: apiAxes.stability || 0,
-                  refusal: apiAxes.edgeCases || apiAxes.refusal || 0,
-                  recovery: apiAxes.debugging || apiAxes.recovery || 0
-                };
-              }
-            }
+            // Get period axes if available, otherwise fall back to latest score
+            const axesData = calculatePeriodAxes();
+            const baseAxes = axesData || modelDetails.latestScore?.axes;
             
-            if (!axesData) {
+            if (!baseAxes) {
               return (
                 <div style={{ padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255, 45, 0, 0.1)', borderRadius: '8px' }}>
                   <div className="terminal-text--red">No 7-axis data available for this period</div>
@@ -1645,7 +1681,7 @@ export default function ModelDetailPage() {
             return (
               <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
                 {axisConfig.map((axis, index) => {
-                  const value = axesData[axis.key as keyof typeof axesData] || 0;
+                  const value = baseAxes[axis.key as keyof typeof baseAxes] || 0;
                   const numericValue = typeof value === 'number' ? value : parseFloat(value) || 0;
                   const percentage = Math.max(0, Math.min(100, numericValue * 100));
                   const color = percentage >= 80 ? 'terminal-text--green' : 
@@ -1779,14 +1815,29 @@ export default function ModelDetailPage() {
 
           <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '16px' }}>
             {(() => {
+              // Get period axes if available, otherwise fall back to latest score
+              const axesData = calculatePeriodAxes();
+              const baseAxes = axesData || modelDetails.latestScore?.axes;
+              
+              if (!baseAxes) {
+                return (
+                  <div style={{ gridColumn: '1 / -1', padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255, 45, 0, 0.1)', borderRadius: '8px' }}>
+                    <div className="terminal-text--red">No reasoning performance data available</div>
+                    <div className="terminal-text--dim" style={{ marginTop: '8px', fontSize: '0.9em' }}>
+                      Try selecting a different time period or check back later
+                    </div>
+                  </div>
+                );
+              }
+              
               // Reasoning-specific metrics (estimated from available data)
               const reasoningMetrics = [
-                { key: 'logical_reasoning', label: 'LOGICAL REASONING', icon: '🔬', weight: '25%', description: 'Multi-step logical deduction', value: Math.min(95, (modelDetails.latestScore?.axes?.correctness || 0.7) * 100 + Math.random() * 10) },
-                { key: 'problem_decomposition', label: 'PROBLEM DECOMPOSITION', icon: '🧩', weight: '20%', description: 'Breaking down complex problems', value: Math.min(95, (modelDetails.latestScore?.axes?.spec || 0.7) * 100 + Math.random() * 15) },
-                { key: 'context_synthesis', label: 'CONTEXT SYNTHESIS', icon: '🔗', weight: '20%', description: 'Integrating information across contexts', value: Math.min(95, (modelDetails.latestScore?.axes?.codeQuality || 0.7) * 100 + Math.random() * 12) },
-                { key: 'abstract_thinking', label: 'ABSTRACT THINKING', icon: '💭', weight: '15%', description: 'High-level conceptual reasoning', value: Math.min(95, (modelDetails.latestScore?.axes?.recovery || 0.8) * 100 + Math.random() * 8) },
-                { key: 'consistency', label: 'REASONING CONSISTENCY', icon: '⚖️', weight: '15%', description: 'Maintaining logical coherence', value: Math.min(95, (modelDetails.latestScore?.axes?.stability || 0.8) * 100 + Math.random() * 5) },
-                { key: 'inference_depth', label: 'INFERENCE DEPTH', icon: '🕳️', weight: '5%', description: 'Drawing complex conclusions', value: Math.min(95, (modelDetails.latestScore?.axes?.correctness || 0.75) * 100 + Math.random() * 7) }
+                { key: 'logical_reasoning', label: 'LOGICAL REASONING', icon: '🔬', weight: '25%', description: 'Multi-step logical deduction', value: Math.min(95, (baseAxes.correctness || 0.7) * 100 + Math.random() * 10) },
+                { key: 'problem_decomposition', label: 'PROBLEM DECOMPOSITION', icon: '🧩', weight: '20%', description: 'Breaking down complex problems', value: Math.min(95, (baseAxes.spec || 0.7) * 100 + Math.random() * 15) },
+                { key: 'context_synthesis', label: 'CONTEXT SYNTHESIS', icon: '🔗', weight: '20%', description: 'Integrating information across contexts', value: Math.min(95, (baseAxes.codeQuality || 0.7) * 100 + Math.random() * 12) },
+                { key: 'abstract_thinking', label: 'ABSTRACT THINKING', icon: '💭', weight: '15%', description: 'High-level conceptual reasoning', value: Math.min(95, (baseAxes.recovery || 0.8) * 100 + Math.random() * 8) },
+                { key: 'consistency', label: 'REASONING CONSISTENCY', icon: '⚖️', weight: '15%', description: 'Maintaining logical coherence', value: Math.min(95, (baseAxes.stability || 0.8) * 100 + Math.random() * 5) },
+                { key: 'inference_depth', label: 'INFERENCE DEPTH', icon: '🕳️', weight: '5%', description: 'Drawing complex conclusions', value: Math.min(95, (baseAxes.correctness || 0.75) * 100 + Math.random() * 7) }
               ];
 
               return reasoningMetrics.map((metric, index) => {
@@ -1921,22 +1972,37 @@ export default function ModelDetailPage() {
 
           <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
             {(() => {
+              // FIXED: Use period-specific averages instead of just the most recent point
+              const axesData = calculatePeriodAxes();
+              
+              // If no historical data, show unavailable message
+              if (!axesData) {
+                return (
+                  <div style={{ gridColumn: '1 / -1', padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255, 45, 0, 0.1)', borderRadius: '8px' }}>
+                    <div className="terminal-text--red">No combined performance data available for this period</div>
+                    <div className="terminal-text--dim" style={{ marginTop: '8px', fontSize: '0.9em' }}>
+                      Try selecting a different time period or check back later
+                    </div>
+                  </div>
+                );
+              }
+              
               // Combined metrics showing both speed and reasoning capabilities
               const combinedMetrics = [
                 // Speed-focused metrics (70% weight)
-                { key: 'speed_correctness', label: 'CODING ACCURACY', icon: '✅', weight: '25%', description: 'Fast coding task correctness', value: (modelDetails.latestScore?.axes?.correctness || 0.7) * 100, category: 'speed' },
-                { key: 'speed_efficiency', label: 'CODING SPEED', icon: '⚡', weight: '20%', description: 'Rapid problem solving', value: (modelDetails.latestScore?.axes?.efficiency || 0.6) * 100, category: 'speed' },
-                { key: 'code_quality', label: 'CODE QUALITY', icon: '🎨', weight: '15%', description: 'Clean, readable code output', value: (modelDetails.latestScore?.axes?.codeQuality || 0.7) * 100, category: 'speed' },
-                { key: 'spec_compliance', label: 'SPEC COMPLIANCE', icon: '📋', weight: '10%', description: 'Following instructions precisely', value: (modelDetails.latestScore?.axes?.spec || 0.7) * 100, category: 'speed' },
+                { key: 'speed_correctness', label: 'CODING ACCURACY', icon: '✅', weight: '25%', description: 'Fast coding task correctness', value: (axesData.correctness || 0) * 100, category: 'speed' },
+                { key: 'speed_efficiency', label: 'CODING SPEED', icon: '⚡', weight: '20%', description: 'Rapid problem solving', value: (axesData.efficiency || 0) * 100, category: 'speed' },
+                { key: 'code_quality', label: 'CODE QUALITY', icon: '🎨', weight: '15%', description: 'Clean, readable code output', value: (axesData.codeQuality || 0) * 100, category: 'speed' },
+                { key: 'spec_compliance', label: 'SPEC COMPLIANCE', icon: '📋', weight: '10%', description: 'Following instructions precisely', value: (axesData.spec || 0) * 100, category: 'speed' },
                 
                 // Reasoning-focused metrics (30% weight)
-                { key: 'deep_reasoning', label: 'DEEP REASONING', icon: '🧠', weight: '15%', description: 'Complex multi-step logic', value: Math.min(95, (modelDetails.latestScore?.axes?.correctness || 0.7) * 100 + Math.random() * 10), category: 'reasoning' },
-                { key: 'problem_solving', label: 'PROBLEM SOLVING', icon: '🧩', weight: '10%', description: 'Breaking down complex issues', value: Math.min(95, (modelDetails.latestScore?.axes?.recovery || 0.8) * 100 + Math.random() * 8), category: 'reasoning' },
-                { key: 'context_understanding', label: 'CONTEXT UNDERSTANDING', icon: '🔗', weight: '5%', description: 'Grasping nuanced requirements', value: Math.min(95, (modelDetails.latestScore?.axes?.stability || 0.8) * 100 + Math.random() * 7), category: 'reasoning' },
+                { key: 'deep_reasoning', label: 'DEEP REASONING', icon: '🧠', weight: '15%', description: 'Complex multi-step logic', value: Math.min(95, (axesData.correctness || 0) * 100 + Math.random() * 10), category: 'reasoning' },
+                { key: 'problem_solving', label: 'PROBLEM SOLVING', icon: '🧩', weight: '10%', description: 'Breaking down complex issues', value: Math.min(95, (axesData.recovery || 0) * 100 + Math.random() * 8), category: 'reasoning' },
+                { key: 'context_understanding', label: 'CONTEXT UNDERSTANDING', icon: '🔗', weight: '5%', description: 'Grasping nuanced requirements', value: Math.min(95, (axesData.stability || 0) * 100 + Math.random() * 7), category: 'reasoning' },
                 
                 // Overall performance metrics
-                { key: 'overall_stability', label: 'OVERALL STABILITY', icon: '🔄', weight: 'Bonus', description: 'Consistent performance across all tasks', value: (modelDetails.latestScore?.axes?.stability || 0.8) * 100, category: 'overall' },
-                { key: 'refusal_handling', label: 'TASK ACCEPTANCE', icon: '🚫', weight: 'Bonus', description: 'Appropriate task engagement', value: (modelDetails.latestScore?.axes?.refusal || 0.9) * 100, category: 'overall' }
+                { key: 'overall_stability', label: 'OVERALL STABILITY', icon: '🔄', weight: 'Bonus', description: 'Consistent performance across all tasks', value: (axesData.stability || 0) * 100, category: 'overall' },
+                { key: 'refusal_handling', label: 'TASK ACCEPTANCE', icon: '🚫', weight: 'Bonus', description: 'Appropriate task engagement', value: (axesData.refusal || 0) * 100, category: 'overall' }
               ];
 
               return combinedMetrics.map((metric, index) => {
@@ -2069,15 +2135,30 @@ export default function ModelDetailPage() {
 
           <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
             {(() => {
+              // Get period axes if available, otherwise fall back to latest score
+              const axesData = calculatePeriodAxes();
+              const baseAxes = axesData || modelDetails.latestScore?.axes;
+              
+              if (!baseAxes) {
+                return (
+                  <div style={{ gridColumn: '1 / -1', padding: 'var(--space-lg)', textAlign: 'center', background: 'rgba(255, 45, 0, 0.1)', borderRadius: '8px' }}>
+                    <div className="terminal-text--red">No tooling performance data available</div>
+                    <div className="terminal-text--dim" style={{ marginTop: '8px', fontSize: '0.9em' }}>
+                      Try selecting a different time period or check back later
+                    </div>
+                  </div>
+                );
+              }
+              
               // Tool calling specific metrics (estimated from available data and tool calling capabilities)
               const toolingMetrics = [
-                { key: 'tool_selection', label: 'TOOL SELECTION', icon: '🎯', weight: '20%', description: 'Choosing the right tool for each task', value: Math.min(95, (modelDetails.latestScore?.axes?.correctness || 0.7) * 100 + Math.random() * 12) },
-                { key: 'parameter_accuracy', label: 'PARAMETER ACCURACY', icon: '⚙️', weight: '20%', description: 'Providing correct tool parameters', value: Math.min(95, (modelDetails.latestScore?.axes?.spec || 0.7) * 100 + Math.random() * 10) },
-                { key: 'task_completion', label: 'TASK COMPLETION', icon: '✅', weight: '30%', description: 'Successfully completing tool-based objectives', value: Math.min(95, (modelDetails.latestScore?.axes?.correctness || 0.75) * 100 + Math.random() * 8) },
-                { key: 'error_handling', label: 'ERROR HANDLING', icon: '🔧', weight: '15%', description: 'Recovering from tool execution failures', value: Math.min(95, (modelDetails.latestScore?.axes?.recovery || 0.8) * 100 + Math.random() * 7) },
-                { key: 'efficiency', label: 'TOOL EFFICIENCY', icon: '⚡', weight: '10%', description: 'Minimizing unnecessary tool calls', value: Math.min(95, (modelDetails.latestScore?.axes?.efficiency || 0.6) * 100 + Math.random() * 15) },
-                { key: 'context_awareness', label: 'CONTEXT AWARENESS', icon: '🧠', weight: '3%', description: 'Understanding when tools are needed', value: Math.min(95, (modelDetails.latestScore?.axes?.stability || 0.8) * 100 + Math.random() * 5) },
-                { key: 'safety_compliance', label: 'SAFETY COMPLIANCE', icon: '🛡️', weight: '2%', description: 'Following security and safety protocols', value: Math.min(95, (modelDetails.latestScore?.axes?.refusal || 0.9) * 100 + Math.random() * 3) }
+                { key: 'tool_selection', label: 'TOOL SELECTION', icon: '🎯', weight: '20%', description: 'Choosing the right tool for each task', value: Math.min(95, (baseAxes.correctness || 0.7) * 100 + Math.random() * 12) },
+                { key: 'parameter_accuracy', label: 'PARAMETER ACCURACY', icon: '⚙️', weight: '20%', description: 'Providing correct tool parameters', value: Math.min(95, (baseAxes.spec || 0.7) * 100 + Math.random() * 10) },
+                { key: 'task_completion', label: 'TASK COMPLETION', icon: '✅', weight: '30%', description: 'Successfully completing tool-based objectives', value: Math.min(95, (baseAxes.correctness || 0.75) * 100 + Math.random() * 8) },
+                { key: 'error_handling', label: 'ERROR HANDLING', icon: '🔧', weight: '15%', description: 'Recovering from tool execution failures', value: Math.min(95, (baseAxes.recovery || 0.8) * 100 + Math.random() * 7) },
+                { key: 'efficiency', label: 'TOOL EFFICIENCY', icon: '⚡', weight: '10%', description: 'Minimizing unnecessary tool calls', value: Math.min(95, (baseAxes.efficiency || 0.6) * 100 + Math.random() * 15) },
+                { key: 'context_awareness', label: 'CONTEXT AWARENESS', icon: '🧠', weight: '3%', description: 'Understanding when tools are needed', value: Math.min(95, (baseAxes.stability || 0.8) * 100 + Math.random() * 5) },
+                { key: 'safety_compliance', label: 'SAFETY COMPLIANCE', icon: '🛡️', weight: '2%', description: 'Following security and safety protocols', value: Math.min(95, (baseAxes.refusal || 0.9) * 100 + Math.random() * 3) }
               ];
 
               return toolingMetrics.map((metric, index) => {

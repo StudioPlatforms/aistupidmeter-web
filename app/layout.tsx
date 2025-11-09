@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
+import HalloweenAnimations from '../components/HalloweenAnimations'
 import '../styles/vintage.css'
 
 export const metadata: Metadata = {
@@ -286,6 +287,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <VisitorTracker />
+          <HalloweenAnimations />
           {children}
         </Providers>
       </body>
