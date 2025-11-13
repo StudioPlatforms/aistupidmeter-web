@@ -2386,7 +2386,7 @@ body[data-halloween-theme="true"] .halloween-animations {
 
 /* Period Selection Tabs - Mobile optimized */
 .period-tabs {
-  display: flex;
+  display: inline-flex;
   justify-content: center;
   gap: var(--space-xs);
   margin-bottom: var(--space-md);
@@ -2395,6 +2395,7 @@ body[data-halloween-theme="true"] .halloween-animations {
   border: 1px solid rgba(0, 255, 65, 0.2);
   border-radius: 6px;
   flex-wrap: wrap;
+  width: auto;
 }
 
 @media (min-width: 768px) {

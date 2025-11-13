@@ -15,7 +15,7 @@ const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
  * API returns: { score: 76, stupidScore: 76, timestamp: "...", axes: {...} }
  */
 const toDisplayScore = (point: any): number | null => {
-  if (!point) return null;
+if (!point) return null;
 
   // PRIORITY 1: Direct score field (what the API actually returns)
   if (typeof point.score === 'number' && !Number.isNaN(point.score)) {
@@ -174,6 +174,9 @@ export default function ModelDetailPage() {
   // Chart animation state
   const [chartAnimationProgress, setChartAnimationProgress] = useState(0);
 
+  // Mobile detection state
+  const [isMobile, setIsMobile] = useState(false);
+
   // Pro feature modal state
   const [showProModal, setShowProModal] = useState(false);
   const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix'>('historical-data');
@@ -182,6 +185,16 @@ export default function ModelDetailPage() {
   const { data: session } = useSession();
   const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active' || 
                        (session?.user as any)?.subscriptionStatus === 'trialing';
+
+  // Mobile detection effect
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Validate if fetched data is complete and usable
   const validateDataCompleteness = (modelData: any, historyData: any, statsData: any): boolean => {
@@ -558,17 +571,24 @@ export default function ModelDetailPage() {
       sortBy: selectedScoringMode
     });
 
-    // Empty state
+    // Empty state with intelligent fallback
     if (!chartHistory || chartHistory.length === 0) {
-      let message = 'NO DATA AVAILABLE';
-      let suggestion = 'Try selecting a different time period or scoring mode';
+      let message = 'NO DATA AVAILABLE FOR THIS PERIOD';
+      let suggestion = 'Showing most recent available data instead';
+      let showFallback = false;
       
       if (selectedScoringMode === 'reasoning' && period === '24h') {
         message = 'REASONING DATA UNAVAILABLE FOR 24H';
-        suggestion = 'Deep reasoning tests run daily. Try 7d or 1m period.';
+        suggestion = 'Deep reasoning tests run daily. Showing latest available data.';
+        showFallback = true;
       } else if (selectedScoringMode === 'tooling' && period === '24h') {
         message = 'TOOLING DATA UNAVAILABLE FOR 24H';
-        suggestion = 'Tool calling tests run daily. Try 7d or 1m period.';
+        suggestion = 'Tool calling tests run daily. Showing latest available data.';
+        showFallback = true;
+      } else if (period === '24h') {
+        message = 'NO DATA IN LAST 24 HOURS';
+        suggestion = 'Benchmarks may be paused. Showing most recent available data.';
+        showFallback = true;
       }
       
       return (
@@ -576,14 +596,34 @@ export default function ModelDetailPage() {
           <div className="terminal-text--dim" style={{ textAlign: 'center', padding: '40px' }}>
             <div style={{ fontSize: '4em', marginBottom: '20px', opacity: 0.3 }}>📊</div>
             <div style={{ fontSize: '1.2em', marginBottom: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{message}</div>
-            <div style={{ fontSize: '0.9em', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>{suggestion}</div>
+            <div style={{ fontSize: '0.9em', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6', marginBottom: '16px' }}>{suggestion}</div>
+            {showFallback && (
+              <button 
+                onClick={() => setSelectedPeriod('7d')}
+                className="vintage-btn"
+                style={{ fontSize: '0.9em', padding: '8px 16px' }}
+              >
+                VIEW 7-DAY DATA →
+              </button>
+            )}
           </div>
         </div>
       );
     }
 
-    // Filter data (limit 'latest' to 24 points for readability)
-    const filteredHistory = period === 'latest' ? chartHistory.slice(0, 24) : chartHistory;
+    // FIXED: Improved period filtering - don't filter by timestamp for chart display
+    // The backend already returns period-filtered data, so we just need to limit the count
+    let filteredHistory: any[] = [];
+    
+    if (period === 'latest') {
+      // Show last 24 data points for 'latest'
+      filteredHistory = chartHistory.slice(0, 24);
+    } else {
+      // For time-based periods (24h, 7d, 1m), show all data the backend returned
+      // Backend already filtered by period, so we don't need to re-filter by timestamp
+      filteredHistory = chartHistory;
+    }
+    
     const data = [...filteredHistory].reverse(); // Oldest to newest (left to right)
 
     if (data.length === 0) {
@@ -617,13 +657,13 @@ export default function ModelDetailPage() {
     const range = maxScore - minScore || 1;
     const avgScore = displayScores.reduce((a, b) => a + b, 0) / displayScores.length;
 
-    // Responsive dimensions
-    const chartWidth = 800;
-    const chartHeight = 400;
-    const paddingLeft = 60;
-    const paddingRight = 40;
+    // Responsive dimensions based on mobile detection
+    const chartWidth = isMobile ? Math.min(window.innerWidth - 60, 400) : 800;
+    const chartHeight = isMobile ? 300 : 400;
+    const paddingLeft = isMobile ? 40 : 60;
+    const paddingRight = isMobile ? 25 : 40;
     const paddingTop = 40;
-    const paddingBottom = 80;
+    const paddingBottom = isMobile ? 60 : 80;
 
     // Calculate points for the line chart
     const points = data.map((point, index) => {
@@ -643,8 +683,8 @@ export default function ModelDetailPage() {
       return { y, score };
     });
 
-    // Time labels
-    const numTimeLabels = Math.min(8, data.length);
+    // Time labels - fewer on mobile
+    const numTimeLabels = Math.min(isMobile ? 4 : 8, data.length);
     const timeLabels = Array.from({ length: numTimeLabels }, (_, i) => {
       const index = Math.floor((i / (numTimeLabels - 1)) * (data.length - 1));
       const point = points[index];
@@ -700,16 +740,28 @@ export default function ModelDetailPage() {
           </div>
         </div>
 
-        {/* SVG Chart */}
-        <svg 
-          width={chartWidth} 
-          height={chartHeight}
-          style={{ 
-            background: 'rgba(0, 0, 0, 0.3)', 
-            borderRadius: '8px',
-            border: '1px solid rgba(0, 255, 65, 0.2)'
-          }}
-        >
+        {/* SVG Chart - Responsive with viewBox */}
+        <div style={{ 
+          width: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          overflowX: 'auto',
+          overflowY: 'visible'
+        }}>
+          <svg 
+            width={chartWidth} 
+            height={chartHeight}
+            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+            preserveAspectRatio="xMidYMid meet"
+            style={{ 
+              background: 'rgba(0, 0, 0, 0.3)', 
+              borderRadius: '8px',
+              border: '1px solid rgba(0, 255, 65, 0.2)',
+              maxWidth: '100%',
+              height: 'auto',
+              minWidth: isMobile ? 'auto' : '600px'
+            }}
+          >
           {/* Horizontal grid lines */}
           {yGridLines.map((line, i) => (
             <g key={`grid-${i}`}>
@@ -726,7 +778,7 @@ export default function ModelDetailPage() {
                 x={paddingLeft - 10} 
                 y={line.y + 4} 
                 fill="var(--phosphor-green)" 
-                fontSize="12" 
+                fontSize={isMobile ? "10" : "12"} 
                 textAnchor="end"
                 opacity="0.8"
               >
@@ -747,7 +799,7 @@ export default function ModelDetailPage() {
             x={chartWidth - paddingRight - 10} 
             y={paddingTop + 20} 
             fill="var(--phosphor-green)" 
-            fontSize="11" 
+            fontSize={isMobile ? "9" : "11"} 
             textAnchor="end"
             opacity="0.5"
           >
@@ -765,7 +817,7 @@ export default function ModelDetailPage() {
             x={chartWidth - paddingRight - 10} 
             y={paddingTop + (chartHeight - paddingTop - paddingBottom) / 3 + 20} 
             fill="var(--amber-warning)" 
-            fontSize="11" 
+            fontSize={isMobile ? "9" : "11"} 
             textAnchor="end"
             opacity="0.5"
           >
@@ -783,7 +835,7 @@ export default function ModelDetailPage() {
             x={chartWidth - paddingRight - 10} 
             y={paddingTop + 2 * (chartHeight - paddingTop - paddingBottom) / 3 + 20} 
             fill="var(--red-alert)" 
-            fontSize="11" 
+            fontSize={isMobile ? "9" : "11"} 
             textAnchor="end"
             opacity="0.5"
           >
@@ -805,7 +857,7 @@ export default function ModelDetailPage() {
             x={chartWidth - paddingRight + 5} 
             y={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom) + 4} 
             fill="var(--amber-warning)" 
-            fontSize="11"
+            fontSize={isMobile ? "9" : "11"}
             opacity="0.8"
           >
             AVG
@@ -882,6 +934,9 @@ export default function ModelDetailPage() {
             // Show error bars every 5th point on details page (less cluttered than main page)
             const showErrorBar = hasCI && index % 5 === 0;
             
+            // Highlight the LATEST point (rightmost = newest)
+            const isLatestPoint = index === points.length - 1;
+            
             return (
               <g key={index}>
                 {/* Error bar (vertical line with caps) */}
@@ -918,15 +973,15 @@ export default function ModelDetailPage() {
                   </>
                 )}
                 
-                {/* Data point circle */}
+                {/* Data point circle - highlight latest point */}
                 <circle
                   cx={point.x}
                   cy={point.y}
-                  r="5"
-                  fill="var(--phosphor-green)"
+                  r={isLatestPoint ? "8" : "5"}
+                  fill={isLatestPoint ? "var(--amber-warning)" : "var(--phosphor-green)"}
                   stroke="var(--terminal-black)"
-                  strokeWidth="2"
-                  opacity="0.9"
+                  strokeWidth={isLatestPoint ? "3" : "2"}
+                  opacity={isLatestPoint ? "1" : "0.9"}
                   style={{ cursor: 'pointer' }}
                 >
                   {/* Enhanced tooltip with CI information */}
@@ -937,17 +992,18 @@ export default function ModelDetailPage() {
                   </title>
                 </circle>
                 
-                {/* Show score labels on some points */}
-                {index % Math.ceil(data.length / 10) === 0 && (
+                {/* Show score labels on some points + always show latest */}
+                {(index % Math.ceil(data.length / 10) === 0 || isLatestPoint) && (
                   <text
                     x={point.x}
-                    y={point.y - 12}
-                    fill="var(--phosphor-green)"
-                    fontSize="10"
+                    y={point.y - (isLatestPoint ? 18 : 12)}
+                    fill={isLatestPoint ? "var(--amber-warning)" : "var(--phosphor-green)"}
+                    fontSize={isMobile ? (isLatestPoint ? "10" : "9") : (isLatestPoint ? "12" : "10")}
                     textAnchor="middle"
-                    opacity="0.7"
+                    opacity={isLatestPoint ? "1" : "0.7"}
+                    fontWeight={isLatestPoint ? "bold" : "normal"}
                   >
-                    {Math.round(point.score)}
+                    {Math.round(point.score)}{isLatestPoint ? " ⬤" : ""}
                   </text>
                 )}
               </g>
@@ -961,7 +1017,7 @@ export default function ModelDetailPage() {
               x={label.x}
               y={chartHeight - paddingBottom + 25}
               fill="var(--phosphor-green)"
-              fontSize="11"
+              fontSize={isMobile ? "9" : "11"}
               textAnchor="middle"
               opacity="0.8"
             >
@@ -974,25 +1030,26 @@ export default function ModelDetailPage() {
             x={chartWidth / 2} 
             y={chartHeight - 20} 
             fill="var(--phosphor-green)" 
-            fontSize="14" 
+            fontSize={isMobile ? "11" : "14"} 
             textAnchor="middle" 
             fontWeight="bold"
           >
-            Timeline — {period.toUpperCase()} ({data.length} data points)
+            {isMobile ? `${period.toUpperCase()} (${data.length})` : `Timeline — ${period.toUpperCase()} (${data.length} data points)`}
           </text>
           
           <text 
             x={20} 
             y={chartHeight / 2} 
             fill="var(--phosphor-green)" 
-            fontSize="14" 
+            fontSize={isMobile ? "11" : "14"} 
             textAnchor="middle" 
             fontWeight="bold" 
             transform={`rotate(-90, 20, ${chartHeight / 2})`}
           >
-            Performance Score (0-100)
+            {isMobile ? "Score" : "Performance Score (0-100)"}
           </text>
         </svg>
+        </div>
 
         {/* Legend */}
         <div style={{ 
@@ -1000,7 +1057,9 @@ export default function ModelDetailPage() {
           gap: '20px', 
           marginTop: '15px',
           fontSize: '0.85em',
-          opacity: 0.8
+          opacity: 0.8,
+          flexWrap: 'wrap',
+          justifyContent: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '20px', height: '3px', background: 'var(--phosphor-green)' }}></div>
@@ -1013,6 +1072,10 @@ export default function ModelDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--phosphor-green)', border: '2px solid var(--terminal-black)' }}></div>
             <span className="terminal-text--dim">Data Point</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: 'var(--amber-warning)', border: '3px solid var(--terminal-black)' }}></div>
+            <span className="terminal-text--amber" style={{ fontWeight: 'bold' }}>Latest Score</span>
           </div>
         </div>
       </div>
@@ -1296,29 +1359,24 @@ export default function ModelDetailPage() {
     };
   };
 
-  // FIXED: Use period-specific score from stats API which calculates averages for the selected period
+  // FIXED: Show LATEST score (matches chart's rightmost point) for consistency
   const getCurrentScore = (): number => {
-    // Priority 1: Use stats API which calculates period-specific averages
-    // This matches the main dashboard behavior where changing periods changes the score
-    if (stats?.currentScore && typeof stats.currentScore === 'number') {
-      console.log(`📊 Using period-specific score from stats API: ${stats.currentScore} (period: ${selectedPeriod}, mode: ${selectedScoringMode})`);
-      return stats.currentScore;
+    // Priority 1: Use the LATEST score from history (matches chart's rightmost point)
+    if (history && history.history && history.history.length > 0) {
+      // History is sorted newest-first, so [0] is the latest
+      const latestPoint = history.history[0];
+      const latestScore = toDisplayScore(latestPoint);
+      
+      if (latestScore !== null) {
+        console.log(`📊 Using LATEST score from history: ${latestScore} (most recent benchmark, matches chart)`);
+        return latestScore;
+      }
     }
     
-    // Priority 2: Calculate from history data if stats API failed
-    if (history && history.history && history.history.length > 0) {
-      // Calculate average score from all data points in the period (same as stats API logic)
-      const validScores = history.history
-        .map(point => toDisplayScore(point))
-        .filter((score): score is number => score !== null);
-      
-      if (validScores.length > 0) {
-        const periodAverage = Math.round(
-          validScores.reduce((sum, score) => sum + score, 0) / validScores.length
-        );
-        console.log(`📊 Calculated period average from history: ${periodAverage} (${validScores.length} data points)`);
-        return periodAverage;
-      }
+    // Priority 2: Use stats API current score
+    if (stats?.currentScore && typeof stats.currentScore === 'number') {
+      console.log(`📊 Using score from stats API: ${stats.currentScore}`);
+      return stats.currentScore;
     }
     
     // Priority 3: Final fallback to model's latest score
@@ -1439,17 +1497,12 @@ export default function ModelDetailPage() {
         </div>
       </div>
 
-      {/* Enhanced Hero Section with Tabbed Historical Data */}
-      <div className="vintage-grid" style={{ 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: '20px' 
+      {/* Historical Performance Chart - Full Width */}
+      <div className="crt-monitor" style={{ 
+        padding: '24px',
+        width: '100%',
+        overflow: 'visible'
       }}>
-        {/* Historical Performance Chart */}
-        <div className="crt-monitor" style={{ 
-          padding: '24px',
-          minWidth: '0',
-          overflow: 'hidden'
-        }}>
           <div style={{ marginBottom: '20px' }}>
             <div style={{ fontSize: '1.3em', marginBottom: '12px', textAlign: 'center' }}>
               📈 PERFORMANCE TIMELINE
@@ -1509,8 +1562,13 @@ export default function ModelDetailPage() {
           
           {/* Detail Chart - EXACT same logic as main page mini chart */}
           {history && history.history ? renderDetailChart(history.history, selectedPeriod) : renderDetailChart([], selectedPeriod)}
-        </div>
+      </div>
 
+      {/* Metrics Grid - 2 columns on desktop, stacked on mobile */}
+      <div className="vintage-grid" style={{ 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+        gap: '20px' 
+      }}>
         {/* Current Score & Key Metrics */}
         <div className="crt-monitor" style={{ padding: '24px' }}>
           <div style={{ fontSize: '1.3em', marginBottom: '12px', textAlign: 'center' }}>
@@ -1529,7 +1587,10 @@ export default function ModelDetailPage() {
               <div className={`gauge-value ${getStatusColor(status)}`}>
                 {currentScore}
               </div>
-              <div className="gauge-label terminal-text--dim">SCORE</div>
+              <div className="gauge-label terminal-text--dim">LATEST SCORE</div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.7em', marginTop: '4px', opacity: 0.7 }}>
+                (Most Recent Benchmark)
+              </div>
             </div>
           </div>
 

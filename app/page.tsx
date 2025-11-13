@@ -4136,6 +4136,20 @@ export default function Dashboard() {
                                 NEW
                               </span>
                             )}
+                            {model.usesReasoningEffort && (
+                              <span style={{
+                                backgroundColor: '#00BFFF',
+                                color: 'var(--terminal-black)',
+                                fontSize: '0.6em',
+                                fontWeight: 'bold',
+                                padding: '2px 4px',
+                                borderRadius: '2px',
+                                cursor: 'help'
+                              }}
+                              title="Uses extended thinking for more accurate responses (slower inference)">
+                                🧠
+                              </span>
+                            )}
                             {/* Drift Warning Indicator */}
                             {(() => {
                               // Check if this model has recent drift incidents
