@@ -1633,7 +1633,9 @@ export default function ModelDetailPage() {
             // Get pricing using same logic as frontend
             if (prov === 'openai') {
               if (name.includes('gpt-5') && name.includes('turbo')) pricing = { input: 10, output: 30 };
-              else if (name.includes('gpt-5')) pricing = { input: 15, output: 45 };
+              else if (name.includes('gpt-5-nano')) pricing = { input: 0.05, output: 0.40 };
+              else if (name.includes('gpt-5-mini')) pricing = { input: 0.25, output: 2.0 };
+              else if (name.includes('gpt-5')) pricing = { input: 1.25, output: 10.0 };
               else if (name.includes('o3-pro')) pricing = { input: 60, output: 240 };  
               else if (name.includes('o3-mini')) pricing = { input: 3.5, output: 14 };
               else if (name.includes('o3')) pricing = { input: 15, output: 60 };
