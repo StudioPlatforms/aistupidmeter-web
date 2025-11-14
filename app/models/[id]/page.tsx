@@ -74,6 +74,7 @@ interface ModelHistory {
   modelId: number;
   period: string;
   dataPoints: number;
+  canonicalScore?: number; // The authoritative score from the API (matches rankings page)
   history: Array<{
     timestamp: string;
     stupidScore: number;
@@ -316,10 +317,12 @@ export default function ModelDetailPage() {
           historyData = await historyResponse.json();
           if (historyData.success && historyData.data && historyData.data.length > 0) {
             console.log(`✅ Chart data loaded: ${historyData.data.length} points for ${selectedPeriod}/${sortByParam}`);
+            console.log(`✅ Canonical score from API: ${historyData.canonicalScore}`);
             setHistory({
               modelId,
               period: selectedPeriod,
               dataPoints: historyData.data.length,
+              canonicalScore: historyData.canonicalScore, // Store the authoritative score from API
               history: historyData.data.map((point: any) => ({
                 timestamp: point.timestamp || new Date().toISOString(),
                 stupidScore: point.stupidScore || 0,
@@ -1359,9 +1362,18 @@ export default function ModelDetailPage() {
     };
   };
 
-  // FIXED: Show LATEST score (matches chart's rightmost point) for consistency
+  // FIXED: Use canonicalScore from API for perfect consistency with rankings page
   const getCurrentScore = (): number => {
-    // Priority 1: Use the LATEST score from history (matches chart's rightmost point)
+    // Priority 1: Use canonicalScore from history API (matches rankings page exactly)
+    if (history && (history as any).canonicalScore !== undefined && (history as any).canonicalScore !== null) {
+      const canonical = (history as any).canonicalScore;
+      if (typeof canonical === 'number') {
+        console.log(`✅ Using canonicalScore from API: ${canonical} (matches rankings page)`);
+        return canonical;
+      }
+    }
+    
+    // Priority 2: Use the LATEST score from history (matches chart's rightmost point)
     if (history && history.history && history.history.length > 0) {
       // History is sorted newest-first, so [0] is the latest
       const latestPoint = history.history[0];
@@ -1373,13 +1385,13 @@ export default function ModelDetailPage() {
       }
     }
     
-    // Priority 2: Use stats API current score
+    // Priority 3: Use stats API current score
     if (stats?.currentScore && typeof stats.currentScore === 'number') {
       console.log(`📊 Using score from stats API: ${stats.currentScore}`);
       return stats.currentScore;
     }
     
-    // Priority 3: Final fallback to model's latest score
+    // Priority 4: Final fallback to model's latest score
     if (modelDetails.latestScore?.displayScore) {
       console.log(`📊 Using model's latest score: ${modelDetails.latestScore.displayScore} (fallback)`);
       return modelDetails.latestScore.displayScore;
