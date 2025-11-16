@@ -165,6 +165,7 @@ export default function Dashboard() {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const isLeaderboardUIBusy = loadingLeaderboard || historyLoading || modelScores.length === 0;
+  const [historyRetryToken, setHistoryRetryToken] = useState(0);
   
   // Pro feature modal state
   const [showProModal, setShowProModal] = useState(false);
@@ -269,6 +270,7 @@ export default function Dashboard() {
 
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       const sortByParam = leaderboardSortBy === 'speed' ? '7axis' : leaderboardSortBy;
+      const MAX_HISTORY_RETRIES = 2;
       
       console.log(`🔄 Fetching individual model history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam})`);
       
@@ -299,10 +301,23 @@ export default function Dashboard() {
           }
         });
         console.log(`✅ Individual model history updated for ${historyMap.size}/${results.length} models`);
+        // Reset retries on success
+        if (historyMap.size > 0 && historyRetryToken !== 0) {
+          setHistoryRetryToken(0);
+        }
         return historyMap;
       });
 
-      // Only end loading after histories are processed
+      const hasHistory = results.some(r => r.success && r.history.length > 0);
+      if (!hasHistory && historyRetryToken < MAX_HISTORY_RETRIES) {
+        console.warn(`⚠️ History fetch returned empty data, retrying (${historyRetryToken + 1}/${MAX_HISTORY_RETRIES})...`);
+        // Keep loading state and trigger another attempt
+        setHistoryLoading(true);
+        setHistoryRetryToken(prev => prev + 1);
+        return;
+      }
+
+      // End loading after histories are processed or retries exhausted
       setLoadingLeaderboard(false);
       setHistoryLoading(false);
     };
@@ -311,7 +326,7 @@ export default function Dashboard() {
       setHistoryLoading(true);
       fetchAllModelHistory();
     }
-  }, [leaderboardPeriod, leaderboardSortBy, modelScores.length]); // FIXED: Added modelScores.length to trigger when models are loaded
+  }, [leaderboardPeriod, leaderboardSortBy, modelScores.length, historyRetryToken]); // FIXED: Added modelScores.length to trigger when models are loaded
 
   // FIXED: Chart rendering function that uses individual model data with CI support
   const renderMiniChart = (history: any[], period: string = leaderboardPeriod, modelId?: string) => {
