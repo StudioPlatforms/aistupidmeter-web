@@ -261,26 +261,39 @@ export default function TestKeysPage() {
 
   // Fallback function for when streaming fails
   const fallbackToRegularBenchmark = async () => {
-    try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/api/test-adapters/benchmark-test`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-user-api-key': apiKey
-        },
-        body: JSON.stringify({
-          provider: selectedProvider,
-          model: selectedModel
-        })
-      });
+    const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+    const maxAttempts = 2;
 
-      const result = await response.json();
-      
-      if (response.ok) {
-        setResult(result);
-        setTestLogs(prev => [...prev, '✅ Non-streaming benchmark completed']);
-      } else {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetch(`${apiUrl}/api/test-adapters/benchmark-test`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-user-api-key': apiKey
+          },
+          body: JSON.stringify({
+            provider: selectedProvider,
+            model: selectedModel
+          })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          setResult(result);
+          setTestLogs(prev => [...prev, '✅ Non-streaming benchmark completed']);
+          setTesting(false);
+          return;
+        }
+
+        // For 5xx, retry once
+        if (response.status >= 500 && attempt < maxAttempts) {
+          setTestLogs(prev => [...prev, `⚠️ Backend ${response.status} (${result.error || response.statusText}) - retrying (${attempt}/${maxAttempts})...`]);
+          await new Promise(r => setTimeout(r, 1200));
+          continue;
+        }
+
         setResult({
           success: false,
           provider: selectedProvider,
@@ -288,17 +301,23 @@ export default function TestKeysPage() {
           error: result.error || 'Benchmark failed'
         });
         setTestLogs(prev => [...prev, `❌ Error: ${result.error || 'Benchmark failed'}`]);
+        setTesting(false);
+        return;
+      } catch (error: any) {
+        if (attempt < maxAttempts) {
+          setTestLogs(prev => [...prev, `⚠️ Fallback error (${error.message || 'network'}) - retrying (${attempt}/${maxAttempts})...`]);
+          await new Promise(r => setTimeout(r, 1200));
+          continue;
+        }
+        setResult({
+          success: false,
+          provider: selectedProvider,
+          model: selectedModel || 'unknown',
+          error: error.message || 'Network error'
+        });
+        setTestLogs(prev => [...prev, `❌ Fallback error: ${error.message || 'Network error'}`]);
+        setTesting(false);
       }
-    } catch (error: any) {
-      setResult({
-        success: false,
-        provider: selectedProvider,
-        model: selectedModel || 'unknown',
-        error: error.message || 'Network error'
-      });
-      setTestLogs(prev => [...prev, `❌ Fallback error: ${error.message || 'Network error'}`]);
-    } finally {
-      setTesting(false);
     }
   };
 
