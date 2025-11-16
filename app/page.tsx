@@ -163,6 +163,8 @@ export default function Dashboard() {
   };
   
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const isLeaderboardUIBusy = loadingLeaderboard || historyLoading || modelScores.length === 0;
   
   // Pro feature modal state
   const [showProModal, setShowProModal] = useState(false);
@@ -258,8 +260,13 @@ export default function Dashboard() {
   // Fetch individual model history data for all models - FIXED: Proper dependency management
   useEffect(() => {
     const fetchAllModelHistory = async () => {
-      if (!modelScores.length) return;
-      
+      if (!modelScores.length) {
+        // No data to render; clear loading to avoid stuck spinner
+        setHistoryLoading(false);
+        setLoadingLeaderboard(false);
+        return;
+      }
+
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
       const sortByParam = leaderboardSortBy === 'speed' ? '7axis' : leaderboardSortBy;
       
@@ -294,9 +301,14 @@ export default function Dashboard() {
         console.log(`✅ Individual model history updated for ${historyMap.size}/${results.length} models`);
         return historyMap;
       });
+
+      // Only end loading after histories are processed
+      setLoadingLeaderboard(false);
+      setHistoryLoading(false);
     };
 
     if (modelScores.length > 0) {
+      setHistoryLoading(true);
       fetchAllModelHistory();
     }
   }, [leaderboardPeriod, leaderboardSortBy, modelScores.length]); // FIXED: Added modelScores.length to trigger when models are loaded
@@ -964,6 +976,13 @@ export default function Dashboard() {
           lastUpdated: new Date(score.lastUpdated),
           history: score.history || []
         }));
+
+        if (processedScores.length === 0) {
+          console.warn('⚠️ Fallback returned zero scores, ending loading state');
+          setHistoryLoading(false);
+          setLoadingLeaderboard(false);
+          return;
+        }
         
         // Initialize previous scores on first load
         if (previousScores.size === 0) {
@@ -976,15 +995,17 @@ export default function Dashboard() {
           setPreviousScores(initialScores);
         }
         
+        setHistoryLoading(true);
         setModelScores(processedScores);
         setLastUpdateTime(new Date());
         console.log(`✅ Fallback data loaded for ${period}/${sortBy}`);
       } else {
         console.error('Failed to fetch leaderboard data:', data.error);
+        setLoadingLeaderboard(false);
       }
     } catch (error) {
       console.error('Error fetching leaderboard data:', error);
-    } finally {
+      setHistoryLoading(false);
       setLoadingLeaderboard(false);
     }
   };
@@ -1370,6 +1391,7 @@ export default function Dashboard() {
       
       // CRITICAL FIX: Clear model scores immediately for optimistic update
       setLoadingLeaderboard(true);
+      setHistoryLoading(true);
       setModelScores([]); // Clear old data to prevent showing wrong data
       
       // Try cache first for instant loading
@@ -1400,7 +1422,6 @@ export default function Dashboard() {
           console.log('✅ Metadata matches! Loading data...');
           console.log('🚀 Control change loaded INSTANTLY from cache!');
           console.log(`🎯 Current modelScores count: ${modelScores.length}`);
-          setLoadingLeaderboard(false);
         })
         .catch((error) => {
           // Hard fallback on unexpected errors — do not change user selections
@@ -3644,7 +3665,7 @@ export default function Dashboard() {
           <div className="terminal-text" style={{ marginBottom: '16px', textAlign: 'center' }}>
             <div style={{ fontSize: '1.3em', marginBottom: '8px' }}>
               🏆 LIVE MODEL RANKINGS
-              {(loadingLeaderboard || showBatchRefreshing) && <span className="vintage-loading" style={{ marginLeft: '8px' }}></span>}
+              {(isLeaderboardUIBusy || showBatchRefreshing) && <span className="vintage-loading" style={{ marginLeft: '8px' }}></span>}
             </div>
             <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
               {showBatchRefreshing ? (
@@ -3662,7 +3683,7 @@ export default function Dashboard() {
           </div>
 
           {/* Loading Overlay */}
-          {loadingLeaderboard && (
+          {isLeaderboardUIBusy && (
             <div style={{
               position: 'absolute',
               top: 0,
@@ -3736,7 +3757,7 @@ export default function Dashboard() {
                       fontSize: '0.7em',
                       minHeight: '20px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     LATEST
                   </button>
@@ -3755,7 +3776,7 @@ export default function Dashboard() {
                       fontSize: '0.7em',
                       minHeight: '20px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     24H {!hasProAccess && '🔒'}
                   </button>
@@ -3774,7 +3795,7 @@ export default function Dashboard() {
                       fontSize: '0.7em',
                       minHeight: '20px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     7D {!hasProAccess && '🔒'}
                   </button>
@@ -3793,7 +3814,7 @@ export default function Dashboard() {
                       fontSize: '0.7em',
                       minHeight: '20px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     1M {!hasProAccess && '🔒'}
                   </button>
@@ -3883,7 +3904,7 @@ export default function Dashboard() {
                       fontSize: '0.75em',
                       minHeight: '22px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     LATEST
                   </button>
@@ -3902,7 +3923,7 @@ export default function Dashboard() {
                       fontSize: '0.75em',
                       minHeight: '22px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     24H {!hasProAccess && '🔒'}
                   </button>
@@ -3921,7 +3942,7 @@ export default function Dashboard() {
                       fontSize: '0.75em',
                       minHeight: '22px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     7D {!hasProAccess && '🔒'}
                   </button>
@@ -3940,7 +3961,7 @@ export default function Dashboard() {
                       fontSize: '0.75em',
                       minHeight: '22px'
                     }}
-                    disabled={loadingLeaderboard}
+                    disabled={isLeaderboardUIBusy}
                   >
                     1M {!hasProAccess && '🔒'}
                   </button>
