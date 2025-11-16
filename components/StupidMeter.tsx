@@ -178,18 +178,28 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
         <div className="health-status-grid">
           {providers.map(({ key, name }) => {
             const status = healthStatus[key]?.status || 'unknown';
+            const providerActive = modelScores?.some(
+              (m) => m.provider === key && typeof m.currentScore === 'number' && m.currentScore >= 0
+            );
+            // If we lack health data or it's marked down but we have recent scores, show “on” (operational) for UX clarity
+            const fallbackStatus =
+              status === 'operational'
+                ? 'operational'
+                : providerActive
+                  ? 'operational'
+                  : status;
             const responseTime = healthStatus[key]?.responseTime;
             
             let statusClass = 'unknown';
             let statusSymbol = '?';
             
-            if (status === 'operational') {
+            if (fallbackStatus === 'operational') {
               statusClass = 'operational';
               statusSymbol = '●';
-            } else if (status === 'degraded') {
+            } else if (fallbackStatus === 'degraded') {
               statusClass = 'degraded';
               statusSymbol = '●';
-            } else if (status === 'down') {
+            } else if (fallbackStatus === 'down') {
               statusClass = 'down';
               statusSymbol = '●';
             }
@@ -198,7 +208,7 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
               <div 
                 key={key} 
                 className={`health-provider ${statusClass}`}
-                title={`${name}: ${status.toUpperCase()}${responseTime ? ` (${responseTime}ms)` : ''}`}
+                title={`${name}: ${fallbackStatus.toUpperCase()}${responseTime ? ` (${responseTime}ms)` : ''}`}
               >
                 <span className="provider-name">{name}</span>
                 <span className={`status-indicator ${statusClass}`}>{statusSymbol}</span>
