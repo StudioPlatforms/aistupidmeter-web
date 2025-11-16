@@ -78,8 +78,7 @@ export default function TestKeysPage() {
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      
-      const response = await fetch(`${apiUrl}/test-adapters/discovery`, {
+      const response = await fetch(`${apiUrl}/test-adapters/discovery?provider=${selectedProvider}`, {
         headers: {
           'x-user-api-key': apiKey,
         },
@@ -152,6 +151,7 @@ export default function TestKeysPage() {
 
         const data = await response.json();
         setResult(data);
+        setTesting(false);
       } else {
         // For benchmark tests, use streaming functionality like the original test page
         setTestLogs(['🚀 Starting streaming benchmark test...', `📊 Testing ${selectedModel.toUpperCase()} from ${selectedProvider.toUpperCase()}`]);
