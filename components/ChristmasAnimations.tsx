@@ -5,6 +5,29 @@ import { useEffect, useState } from 'react'
 export default function ChristmasAnimations() {
   const [isChristmasTheme, setIsChristmasTheme] = useState(false)
   const [windowWidth, setWindowWidth] = useState(1920)
+  const [snowflakes, setSnowflakes] = useState<Array<{
+    id: number
+    position: number // 0-100 percentage
+    delay: number
+    duration: number
+    size: number
+    char: string
+  }>>([])
+
+  useEffect(() => {
+    // Generate random snowflake data once on mount
+    if (typeof window !== 'undefined') {
+      const flakes = Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        position: Math.random() * 100, // 0% to 100%
+        delay: Math.random() * 5, // 0 to 5 seconds
+        duration: 10 + Math.random() * 8, // 10 to 18 seconds  
+        size: 14 + Math.random() * 12, // 14px to 26px
+        char: ['❄', '❅', '❆'][Math.floor(Math.random() * 3)]
+      }))
+      setSnowflakes(flakes)
+    }
+  }, [])
 
   useEffect(() => {
     // Set initial window width
@@ -69,25 +92,24 @@ export default function ChristmasAnimations() {
 
   return (
     <div className="christmas-animations">
-      {/* Falling Snowflakes - 10 total, dynamically positioned using JS for accurate mobile positioning */}
-      {[...Array(10)].map((_, i) => {
-        // Calculate actual pixel position based on window width state
-        // This ensures snowflakes span full screen width on all devices
-        const basePercentage = (i * 10) + 5 // 5%, 15%, 25%, ..., 95%
-        const leftPosition = (windowWidth * basePercentage) / 100
+      {/* Falling Snowflakes - randomly positioned across full screen width */}
+      {snowflakes.map((flake) => {
+        // Calculate pixel position from stored percentage (0-100%)
+        // This ensures snowflakes span the ENTIRE viewport width
+        const leftPosition = (windowWidth * flake.position) / 100
         
         return (
           <div 
-            key={i}
+            key={flake.id}
             className="snowflake"
             style={{
               left: `${leftPosition}px`,
-              animationDelay: `${(i * 0.7) % 5}s`,
-              animationDuration: `${12 + (i % 5)}s`,
-              fontSize: `${16 + (i % 3) * 4}px`
+              animationDelay: `${flake.delay}s`,
+              animationDuration: `${flake.duration}s`,
+              fontSize: `${flake.size}px`
             }}
           >
-            {i % 3 === 0 ? '❄' : i % 3 === 1 ? '❅' : '❆'}
+            {flake.char}
           </div>
         );
       })}
