@@ -1682,76 +1682,8 @@ body[data-christmas-theme="true"] .christmas-animations {
   }
 }
 
-/* Different snowflake variations - spread across full width */
-.snowflake:nth-child(1) {
-  left: 8%;
-  animation-duration: 12s;
-  animation-delay: 0s;
-  font-size: 18px;
-}
-
-.snowflake:nth-child(2) {
-  left: 22%;
-  animation-duration: 15s;
-  animation-delay: 2s;
-  font-size: 24px;
-}
-
-.snowflake:nth-child(3) {
-  left: 35%;
-  animation-duration: 11s;
-  animation-delay: 4s;
-  font-size: 16px;
-}
-
-.snowflake:nth-child(4) {
-  left: 48%;
-  animation-duration: 14s;
-  animation-delay: 1s;
-  font-size: 22px;
-}
-
-.snowflake:nth-child(5) {
-  left: 60%;
-  animation-duration: 13s;
-  animation-delay: 3s;
-  font-size: 20px;
-}
-
-.snowflake:nth-child(6) {
-  left: 72%;
-  animation-duration: 12s;
-  animation-delay: 5s;
-  font-size: 18px;
-}
-
-.snowflake:nth-child(7) {
-  left: 82%;
-  animation-duration: 16s;
-  animation-delay: 2s;
-  font-size: 26px;
-}
-
-.snowflake:nth-child(8) {
-  left: 90%;
-  animation-duration: 11s;
-  animation-delay: 4s;
-  font-size: 17px;
-}
-
-.snowflake:nth-child(9) {
-  left: 15%;
-  animation-duration: 14s;
-  animation-delay: 1s;
-  font-size: 21px;
-}
-
-.snowflake:nth-child(10) {
-  left: 93%;
-  animation-duration: 13s;
-  animation-delay: 3s;
-  font-size: 19px;
-}
+/* Snowflake positions and animations - now controlled by inline styles in component */
+/* Removed hardcoded left positions to allow dynamic responsive positioning */
 
 /* Twinkling Christmas Lights Bar - Fixed position stays at top */
 .christmas-lights {

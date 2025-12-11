@@ -46,17 +46,25 @@ export default function ChristmasAnimations() {
 
   return (
     <div className="christmas-animations">
-      {/* Falling Snowflakes - 10 total */}
-      <div className="snowflake">❄</div>
-      <div className="snowflake">❅</div>
-      <div className="snowflake">❆</div>
-      <div className="snowflake">❄</div>
-      <div className="snowflake">❅</div>
-      <div className="snowflake">❆</div>
-      <div className="snowflake">❄</div>
-      <div className="snowflake">❅</div>
-      <div className="snowflake">❆</div>
-      <div className="snowflake">❄</div>
+      {/* Falling Snowflakes - 10 total, dynamically positioned */}
+      {[...Array(10)].map((_, i) => {
+        // Generate evenly distributed positions across full viewport width
+        const basePosition = (i * 10) + 5; // 5%, 15%, 25%, ..., 95%
+        return (
+          <div 
+            key={i}
+            className="snowflake"
+            style={{
+              left: `${basePosition}%`,
+              animationDelay: `${(i * 0.7) % 5}s`,
+              animationDuration: `${12 + (i % 5)}s`,
+              fontSize: `${16 + (i % 3) * 4}px`
+            }}
+          >
+            {i % 3 === 0 ? '❄' : i % 3 === 1 ? '❅' : '❆'}
+          </div>
+        );
+      })}
       
       {/* Twinkling Christmas Lights - Top bar */}
       <div className="christmas-lights">
