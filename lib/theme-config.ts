@@ -20,6 +20,15 @@ export const THEMES: ThemeColors[] = [
     isLight: false,
   },
   {
+    name: 'Christmas Festive',
+    description: 'Festive red glow for the holiday season',
+    primary: '#d42426',
+    primaryDim: '#a01d1f',
+    background: '#0f0505',  // Dark with warm red glow
+    backgroundDark: '#080202',  // Deep red-black
+    isLight: false,
+  },
+  {
     name: 'Classic Green',
     description: 'Original phosphor green terminal',
     primary: '#00ff41',
@@ -106,12 +115,18 @@ export function getCurrentThemeIndex(): number {
 }
 
 function getDefaultThemeIndex(): number {
-  // Check if today is Halloween (October 31st)
   const today = new Date();
-  const isHalloween = today.getMonth() === 9 && today.getDate() === 31; // Month is 0-indexed
+  const month = today.getMonth(); // 0-indexed: 0=Jan, 9=Oct, 11=Dec
+  const day = today.getDate();
   
-  // Return Halloween theme (index 0) on Oct 31, otherwise Classic Green (index 1)
-  return isHalloween ? 0 : 1;
+  // Check for seasonal themes
+  const isHalloween = month === 9 && day === 31; // October 31st
+  const isChristmasSeason = month === 11; // December (entire month)
+  
+  // Return seasonal theme if applicable, otherwise Classic Green (index 2)
+  if (isHalloween) return 0;      // Halloween Spooky
+  if (isChristmasSeason) return 1; // Christmas Festive
+  return 2;                        // Classic Green
 }
 
 export function saveThemeIndex(index: number) {
