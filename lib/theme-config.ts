@@ -21,11 +21,11 @@ export const THEMES: ThemeColors[] = [
   },
   {
     name: 'Christmas Festive',
-    description: 'Festive red glow for the holiday season',
-    primary: '#d42426',
-    primaryDim: '#a01d1f',
-    background: '#0f0505',  // Dark with warm red glow
-    backgroundDark: '#080202',  // Deep red-black
+    description: 'Festive holiday green with twinkling lights',
+    primary: '#00a86b',  // Christmas emerald green
+    primaryDim: '#007a4d',  // Darker festive green
+    background: '#050f08',  // Rich forest green-black
+    backgroundDark: '#020805',  // Deep green-black for depth
     isLight: false,
   },
   {
