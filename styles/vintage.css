@@ -1626,6 +1626,8 @@ body[data-halloween-theme="true"] .halloween-animations {
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
