@@ -263,7 +263,7 @@ export default function Dashboard() {
   // Track last fetch to prevent unnecessary refetching 
   const lastFetchKey = useRef<string>('');
 
-  // Fetch individual model history data for all models - FIXED: Proper dependency management
+  // Fetch individual model history data for all models - ENHANCED: Retry failed models with exponential backoff
   useEffect(() => {
     const fetchAllModelHistory = async () => {
       if (!modelScores.length) {
@@ -275,53 +275,85 @@ export default function Dashboard() {
 
       const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const sortByParam = leaderboardSortBy === 'speed' ? '7axis' : leaderboardSortBy;
-      const MAX_HISTORY_RETRIES = 2;
+      const MAX_HISTORY_RETRIES = 3;
+      const MIN_SUCCESS_RATE = 0.8; // Require 80% of charts to load successfully
       
-      console.log(`🔄 Fetching individual model history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam})`);
+      console.log(`🔄 Fetching individual model history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam}) [Attempt ${historyRetryToken + 1}/${MAX_HISTORY_RETRIES + 1}]`);
+      
+      // Exponential backoff: 0ms, 1s, 2s, 4s
+      const backoffDelay = historyRetryToken > 0 ? Math.pow(2, historyRetryToken - 1) * 1000 : 0;
+      if (backoffDelay > 0) {
+        console.log(`⏳ Waiting ${backoffDelay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+      }
       
       const historyPromises = modelScores.map(async (model: any) => {
         try {
-          const response = await fetch(`${apiUrl}/api/dashboard/history/${model.id}?period=${leaderboardPeriod}&sortBy=${sortByParam}`);
+          const response = await fetch(`${apiUrl}/api/dashboard/history/${model.id}?period=${leaderboardPeriod}&sortBy=${sortByParam}`, {
+            signal: AbortSignal.timeout(30000) // 30s timeout per request
+          });
+          
           if (response.ok) {
             const historyData = await response.json();
             if (historyData.success && historyData.data && historyData.data.length > 0) {
               console.log(`✅ Got individual history for ${model.name}: ${historyData.data.length} points`);
-              return { modelId: model.id, history: historyData.data, success: true };
+              return { modelId: model.id, modelName: model.name, history: historyData.data, success: true, error: null };
             }
+          } else if (response.status === 502 || response.status === 503 || response.status === 504) {
+            console.warn(`⚠️ Gateway error ${response.status} for ${model.name}, will retry`);
+            return { modelId: model.id, modelName: model.name, history: model.history || [], success: false, error: `${response.status}` };
           }
-        } catch (error) {
-          console.warn(`Failed to fetch history for model ${model.id}:`, error);
+        } catch (error: any) {
+          const errorType = error.name === 'TimeoutError' ? 'timeout' : error.name === 'AbortError' ? 'timeout' : 'network';
+          console.warn(`⚠️ ${errorType} error fetching history for ${model.name}:`, error.message);
+          return { modelId: model.id, modelName: model.name, history: model.history || [], success: false, error: errorType };
         }
-        return { modelId: model.id, history: model.history || [], success: false };
+        return { modelId: model.id, modelName: model.name, history: model.history || [], success: false, error: 'empty' };
       });
 
       const results = await Promise.all(historyPromises);
       
-      // ALWAYS update with fresh individual data
-      setModelHistoryData(() => {
-        const historyMap = new Map();
+      // Update with fresh individual data
+      setModelHistoryData((prevData) => {
+        const historyMap = new Map(prevData); // Preserve existing successful fetches
         results.forEach(result => {
           if (result.success && result.history.length > 0) {
             historyMap.set(result.modelId, result.history);
           }
         });
-        console.log(`✅ Individual model history updated for ${historyMap.size}/${results.length} models`);
-        // Reset retries on success
-        if (historyMap.size > 0 && historyRetryToken !== 0) {
-          setHistoryRetryToken(0);
-        }
+        const successCount = historyMap.size;
+        const successRate = successCount / results.length;
+        console.log(`📊 Individual model history: ${successCount}/${results.length} (${Math.round(successRate * 100)}%) loaded successfully`);
         return historyMap;
       });
 
-      const hasHistory = results.some(r => r.success && r.history.length > 0);
-      if (!hasHistory && historyRetryToken < MAX_HISTORY_RETRIES) {
-        console.warn(`⚠️ History fetch returned empty data, retrying (${historyRetryToken + 1}/${MAX_HISTORY_RETRIES})...`);
+      // Calculate success metrics
+      const successCount = results.filter(r => r.success).length;
+      const failedResults = results.filter(r => !r.success);
+      const successRate = successCount / results.length;
+      
+      // Check if we need to retry
+      const shouldRetry = successRate < MIN_SUCCESS_RATE && historyRetryToken < MAX_HISTORY_RETRIES;
+      
+      if (shouldRetry) {
+        console.warn(`⚠️ History fetch below ${Math.round(MIN_SUCCESS_RATE * 100)}% success rate (${Math.round(successRate * 100)}%), retrying ${failedResults.length} failed models (${historyRetryToken + 1}/${MAX_HISTORY_RETRIES})...`);
+        failedResults.forEach(f => console.log(`  ❌ ${f.modelName}: ${f.error}`));
+        
         // Keep loading state and trigger another attempt
         setHistoryLoading(true);
         setHistoryRetryToken(prev => prev + 1);
         return;
       }
 
+      // Success or retries exhausted
+      if (successRate >= MIN_SUCCESS_RATE) {
+        console.log(`✅ Chart loading complete: ${successCount}/${results.length} models (${Math.round(successRate * 100)}%)`);
+        setHistoryRetryToken(0); // Reset retry counter on success
+      } else {
+        console.warn(`⚠️ Chart loading finished with ${Math.round(successRate * 100)}% success rate after ${historyRetryToken + 1} attempts`);
+        failedResults.forEach(f => console.log(`  ❌ ${f.modelName}: ${f.error}`));
+      }
+      
       // End loading after histories are processed or retries exhausted
       setLoadingLeaderboard(false);
       setHistoryLoading(false);
@@ -331,7 +363,7 @@ export default function Dashboard() {
       setHistoryLoading(true);
       fetchAllModelHistory();
     }
-  }, [leaderboardPeriod, leaderboardSortBy, modelScores.length, historyRetryToken]); // FIXED: Added modelScores.length to trigger when models are loaded
+  }, [leaderboardPeriod, leaderboardSortBy, modelScores.length, historyRetryToken]);
 
   // FIXED: Chart rendering function that uses individual model data with CI support
   const renderMiniChart = (history: any[], period: string = leaderboardPeriod, modelId?: string) => {
