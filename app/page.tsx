@@ -11,6 +11,9 @@ import FAQItem from '../components/FAQItem';
 import StatCounter from '../components/StatCounter';
 import ThemeButton from '../components/ThemeButton';
 import ShareButton from '../components/ShareButton';
+// PHASE 3: Drift detection components
+import DriftAwareModelCard from '../components/DriftAwareModelCard';
+import DriftHeatmap from '../components/DriftHeatmap';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -127,6 +130,8 @@ export default function Dashboard() {
   const pathname = usePathname();
   
   const [selectedView, setSelectedView] = useState<'dashboard' | 'test' | 'about' | 'faq'>('dashboard');
+  // PHASE 3: Dashboard view mode with persistence
+  const [dashboardMode, setDashboardMode] = useStickyParam<'leaderboard' | 'drift'>('mode', 'leaderboard');
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [modelScores, setModelScores] = useState<ModelScore[]>([]);
   const [alerts, setAlerts] = useState<AlertModel[]>([]);
@@ -222,7 +227,7 @@ export default function Dashboard() {
   // Fetch visitor count
   const fetchVisitorCount = async () => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/visitors/stats`);
       const data = await response.json();
       
@@ -237,7 +242,7 @@ export default function Dashboard() {
   // Fetch batch status
   const fetchBatchStatus = async () => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/api/dashboard/batch-status`);
       const data = await response.json();
       
@@ -268,7 +273,7 @@ export default function Dashboard() {
         return;
       }
 
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const sortByParam = leaderboardSortBy === 'speed' ? '7axis' : leaderboardSortBy;
       const MAX_HISTORY_RETRIES = 2;
       
@@ -555,7 +560,7 @@ export default function Dashboard() {
   // Fetch drift incidents with retry logic
   const fetchDriftIncidents = async (period: string = '7d', retryCount: number = 0, maxRetries: number = 5) => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/dashboard/incidents?period=${period}&limit=50`);
       const data = await response.json();
       
@@ -606,7 +611,7 @@ export default function Dashboard() {
       setLoadingAnalytics(true);
     }
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
 
       console.log(`🌐 Fetching analytics from cached dashboard endpoint`);
 
@@ -672,7 +677,8 @@ export default function Dashboard() {
       console.log(`⚡ Silent refresh START: user has ${currentPeriod}/${currentSortBy}/${currentAnalyticsPeriod} selected`);
       
       // ONLY update data that matches current user selections
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'http://aistupidlevel.info:4000' : 'http://localhost:4000';
+      // Use relative URLs in production (proxied by nginx), direct localhost in dev
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const cacheUrl = `${apiUrl}/dashboard/cached?period=${currentPeriod}&sortBy=${currentSortBy}&analyticsPeriod=${currentAnalyticsPeriod}`;
       
       const response = await fetch(cacheUrl);
@@ -796,7 +802,7 @@ export default function Dashboard() {
     console.log(`⚡ Fetching cached dashboard data: ${period}/${sortByParam}/${analyticsP}`);
     
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const cacheUrl = `${apiUrl}/dashboard/cached?period=${period}&sortBy=${sortByParam}&analyticsPeriod=${analyticsP}`;
       console.log(`🚀 Trying cache URL: ${cacheUrl}`);
       const response = await fetch(cacheUrl);
@@ -981,7 +987,7 @@ export default function Dashboard() {
     setLoadingLeaderboard(true);
     
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/dashboard/scores?period=${period}&sortBy=${sortByParam}`);
       const data = await response.json();
       
@@ -1028,7 +1034,7 @@ export default function Dashboard() {
   // Health check to verify API is responsive
   const healthCheck = async (): Promise<boolean> => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
@@ -1258,7 +1264,7 @@ export default function Dashboard() {
           setLoadingProgress(Math.min(60 + (attemptNumber * 6), 90));
           
           // Fallback to legacy approach if cache misses - use current user selections
-          const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+          const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
           console.log(`🔄 Cache miss - using fallback APIs with current selections: ${currentPeriod}/${currentSortBy}`);
           
           const [alertsResponse, globalIndexResponse] = await Promise.all([
@@ -2226,8 +2232,8 @@ export default function Dashboard() {
     setTestLogs(['🚀 Starting streaming benchmark test...', `📊 Testing ${selectedUserModel.toUpperCase()} from ${getProviderName(userProvider)}`]);
 
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
-      
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
+
       // First, start the streaming benchmark
       const response = await fetch(`${apiUrl}/api/test-adapters/benchmark-test-stream`, {
         method: 'POST',
@@ -2325,7 +2331,7 @@ export default function Dashboard() {
   // Fallback function for when streaming fails
   const fallbackToRegularBenchmark = async () => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/api/test-adapters/benchmark-test`, {
         method: 'POST',
         headers: { 
@@ -4043,6 +4049,39 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* PHASE 3: Dashboard View Mode Switcher */}
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '16px',
+            padding: '12px',
+            background: 'rgba(0, 255, 65, 0.03)',
+            borderRadius: '4px',
+            border: '1px solid rgba(0, 255, 65, 0.15)'
+          }}>
+            <button
+              className={`vintage-btn ${dashboardMode === 'leaderboard' ? 'vintage-btn--active' : ''}`}
+              onClick={() => setDashboardMode('leaderboard')}
+              style={{ flex: 1, padding: '8px 16px' }}
+            >
+              📊 Leaderboard
+            </button>
+            <button
+              className={`vintage-btn ${dashboardMode === 'drift' ? 'vintage-btn--active' : ''}`}
+              onClick={() => setDashboardMode('drift')}
+              style={{ flex: 1, padding: '8px 16px' }}
+            >
+              🔍 Drift Monitor
+            </button>
+          </div>
+
+          {/* PHASE 3: Drift Heatmap (shown in drift mode) */}
+          {dashboardMode === 'drift' && (
+            <div style={{ marginBottom: '24px' }}>
+              <DriftHeatmap models={modelScores} />
+            </div>
+          )}
 
           {/* CI Legend - Desktop only */}
           <div className="desktop-only" style={{

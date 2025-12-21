@@ -85,8 +85,9 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
   useEffect(() => {
     const fetchHealthStatus = async () => {
       try {
-        console.log('🔍 Fetching health status from:', `${process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000'}/providers`);
-        const response = await fetch(`${process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000'}/providers`);
+        const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
+        console.log('🔍 Fetching health status from:', `${apiUrl}/providers`);
+        const response = await fetch(`${apiUrl}/providers`);
         console.log('📡 Health status response:', response.status, response.ok);
         if (response.ok) {
           const data = await response.json();

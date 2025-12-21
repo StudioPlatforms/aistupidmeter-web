@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || 'rankings';
     
     // Use the CACHED endpoint for instant data - no timeouts!
-    const apiUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://aistupidlevel.info' 
+    const apiUrl = process.env.NODE_ENV === 'production'
+      ? ''
       : 'http://localhost:4000';
     
     let data: any = null;

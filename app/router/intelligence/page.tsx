@@ -50,7 +50,7 @@ export default function ModelIntelligencePage() {
       setLoading(true);
       setError(null);
 
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       
       const response = await fetch(`${apiUrl}/dashboard/scores?period=latest&sortBy=combined`);
       if (!response.ok) throw new Error('Failed to fetch model data');
@@ -384,7 +384,7 @@ export default function ModelIntelligencePage() {
             onDownload={async (format) => {
               setDownloading(true);
               try {
-                const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+                const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
                 
                 const [historyRes, statsRes, modelRes] = await Promise.all([
                   fetch(`${apiUrl}/dashboard/history/${downloadingModel.id}?period=30d&sortBy=combined`),
@@ -669,7 +669,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
   const fetchDetailedData = async () => {
     setLoading(true);
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       
       // Map test type to sortBy parameter (same as model details page)
       const sortByParam = selectedTestType === '7axis' ? '7axis' : selectedTestType;

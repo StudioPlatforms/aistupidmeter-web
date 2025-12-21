@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Fetch live data for description
   let description = 'Real-time AI model performance monitoring';
   try {
-    const apiUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://aistupidlevel.info' 
+    const apiUrl = process.env.NODE_ENV === 'production'
+      ? ''
       : 'http://localhost:4000';
     
     const response = await fetch(`${apiUrl}/dashboard/cached?period=latest&sortBy=combined&analyticsPeriod=latest`, {

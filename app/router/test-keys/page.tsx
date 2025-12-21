@@ -77,7 +77,7 @@ export default function TestKeysPage() {
     setAvailableModels([]);
     
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/test-adapters/discovery?provider=${selectedProvider}`, {
         headers: {
           'x-user-api-key': apiKey,
@@ -128,7 +128,7 @@ export default function TestKeysPage() {
     setTestLogs([]);
 
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       
       if (testType === 'chat') {
         // For chat tests, use the simple endpoint
@@ -261,7 +261,7 @@ export default function TestKeysPage() {
 
   // Fallback function for when streaming fails
   const fallbackToRegularBenchmark = async () => {
-    const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+    const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
     const maxAttempts = 2;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {

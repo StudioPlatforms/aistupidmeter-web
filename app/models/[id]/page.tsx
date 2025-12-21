@@ -262,7 +262,7 @@ export default function ModelDetailPage() {
       }
 
       const modelIdStr = params.id as string;
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       
       const modelId = parseInt(modelIdStr);
       

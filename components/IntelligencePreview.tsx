@@ -25,7 +25,7 @@ export default function IntelligencePreview() {
 
   const fetchTopModels = async () => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? 'https://aistupidlevel.info' : 'http://localhost:4000';
+      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const response = await fetch(`${apiUrl}/dashboard/scores?period=latest&sortBy=combined`);
       
       if (response.ok) {

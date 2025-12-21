@@ -4,6 +4,7 @@ import VisitorTracker from '../components/VisitorTracker'
 import HalloweenAnimations from '../components/HalloweenAnimations'
 import ChristmasAnimations from '../components/ChristmasAnimations'
 import '../styles/vintage.css'
+import '../styles/drift-cards.css'
 
 export const metadata: Metadata = {
   title: {
