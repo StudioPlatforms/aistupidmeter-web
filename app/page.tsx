@@ -4110,7 +4110,7 @@ export default function Dashboard() {
 
           {/* PHASE 3: Drift Heatmap (shown in drift mode) */}
           {dashboardMode === 'drift' && (
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '24px', maxWidth: '100%', overflow: 'hidden' }}>
               <DriftHeatmap models={modelScores} />
             </div>
           )}

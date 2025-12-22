@@ -67,7 +67,7 @@ export default function DriftTestPage() {
             marginBottom: '24px'
           }}>
             <h3 style={{ margin: '0 0 12px 0' }}>System-Wide Drift Status</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '0.75em', opacity: 0.6 }}>Total Models</div>
                 <div style={{ fontSize: '1.5em', fontWeight: 'bold' }}>{driftStatus.total || 0}</div>
@@ -126,9 +126,9 @@ export default function DriftTestPage() {
         <h2 style={{ marginBottom: '16px' }}>
           Drift-Aware Model Cards ({modelScores.length} models)
         </h2>
-        <div style={{ 
+        <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
           gap: '16px'
         }}>
           {modelScores.slice(0, 6).map((model: any) => (

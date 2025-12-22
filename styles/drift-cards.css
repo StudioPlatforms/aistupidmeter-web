@@ -359,7 +359,7 @@
 
 .axis-row {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: minmax(90px, 120px) 1fr;
   gap: 12px;
   align-items: center;
   padding: 8px 0;
@@ -573,12 +573,17 @@
   background: var(--bg-darker);
   border: 2px solid var(--phosphor-green);
   border-radius: 4px;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .heatmap-table {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
+  table-layout: auto;
 }
 
 .heatmap-table thead th {
@@ -795,10 +800,220 @@
   
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
   
   .models-grid {
     grid-template-columns: 1fr !important;
+  }
+  
+  /* Heatmap mobile optimization */
+  .drift-heatmap {
+    padding: 6px;
+    margin: 16px 0;
+    border-width: 1px;
+  }
+  
+  .heatmap-table {
+    font-size: 0.7em;
+    width: 100%;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .heatmap-table thead,
+  .heatmap-table tbody {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+  
+  .heatmap-table thead th {
+    padding: 3px 1px;
+    font-size: 0.65em;
+  }
+  
+  .heatmap-table thead th:first-child {
+    width: 25%;
+    text-align: left;
+  }
+  
+  .heatmap-table thead th:nth-child(2) {
+    width: 15%;
+  }
+  
+  .heatmap-table thead th:not(:first-child):not(:nth-child(2)) {
+    width: 15%;
+  }
+  
+  .heatmap-table tbody td {
+    padding: 4px 1px;
+  }
+  
+  .heatmap-table tbody td.model-name {
+    width: 25%;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.75em;
+    padding-right: 4px;
+  }
+  
+  .heatmap-table tbody td.model-name > div {
+    display: none; /* Hide provider on mobile */
+  }
+  
+  .heat-cell {
+    font-size: 1em;
+    padding: 1px;
+  }
+  
+  .heatmap-legend {
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 0.65em;
+    justify-content: center;
+    padding: 0 4px;
+  }
+  
+  /* Axis row mobile optimization */
+  .axis-row {
+    grid-template-columns: minmax(70px, 90px) 1fr;
+    gap: 8px;
+  }
+  
+  .axis-label {
+    font-size: 0.75em;
+    word-break: break-word;
+  }
+  
+  .axis-value {
+    font-size: 0.75em;
+    min-width: 25px;
+  }
+  
+  /* Card header mobile optimization */
+  .card-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .status-badge {
+    font-size: 0.65em;
+    padding: 3px 8px;
+  }
+  
+  /* Alert panels mobile */
+  .alert-panel {
+    padding: 10px;
+  }
+  
+  .alert-recommendation,
+  .alert-context {
+    padding-left: 16px;
+    font-size: 0.8em;
+  }
+  
+  /* Summary item mobile */
+  .summary-item .label {
+    font-size: 0.65em;
+  }
+  
+  .summary-item .value {
+    font-size: 1em;
+  }
+}
+
+/* Additional mobile constraints for very small screens */
+@media (max-width: 480px) {
+  .model-card {
+    padding: 10px;
+  }
+  
+  .score-value {
+    font-size: 1.5em;
+  }
+  
+  .mini-metrics {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .axis-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .axis-bar-container {
+    width: 100%;
+  }
+  
+  .drift-heatmap {
+    padding: 4px;
+    margin: 8px 0;
+    border-width: 1px;
+  }
+  
+  .heatmap-table {
+    font-size: 0.6em;
+  }
+  
+  .heatmap-table thead th {
+    padding: 2px 0px;
+    font-size: 0.6em;
+  }
+  
+  .heatmap-table thead th:first-child {
+    width: 28%;
+  }
+  
+  .heatmap-table thead th:nth-child(2) {
+    width: 12%;
+  }
+  
+  .heatmap-table thead th:not(:first-child):not(:nth-child(2)) {
+    width: 12%;
+  }
+  
+  .heatmap-table tbody td {
+    padding: 3px 0px;
+  }
+  
+  .heatmap-table tbody td.model-name {
+    max-width: 70px;
+    font-size: 0.7em;
+  }
+  
+  .heat-cell {
+    font-size: 0.9em;
+  }
+  
+  .status-badge {
+    font-size: 0.55em;
+    padding: 1px 3px;
+  }
+  
+  .heatmap-legend {
+    font-size: 0.6em;
+    gap: 3px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .score-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
   }
 }
 

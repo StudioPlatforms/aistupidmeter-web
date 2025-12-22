@@ -127,7 +127,7 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
         </p>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
         <table className="heatmap-table">
           <thead>
             <tr>
