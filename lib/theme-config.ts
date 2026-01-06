@@ -126,7 +126,29 @@ function getDefaultThemeIndex(): number {
   // Return seasonal theme if applicable, otherwise Classic Green (index 2)
   if (isHalloween) return 0;      // Halloween Spooky
   if (isChristmasSeason) return 1; // Christmas Festive
-  return 2;                        // Classic Green
+  return 2;                        // Classic Green (default)
+}
+
+function isSeasonalTheme(themeIndex: number): boolean {
+  return themeIndex === 0 || themeIndex === 1; // Halloween or Christmas
+}
+
+function shouldResetSeasonalTheme(themeIndex: number): boolean {
+  const today = new Date();
+  const month = today.getMonth();
+  const day = today.getDate();
+  
+  // Reset Halloween theme after October 31st
+  if (themeIndex === 0 && !(month === 9 && day === 31)) {
+    return true;
+  }
+  
+  // Reset Christmas theme after December
+  if (themeIndex === 1 && month !== 11) {
+    return true;
+  }
+  
+  return false;
 }
 
 export function saveThemeIndex(index: number) {
@@ -144,6 +166,14 @@ export function cycleTheme(): number {
 
 export function initializeTheme() {
   if (typeof window === 'undefined') return;
-  const index = getCurrentThemeIndex();
+  let index = getCurrentThemeIndex();
+  
+  // Auto-reset seasonal themes when their season passes
+  if (isSeasonalTheme(index) && shouldResetSeasonalTheme(index)) {
+    console.log(`Seasonal theme expired, resetting to default theme`);
+    index = getDefaultThemeIndex();
+    saveThemeIndex(index);
+  }
+  
   applyTheme(THEMES[index]);
 }
