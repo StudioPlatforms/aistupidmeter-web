@@ -64,6 +64,7 @@ export default function RouterSidebar() {
     { iconName: 'settings', label: 'Preferences', href: '/router/preferences' },
     { iconName: 'analytics', label: 'Analytics', href: '/router/analytics' },
     { iconName: 'brain', label: 'Model Intelligence', href: '/router/intelligence' },
+    { iconName: 'clock', label: 'Performance Timing', href: '/router/performance-timing' },
     { iconName: 'test', label: 'Test Your Keys', href: '/router/test-keys' },
   ];
 

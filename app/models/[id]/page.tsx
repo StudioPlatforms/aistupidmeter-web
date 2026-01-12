@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import '../../../styles/vintage.css';
 import ProFeatureModal from '../../../components/ProFeatureModal';
 import ProFeatureBlur from '../../../components/ProFeatureBlur';
+import PerformanceChart from '../../../components/PerformanceChart';
 
 // Add the same helper functions from the main page
 const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
@@ -564,11 +565,11 @@ export default function ModelDetailPage() {
     return `${days}d ago`;
   };
 
-  // PRODUCTION-READY CHART: Clear, informative, and visually appealing
+  // RECHARTS-POWERED CHART: Clear, informative, and visually appealing
   const renderDetailChart = (historyData: any[], period: string = selectedPeriod) => {
     const chartHistory = historyData || [];
 
-    console.log(`🎨 renderDetailChart:`, {
+    console.log(`🎨 renderDetailChart (Recharts):`, {
       historyLength: chartHistory?.length || 0,
       period,
       sortBy: selectedScoringMode
@@ -601,7 +602,7 @@ export default function ModelDetailPage() {
             <div style={{ fontSize: '1.2em', marginBottom: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{message}</div>
             <div style={{ fontSize: '0.9em', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6', marginBottom: '16px' }}>{suggestion}</div>
             {showFallback && (
-              <button 
+              <button
                 onClick={() => setSelectedPeriod('7d')}
                 className="vintage-btn"
                 style={{ fontSize: '0.9em', padding: '8px 16px' }}
@@ -654,434 +655,56 @@ export default function ModelDetailPage() {
       );
     }
 
-    // Calculate chart dimensions and ranges
-    const maxScore = Math.max(...displayScores);
-    const minScore = Math.min(...displayScores);
-    const range = maxScore - minScore || 1;
-    const avgScore = displayScores.reduce((a, b) => a + b, 0) / displayScores.length;
-
-    // Responsive dimensions based on mobile detection
-    const chartWidth = isMobile ? Math.min(window.innerWidth - 60, 400) : 800;
-    const chartHeight = isMobile ? 300 : 400;
-    const paddingLeft = isMobile ? 40 : 60;
-    const paddingRight = isMobile ? 25 : 40;
-    const paddingTop = 40;
-    const paddingBottom = isMobile ? 60 : 80;
-
-    // Calculate points for the line chart
-    const points = data.map((point, index) => {
-      const displayScore = toDisplayScore(point) ?? minScore;
-      const x = paddingLeft + (index / Math.max(1, data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
-      const y = paddingTop + (1 - (displayScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
-      return { x, y, score: displayScore, timestamp: point.timestamp };
-    });
-
-    const polylinePoints = points.map(p => `${p.x},${p.y}`).join(' ');
-
-    // Generate grid lines
-    const gridLines = 5;
-    const yGridLines = Array.from({ length: gridLines + 1 }, (_, i) => {
-      const score = minScore + (range * i / gridLines);
-      const y = paddingTop + (1 - (i / gridLines)) * (chartHeight - paddingTop - paddingBottom);
-      return { y, score };
-    });
-
-    // Time labels - fewer on mobile
-    const numTimeLabels = Math.min(isMobile ? 4 : 8, data.length);
-    const timeLabels = Array.from({ length: numTimeLabels }, (_, i) => {
-      const index = Math.floor((i / (numTimeLabels - 1)) * (data.length - 1));
-      const point = points[index];
-      if (!point) return null;
+    // Transform data for PerformanceChart component with smart label formatting
+    const chartData = data.map((point, index) => {
+      const timestamp = new Date(point.timestamp);
+      let name = '';
       
-      const date = new Date(data[index].timestamp);
-      let label = '';
-      
+      // Format label based on period and data density
       if (period === '24h') {
-        label = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Hour:minute for 24h period
+        name = timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       } else if (period === '7d') {
-        label = date.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
+        // Day + hour for 7-day period
+        name = timestamp.toLocaleDateString([], { weekday: 'short', hour: '2-digit' });
       } else if (period === '1m') {
-        label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        // Month + day for 1-month period
+        name = timestamp.toLocaleDateString([], { month: 'short', day: 'numeric' });
       } else {
-        label = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        // For 'latest': Use time-based labels to avoid duplicate dates
+        // If data spans less than 3 days, show hour:minute, otherwise show date + time
+        const firstTimestamp = new Date(data[0].timestamp);
+        const lastTimestamp = new Date(data[data.length - 1].timestamp);
+        const spanDays = Math.abs(lastTimestamp.getTime() - firstTimestamp.getTime()) / (1000 * 60 * 60 * 24);
+        
+        if (spanDays < 3) {
+          // Less than 3 days: show time only (avoids duplicate dates)
+          name = timestamp.toLocaleTimeString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } else {
+          // More than 3 days: show date with abbreviated time
+          name = timestamp.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit' });
+        }
       }
       
-      return { x: point.x, label };
-    }).filter(Boolean);
+      return {
+        name,
+        score: toDisplayScore(point) || 0,
+        timestamp: point.timestamp
+      };
+    });
 
+    // Use the new PerformanceChart component with Recharts
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '20px',
-        background: 'rgba(0,0,0,0.2)',
-        borderRadius: '8px'
-      }}>
-        {/* Chart Stats Summary */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '30px', 
-          marginBottom: '20px',
-          fontSize: '0.9em'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div className="terminal-text--dim">Data Points</div>
-            <div className="terminal-text--green" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{data.length}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div className="terminal-text--dim">Average Score</div>
-            <div className="terminal-text" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{Math.round(avgScore)}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div className="terminal-text--dim">Peak Score</div>
-            <div className="terminal-text--green" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{Math.round(maxScore)}</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div className="terminal-text--dim">Low Score</div>
-            <div className={minScore < 50 ? "terminal-text--red" : "terminal-text"} style={{ fontSize: '1.3em', fontWeight: 'bold' }}>{Math.round(minScore)}</div>
-          </div>
-        </div>
-
-        {/* SVG Chart - Responsive with viewBox */}
-        <div style={{ 
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          overflowX: 'auto',
-          overflowY: 'visible'
-        }}>
-          <svg 
-            width={chartWidth} 
-            height={chartHeight}
-            viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-            preserveAspectRatio="xMidYMid meet"
-            style={{ 
-              background: 'rgba(0, 0, 0, 0.3)', 
-              borderRadius: '8px',
-              border: '1px solid rgba(0, 255, 65, 0.2)',
-              maxWidth: '100%',
-              height: 'auto',
-              minWidth: isMobile ? 'auto' : '600px'
-            }}
-          >
-          {/* Horizontal grid lines */}
-          {yGridLines.map((line, i) => (
-            <g key={`grid-${i}`}>
-              <line 
-                x1={paddingLeft} 
-                y1={line.y} 
-                x2={chartWidth - paddingRight} 
-                y2={line.y} 
-                stroke="rgba(0, 255, 65, 0.15)" 
-                strokeWidth="1"
-                strokeDasharray={i === 0 || i === gridLines ? "0" : "4,4"}
-              />
-              <text 
-                x={paddingLeft - 10} 
-                y={line.y + 4} 
-                fill="var(--phosphor-green)" 
-                fontSize={isMobile ? "10" : "12"} 
-                textAnchor="end"
-                opacity="0.8"
-              >
-                {Math.round(line.score)}
-              </text>
-            </g>
-          ))}
-
-          {/* Performance zones with labels */}
-          <rect 
-            x={paddingLeft} 
-            y={paddingTop} 
-            width={chartWidth - paddingLeft - paddingRight} 
-            height={(chartHeight - paddingTop - paddingBottom) / 3} 
-            fill="rgba(0,255,65,0.05)" 
-          />
-          <text 
-            x={chartWidth - paddingRight - 10} 
-            y={paddingTop + 20} 
-            fill="var(--phosphor-green)" 
-            fontSize={isMobile ? "9" : "11"} 
-            textAnchor="end"
-            opacity="0.5"
-          >
-            EXCELLENT
-          </text>
-
-          <rect 
-            x={paddingLeft} 
-            y={paddingTop + (chartHeight - paddingTop - paddingBottom) / 3} 
-            width={chartWidth - paddingLeft - paddingRight} 
-            height={(chartHeight - paddingTop - paddingBottom) / 3} 
-            fill="rgba(255,176,0,0.05)" 
-          />
-          <text 
-            x={chartWidth - paddingRight - 10} 
-            y={paddingTop + (chartHeight - paddingTop - paddingBottom) / 3 + 20} 
-            fill="var(--amber-warning)" 
-            fontSize={isMobile ? "9" : "11"} 
-            textAnchor="end"
-            opacity="0.5"
-          >
-            GOOD
-          </text>
-
-          <rect 
-            x={paddingLeft} 
-            y={paddingTop + 2 * (chartHeight - paddingTop - paddingBottom) / 3} 
-            width={chartWidth - paddingLeft - paddingRight} 
-            height={(chartHeight - paddingTop - paddingBottom) / 3} 
-            fill="rgba(255,45,0,0.05)" 
-          />
-          <text 
-            x={chartWidth - paddingRight - 10} 
-            y={paddingTop + 2 * (chartHeight - paddingTop - paddingBottom) / 3 + 20} 
-            fill="var(--red-alert)" 
-            fontSize={isMobile ? "9" : "11"} 
-            textAnchor="end"
-            opacity="0.5"
-          >
-            NEEDS WORK
-          </text>
-
-          {/* Average line */}
-          <line 
-            x1={paddingLeft} 
-            y1={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom)} 
-            x2={chartWidth - paddingRight} 
-            y2={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom)} 
-            stroke="var(--amber-warning)" 
-            strokeWidth="2" 
-            strokeDasharray="8,4"
-            opacity="0.6"
-          />
-          <text 
-            x={chartWidth - paddingRight + 5} 
-            y={paddingTop + (1 - (avgScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom) + 4} 
-            fill="var(--amber-warning)" 
-            fontSize={isMobile ? "9" : "11"}
-            opacity="0.8"
-          >
-            AVG
-          </text>
-
-          {/* Main chart line with gradient */}
-          <defs>
-            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="var(--phosphor-green)" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="var(--phosphor-green)" stopOpacity="1" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          <polyline
-            points={polylinePoints}
-            fill="none"
-            stroke="url(#lineGradient)"
-            strokeWidth="3"
-            filter="url(#glow)"
-          />
-
-          {/* Confidence interval band (shaded area) */}
-          {(() => {
-            const ciPoints = data.map((point, index) => {
-              const displayScore = toDisplayScore(point) ?? minScore;
-              const ciLower = point.confidence_lower ?? displayScore;
-              const ciUpper = point.confidence_upper ?? displayScore;
-              const x = paddingLeft + (index / Math.max(1, data.length - 1)) * (chartWidth - paddingLeft - paddingRight);
-              const yScore = paddingTop + (1 - (displayScore - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
-              const yLower = paddingTop + (1 - (ciLower - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
-              const yUpper = paddingTop + (1 - (ciUpper - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
-              return { x, yScore, yLower, yUpper, ciWidth: ciUpper - ciLower };
-            });
-            
-            // Only show CI band if we have valid CI data
-            const hasValidCI = ciPoints.some(p => p.ciWidth > 0);
-            if (!hasValidCI) return null;
-            
-            // Calculate average CI width to determine color
-            const avgCIWidth = ciPoints.reduce((sum, p) => sum + p.ciWidth, 0) / ciPoints.length;
-            const ciColor = avgCIWidth < 5 ? 'rgba(0, 255, 65, 0.15)' : 
-                           avgCIWidth < 10 ? 'rgba(255, 176, 0, 0.15)' : 'rgba(255, 45, 0, 0.15)';
-            
-            // Create polygon path for CI band
-            const upperPath = ciPoints.map(p => `${p.x},${p.yUpper}`).join(' ');
-            const lowerPath = ciPoints.map(p => `${p.x},${p.yLower}`).reverse().join(' ');
-            
-            return (
-              <polygon
-                points={`${upperPath} ${lowerPath}`}
-                fill={ciColor}
-                opacity="0.5"
-              />
-            );
-          })()}
-
-          {/* Data points with hover effect and error bars */}
-          {points.map((point, index) => {
-            const dataPoint = data[index];
-            const displayScore = toDisplayScore(dataPoint) ?? minScore;
-            const ciLower = dataPoint.confidence_lower ?? displayScore;
-            const ciUpper = dataPoint.confidence_upper ?? displayScore;
-            const yLower = paddingTop + (1 - (ciLower - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
-            const yUpper = paddingTop + (1 - (ciUpper - minScore) / range) * (chartHeight - paddingTop - paddingBottom);
-            const hasCI = ciUpper > ciLower;
-            
-            // Show error bars every 5th point on details page (less cluttered than main page)
-            const showErrorBar = hasCI && index % 5 === 0;
-            
-            // Highlight the LATEST point (rightmost = newest)
-            const isLatestPoint = index === points.length - 1;
-            
-            return (
-              <g key={index}>
-                {/* Error bar (vertical line with caps) */}
-                {showErrorBar && (
-                  <>
-                    <line
-                      x1={point.x}
-                      y1={yUpper}
-                      x2={point.x}
-                      y2={yLower}
-                      stroke="var(--phosphor-green)"
-                      strokeWidth="1.5"
-                      opacity="0.6"
-                    />
-                    {/* Error bar caps */}
-                    <line
-                      x1={point.x - 3}
-                      y1={yUpper}
-                      x2={point.x + 3}
-                      y2={yUpper}
-                      stroke="var(--phosphor-green)"
-                      strokeWidth="1.5"
-                      opacity="0.6"
-                    />
-                    <line
-                      x1={point.x - 3}
-                      y1={yLower}
-                      x2={point.x + 3}
-                      y2={yLower}
-                      stroke="var(--phosphor-green)"
-                      strokeWidth="1.5"
-                      opacity="0.6"
-                    />
-                  </>
-                )}
-                
-                {/* Data point circle - highlight latest point */}
-                <circle
-                  cx={point.x}
-                  cy={point.y}
-                  r={isLatestPoint ? "8" : "5"}
-                  fill={isLatestPoint ? "var(--amber-warning)" : "var(--phosphor-green)"}
-                  stroke="var(--terminal-black)"
-                  strokeWidth={isLatestPoint ? "3" : "2"}
-                  opacity={isLatestPoint ? "1" : "0.9"}
-                  style={{ cursor: 'pointer' }}
-                >
-                  {/* Enhanced tooltip with CI information */}
-                  <title>
-                    Score: {Math.round(point.score)}
-                    {hasCI && ` | 95% CI: ${Math.round(ciLower)}-${Math.round(ciUpper)} (±${Math.round((ciUpper - ciLower) / 2)} pts)`}
-                    {dataPoint.timestamp && ` | ${new Date(dataPoint.timestamp).toLocaleString()}`}
-                  </title>
-                </circle>
-                
-                {/* Show score labels on some points + always show latest */}
-                {(index % Math.ceil(data.length / 10) === 0 || isLatestPoint) && (
-                  <text
-                    x={point.x}
-                    y={point.y - (isLatestPoint ? 18 : 12)}
-                    fill={isLatestPoint ? "var(--amber-warning)" : "var(--phosphor-green)"}
-                    fontSize={isMobile ? (isLatestPoint ? "10" : "9") : (isLatestPoint ? "12" : "10")}
-                    textAnchor="middle"
-                    opacity={isLatestPoint ? "1" : "0.7"}
-                    fontWeight={isLatestPoint ? "bold" : "normal"}
-                  >
-                    {Math.round(point.score)}{isLatestPoint ? " ⬤" : ""}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* Time labels on X-axis */}
-          {timeLabels.map((label, i) => label && (
-            <text
-              key={i}
-              x={label.x}
-              y={chartHeight - paddingBottom + 25}
-              fill="var(--phosphor-green)"
-              fontSize={isMobile ? "9" : "11"}
-              textAnchor="middle"
-              opacity="0.8"
-            >
-              {label.label}
-            </text>
-          ))}
-
-          {/* Axis labels */}
-          <text 
-            x={chartWidth / 2} 
-            y={chartHeight - 20} 
-            fill="var(--phosphor-green)" 
-            fontSize={isMobile ? "11" : "14"} 
-            textAnchor="middle" 
-            fontWeight="bold"
-          >
-            {isMobile ? `${period.toUpperCase()} (${data.length})` : `Timeline — ${period.toUpperCase()} (${data.length} data points)`}
-          </text>
-          
-          <text 
-            x={20} 
-            y={chartHeight / 2} 
-            fill="var(--phosphor-green)" 
-            fontSize={isMobile ? "11" : "14"} 
-            textAnchor="middle" 
-            fontWeight="bold" 
-            transform={`rotate(-90, 20, ${chartHeight / 2})`}
-          >
-            {isMobile ? "Score" : "Performance Score (0-100)"}
-          </text>
-        </svg>
-        </div>
-
-        {/* Legend */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '20px', 
-          marginTop: '15px',
-          fontSize: '0.85em',
-          opacity: 0.8,
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '20px', height: '3px', background: 'var(--phosphor-green)' }}></div>
-            <span className="terminal-text--dim">Score Trend</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '20px', height: '2px', background: 'var(--amber-warning)', borderTop: '2px dashed var(--amber-warning)' }}></div>
-            <span className="terminal-text--dim">Average ({Math.round(avgScore)})</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--phosphor-green)', border: '2px solid var(--terminal-black)' }}></div>
-            <span className="terminal-text--dim">Data Point</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: '14px', height: '14px', borderRadius: '50%', background: 'var(--amber-warning)', border: '3px solid var(--terminal-black)' }}></div>
-            <span className="terminal-text--amber" style={{ fontWeight: 'bold' }}>Latest Score</span>
-          </div>
-        </div>
-      </div>
+      <PerformanceChart
+        data={chartData}
+        chartType="historical"
+        height={450}
+        showLegend={true}
+        showMinMax={false}
+        xAxisInterval="preserveStartEnd"
+        yAxisLabel="PERFORMANCE SCORE"
+        lineColor="#00ff41"
+      />
     );
   };
 
