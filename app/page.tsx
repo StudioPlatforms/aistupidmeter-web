@@ -169,7 +169,16 @@ export default function Dashboard() {
   
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const isLeaderboardUIBusy = loadingLeaderboard || historyLoading || modelScores.length === 0;
+  
+  /**
+   * PERFORMANCE OPTIMIZATION: Progressive loading
+   *
+   * BEFORE: UI blocked until both scores AND charts loaded (all-or-nothing)
+   * AFTER: Show leaderboard immediately, load charts in background
+   *
+   * Expected impact: Perceived load time reduced from 8-12s to 2-3s
+   */
+  const isLeaderboardUIBusy = loadingLeaderboard || modelScores.length === 0;
   const [historyRetryToken, setHistoryRetryToken] = useState(0);
   
   // Pro feature modal state
@@ -263,7 +272,14 @@ export default function Dashboard() {
   // Track last fetch to prevent unnecessary refetching 
   const lastFetchKey = useRef<string>('');
 
-  // Fetch individual model history data for all models - ENHANCED: Retry failed models with exponential backoff
+  /**
+   * PERFORMANCE OPTIMIZATION: Batch history API call
+   *
+   * BEFORE: N+1 query pattern - 16+ individual HTTP requests
+   * AFTER: Single batch API call
+   *
+   * Expected impact: 50-70% faster load time, eliminates retry amplification
+   */
   useEffect(() => {
     const fetchAllModelHistory = async () => {
       if (!modelScores.length) {
@@ -275,88 +291,75 @@ export default function Dashboard() {
 
       const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
       const sortByParam = leaderboardSortBy === 'speed' ? '7axis' : leaderboardSortBy;
-      const MAX_HISTORY_RETRIES = 3;
-      const MIN_SUCCESS_RATE = 0.8; // Require 80% of charts to load successfully
+      const MAX_RETRIES = 2;
       
-      console.log(`🔄 Fetching individual model history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam}) [Attempt ${historyRetryToken + 1}/${MAX_HISTORY_RETRIES + 1}]`);
+      console.log(`🚀 Fetching batch history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam}) [Attempt ${historyRetryToken + 1}/${MAX_RETRIES + 1}]`);
       
-      // Exponential backoff: 0ms, 1s, 2s, 4s
-      const backoffDelay = historyRetryToken > 0 ? Math.pow(2, historyRetryToken - 1) * 1000 : 0;
+      // Exponential backoff: 0ms, 2s, 4s
+      const backoffDelay = historyRetryToken > 0 ? Math.pow(2, historyRetryToken) * 1000 : 0;
       if (backoffDelay > 0) {
         console.log(`⏳ Waiting ${backoffDelay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, backoffDelay));
       }
       
-      const historyPromises = modelScores.map(async (model: any) => {
-        try {
-          const response = await fetch(`${apiUrl}/api/dashboard/history/${model.id}?period=${leaderboardPeriod}&sortBy=${sortByParam}`, {
-            signal: AbortSignal.timeout(30000) // 30s timeout per request
+      try {
+        // Build batch request with all model IDs
+        const modelIds = modelScores.map(m => m.id).join(',');
+        const batchUrl = `${apiUrl}/dashboard/history/batch?modelIds=${modelIds}&period=${leaderboardPeriod}&sortBy=${sortByParam}`;
+        
+        const startTime = Date.now();
+        const response = await fetch(batchUrl, {
+          signal: AbortSignal.timeout(45000) // 45s timeout for batch request
+        });
+        const duration = Date.now() - startTime;
+        
+        if (!response.ok) {
+          throw new Error(`Batch API returned ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          // CRITICAL FIX: API returns object { "46": [...], "171": [...] }, not array
+          // Convert object response to Map for quick lookup
+          const historyMap = new Map<string, any[]>();
+          
+          Object.entries(result.data).forEach(([modelId, history]: [string, any]) => {
+            if (Array.isArray(history) && history.length > 0) {
+              historyMap.set(modelId, history);
+            }
           });
           
-          if (response.ok) {
-            const historyData = await response.json();
-            if (historyData.success && historyData.data && historyData.data.length > 0) {
-              console.log(`✅ Got individual history for ${model.name}: ${historyData.data.length} points`);
-              return { modelId: model.id, modelName: model.name, history: historyData.data, success: true, error: null };
-            }
-          } else if (response.status === 502 || response.status === 503 || response.status === 504) {
-            console.warn(`⚠️ Gateway error ${response.status} for ${model.name}, will retry`);
-            return { modelId: model.id, modelName: model.name, history: model.history || [], success: false, error: `${response.status}` };
-          }
-        } catch (error: any) {
-          const errorType = error.name === 'TimeoutError' ? 'timeout' : error.name === 'AbortError' ? 'timeout' : 'network';
-          console.warn(`⚠️ ${errorType} error fetching history for ${model.name}:`, error.message);
-          return { modelId: model.id, modelName: model.name, history: model.history || [], success: false, error: errorType };
+          const successCount = historyMap.size;
+          const successRate = successCount / modelScores.length;
+          
+          console.log(`✅ Batch history loaded in ${duration}ms: ${successCount}/${modelScores.length} models (${Math.round(successRate * 100)}%)`);
+          
+          setModelHistoryData(historyMap);
+          setHistoryRetryToken(0); // Reset retry counter on success
+          setHistoryLoading(false);
+          setLoadingLeaderboard(false);
+          
+        } else {
+          throw new Error('Batch API returned invalid response structure');
         }
-        return { modelId: model.id, modelName: model.name, history: model.history || [], success: false, error: 'empty' };
-      });
-
-      const results = await Promise.all(historyPromises);
-      
-      // Update with fresh individual data
-      setModelHistoryData((prevData) => {
-        const historyMap = new Map(prevData); // Preserve existing successful fetches
-        results.forEach(result => {
-          if (result.success && result.history.length > 0) {
-            historyMap.set(result.modelId, result.history);
-          }
-        });
-        const successCount = historyMap.size;
-        const successRate = successCount / results.length;
-        console.log(`📊 Individual model history: ${successCount}/${results.length} (${Math.round(successRate * 100)}%) loaded successfully`);
-        return historyMap;
-      });
-
-      // Calculate success metrics
-      const successCount = results.filter(r => r.success).length;
-      const failedResults = results.filter(r => !r.success);
-      const successRate = successCount / results.length;
-      
-      // Check if we need to retry
-      const shouldRetry = successRate < MIN_SUCCESS_RATE && historyRetryToken < MAX_HISTORY_RETRIES;
-      
-      if (shouldRetry) {
-        console.warn(`⚠️ History fetch below ${Math.round(MIN_SUCCESS_RATE * 100)}% success rate (${Math.round(successRate * 100)}%), retrying ${failedResults.length} failed models (${historyRetryToken + 1}/${MAX_HISTORY_RETRIES})...`);
-        failedResults.forEach(f => console.log(`  ❌ ${f.modelName}: ${f.error}`));
         
-        // Keep loading state and trigger another attempt
-        setHistoryLoading(true);
-        setHistoryRetryToken(prev => prev + 1);
-        return;
+      } catch (error: any) {
+        const errorType = error.name === 'TimeoutError' || error.name === 'AbortError' ? 'timeout' : 'network';
+        console.error(`❌ Batch history fetch ${errorType} error:`, error.message);
+        
+        // Retry logic
+        if (historyRetryToken < MAX_RETRIES) {
+          console.warn(`⚠️ Retrying batch history fetch (${historyRetryToken + 1}/${MAX_RETRIES})...`);
+          setHistoryRetryToken(prev => prev + 1);
+          return;
+        }
+        
+        // Retries exhausted - fall back to showing without charts
+        console.warn(`⚠️ Chart loading failed after ${historyRetryToken + 1} attempts, showing leaderboard without charts`);
+        setHistoryLoading(false);
+        setLoadingLeaderboard(false);
       }
-
-      // Success or retries exhausted
-      if (successRate >= MIN_SUCCESS_RATE) {
-        console.log(`✅ Chart loading complete: ${successCount}/${results.length} models (${Math.round(successRate * 100)}%)`);
-        setHistoryRetryToken(0); // Reset retry counter on success
-      } else {
-        console.warn(`⚠️ Chart loading finished with ${Math.round(successRate * 100)}% success rate after ${historyRetryToken + 1} attempts`);
-        failedResults.forEach(f => console.log(`  ❌ ${f.modelName}: ${f.error}`));
-      }
-      
-      // End loading after histories are processed or retries exhausted
-      setLoadingLeaderboard(false);
-      setHistoryLoading(false);
     };
 
     if (modelScores.length > 0) {
@@ -371,12 +374,8 @@ export default function Dashboard() {
     const modelSpecificHistory = modelId ? modelHistoryData.get(modelId) : null;
     const chartHistory = modelSpecificHistory || history || [];
 
-    console.log(`🎨 renderMiniChart for model ${modelId}:`, {
-      hasModelSpecificData: !!modelSpecificHistory,
-      historyLength: chartHistory?.length || 0,
-      period,
-      sortBy: leaderboardSortBy
-    });
+    // PERFORMANCE FIX: Removed console.log to prevent spam (called 21 times per render)
+    // Excessive logging was causing 1000+ console messages in seconds
 
     if (!chartHistory || chartHistory.length === 0) {
       return (
@@ -1102,7 +1101,7 @@ export default function Dashboard() {
     }
     
     // STRICTER: Check if we have models with valid scores (> 0)
-    const modelsWithValidScores = modelScoresData.filter((model: any) => 
+    const modelsWithValidScores = modelScoresData.filter((model: any) =>
       typeof model.currentScore === 'number' && model.currentScore > 0
     );
     
@@ -1119,8 +1118,8 @@ export default function Dashboard() {
       return false;
     }
     
-    // Check if we have global index data
-    const hasGlobalIndex = globalIndexData && 
+    // Check if we have global index data (OPTIONAL - not required for validation)
+    const hasGlobalIndex = globalIndexData &&
       typeof globalIndexData.current?.globalScore === 'number' &&
       globalIndexData.current.globalScore > 0;
     
@@ -1131,10 +1130,12 @@ export default function Dashboard() {
       hasGlobalIndex,
       sampleScore: modelScoresData[0]?.currentScore,
       globalScore: globalIndexData?.current?.globalScore,
-      isComplete: modelsWithValidScores.length >= 3 && hasGlobalIndex
+      isComplete: modelsWithValidScores.length >= 3
     });
     
-    return modelsWithValidScores.length >= 3 && hasGlobalIndex;
+    // CRITICAL FIX: Don't require globalIndex for validation
+    // API may return null globalIndex, but model scores are sufficient
+    return modelsWithValidScores.length >= 3;
   };
 
   // Fun and educational loading messages
@@ -1409,23 +1410,28 @@ export default function Dashboard() {
     // Initial data load
     fetchDashboardData(0);
     
-    // Silent background updates every 2 minutes for real-time feel
-    // This ensures the 24-hour AI Stupidity Index and Model Intelligence Center stay fresh
+    // PERFORMANCE FIX: Dramatically reduce background refresh frequency
+    // Silent background updates every 10 minutes instead of 2 minutes
+    // This prevents server overload and eliminates the "UPDATING RANKINGS" animation appearing randomly
     const silentUpdateTimer = setInterval(() => {
       console.log('🔄 Starting scheduled silent refresh...');
       fetchDataSilently();
-    }, 2 * 60 * 1000);
+    }, 10 * 60 * 1000); // 10 minutes (was 2 minutes)
     
-    // More frequent batch status polling during batch operations
+    // PERFORMANCE FIX: Only poll batch status when batch is actually running
+    // Check every 2 minutes instead of 30 seconds to reduce server load
     const batchTimer = setInterval(async () => {
-      const batchStatusData = await fetchBatchStatus();
-      
-      // If batch just finished, refresh model data immediately
-      if (batchStatusData && !batchStatusData.isBatchInProgress && showBatchRefreshing) {
-        console.log('Batch completed, refreshing model data silently...');
-        await fetchDataSilently();
+      // Only fetch if we think a batch might be running
+      if (showBatchRefreshing) {
+        const batchStatusData = await fetchBatchStatus();
+        
+        // If batch just finished, refresh model data immediately
+        if (batchStatusData && !batchStatusData.isBatchInProgress && showBatchRefreshing) {
+          console.log('Batch completed, refreshing model data silently...');
+          await fetchDataSilently();
+        }
       }
-    }, 30 * 1000); // Check every 30 seconds during active usage
+    }, 2 * 60 * 1000); // 2 minutes (was 30 seconds)
     
     return () => {
       clearInterval(silentUpdateTimer);
@@ -1475,6 +1481,11 @@ export default function Dashboard() {
           console.log('✅ Metadata matches! Loading data...');
           console.log('🚀 Control change loaded INSTANTLY from cache!');
           console.log(`🎯 Current modelScores count: ${modelScores.length}`);
+          
+          // CRITICAL FIX: Clear loading state when cache succeeds
+          // The batch history useEffect will handle chart loading separately
+          // This prevents the "UPDATING RANKINGS" overlay from getting stuck
+          setLoadingLeaderboard(false);
         })
         .catch((error) => {
           // Hard fallback on unexpected errors — do not change user selections
