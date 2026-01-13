@@ -296,6 +296,45 @@ export default function PerformanceTimingPage() {
           </div>
         ) : analysisData ? (
           <>
+            {/* Prominent warning for reasoning/tooling tests */}
+            {(suite === 'deep' || suite === 'tooling') && period !== '24h' && analysisData.insights.coverage < 20 && (
+              <div style={{
+                marginBottom: 'var(--space-lg)',
+                padding: 'var(--space-lg)',
+                background: 'rgba(255, 176, 0, 0.15)',
+                border: '2px solid rgba(255, 176, 0, 0.5)',
+                borderRadius: '6px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                  <div style={{ fontSize: '2em' }}>⚠️</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="terminal-text--amber" style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '8px' }}>
+                      LIMITED HOURLY DATA AVAILABLE
+                    </div>
+                    <div className="terminal-text" style={{ fontSize: '0.95em', lineHeight: '1.6', marginBottom: '12px' }}>
+                      {suite === 'deep' && (
+                        <>
+                          <strong>Reasoning tests</strong> run once per day at <strong>3:00 AM UTC</strong>.
+                          This means all {analysisData.insights.dataPoints} test results aggregate to the same hour,
+                          showing only <strong>1 data point</strong> on the chart.
+                        </>
+                      )}
+                      {suite === 'tooling' && (
+                        <>
+                          <strong>Tool calling tests</strong> run once per day at <strong>4:00 AM UTC</strong>.
+                          This means most of the {analysisData.insights.dataPoints} test results aggregate to the same hour,
+                          showing very <strong>limited variation</strong> across the day.
+                        </>
+                      )}
+                    </div>
+                    <div className="terminal-text--green" style={{ fontSize: '0.9em', fontStyle: 'italic' }}>
+                      💡 For comprehensive hourly performance patterns, switch to <strong>Speed Tests</strong> which run every hour and provide full 24-hour coverage.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Chart */}
             <div className="section-card" style={{ marginBottom: 'var(--space-lg)' }}>
               <div className="section-header">
@@ -317,6 +356,26 @@ export default function PerformanceTimingPage() {
                 {period === '24h' && analysisData.insights.coverage < 50 && (
                   <div className="terminal-text--dim" style={{ fontSize: '0.8em', fontStyle: 'italic', marginTop: '4px' }}>
                     ℹ️ Only {analysisData.insights.dataPoints} test{analysisData.insights.dataPoints !== 1 ? 's' : ''} ran in the last 24 hours — empty hours are shown as gaps.
+                  </div>
+                )}
+                
+                {/* Warning for reasoning/tooling tests with low coverage */}
+                {(suite === 'deep' || suite === 'tooling') && period !== '24h' && analysisData.insights.coverage < 20 && (
+                  <div style={{
+                    marginTop: 'var(--space-sm)',
+                    padding: 'var(--space-sm)',
+                    background: 'rgba(255, 176, 0, 0.1)',
+                    border: '1px solid rgba(255, 176, 0, 0.3)',
+                    borderRadius: '4px'
+                  }}>
+                    <div className="terminal-text--amber" style={{ fontSize: '0.85em', fontWeight: 'bold', marginBottom: '4px' }}>
+                      ⚠️ LIMITED HOURLY VARIATION
+                    </div>
+                    <div className="terminal-text--dim" style={{ fontSize: '0.8em', lineHeight: '1.5' }}>
+                      {suite === 'deep' && 'Reasoning tests run once daily at 3:00 AM UTC, so all data aggregates to a single hour. '}
+                      {suite === 'tooling' && 'Tool calling tests run once daily at 4:00 AM UTC, so most data aggregates to a single hour. '}
+                      For comprehensive hourly patterns, switch to <span style={{ color: '#00ff41', fontWeight: 'bold' }}>Speed Tests</span> which run every hour.
+                    </div>
                   </div>
                 )}
               </div>
