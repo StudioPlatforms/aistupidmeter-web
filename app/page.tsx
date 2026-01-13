@@ -1613,26 +1613,31 @@ export default function Dashboard() {
     const name = modelName.toLowerCase();
     const prov = provider.toLowerCase();
     
-  // FIXED: Updated pricing based on latest 2025 rates from official sources (USD per 1M tokens)
+  // FIXED: Updated pricing based on latest 2025 verified rates (USD per 1M tokens)
   if (prov === 'openai') {
-    // GPT-5 series - corrected pricing based on official OpenAI pricing
+    // GPT-5 series - Latest verified pricing (Jan 2026)
     if (name.includes('gpt-5') && name.includes('nano')) return { input: 0.05, output: 0.40 };
     if (name.includes('gpt-5') && name.includes('mini')) return { input: 0.25, output: 2.00 };
-    if (name.includes('gpt-5')) return { input: 1.25, output: 10.00 }; // FIXED: Official GPT-5 pricing
+    if (name.includes('gpt-5.2') || name.includes('gpt-5-2')) return { input: 1.75, output: 14.00 }; // GPT-5.2 standard API
+    if (name.includes('gpt-5')) return { input: 1.25, output: 10.00 }; // GPT-5.1 standard API
     // O3 series
     if (name.includes('o3-pro')) return { input: 60, output: 240 };
     if (name.includes('o3-mini')) return { input: 3.5, output: 14 };
     if (name.includes('o3')) return { input: 15, output: 60 };
     // GPT-4 series
     if (name.includes('gpt-4o') && name.includes('mini')) return { input: 0.15, output: 0.6 };
-    if (name.includes('gpt-4o')) return { input: 3.00, output: 12.00 }; // FIXED: Official GPT-4o pricing
+    if (name.includes('gpt-4o')) return { input: 3.00, output: 12.00 };
     return { input: 3, output: 9 }; // Default OpenAI
   }
     
     if (prov === 'anthropic') {
-      // Claude 4 series - corrected pricing based on official rates
-      if (name.includes('opus-4')) return { input: 15, output: 75 }; // FIXED: Official pricing
-      if (name.includes('sonnet-4')) return { input: 3, output: 15 }; // Standard rate (≤200K tokens)
+      // Claude 4 series - Latest verified pricing (Jan 2026)
+      // Claude Opus 4.5: New reduced pricing $5/$25 per 1M tokens
+      if (name.includes('opus-4.5') || name.includes('opus-4-5')) return { input: 5, output: 25 };
+      if (name.includes('opus-4')) return { input: 5, output: 25 }; // Updated from $15/$75
+      // Claude Sonnet 4.5: $3/$15 per 1M tokens (confirmed)
+      if (name.includes('sonnet-4.5') || name.includes('sonnet-4-5')) return { input: 3, output: 15 };
+      if (name.includes('sonnet-4') || name.includes('3-7-sonnet')) return { input: 3, output: 15 };
       if (name.includes('haiku-4')) return { input: 0.25, output: 1.25 };
       // Claude 3.5 series
       if (name.includes('3-5-sonnet')) return { input: 3, output: 15 };
@@ -1641,21 +1646,23 @@ export default function Dashboard() {
     }
     
     if (prov === 'xai' || prov === 'x.ai') {
-      // Updated with official xAI pricing
+      // xAI / Grok pricing - Verified $3/$15 per 1M tokens
       if (name.includes('grok-3') && name.includes('mini')) return { input: 0.30, output: 0.50 };
-      if (name.includes('grok-3')) return { input: 3, output: 15 }; // Grok 3 standard
+      if (name.includes('grok-3')) return { input: 3, output: 15 };
       if (name.includes('grok-4-0709')) return { input: 3, output: 15 };
-      if (name.includes('grok-code-fast')) return { input: 0.20, output: 1.50 };
-      if (name.includes('grok-4')) return { input: 3, output: 15 }; // Default Grok 4 pricing
+      if (name.includes('grok-4-latest')) return { input: 3, output: 15 };
+      if (name.includes('grok-code-fast')) return { input: 3, output: 15 }; // Updated from $0.20/$1.50
+      if (name.includes('grok-4')) return { input: 3, output: 15 };
       return { input: 3, output: 15 }; // Default xAI
     }
     
     if (prov === 'google') {
-      // Gemini 2.5 series - corrected pricing  
-      if (name.includes('2.5-pro')) return { input: 1.25, output: 10.00 }; // Fixed from 5 to 10.00
-      // FIXED: Corrected Gemini 2.5 Flash and Flash-Lite pricing based on latest Google AI pricing
+      // Gemini 3 series - Latest verified pricing (Jan 2026)
+      if (name.includes('gemini-3') && name.includes('pro')) return { input: 2, output: 12 }; // Gemini 3 Pro standard (≤200K context)
+      // Gemini 2.5 series - Verified Vertex AI pricing
+      if (name.includes('2.5-pro')) return { input: 1.25, output: 10.00 }; // Gemini 2.5 Pro (similar tier to GPT-5.1)
       if (name.includes('2.5-flash-lite')) return { input: 0.10, output: 0.40 };
-      if (name.includes('2.5-flash')) return { input: 0.30, output: 2.50 };
+      if (name.includes('2.5-flash')) return { input: 0.30, output: 2.50 }; // Verified Vertex AI pricing
       // Gemini 1.5 series
       if (name.includes('1.5-pro')) return { input: 1.25, output: 5 };
       if (name.includes('1.5-flash')) return { input: 0.075, output: 0.3 };
