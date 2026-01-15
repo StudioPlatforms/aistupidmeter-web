@@ -8,22 +8,22 @@
 
   <!-- Homepage - AI Benchmark Tool - High priority, updated daily -->
   <url>
-    <loc>https://stupidmeter.ai/</loc>
-    <lastmod>2025-01-11</lastmod>
+    <loc>https://aistupidlevel.info/</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
     <mobile:mobile/>
     <image:image>
-      <image:loc>https://stupidmeter.ai/og-image.png</image:loc>
-      <image:title>AI Benchmark Tool - Best AI Models 2025 Rankings</image:title>
+      <image:loc>https://aistupidlevel.info/og-image.png</image:loc>
+      <image:title>AI Benchmark Tool - Best AI Models 2026 Rankings</image:title>
       <image:caption>Compare AI models with comprehensive benchmarking tool featuring Claude vs GPT vs Gemini comparison</image:caption>
     </image:image>
   </url>
 
   <!-- About Page - Essential for understanding the tool -->
   <url>
-    <loc>https://stupidmeter.ai/about</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/about</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <mobile:mobile/>
@@ -31,8 +31,8 @@
 
   <!-- FAQ Page - Important for user understanding -->
   <url>
-    <loc>https://stupidmeter.ai/faq</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/faq</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
@@ -40,8 +40,8 @@
 
   <!-- Test Your Keys Page - Key functionality -->
   <url>
-    <loc>https://stupidmeter.ai/test</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/test</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
@@ -49,46 +49,46 @@
 
   <!-- AI Model Comparison Page - High SEO value -->
   <url>
-    <loc>https://stupidmeter.ai/compare</loc>
-    <lastmod>2025-01-11</lastmod>
+    <loc>https://aistupidlevel.info/compare</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
     <mobile:mobile/>
     <image:image>
-      <image:loc>https://stupidmeter.ai/og-image.png</image:loc>
-      <image:title>Claude vs GPT vs Gemini AI Model Comparison 2025</image:title>
+      <image:loc>https://aistupidlevel.info/og-image.png</image:loc>
+      <image:title>Claude vs GPT vs Gemini AI Model Comparison 2026</image:title>
       <image:caption>Real-time performance comparison of Claude, GPT, and Gemini AI models with comprehensive benchmark results</image:caption>
     </image:image>
   </url>
 
   <!-- OpenAI GPT Models -->
   <url>
-    <loc>https://stupidmeter.ai/models/openai-gpt-5</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/openai-gpt-5</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <mobile:mobile/>
   </url>
 
   <url>
-    <loc>https://stupidmeter.ai/models/openai-o3</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/openai-o3</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
   </url>
 
   <url>
-    <loc>https://stupidmeter.ai/models/openai-o3-mini</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/openai-o3-mini</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
   </url>
 
   <url>
-    <loc>https://stupidmeter.ai/models/openai-gpt-4o</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/openai-gpt-4o</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
@@ -96,16 +96,16 @@
 
   <!-- Anthropic Claude Models -->
   <url>
-    <loc>https://stupidmeter.ai/models/anthropic-claude-opus-4</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/anthropic-claude-opus-4</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <mobile:mobile/>
   </url>
 
   <url>
-    <loc>https://stupidmeter.ai/models/anthropic-claude-sonnet-4</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/anthropic-claude-sonnet-4</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
@@ -113,8 +113,8 @@
 
   <!-- xAI Grok Models -->
   <url>
-    <loc>https://stupidmeter.ai/models/xai-grok-4</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/xai-grok-4</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
@@ -122,34 +122,19 @@
 
   <!-- Google Gemini Models -->
   <url>
-    <loc>https://stupidmeter.ai/models/google-gemini-2-5-pro</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/google-gemini-2-5-pro</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
     <mobile:mobile/>
   </url>
 
   <url>
-    <loc>https://stupidmeter.ai/models/google-gemini-2-5-flash</loc>
-    <lastmod>2025-01-06</lastmod>
+    <loc>https://aistupidlevel.info/models/google-gemini-2-5-flash</loc>
+    <lastmod>2026-01-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
     <mobile:mobile/>
-  </url>
-
-  <!-- API Endpoints for AI Discovery -->
-  <url>
-    <loc>https://stupidmeter.ai/api/models</loc>
-    <lastmod>2025-01-06</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <url>
-    <loc>https://stupidmeter.ai/api/dashboard/scores</loc>
-    <lastmod>2025-01-06</lastmod>
-    <changefreq>hourly</changefreq>
-    <priority>0.6</priority>
   </url>
 
 </urlset>

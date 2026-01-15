@@ -1,5 +1,5 @@
-# AI Benchmark Tool - Best AI Models 2025 | Compare Claude vs GPT vs Gemini
-# https://stupidmeter.ai
+# AI Benchmark Tool - Best AI Models 2026 | Compare Claude vs GPT vs Gemini
+# https://aistupidlevel.info
 # Ultimate AI benchmarking tool for performance tests and model comparison
 
 User-agent: *
@@ -14,7 +14,7 @@ Allow: /api/models
 Allow: /api/dashboard/
 
 # Sitemap location
-Sitemap: https://stupidmeter.ai/sitemap.xml
+Sitemap: https://aistupidlevel.info/sitemap.xml
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import Breadcrumbs from '@/components/Breadcrumbs'
 
 export const metadata: Metadata = {
   title: 'Claude vs GPT vs Gemini Comparison 2025 | AI Model Performance Test Results',
@@ -22,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Claude vs GPT vs Gemini - AI Model Comparison 2025',
     description: 'Real-time performance comparison of Claude, GPT, and Gemini AI models. See benchmark results, coding performance, and which AI is best for development.',
-    url: 'https://stupidmeter.ai/compare',
+    url: 'https://aistupidlevel.info/compare',
   },
   twitter: {
     title: 'Claude vs GPT vs Gemini - AI Model Comparison 2025',
@@ -38,6 +39,11 @@ export default function ComparePage() {
     <div className="vintage-container">
       <div className="crt-monitor">
         <div className="terminal-text">
+          <Breadcrumbs items={[
+            { label: 'Home', href: '/' },
+            { label: 'Compare' }
+          ]} />
+          
           <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
             <span className="terminal-text--green">CLAUDE vs GPT vs GEMINI</span>
             <span className="blinking-cursor"></span>
@@ -237,6 +243,10 @@ export default function ComparePage() {
                   Independent verification available through open source benchmarks
                 </li>
               </ul>
+              <div className="terminal-text--dim" style={{ marginTop: '12px' }}>
+                📖 <Link href="/methodology" className="text-blue-400 hover:text-blue-300 underline">Read our detailed methodology</Link> to understand how we measure AI performance, or
+                check our <Link href="/faq" className="text-blue-400 hover:text-blue-300 underline">FAQ</Link> for common questions about our benchmarking approach.
+              </div>
             </div>
 
             <div style={{ 
@@ -253,18 +263,32 @@ export default function ComparePage() {
               <div className="terminal-text--dim" style={{ marginBottom: '16px' }}>
                 View real-time Claude vs GPT vs Gemini performance data with our interactive AI benchmark dashboard
               </div>
-              <Link href="/" className="vintage-btn" style={{ 
-                display: 'inline-block',
-                padding: '12px 24px',
-                textDecoration: 'none',
-                color: 'var(--phosphor-green)',
-                border: '1px solid var(--phosphor-green)',
-                backgroundColor: 'transparent',
-                borderRadius: '4px',
-                fontSize: '1em'
-              }}>
-                VIEW LIVE BENCHMARK RESULTS
-              </Link>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link href="/" className="vintage-btn" style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  textDecoration: 'none',
+                  color: 'var(--phosphor-green)',
+                  border: '1px solid var(--phosphor-green)',
+                  backgroundColor: 'transparent',
+                  borderRadius: '4px',
+                  fontSize: '1em'
+                }}>
+                  VIEW LIVE RESULTS
+                </Link>
+                <Link href="/about" className="vintage-btn" style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  textDecoration: 'none',
+                  color: 'var(--phosphor-green)',
+                  border: '1px solid var(--phosphor-green)',
+                  backgroundColor: 'transparent',
+                  borderRadius: '4px',
+                  fontSize: '1em'
+                }}>
+                  ABOUT US
+                </Link>
+              </div>
             </div>
           </div>
         </div>

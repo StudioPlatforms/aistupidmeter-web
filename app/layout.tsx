@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
 import HalloweenAnimations from '../components/HalloweenAnimations'
@@ -67,7 +68,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://stupidmeter.ai'),
+  metadataBase: new URL('https://aistupidlevel.info'),
   alternates: {
     canonical: '/',
   },
@@ -134,20 +135,23 @@ export default function RootLayout({
         <meta name="theme-color" content="#00ff41" />
         <meta name="color-scheme" content="dark" />
         
-        {/* Google Analytics */}
+        
+        {/* Optimized Google Analytics with afterInteractive strategy */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
-            <script
-              async
+            <Script
+              id="gtag-base"
+              strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
             />
-            <script
+            <Script
+              id="gtag-init"
+              strategy="afterInteractive"
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
                   
-                  // Set default consent mode BEFORE gtag initialization
                   gtag('consent', 'default', {
                     'analytics_storage': 'granted',
                     'ad_storage': 'denied',
@@ -157,7 +161,6 @@ export default function RootLayout({
                   });
                   
                   gtag('js', new Date());
-                  
                   gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
                     anonymize_ip: true,
                     allow_google_signals: false,
@@ -182,10 +185,10 @@ export default function RootLayout({
               "applicationCategory": ["DeveloperApplication", "ProductivityApplication"],
               "operatingSystem": "Web",
               "description": "The ultimate AI benchmarking tool for 2025. Compare AI models, test AI performance, and find the best AI for coding. Features real-time AI benchmark results, LLM performance tests, and comprehensive AI model leaderboard.",
-              "url": "https://stupidmeter.ai",
+              "url": "https://aistupidlevel.info",
               "sameAs": [
-                "https://github.com/StudioPlatforms/aistupidmeter-web",
-                "https://www.reddit.com/r/AIStupidLevel/",
+                "https://github.com/ionutvi/aistupidlevel.info",
+                "https://www.reddit.com/r/aistupidlevel/",
                 "https://x.com/GOATGameDev"
               ],
               "author": {
@@ -196,10 +199,10 @@ export default function RootLayout({
               "publisher": {
                 "@type": "Organization",
                 "name": "Studio Platforms",
-                "url": "https://stupidmeter.ai",
+                "url": "https://aistupidlevel.info",
                 "logo": {
                   "@type": "ImageObject",
-                  "url": "https://stupidmeter.ai/smlogo.png"
+                  "url": "https://aistupidlevel.info/smlogo.png"
                 }
               },
               "softwareVersion": "1.0.0",
@@ -232,7 +235,7 @@ export default function RootLayout({
                 "Open source AI benchmark tool"
               ],
               "keywords": "AI benchmark, AI benchmarking tool, AI performance tests, AI ranking, AI model leaderboard, best AI models 2025, compare AI models, Claude vs GPT vs Gemini, AI coding benchmark, LLM benchmark",
-              "screenshot": "https://stupidmeter.ai/screenshot.png",
+              "screenshot": "https://aistupidlevel.info/screenshot.png",
               "aggregateRating": {
                 "@type": "AggregateRating",
                 "ratingValue": "5.0",

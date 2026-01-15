@@ -1,6 +1,15 @@
 /* 🧠 AI Stupid Meter - Vintage Computer Lab Design System */
 /* Mobile-first responsive design with 1980s aesthetic */
 
+/* Font Display Optimization - Prevent FOIT (Flash of Invisible Text) */
+@font-face {
+  font-family: 'System Mono';
+  src: local('SF Mono'), local('Monaco'), local('Menlo'), local('DejaVu Sans Mono'), local('Courier New');
+  font-display: swap; /* Show fallback text immediately, swap when font loads */
+  font-weight: 400;
+  font-style: normal;
+}
+
 :root {
   /* Vintage Color Palette */
   --phosphor-green: #00ff41;
@@ -15,9 +24,9 @@
   /* Dynamic color with opacity - for theme support */
   --primary-rgb: 0, 255, 65;  /* Will be updated by theme */
   
-  /* Typography (Mobile-first scaling) - iOS Safari compatible monospace stack */
-  --font-mono: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
-  --font-display: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  /* Typography (Mobile-first scaling) - iOS Safari compatible monospace stack with font-display optimization */
+  --font-mono: 'System Mono', 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
+  --font-display: 'System Mono', 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', 'Courier New', monospace;
   --font-size-xs: 10px;
   --font-size-sm: 12px;
   --font-size-md: 14px;
