@@ -4,15 +4,19 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'About AI Stupid Level | Independent AI Benchmarking Platform',
-  description: 'Learn about our mission to provide transparent, independent AI model benchmarking. Meet our team, understand our funding model, and discover why we built an open-source platform for AI performance monitoring.',
+  description: 'Learn about our mission to provide transparent, independent AI model benchmarking. Meet our team, explore enterprise data licensing, and discover why we built an open-source platform for AI performance monitoring.',
   keywords: [
     'About AI benchmarking platform',
     'Independent AI testing',
-    'Who makes AI benchmarks',
+    'AI safety dataset',
+    'AI bias detection data',
+    'Enterprise AI benchmarking',
     'AI model monitoring team',
     'Open source AI benchmarking',
     'Transparent AI evaluation',
-    'AI performance monitoring company'
+    'AI performance monitoring company',
+    'AI security vulnerability data',
+    'EU AI Act compliance data'
   ],
   openGraph: {
     title: 'About AI Stupid Level | Independent AI Benchmarking',
@@ -106,9 +110,10 @@ export default function AboutPage() {
 
         <h3>Contributing Researchers</h3>
         <p>
-          Our methodology has been reviewed and validated by statisticians, ML researchers, and 
-          industry practitioners. We welcome contributions from the community—check our 
-          <a href="https://github.com/ionutvi/aistupidlevel.info" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300"> GitHub repository</a> to get involved.
+          Our methodology has been reviewed and validated by statisticians, ML researchers, and
+          industry practitioners. We welcome contributions from the community—check our GitHub repositories:
+          {' '}<a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">Web</a>
+          {' '}•{' '}<a href="https://github.com/StudioPlatforms/aistupidmeter-api" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">API</a> to get involved.
         </p>
       </section>
 
@@ -211,13 +216,166 @@ export default function AboutPage() {
 
         <h3>How We Fund Operations</h3>
         <ul>
+          <li><strong>Enterprise Data Licensing:</strong> Premium datasets for security teams, compliance officers, and ML researchers</li>
           <li><strong>Community Support:</strong> Donations from developers who value independent AI monitoring</li>
           <li><strong>Sponsorships:</strong> Non-vendor companies supporting open source AI infrastructure</li>
           <li><strong>Grants:</strong> Research grants for AI evaluation and transparency projects</li>
         </ul>
 
         <p className="text-sm text-slate-400">
-          <em>We explicitly do not accept funding from AI model providers to maintain independence and objectivity.</em>
+          <em>We explicitly do not accept funding from AI model providers to maintain independence and objectivity.
+          Enterprise data licensing revenue helps keep our public platform free while maintaining our independence.</em>
+        </p>
+      </section>
+
+      <section>
+        <h2>Enterprise Data Licensing</h2>
+        
+        <div className="not-prose bg-gradient-to-r from-green-900/30 to-blue-900/30 border border-green-500/50 p-6 rounded-lg my-6">
+          <p className="text-lg leading-relaxed mb-4">
+            Beyond our free public platform, we offer <strong>premium enterprise datasets</strong> that provide
+            deeper insights into AI model behavior, safety vulnerabilities, and performance patterns.
+          </p>
+        </div>
+
+        <h3>Available Enterprise Datasets</h3>
+        
+        <div className="grid md:grid-cols-2 gap-4 my-6">
+          <div className="not-prose bg-slate-800 p-5 rounded-lg border border-blue-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">🛡️</span>
+              <h4 className="font-bold text-lg">Safety & Security Dataset</h4>
+            </div>
+            <p className="text-sm text-slate-300 mb-3">
+              Comprehensive adversarial testing results including jailbreak attempts, prompt injection
+              vulnerabilities, safety bypass patterns, and model-specific security weaknesses.
+            </p>
+            <ul className="text-xs text-slate-400 space-y-1">
+              <li>• 10,000+ adversarial test results per month</li>
+              <li>• Vulnerability profiles by model and attack type</li>
+              <li>• Safety bypass success rates and patterns</li>
+              <li>• Compliance-ready security reports</li>
+            </ul>
+          </div>
+
+          <div className="not-prose bg-slate-800 p-5 rounded-lg border border-purple-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">⚖️</span>
+              <h4 className="font-bold text-lg">Bias & Fairness Dataset</h4>
+            </div>
+            <p className="text-sm text-slate-300 mb-3">
+              Statistical analysis of performance variations across demographic groups, gender bias indicators,
+              and fairness metrics required for EU AI Act compliance.
+            </p>
+            <ul className="text-xs text-slate-400 space-y-1">
+              <li>• 5,000+ demographic variant tests per month</li>
+              <li>• Gender, ethnicity, and age bias analysis</li>
+              <li>• EU AI Act compliance documentation</li>
+              <li>• Fairness score reports and recommendations</li>
+            </ul>
+          </div>
+
+          <div className="not-prose bg-slate-800 p-5 rounded-lg border border-orange-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">🎯</span>
+              <h4 className="font-bold text-lg">Robustness & Reliability Dataset</h4>
+            </div>
+            <p className="text-sm text-slate-300 mb-3">
+              Prompt sensitivity analysis, consistency metrics across paraphrasing variations, hallucination
+              patterns, and behavioral stability measurements.
+            </p>
+            <ul className="text-xs text-slate-400 space-y-1">
+              <li>• 15,000+ prompt variation tests per month</li>
+              <li>• Hallucination detection and classification</li>
+              <li>• Consistency and robustness scoring</li>
+              <li>• Failure mode taxonomy and examples</li>
+            </ul>
+          </div>
+
+          <div className="not-prose bg-slate-800 p-5 rounded-lg border border-cyan-500/30">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-2xl">📊</span>
+              <h4 className="font-bold text-lg">Version & Regression Dataset</h4>
+            </div>
+            <p className="text-sm text-slate-300 mb-3">
+              Model version tracking, performance regression root cause analysis, API update correlation,
+              and historical performance genealogy for all major models.
+            </p>
+            <ul className="text-xs text-slate-400 space-y-1">
+              <li>• Complete version change timeline</li>
+              <li>• Regression diagnostics and root causes</li>
+              <li>• Task-level performance attribution</li>
+              <li>• Automated incident detection and alerts</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Who Benefits from Our Enterprise Data?</h3>
+        
+        <div className="not-prose grid md:grid-cols-3 gap-4 my-6 text-sm">
+          <div className="bg-slate-800/50 p-4 rounded-lg">
+            <h4 className="font-bold mb-2">🏢 AI Safety Teams</h4>
+            <p className="text-slate-300">
+              Red teaming, security audits, and vulnerability assessment for AI deployment strategies.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/50 p-4 rounded-lg">
+            <h4 className="font-bold mb-2">📋 Compliance Officers</h4>
+            <p className="text-slate-300">
+              EU AI Act compliance, fairness audits, and regulatory documentation requirements.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/50 p-4 rounded-lg">
+            <h4 className="font-bold mb-2">🔬 ML Researchers</h4>
+            <p className="text-slate-300">
+              Academic research, model behavior analysis, and large-scale benchmarking studies.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/50 p-4 rounded-lg">
+            <h4 className="font-bold mb-2">💼 Enterprise Architects</h4>
+            <p className="text-slate-300">
+              Model selection, vendor evaluation, and production deployment risk assessment.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/50 p-4 rounded-lg">
+            <h4 className="font-bold mb-2">🛡️ Security Analysts</h4>
+            <p className="text-slate-300">
+              Threat intelligence, vulnerability tracking, and AI security posture management.
+            </p>
+          </div>
+
+          <div className="bg-slate-800/50 p-4 rounded-lg">
+            <h4 className="font-bold mb-2">📊 Data Scientists</h4>
+            <p className="text-slate-300">
+              Performance optimization, cost-benefit analysis, and model comparison research.
+            </p>
+          </div>
+        </div>
+
+        <div className="not-prose bg-blue-900/20 border border-blue-500/50 p-6 rounded-lg my-6">
+          <h4 className="font-bold text-lg mb-3">Interested in Enterprise Data Access?</h4>
+          <p className="text-sm text-slate-300 mb-4">
+            Our enterprise datasets are continuously updated and include historical data going back to platform launch.
+            Custom data packages, API access, and dedicated support available.
+          </p>
+          <a
+            href="https://studioplatforms.eu/products/aistupidlevel/data-licensing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          >
+            <span>View Pricing & Contact Sales</span>
+            <span>→</span>
+          </a>
+        </div>
+
+        <p className="text-xs text-slate-400 italic">
+          Note: Enterprise data licensing revenue helps fund our free public platform and keeps us independent
+          from AI vendor influence. All enterprise datasets are derived from our open methodology.
         </p>
       </section>
 
@@ -234,14 +392,24 @@ export default function AboutPage() {
             <p className="text-sm text-slate-300 mb-2">
               Every line of code is public on GitHub. Audit our methodology, suggest improvements, or run locally.
             </p>
-            <a 
-              href="https://github.com/ionutvi/aistupidlevel.info" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              View on GitHub →
-            </a>
+            <div className="space-y-1">
+              <a
+                href="https://github.com/StudioPlatforms/aistupidmeter-web"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 text-sm block"
+              >
+                Frontend (Web) →
+              </a>
+              <a
+                href="https://github.com/StudioPlatforms/aistupidmeter-api"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 text-sm block"
+              >
+                Backend (API) →
+              </a>
+            </div>
           </div>
 
           <div className="bg-slate-800 p-4 rounded-lg">
@@ -362,14 +530,24 @@ export default function AboutPage() {
             <p className="text-sm text-slate-300 mb-2">
               Help improve the platform, add features, fix bugs, or enhance documentation.
             </p>
-            <a 
-              href="https://github.com/ionutvi/aistupidlevel.info/issues" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              View Issues →
-            </a>
+            <div className="space-y-1">
+              <a
+                href="https://github.com/StudioPlatforms/aistupidmeter-web/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 text-sm block"
+              >
+                Web Issues →
+              </a>
+              <a
+                href="https://github.com/StudioPlatforms/aistupidmeter-api/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-300 text-sm block"
+              >
+                API Issues →
+              </a>
+            </div>
           </div>
 
           <div className="bg-slate-800 p-4 rounded-lg">

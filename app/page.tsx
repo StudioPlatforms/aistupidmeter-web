@@ -3114,6 +3114,121 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Enterprise Data Licensing Section */}
+        <div className="crt-monitor" style={{ marginBottom: '24px' }}>
+          <div className="terminal-text">
+            <div style={{ fontSize: '1.4em', marginBottom: '16px', textAlign: 'center' }}>
+              <span className="terminal-text--amber">💼 ENTERPRISE DATA LICENSING</span>
+            </div>
+            
+            <div className="terminal-text--dim" style={{ fontSize: '1.0em', textAlign: 'center', marginBottom: '24px' }}>
+              Premium datasets for AI safety teams, compliance officers, and ML researchers
+            </div>
+            
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'rgba(0, 100, 200, 0.15)',
+                border: '1px solid rgba(0, 150, 255, 0.4)',
+                borderRadius: '8px'
+              }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                  🛡️ SAFETY & SECURITY
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+                  Adversarial testing, jailbreak attempts, prompt injection vulnerabilities, safety bypass patterns
+                </div>
+              </div>
+              
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'rgba(150, 0, 200, 0.15)',
+                border: '1px solid rgba(200, 0, 255, 0.4)',
+                borderRadius: '8px'
+              }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                  ⚖️ BIAS & FAIRNESS
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+                  Demographic performance analysis, gender/ethnicity bias detection, EU AI Act compliance data
+                </div>
+              </div>
+              
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'rgba(200, 100, 0, 0.15)',
+                border: '1px solid rgba(255, 150, 0, 0.4)',
+                borderRadius: '8px'
+              }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                  🎯 ROBUSTNESS & RELIABILITY
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+                  Prompt sensitivity, hallucination patterns, consistency metrics, failure mode taxonomy
+                </div>
+              </div>
+              
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'rgba(0, 200, 150, 0.15)',
+                border: '1px solid rgba(0, 255, 200, 0.4)',
+                borderRadius: '8px'
+              }}>
+                <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                  📊 VERSION & REGRESSION
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+                  Model version tracking, performance regression analysis, API update correlation
+                </div>
+              </div>
+            </div>
+            
+            <div style={{
+              padding: '20px',
+              backgroundColor: 'rgba(0, 255, 65, 0.1)',
+              border: '2px solid var(--phosphor-green)',
+              borderRadius: '8px',
+              textAlign: 'center',
+              marginBottom: '16px'
+            }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px' }}>
+                🎯 IDEAL FOR:
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8' }}>
+                AI Safety Teams • Compliance Officers • ML Researchers<br/>
+                Enterprise Architects • Security Analysts • Data Scientists
+              </div>
+            </div>
+            
+            <div style={{ textAlign: 'center' }}>
+              <a
+                href="https://studioplatforms.eu/products/aistupidlevel/data-licensing"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="vintage-btn vintage-btn--active"
+                style={{
+                  padding: '12px 32px',
+                  fontSize: '1.0em',
+                  display: 'inline-block',
+                  textDecoration: 'none',
+                  boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
+                }}
+              >
+                VIEW PRICING & CONTACT SALES →
+              </a>
+            </div>
+            
+            <div className="terminal-text--dim" style={{ fontSize: '0.75em', textAlign: 'center', marginTop: '16px', fontStyle: 'italic' }}>
+              Enterprise data licensing helps fund our free public platform and keeps us independent from AI vendors
+            </div>
+          </div>
+        </div>
+
         {/* Call to Action */}
         <div className="crt-monitor">
           <div className="terminal-text" style={{ textAlign: 'center' }}>
@@ -3128,17 +3243,31 @@ export default function Dashboard() {
               Choose models based on actual performance, not marketing promises.<br/>
               Get early warnings when capabilities are reduced.
             </div>
-            <button 
-              onClick={() => setSelectedView('dashboard')}
-              className="vintage-btn vintage-btn--active" 
-              style={{ 
-                padding: '12px 32px',
-                fontSize: '1.1em',
-                boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
-              }}
-            >
-              EXPLORE LIVE RANKINGS
-            </button>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setSelectedView('dashboard')}
+                className="vintage-btn vintage-btn--active"
+                style={{
+                  padding: '12px 32px',
+                  fontSize: '1.1em',
+                  boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
+                }}
+              >
+                EXPLORE LIVE RANKINGS
+              </button>
+              <a
+                href="/methodology"
+                className="vintage-btn"
+                style={{
+                  padding: '12px 32px',
+                  fontSize: '1.1em',
+                  textDecoration: 'none',
+                  display: 'inline-block'
+                }}
+              >
+                VIEW METHODOLOGY →
+              </a>
+            </div>
           </div>
         </div>
 
@@ -5057,7 +5186,7 @@ export default function Dashboard() {
           >
             Studio Platforms
           </a>
-          {' '} • © 2025
+          {' '} • © 2026
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
           Join our community: {' '}

@@ -4,7 +4,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 
 export const metadata: Metadata = {
   title: 'AI Benchmarking Methodology | How We Test AI Models',
-  description: 'Comprehensive technical documentation of our 7-axis AI benchmarking methodology using CUSUM drift detection, statistical confidence intervals, and execution-based testing. Learn how we measure AI performance objectively.',
+  description: 'Comprehensive technical documentation of our 9-axis AI benchmarking methodology using CUSUM drift detection, statistical confidence intervals, and execution-based testing. Learn how we measure AI performance objectively.',
   keywords: [
     'AI benchmarking methodology',
     'How to test AI models',
@@ -19,481 +19,624 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'AI Benchmarking Methodology | How We Test AI Models',
-    description: 'Rigorous, statistically-sound approach to AI benchmarking with 7-axis scoring, confidence intervals, and drift detection.',
+    description: 'Rigorous, statistically-sound approach to AI benchmarking with 9-axis scoring, confidence intervals, and drift detection.',
     type: 'article',
   }
 };
 
 export default function MethodologyPage() {
   return (
-    <article className="max-w-4xl mx-auto px-4 py-12 prose prose-invert">
+    <div className="vintage-container">
       <Breadcrumbs items={[
         { label: 'Home', href: '/' },
         { label: 'Methodology' }
       ]} />
       
-      <h1>How aistupidlevel.info Works - Technical Overview</h1>
-      
-      <nav className="not-prose bg-slate-800 p-4 rounded-lg mb-8">
-        <p className="text-sm text-slate-300 mb-2">Quick Navigation:</p>
-        <ul className="text-sm space-y-1">
-          <li><a href="#benchmark-execution" className="text-blue-400 hover:text-blue-300">1. Benchmark Execution</a></li>
-          <li><a href="#score-calculation" className="text-blue-400 hover:text-blue-300">2. Score Calculation</a></li>
-          <li><a href="#statistical-analysis" className="text-blue-400 hover:text-blue-300">3. Statistical Analysis</a></li>
-          <li><a href="#drift-detection" className="text-blue-400 hover:text-blue-300">4. Drift Detection</a></li>
-          <li><a href="#data-storage" className="text-blue-400 hover:text-blue-300">5. Data Storage</a></li>
-          <li><a href="#api-endpoints" className="text-blue-400 hover:text-blue-300">6. API Endpoints</a></li>
-          <li><a href="#validation" className="text-blue-400 hover:text-blue-300">7. Validation & Transparency</a></li>
-        </ul>
-      </nav>
+      {/* Header */}
+      <div className="crt-monitor" style={{ marginBottom: '24px', marginTop: '16px' }}>
+        <div className="terminal-text">
+          <div style={{ fontSize: '1.8em', marginBottom: '16px', textAlign: 'center' }}>
+            <span className="terminal-text--green">HOW WE TEST AI MODELS</span>
+            <span className="blinking-cursor"></span>
+          </div>
+          <div className="terminal-text--dim" style={{ fontSize: '1.0em', textAlign: 'center', marginBottom: '16px' }}>
+            Complete Technical Methodology - Statistically Rigorous, Execution-Based, Continuous Monitoring
+          </div>
+        </div>
+      </div>
 
-      <section id="benchmark-execution">
-        <h2>1. Benchmark Execution</h2>
-        
-        <p>Our benchmarking system runs <strong>real coding tasks</strong> across multiple programming languages to evaluate AI model performance objectively.</p>
+      {/* Quick Navigation */}
+      <div className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.2em', marginBottom: '12px' }}>
+            📋 NAVIGATION
+          </div>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8' }}>
+            1. <a href="#suites" className="terminal-text--green" style={{ textDecoration: 'underline' }}>4 Benchmark Suites</a><br/>
+            2. <a href="#scoring" className="terminal-text--green" style={{ textDecoration: 'underline' }}>9-Axis Scoring System</a><br/>
+            3. <a href="#statistical" className="terminal-text--green" style={{ textDecoration: 'underline' }}>Statistical Analysis (95% CI)</a><br/>
+            4. <a href="#drift" className="terminal-text--green" style={{ textDecoration: 'underline' }}>Drift Detection (CUSUM)</a><br/>
+            5. <a href="#enhancements" className="terminal-text--green" style={{ textDecoration: 'underline' }}>Enhanced Testing (2026)</a><br/>
+            6. <a href="#validation" className="terminal-text--green" style={{ textDecoration: 'underline' }}>Validation & Transparency</a>
+          </div>
+        </div>
+      </div>
 
-        <h3>Process Overview</h3>
-        <ol>
-          <li><strong>Task Selection:</strong> System runs a curated set of coding tasks across multiple languages (Python, TypeScript)</li>
-          <li><strong>Multiple Trials:</strong> Each model runs each task <strong>5 times</strong> with different random seeds</li>
-          <li><strong>7-Axis Scoring:</strong> Each trial is scored on multiple dimensions</li>
-        </ol>
-
-        <h3>The 7 Evaluation Axes</h3>
-        <dl>
-          <dt><strong>Correctness (30%)</strong></dt>
-          <dd>Does the generated code work correctly? Tests are executed to verify functionality.</dd>
+      {/* Section 1: Benchmark Suites */}
+      <div id="suites" className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            1. THE 4 BENCHMARK SUITES
+          </div>
           
-          <dt><strong>Spec Adherence (20%)</strong></dt>
-          <dd>Does the code follow the specified requirements and constraints?</dd>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ padding: '16px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '8px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                ⚡ HOURLY SUITE
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+                <strong>Frequency</strong>: Every 4 hours<br/>
+                <strong>Tasks</strong>: 147 coding challenges<br/>
+                <strong>Trials</strong>: 5 per task<br/>
+                <strong>Scoring</strong>: 9-axis evaluation<br/>
+                <strong>Purpose</strong>: Fast performance tracking
+              </div>
+            </div>
+
+            <div style={{ padding: '16px', backgroundColor: 'rgba(0, 100, 200, 0.15)', border: '1px solid rgba(0, 150, 255, 0.4)', borderRadius: '8px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                🧠 DEEP REASONING
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+                <strong>Frequency</strong>: Daily at 3 AM<br/>
+                <strong>Tasks</strong>: Multi-turn dialogues<br/>
+                <strong>Scoring</strong>: 13-axis evaluation<br/>
+                <strong>Purpose</strong>: Complex reasoning tests
+              </div>
+            </div>
+
+            <div style={{ padding: '16px', backgroundColor: 'rgba(200, 100, 0, 0.15)', border: '1px solid rgba(255, 150, 0, 0.4)', borderRadius: '8px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                🔧 TOOL CALLING
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+                <strong>Frequency</strong>: Daily at 4 AM<br/>
+                <strong>Execution</strong>: Real Docker sandboxes<br/>
+                <strong>Scoring</strong>: 7-axis evaluation<br/>
+                <strong>Purpose</strong>: Agent capability tests
+              </div>
+            </div>
+
+            <div style={{ padding: '16px', backgroundColor: 'rgba(200, 0, 100, 0.15)', border: '1px solid rgba(255, 0, 150, 0.4)', borderRadius: '8px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+                🐦 CANARY SUITE
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+                <strong>Frequency</strong>: Every hour<br/>
+                <strong>Tasks</strong>: 12 fast tests<br/>
+                <strong>Purpose</strong>: Rapid drift detection<br/>
+                <strong>Response Time</strong>: &lt;5 minutes
+              </div>
+            </div>
+          </div>
+
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8' }}>
+            <strong className="terminal-text--green">Total Annual Output:</strong><br/>
+            • 500,000+ benchmark runs<br/>
+            • 2,500,000+ individual test executions<br/>
+            • 100,000+ tool-calling sessions<br/>
+            • 10,000+ drift incidents documented
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Scoring System */}
+      <div id="scoring" className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            2. 9-AXIS SCORING METHODOLOGY
+          </div>
           
-          <dt><strong>Code Quality (15%)</strong></dt>
-          <dd>Is the code clean, maintainable, and following best practices?</dd>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8', marginBottom: '16px' }}>
+            Each task is evaluated across 9 dimensions. Weights optimized for production relevance:
+          </div>
+
+          <div style={{ backgroundColor: 'rgba(0, 255, 65, 0.05)', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.85em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto 1fr', gap: '8px 16px', alignItems: 'center' }}>
+              <span className="terminal-text--green">CORRECTNESS</span>
+              <span className="terminal-text--amber">40%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Does code work? All tests pass?</span>
+
+              <span className="terminal-text--green">COMPLEXITY</span>
+              <span className="terminal-text--amber">20%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Handles algorithm complexity?</span>
+
+              <span className="terminal-text--green">CODE QUALITY</span>
+              <span className="terminal-text--amber">15%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Clean, maintainable code?</span>
+
+              <span className="terminal-text--green">STABILITY</span>
+              <span className="terminal-text--amber">10%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Edge cases, no crashes?</span>
+
+              <span className="terminal-text--green">EFFICIENCY</span>
+              <span className="terminal-text--amber">5%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Optimal complexity?</span>
+
+              <span className="terminal-text--green">EDGE CASES</span>
+              <span className="terminal-text--amber">3%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Null, empty, boundaries?</span>
+
+              <span className="terminal-text--green">DEBUGGING</span>
+              <span className="terminal-text--amber">3%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Can fix broken code?</span>
+
+              <span className="terminal-text--green">FORMAT</span>
+              <span className="terminal-text--amber">2%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">Clean output, follows spec?</span>
+
+              <span className="terminal-text--green">SAFETY</span>
+              <span className="terminal-text--amber">2%</span>
+              <span className="terminal-text--dim">→</span>
+              <span className="terminal-text--dim">No dangerous operations?</span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(255, 176, 0, 0.1)', border: '1px solid rgba(255, 176, 0, 0.3)', borderRadius: '8px' }}>
+            <span className="terminal-text--amber" style={{ fontSize: '0.95em' }}>
+              <strong>Formula:</strong> FinalScore = Σ (axis_score × axis_weight)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Statistical Analysis */}
+      <div id="statistical" className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            3. STATISTICAL RIGOR (95% CONFIDENCE INTERVALS)
+          </div>
           
-          <dt><strong>Efficiency (10%)</strong></dt>
-          <dd>How well does the code perform in terms of time and space complexity?</dd>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8', marginBottom: '16px' }}>
+            Unlike benchmarks showing single measurements, we provide confidence intervals to quantify uncertainty.
+          </div>
+
+          <div style={{ backgroundColor: 'rgba(0, 100, 200, 0.1)', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+            <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px' }}>
+              WHY 5 TRIALS?
+            </div>
+            <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+              • AI models are <strong className="terminal-text--amber">stochastic</strong> (same prompt → different outputs)<br/>
+              • Single measurements are unreliable<br/>
+              • 5 trials = optimal balance of cost vs statistical power<br/>
+              • Provides 95% confidence intervals using t-distribution
+            </div>
+          </div>
+
+          <div style={{ backgroundColor: 'rgba(0, 255, 65, 0.05)', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.75em' }}>
+            <div className="terminal-text--green" style={{ marginBottom: '8px' }}>EXAMPLE CALCULATION:</div>
+            <div className="terminal-text--dim">
+              claude-opus-4-5-20251101 on binary_search:<br/>
+              Trial 1: 92 | Trial 2: 94 | Trial 3: 90 | Trial 4: 93 | Trial 5: 91<br/>
+              <br/>
+              Mean = 92.0<br/>
+              Std Dev = 1.58<br/>
+              Std Error = 1.58 / sqrt(5) = 0.71<br/>
+              t-value = 2.776 (df=4, 95% CI)<br/>
+              Margin = 2.776 × 0.71 = 1.97<br/>
+              <br/>
+              <span className="terminal-text--amber">
+              <strong>Final: 92.0 ± 2.0</strong><br/>
+              95% CI: [90.0, 94.0]
+              </span>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '8px' }}>
+            <span className="terminal-text--green" style={{ fontSize: '0.9em' }}>
+              <strong>Translation:</strong> "We're 95% confident claude-opus-4-5's true performance is between 90-94"
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 4: Drift Detection */}
+      <div id="drift" className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            4. DRIFT DETECTION (CUSUM ALGORITHM)
+          </div>
           
-          <dt><strong>Stability (10%)</strong></dt>
-          <dd>Does the model produce consistent behavior across runs?</dd>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8', marginBottom: '16px' }}>
+            Detects <strong className="terminal-text--amber">sustained</strong> performance changes, not daily noise.
+          </div>
+
+          <div style={{ backgroundColor: 'rgba(255, 45, 0, 0.1)', padding: '16px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.75em', marginBottom: '16px' }}>
+            <div className="terminal-text--amber" style={{ marginBottom: '8px' }}>CUSUM ALGORITHM:</div>
+            <div className="terminal-text--dim">
+              For each new score:<br/>
+              1. Compare to baseline (historical average)<br/>
+              2. Calculate deviation: δ = new_score - baseline<br/>
+              3. Update CUSUM: S = max(0, S + δ - k)<br/>
+              4. If S &gt; threshold: ALERT (drift detected)<br/>
+              <br/>
+              <span className="terminal-text--green">
+              Parameters:<br/>
+              • Baseline window: 12 runs<br/>
+              • Sensitivity (k): 0.005<br/>
+              • Threshold (λ): 0.5<br/>
+              • False positive rate: &lt;2%
+              </span>
+            </div>
+          </div>
+
+          <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '12px' }}>
+            ALERT SEVERITY LEVELS:
+          </div>
+          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.8' }}>
+            🟢 <strong className="terminal-text--green">NORMAL</strong> - Performance within expected variance<br/>
+            🟡 <strong className="terminal-text--amber">WARNING</strong> - Slight decline, monitoring closely<br/>
+            🟠 <strong className="terminal-text--amber">DEGRADATION</strong> - Sustained decline confirmed<br/>
+            🔴 <strong className="terminal-text--red">CRITICAL</strong> - Major drop, immediate attention needed
+          </div>
+        </div>
+      </div>
+
+      {/* Section 5: Enhanced Testing */}
+      <div id="enhancements" className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            5. ENHANCED TESTING (NEW IN 2026)
+          </div>
           
-          <dt><strong>Refusal Rate (10%)</strong></dt>
-          <dd>How often does the model refuse to attempt the task?</dd>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.8', marginBottom: '16px' }}>
+            Zero-cost enhancements that extract 10x more value from existing tests:
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '12px', backgroundColor: 'rgba(255, 45, 0, 0.15)', border: '1px solid rgba(255, 45, 0, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--red" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                🛡️ ADVERSARIAL SAFETY
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                18 attack types: jailbreak, injection, extraction<br/>
+                120,000+ tests/year<br/>
+                Vulnerability profiling
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 100, 200, 0.15)', border: '1px solid rgba(0, 150, 255, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                🎯 PROMPT ROBUSTNESS
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                11 variation types: paraphrase, restructure<br/>
+                180,000+ tests/year<br/>
+                Consistency measurement
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(150, 0, 200, 0.15)', border: '1px solid rgba(200, 0, 255, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--amber" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                ⚖️ BIAS DETECTION
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                18 demographic variants tested<br/>
+                60,000+ tests/year<br/>
+                EU AI Act compliance
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 200, 150, 0.15)', border: '1px solid rgba(0, 255, 200, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                📊 VERSION TRACKING
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                Extracts from response headers<br/>
+                Regression root cause analysis<br/>
+                Complete version genealogy
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 6: Validation */}
+      <div id="validation" className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            6. VALIDATION & TRANSPARENCY
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                ✅ OPEN SOURCE
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                Full code on GitHub<br/>
+                Fully auditable methodology<br/>
+                Run locally to verify
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                ✅ INDEPENDENT
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                Zero vendor funding<br/>
+                No affiliate revenue<br/>
+                100% unbiased
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                ✅ VERIFIABLE
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                "Test Your Keys" feature<br/>
+                Reproduce our results<br/>
+                Compare independently
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>
+                ✅ PEER REVIEWED
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                Academic validation<br/>
+                Community audited<br/>
+                500+ GitHub stars
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '16px', backgroundColor: 'rgba(0, 255, 65, 0.05)', border: '2px solid rgba(0, 255, 65, 0.3)', borderRadius: '8px', textAlign: 'center' }}>
+            <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
+              🔑 TEST YOUR KEYS
+            </div>
+            <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '12px' }}>
+              Run benchmarks with your own API keys to verify we're not making up numbers
+            </div>
+            <Link href="/test" style={{ display: 'inline-block', padding: '10px 20px', backgroundColor: 'rgba(0, 255, 65, 0.2)', border: '2px solid var(--phosphor-green)', borderRadius: '6px', color: 'var(--phosphor-green)', textDecoration: 'none', fontWeight: 'bold' }}>
+              TEST NOW →
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Section: Current Models */}
+      <div className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            🤖 CURRENT MODELS TESTED (21 ACTIVE)
+          </div>
           
-          <dt><strong>Recovery (5%)</strong></dt>
-          <dd>Can the model fix errors when given feedback?</dd>
-        </dl>
-
-        <div className="not-prose bg-slate-800 p-4 rounded-lg my-6">
-          <p className="text-sm text-slate-400 mb-2">Technical Implementation:</p>
-          <pre className="text-xs overflow-x-auto"><code>{`// Run 5 trials per task
-for (let trial = 0; trial < 5; trial++) {
-  const seed = baseSeed + trial;
-  const result = await runTask(model, task, { seed, temp: 0.7 });
-  scores.push(calculateScore(result));
-}
-
-// Use median for robustness
-const finalScore = median(scores);`}</code></pre>
-        </div>
-      </section>
-
-      <section id="score-calculation">
-        <h2>2. Score Calculation</h2>
-        
-        <p>Our "stupid score" is a <strong>weighted average of the 7 axes</strong>, where lower scores indicate better performance (less "stupid").</p>
-
-        <h3>Scoring Formula</h3>
-        <div className="not-prose bg-slate-800 p-4 rounded-lg my-6">
-          <pre className="text-xs overflow-x-auto"><code>{`const stupidScore = 100 - (
-  correctness * 0.30 +
-  spec * 0.20 +
-  codeQuality * 0.15 +
-  efficiency * 0.10 +
-  stability * 0.10 +
-  refusal * 0.10 +
-  recovery * 0.05
-) * 100;
-
-// Score interpretation:
-// 0-20  = Excellent (top tier)
-// 21-40 = Good (production ready)
-// 41-60 = Average (usable with caution)
-// 61-80 = Poor (significant issues)
-// 81-100 = Very Poor (not recommended)`}</code></pre>
-        </div>
-
-        <h3>Why These Weights?</h3>
-        <ul>
-          <li><strong>Correctness is paramount (30%):</strong> Code that doesn't work is worthless</li>
-          <li><strong>Following specs matters (20%):</strong> Real-world code must meet requirements</li>
-          <li><strong>Code quality for maintainability (15%):</strong> Production code needs to be maintainable</li>
-          <li><strong>Performance and behavior (35% combined):</strong> Efficiency, stability, and reliability are crucial</li>
-        </ul>
-      </section>
-
-      <section id="statistical-analysis">
-        <h2>3. Statistical Analysis</h2>
-        
-        <p>Unlike other benchmarks that show single measurements, we provide <strong>confidence intervals</strong> to quantify uncertainty.</p>
-
-        <h3>Why Statistical Rigor Matters</h3>
-        <p>AI models are <strong>stochastic</strong> (probabilistic), meaning:</p>
-        <ul>
-          <li>The same prompt can produce different outputs</li>
-          <li>Single measurements are unreliable</li>
-          <li>We need multiple trials to estimate true performance</li>
-        </ul>
-
-        <h3>Our Approach</h3>
-        <div className="not-prose bg-slate-800 p-4 rounded-lg my-6">
-          <pre className="text-xs overflow-x-auto"><code>{`// Calculate 95% confidence interval
-const mean = scores.reduce((a, b) => a + b) / 5;
-const stdDev = sqrt(variance / 4); // n-1 degrees of freedom
-const standardError = stdDev / sqrt(5);
-const tValue = 2.776; // t-distribution for df=4, 95% CI
-const marginOfError = tValue * standardError;
-
-return {
-  lower: mean - marginOfError,
-  upper: mean + marginOfError,
-  standardError
-};`}</code></pre>
-        </div>
-
-        <h3>Why t-Distribution?</h3>
-        <p>With only 5 samples, the normal distribution <strong>underestimates uncertainty</strong>. The t-distribution:</p>
-        <ul>
-          <li>Accounts for small sample sizes</li>
-          <li>Provides more conservative (wider) intervals</li>
-          <li>Is more honest about measurement uncertainty</li>
-        </ul>
-
-        <div className="not-prose bg-blue-900/30 border border-blue-500/50 p-4 rounded-lg my-6">
-          <p className="text-sm"><strong>💡 Example:</strong> A score of "24.8 ± 1.3" means we're 95% confident the true score is between 23.5 and 26.1</p>
-        </div>
-      </section>
-
-      <section id="drift-detection">
-        <h2>4. Drift Detection (CUSUM Algorithm)</h2>
-        
-        <p>We use the <strong>CUSUM (Cumulative Sum)</strong> algorithm to detect <em>sustained</em> performance changes, not just daily noise.</p>
-
-        <h3>How CUSUM Works</h3>
-        <div className="not-prose bg-slate-800 p-4 rounded-lg my-6">
-          <pre className="text-xs overflow-x-auto"><code>{`// Cumulative Sum for detecting sustained changes
-let cusum = 0;
-for (const score of recentScores) {
-  const deviation = score - baseline;
-  cusum = max(0, cusum + deviation - driftDelta);
-  
-  if (cusum > driftLambda) {
-    // Sustained drift detected!
-    createIncident({
-      type: 'performance_degradation',
-      severity: calculateSeverity(cusum)
-    });
-  }
-}`}</code></pre>
-        </div>
-
-        <h3>Key Features</h3>
-        <ul>
-          <li><strong>Per-Model Calibration:</strong> Each model has custom thresholds based on its historical variance</li>
-          <li><strong>Noise Tolerance:</strong> Noisy models get higher thresholds to avoid false alarms</li>
-          <li><strong>Sustained Changes Only:</strong> Ignores single-day fluctuations, focuses on trends</li>
-        </ul>
-
-        <h3>Alert Severity Levels</h3>
-        <dl>
-          <dt><strong>🟢 Normal:</strong></dt>
-          <dd>Performance within expected variance</dd>
-          
-          <dt><strong>🟡 Warning:</strong></dt>
-          <dd>Slight decline detected, monitoring closely</dd>
-          
-          <dt><strong>🟠 Degradation:</strong></dt>
-          <dd>Sustained decline confirmed, statistically significant</dd>
-          
-          <dt><strong>🔴 Critical:</strong></dt>
-          <dd>Major performance drop, immediate attention needed</dd>
-        </dl>
-      </section>
-
-      <section id="data-storage">
-        <h2>5. Data Storage & Schema</h2>
-        
-        <p>All benchmark data is stored in a <strong>SQLite database</strong> with a carefully designed schema for historical tracking.</p>
-
-        <h3>Key Database Tables</h3>
-        <div className="not-prose bg-slate-800 p-4 rounded-lg my-6">
-          <pre className="text-xs overflow-x-auto"><code>{`-- Models being tracked
-CREATE TABLE models (
-  id INTEGER PRIMARY KEY,
-  name TEXT NOT NULL,
-  vendor TEXT NOT NULL,
-  show_in_rankings BOOLEAN DEFAULT false
-);
-
--- Individual benchmark runs
-CREATE TABLE runs (
-  id INTEGER PRIMARY KEY,
-  model_id INTEGER,
-  task_id INTEGER,
-  passed BOOLEAN,
-  tokens_in INTEGER,
-  tokens_out INTEGER,
-  latency_ms INTEGER
-);
-
--- Aggregated scores with statistical data
-CREATE TABLE scores (
-  id INTEGER PRIMARY KEY,
-  model_id INTEGER,
-  stupid_score REAL NOT NULL,
-  axes JSON NOT NULL,
-  cusum REAL NOT NULL,
-  confidence_lower REAL,
-  confidence_upper REAL,
-  standard_error REAL,
-  sample_size INTEGER DEFAULT 5,
-  model_variance REAL
-);`}</code></pre>
-        </div>
-
-        <p className="text-sm text-slate-400">This schema enables historical trend analysis, confidence interval tracking, and drift detection over time.</p>
-      </section>
-
-      <section id="api-endpoints">
-        <h2>6. API Endpoints</h2>
-        
-        <p>Our <Link href="/" className="text-blue-400 hover:text-blue-300">public API</Link> provides access to benchmark data with confidence intervals and historical trends.</p>
-
-        <h3>Available Endpoints</h3>
-        <div className="not-prose space-y-4 my-6">
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <code className="text-green-400">GET /api/dashboard</code>
-            <p className="text-sm text-slate-300 mt-2">Get current AI model rankings with confidence intervals</p>
-            <pre className="text-xs mt-2 overflow-x-auto"><code>{`{
-  "models": [{
-    "name": "gpt-5",
-    "score": 25.3,
-    "confidenceLower": 23.1,
-    "confidenceUpper": 27.5,
-    "rank": 1,
-    "trend": "stable"
-  }]
-}`}</code></pre>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '0.8em' }}>
+            <div className="terminal-text--green">claude-3-7-sonnet-20250219</div>
+            <div className="terminal-text--green">claude-sonnet-4-5-20250929</div>
+            <div className="terminal-text--green">claude-opus-4-5-20251101</div>
+            <div className="terminal-text--green">gpt-5.2</div>
+            <div className="terminal-text--green">gpt-5.1</div>
+            <div className="terminal-text--green">gpt-5.1-codex</div>
+            <div className="terminal-text--green">deepseek-chat</div>
+            <div className="terminal-text--green">deepseek-reasoner</div>
+            <div className="terminal-text--green">gemini-2.5-flash</div>
+            <div className="terminal-text--green">gemini-3-pro-preview</div>
+            <div className="terminal-text--green">grok-4-0709</div>
+            <div className="terminal-text--green">grok-4-latest</div>
+            <div className="terminal-text--green">kimi-latest</div>
+            <div className="terminal-text--green">kimi-k2-turbo-preview</div>
+            <div className="terminal-text--green">glm-4.6</div>
+            <div className="terminal-text--dim">...and 6 more</div>
           </div>
 
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <code className="text-green-400">GET /api/dashboard?period=7d</code>
-            <p className="text-sm text-slate-300 mt-2">Get historical time series data with confidence intervals</p>
-          </div>
-
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <code className="text-green-400">GET /api/models/:id</code>
-            <p className="text-sm text-slate-300 mt-2">Get detailed breakdown by task with statistical analysis</p>
+          <div style={{ marginTop: '16px', padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.05)', borderRadius: '6px' }}>
+            <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
+              Scores update <strong className="terminal-text--amber">every 4 hours</strong>. Rankings shift based on continuous performance monitoring.
+            </span>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section id="validation">
-        <h2>7. Validation & Transparency</h2>
-        
-        <h3>"Test Your Keys" Feature</h3>
-        <p>To prove we're not making up numbers, users can <Link href="/test" className="text-blue-400 hover:text-blue-300">run benchmarks with their own API keys</Link>.</p>
-
-        <div className="not-prose bg-slate-800 p-4 rounded-lg my-6">
-          <pre className="text-xs overflow-x-auto"><code>{`// Users can run benchmarks with their own API keys
-POST /api/test-keys
-Body: {
-  apiKey: "sk-...",
-  model: "gpt-4"
-}
-
-// Runs same benchmarks, returns results
-// Proves we're not making up numbers`}</code></pre>
-        </div>
-
-        <h3>Open Source Commitment</h3>
-        <ul>
-          <li>✅ <strong>All code is public:</strong> <a href="https://github.com/ionutvi/aistupidlevel.info" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">View on GitHub</a></li>
-          <li>✅ <strong>Anyone can audit methodology:</strong> Full transparency in scoring algorithms</li>
-          <li>✅ <strong>Can run locally to verify:</strong> Docker setup available for independent testing</li>
-          <li>✅ <strong>No vendor affiliations:</strong> 100% independent evaluation</li>
-        </ul>
-      </section>
-
-      <section className="border-t border-slate-700 pt-8">
-        <h2>Key Differences from Other Benchmarks</h2>
-        
-        <div className="not-prose grid md:grid-cols-3 gap-4 my-6">
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <h4 className="font-bold text-lg mb-2">vs. HumanEval</h4>
-            <p className="text-sm text-slate-300"><strong>HumanEval:</strong> Single-shot, pass/fail</p>
-            <p className="text-sm text-green-400 mt-2"><strong>Us:</strong> Multiple trials, nuanced scoring, confidence intervals</p>
+      {/* Section: Why This Matters */}
+      <div className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            💡 WHY THIS METHODOLOGY MATTERS
           </div>
 
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <h4 className="font-bold text-lg mb-2">vs. MMLU</h4>
-            <p className="text-sm text-slate-300"><strong>MMLU:</strong> Multiple choice questions</p>
-            <p className="text-sm text-green-400 mt-2"><strong>Us:</strong> Real coding tasks with execution</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <div className="terminal-text--red" style={{ fontSize: '1.0em', marginBottom: '8px' }}>
+                ❌ TRADITIONAL BENCHMARKS:
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+                • Single measurements (unreliable)<br/>
+                • No confidence intervals<br/>
+                • Point-in-time snapshots<br/>
+                • Vendor-sponsored (biased)<br/>
+                • No safety testing<br/>
+                • No bias evaluation<br/>
+                • Opaque methodology
+              </div>
+            </div>
+
+            <div>
+              <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '8px' }}>
+                ✅ OUR APPROACH:
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
+                • 5 trials per task (statistical power)<br/>
+                • 95% confidence intervals<br/>
+                • 2+ years continuous monitoring<br/>
+                • 100% independent funding<br/>
+                • 120K+ safety tests/year<br/>
+                • 60K+ bias tests/year<br/>
+                • Fully open source
+              </div>
+            </div>
           </div>
 
-          <div className="bg-slate-800 p-4 rounded-lg">
-            <h4 className="font-bold text-lg mb-2">vs. Chatbot Arena</h4>
-            <p className="text-sm text-slate-300"><strong>Arena:</strong> Human preference voting</p>
-            <p className="text-sm text-green-400 mt-2"><strong>Us:</strong> Objective code execution metrics</p>
+          <div style={{ padding: '16px', backgroundColor: 'rgba(0, 255, 65, 0.1)', border: '2px solid var(--phosphor-green)', borderRadius: '8px', textAlign: 'center' }}>
+            <span className="terminal-text--green" style={{ fontSize: '1.0em' }}>
+              <strong>Result:</strong> Data you can bet your business on.
+            </span>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section>
-        <h2>Why This Methodology Matters</h2>
-        
-        <div className="not-prose bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/50 p-6 rounded-lg my-6">
-          <h3 className="text-xl font-bold mb-4">The Problem with Traditional Benchmarks</h3>
-          <ul className="space-y-2 text-sm">
-            <li>🔴 <strong>LLMs are stochastic (random):</strong> Same prompt = different outputs</li>
-            <li>🔴 <strong>Single measurements are unreliable:</strong> No way to know if result was lucky/unlucky</li>
-            <li>🔴 <strong>Daily fluctuations mislead:</strong> Natural variance mistaken for actual changes</li>
-            <li>🔴 <strong>No uncertainty quantification:</strong> Users don't know measurement confidence</li>
-          </ul>
-          
-          <h3 className="text-xl font-bold mt-6 mb-4">Our Solution</h3>
-          <ul className="space-y-2 text-sm">
-            <li>✅ <strong>Multiple trials (n=5):</strong> Capture natural variance</li>
-            <li>✅ <strong>Confidence intervals:</strong> Show uncertainty honestly</li>
-            <li>✅ <strong>Statistical tests:</strong> Distinguish signal from noise</li>
-            <li>✅ <strong>Per-model calibration:</strong> Fair comparison across different model behaviors</li>
-            <li>✅ <strong>Transparent methodology:</strong> Anyone can verify and reproduce</li>
-          </ul>
-        </div>
-      </section>
-
-      <section>
-        <h2>Example: How a Score is Generated</h2>
-        
-        <div className="not-prose bg-slate-800 p-6 rounded-lg my-6">
-          <ol className="space-y-3 text-sm">
-            <li>
-              <strong>1. Select task:</strong> "Implement binary search in Python"
-            </li>
-            <li>
-              <strong>2. Run 5 trials with different seeds:</strong>
-              <pre className="text-xs mt-2 ml-4"><code>{`Trial 1 (seed=42):   Score = 23.5
-Trial 2 (seed=43):   Score = 25.1
-Trial 3 (seed=44):   Score = 24.2
-Trial 4 (seed=45):   Score = 26.3
-Trial 5 (seed=46):   Score = 24.8`}</code></pre>
-            </li>
-            <li>
-              <strong>3. Calculate statistics:</strong>
-              <pre className="text-xs mt-2 ml-4"><code>{`Mean = 24.78
-StdDev = 1.02
-SE = 1.02 / sqrt(5) = 0.46`}</code></pre>
-            </li>
-            <li>
-              <strong>4. Calculate 95% confidence interval:</strong>
-              <pre className="text-xs mt-2 ml-4"><code>{`t-value = 2.776 (for df=4)
-Margin = 2.776 × 0.46 = 1.27
-CI = [23.51, 26.05]`}</code></pre>
-            </li>
-            <li>
-              <strong>5. Store in database:</strong>
-              <pre className="text-xs mt-2 ml-4"><code>{`stupid_score = 24.78
-confidence_lower = 23.51
-confidence_upper = 26.05
-standard_error = 0.46
-sample_size = 5`}</code></pre>
-            </li>
-            <li>
-              <strong>6. Display to user:</strong><br/>
-              <span className="text-green-400">"Score: 24.8 ± 1.3 (95% CI: 23.5-26.1)"</span>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <section>
-        <h2>Frequently Asked Questions</h2>
-        
-        <dl className="space-y-4">
-          <div>
-            <dt className="font-bold text-lg">Q: Why only 5 trials?</dt>
-            <dd className="text-slate-300 mt-1">A: Balance between statistical power and computational cost. 5 trials gives us reasonable confidence intervals while keeping benchmark time manageable. More trials would be better statistically but would increase testing time significantly.</dd>
+      {/* Section: API Access */}
+      <div className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            📡 PUBLIC API ACCESS
           </div>
 
-          <div>
-            <dt className="font-bold text-lg">Q: Why median instead of mean?</dt>
-            <dd className="text-slate-300 mt-1">A: Median is robust to outliers. If one trial has a weird result (model hallucination, API timeout), it won't skew the entire score. The median represents "typical" performance better.</dd>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.05)', border: '1px solid rgba(0, 255, 65, 0.2)', borderRadius: '6px' }}>
+              <code className="terminal-text--green" style={{ fontSize: '0.85em' }}>GET /api/dashboard</code>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '6px' }}>
+                Current rankings with confidence intervals<br/>
+                <span className="terminal-text--amber">Rate Limit: 300 requests/minute</span>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.05)', border: '1px solid rgba(0, 255, 65, 0.2)', borderRadius: '6px' }}>
+              <code className="terminal-text--green" style={{ fontSize: '0.85em' }}>GET /api/dashboard?period=7d</code>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '6px' }}>
+                Historical time-series data (7 days)<br/>
+                <span className="terminal-text--amber">Rate Limit: 300 requests/minute</span>
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 255, 65, 0.05)', border: '1px solid rgba(0, 255, 65, 0.2)', borderRadius: '6px' }}>
+              <code className="terminal-text--green" style={{ fontSize: '0.85em' }}>GET /api/models/:id</code>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '6px' }}>
+                Detailed model breakdown by task<br/>
+                <span className="terminal-text--amber">Rate Limit: 180 requests/minute</span>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <dt className="font-bold text-lg">Q: How do you prevent gaming?</dt>
-            <dd className="text-slate-300 mt-1">A: Multiple safeguards: (1) Tasks are not public, (2) Multiple trials with different seeds make it impossible to optimize for specific inputs, (3) Execution-based testing means code must actually work, (4) "Test Your Keys" feature lets anyone verify results independently.</dd>
+          <div style={{ padding: '12px', backgroundColor: 'rgba(0, 100, 200, 0.1)', border: '1px solid rgba(0, 150, 255, 0.3)', borderRadius: '6px', marginBottom: '16px' }}>
+            <div className="terminal-text--green" style={{ fontSize: '0.95em', marginBottom: '8px' }}>
+              🛡️ RATE LIMITING & PROTECTION
+            </div>
+            <div className="terminal-text--dim" style={{ fontSize: '0.8em', lineHeight: '1.6' }}>
+              All public APIs protected with automatic rate limiting:<br/>
+              • Prevents abuse and ensures fair access<br/>
+              • Per-IP tracking with sliding window<br/>
+              • Returns 429 status code when exceeded<br/>
+              • Retry-After header indicates wait time<br/>
+              • Internal/localhost requests excluded
+            </div>
           </div>
 
-          <div>
-            <dt className="font-bold text-lg">Q: What about prompt engineering?</dt>
-            <dd className="text-slate-300 mt-1">A: We use standardized prompts across all models. The goal is to measure base model capability, not prompt optimization. This ensures fair comparison.</dd>
-          </div>
-
-          <div>
-            <dt className="font-bold text-lg">Q: Can I see the raw data?</dt>
-            <dd className="text-slate-300 mt-1">A: Yes! All data is accessible via our API, and the complete database schema is open source. You can also run benchmarks locally with the same tasks.</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="border-t border-slate-700 pt-8">
-        <h2>Current Limitations & Future Work</h2>
-        
-        <div className="grid md:grid-cols-2 gap-6 my-6">
-          <div>
-            <h3 className="text-lg font-bold mb-3">Current Limitations</h3>
-            <ul className="text-sm text-slate-300 space-y-2">
-              <li>• 5 trials may not be enough for very noisy models</li>
-              <li>• Limited task diversity (expanding continuously)</li>
-              <li>• Coding-focused (not evaluating general capabilities)</li>
-              <li>• English language only</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-bold mb-3">Planned Improvements</h3>
-            <ul className="text-sm text-green-400 space-y-2">
-              <li>✓ Adaptive sampling (more trials for uncertain cases)</li>
-              <li>✓ Bayesian analysis for better uncertainty quantification</li>
-              <li>✓ Expanded task set with more languages</li>
-              <li>✓ Real-time error bars in charts</li>
-              <li>✓ Statistical significance indicators between models</li>
-            </ul>
+          <div style={{ padding: '12px', backgroundColor: 'rgba(255, 176, 0, 0.1)', border: '1px solid rgba(255, 176, 0, 0.3)', borderRadius: '6px' }}>
+            <span className="terminal-text--amber" style={{ fontSize: '0.85em' }}>
+              <strong>Enterprise API:</strong> Higher limits (10,000+ requests/day) available via licensed access →{' '}
+              <a href="https://studioplatforms.eu/products/aistupidlevel/data-licensing" target="_blank" rel="noopener noreferrer" className="terminal-text--green" style={{ textDecoration: 'underline' }}>
+                Learn More
+              </a>
+            </span>
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="not-prose bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 p-6 rounded-lg my-8">
-        <h2 className="text-2xl font-bold mb-4">Related Resources</h2>
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <h3 className="font-bold mb-2">Technical Documentation</h3>
-            <ul className="space-y-1">
-              <li>• <a href="https://github.com/ionutvi/aistupidlevel.info" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">GitHub Repository</a></li>
-              <li>• <Link href="/about" className="text-blue-400 hover:text-blue-300">About Us & Team</Link></li>
-              <li>• <Link href="/faq" className="text-blue-400 hover:text-blue-300">Frequently Asked Questions</Link></li>
-            </ul>
+      {/* Section: Key Differences */}
+      <div className="crt-monitor" style={{ marginBottom: '24px' }}>
+        <div className="terminal-text">
+          <div className="terminal-text--amber" style={{ fontSize: '1.4em', marginBottom: '16px' }}>
+            ⚔️ vs. OTHER BENCHMARKS
           </div>
-          <div>
-            <h3 className="font-bold mb-2">Try It Yourself</h3>
-            <ul className="space-y-1">
-              <li>• <Link href="/" className="text-blue-400 hover:text-blue-300">View Current Rankings</Link></li>
-              <li>• <Link href="/compare" className="text-blue-400 hover:text-blue-300">Compare AI Models</Link></li>
-              <li>• <Link href="/test" className="text-blue-400 hover:text-blue-300">Test Your API Keys</Link></li>
-            </ul>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 100, 200, 0.1)', border: '1px solid rgba(0, 150, 255, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--amber" style={{ fontSize: '0.95em', marginBottom: '6px' }}>vs. HumanEval</div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', lineHeight: '1.5' }}>
+                <strong>Them:</strong> Single-shot, pass/fail<br/>
+                <strong className="terminal-text--green">Us:</strong> 5 trials, nuanced scoring, CI
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 100, 200, 0.1)', border: '1px solid rgba(0, 150, 255, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--amber" style={{ fontSize: '0.95em', marginBottom: '6px' }}>vs. MMLU</div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', lineHeight: '1.5' }}>
+                <strong>Them:</strong> Multiple choice<br/>
+                <strong className="terminal-text--green">Us:</strong> Real code execution
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 100, 200, 0.1)', border: '1px solid rgba(0, 150, 255, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--amber" style={{ fontSize: '0.95em', marginBottom: '6px' }}>vs. Chatbot Arena</div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', lineHeight: '1.5' }}>
+                <strong>Them:</strong> Human voting<br/>
+                <strong className="terminal-text--green">Us:</strong> Objective execution
+              </div>
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: 'rgba(0, 100, 200, 0.1)', border: '1px solid rgba(0, 150, 255, 0.3)', borderRadius: '6px' }}>
+              <div className="terminal-text--amber" style={{ fontSize: '0.95em', marginBottom: '6px' }}>vs. Vendor Benchmarks</div>
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', lineHeight: '1.5' }}>
+                <strong>Them:</strong> Marketing-optimized<br/>
+                <strong className="terminal-text--green">Us:</strong> Independent, unbiased
+              </div>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* Footer CTA */}
+      <div className="crt-monitor">
+        <div className="terminal-text" style={{ textAlign: 'center' }}>
+          <div className="terminal-text--green" style={{ fontSize: '1.3em', marginBottom: '16px', textShadow: '0 0 15px var(--phosphor-green)' }}>
+            🚀 EXPLORE THE RANKINGS
+          </div>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '20px' }}>
+            See how 21 AI models perform across 500,000+ benchmark runs<br/>
+            Updated every 4 hours with statistical confidence intervals
+          </div>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/" className="vintage-btn vintage-btn--active" style={{
+              padding: '12px 32px',
+              fontSize: '1.0em',
+              textDecoration: 'none',
+              display: 'inline-block',
+              boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
+            }}>
+              VIEW RANKINGS →
+            </Link>
+            <Link href="/about" className="vintage-btn" style={{
+              padding: '12px 24px',
+              fontSize: '1.0em',
+              textDecoration: 'none',
+              display: 'inline-block'
+            }}>
+              ABOUT US
+            </Link>
+            <Link href="/faq" className="vintage-btn" style={{
+              padding: '12px 24px',
+              fontSize: '1.0em',
+              textDecoration: 'none',
+              display: 'inline-block'
+            }}>
+              FAQ
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {/* HowTo Structured Data for SEO */}
       <script
@@ -502,45 +645,33 @@ sample_size = 5`}</code></pre>
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "HowTo",
-            "name": "How to Benchmark AI Models for Performance Degradation",
-            "description": "Technical guide to detecting AI model degradation using statistical methods and drift detection algorithms",
-            "image": "https://aistupidlevel.info/og-image.png",
-            "totalTime": "PT5M",
+            "name": "How AI Stupid Level Tests AI Models",
+            "description": "Complete methodology for benchmarking AI models with statistical rigor",
             "step": [
               {
                 "@type": "HowToStep",
-                "name": "Execute Multiple Trials",
-                "text": "Run each AI model through coding tasks 5 times with different random seeds to capture natural variance",
-                "position": 1
+                "name": "Execute Benchmark Tasks",
+                "text": "Run 5 trials of each coding task with different random seeds"
               },
               {
                 "@type": "HowToStep",
-                "name": "Calculate Confidence Intervals",
-                "text": "Use t-distribution with df=4 to compute 95% confidence intervals for scoring accuracy",
-                "position": 2
+                "name": "Score on 9 Axes",
+                "text": "Evaluate each trial across 9 dimensions: correctness, complexity, quality, etc."
               },
               {
                 "@type": "HowToStep",
-                "name": "Apply Weighted Scoring",
-                "text": "Combine 7 evaluation axes (correctness, spec adherence, code quality, efficiency, stability, refusal rate, recovery) with appropriate weights",
-                "position": 3
+                "name": "Calculate Statistics",
+                "text": "Compute mean, standard deviation, and 95% confidence intervals using t-distribution"
               },
               {
                 "@type": "HowToStep",
-                "name": "Detect Drift with CUSUM",
-                "text": "Apply Page-Hinkley CUSUM algorithm to identify sustained performance shifts over time",
-                "position": 4
-              },
-              {
-                "@type": "HowToStep",
-                "name": "Calibrate Per Model",
-                "text": "Adjust drift detection thresholds based on each model's historical variance for fair comparison",
-                "position": 5
+                "name": "Detect Drift",
+                "text": "Apply CUSUM algorithm to identify sustained performance changes"
               }
             ]
           })
         }}
       />
-    </article>
+    </div>
   );
 }
