@@ -1596,6 +1596,7 @@ export default function Dashboard() {
       'o3': 'O3',
       'gpt-4o': 'GPT-4O',
       'gpt-4o-mini': 'GPT-4O-MINI',
+      'claude-opus-4-6': 'CLAUDE-OPUS-4.6',
       'claude-opus-4-1': 'CLAUDE-OPUS-4.1',
       'claude-opus-4': 'CLAUDE-OPUS-4',
       'claude-sonnet-4': 'CLAUDE-SONNET-4',
@@ -2239,7 +2240,7 @@ export default function Dashboard() {
     switch (provider) {
       case 'xai': return ['grok-4', 'grok-code-fast-1'];
       case 'openai': return ['o3', 'o3-pro', 'o3-mini', 'o4-mini', 'gpt-4o', 'gpt-4o-mini'];
-      case 'anthropic': return ['claude-opus-4-1', 'claude-opus-4', 'claude-sonnet-4'];
+      case 'anthropic': return ['claude-opus-4-6', 'claude-opus-4-1', 'claude-opus-4', 'claude-sonnet-4'];
       case 'google': return ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
       default: return [];
     }
