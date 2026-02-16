@@ -14,6 +14,22 @@ import ShareButton from '../components/ShareButton';
 // PHASE 3: Drift detection components
 import DriftAwareModelCard from '../components/DriftAwareModelCard';
 import DriftHeatmap from '../components/DriftHeatmap';
+// V4 layout components
+import {
+  TopBar,
+  AlertBar,
+  StatBar,
+  ControlsBar,
+  IntelligencePanel,
+  AnalyticsPanel,
+  V4Leaderboard,
+  BelowLeaderboard,
+  ProviderStrip,
+  MeterBar,
+  QuickInfo,
+  MobileNav,
+  V4Footer,
+} from '../components/v4';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
 
@@ -206,6 +222,7 @@ export default function Dashboard() {
 
   // Visitor count state
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [todayVisits, setTodayVisits] = useState<number | null>(null);
   
   // Welcome popup state
   const [showWelcomePopup, setShowWelcomePopup] = useState(false);
@@ -242,6 +259,9 @@ export default function Dashboard() {
       
       if (data && data.totals && typeof data.totals.visits === 'number') {
         setVisitorCount(data.totals.visits);
+      }
+      if (data && data.today && typeof data.today.visits === 'number') {
+        setTodayVisits(data.today.visits);
       }
     } catch (error) {
       console.error('Error fetching visitor count:', error);
@@ -3755,770 +3775,145 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="vintage-container">
-      {/* SEO-Optimized Header with semantic HTML */}
-      <header className="crt-monitor" role="banner">
-        <div className="terminal-text">
-          {/* Mobile Header */}
-          <div className="mobile-header">
-            <h1 className="mobile-title">
-              <span className="terminal-text--green">STUPID-METER</span>
-              <span className="blinking-cursor"></span>
-            </h1>
-            <p className="mobile-subtitle terminal-text--dim">
-              The First AI Intelligence Degradation Detection System
-            </p>
-            <div className="mobile-status terminal-text--dim">
-              {currentTime ? (
-                <>
-                  <time>{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
-                  <span className="status-led status-led--green" aria-label="System Status"></span>
-                  <span>ONLINE</span>
-                </>
-              ) : (
-                'Loading...'
-              )}
-            </div>
+    <div>
+      {/* V4 TOP BAR */}
+      <TopBar
+        selectedView={selectedView}
+        onViewChange={(view) => setSelectedView(view)}
+        visitorCount={visitorCount}
+        todayVisits={todayVisits}
+      />
 
-            {/* Mobile Ticker Tape */}
-            <div className="mobile-only">
-              <TickerTape key="mobile-ticker" items={tickerContent} />
-              <StupidMeter 
-                globalIndex={globalIndex}
-                degradations={degradations}
-                modelScores={modelScores}
-                loading={loading}
-              />
-            </div>
-          </div>
-          
-          {/* Desktop Header */}
-          <div className="desktop-header">
-            <h1 style={{ fontSize: 'var(--font-size-title)' }}>
-              <span className="terminal-text--green">STUPID-METER</span>
-              <span className="blinking-cursor"></span>
-            </h1>
-            <div className="terminal-text--dim" style={{ fontSize: 'var(--font-size-sm)', textAlign: 'right' }}>
-              <time>{currentTime?.toLocaleString() || 'Loading...'}</time><br/>
-              <span className="status-led status-led--green" aria-label="System Online"></span> ONLINE
-            </div>
-          </div>
-          
-      <div className="terminal-text--dim desktop-only" style={{ 
-        fontSize: 'var(--font-size-sm)', 
-        marginTop: 'var(--space-xs)' 
-      }}>
-        Real-Time AI Model Performance Monitoring • Track OpenAI GPT, Claude, Grok & Gemini
-      </div>
+      {/* V4 ALERT BAR */}
+      <AlertBar alerts={alerts} degradations={degradations} />
 
-        {/* Desktop Navigation - Centered */}
-        <div className="desktop-only" style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '16px',
-          marginTop: '24px'
-        }}>
-          <ThemeButton />
-          <button 
-            onClick={() => setSelectedView('about')}
-            className={getButtonClassName('about')}
-          >
-            ABOUT
-          </button>
-          <button 
-            onClick={() => setSelectedView('faq')}
-            className={getButtonClassName('faq')}
-          >
-            FAQ
-          </button>
-          <button 
-            onClick={() => router.push('/router')}
-            className="vintage-btn"
-            style={{
-              backgroundColor: '#00BFFF',
-              color: '#00BFFF',
-              fontWeight: 'bold',
-              border: '2px solid #00BFFF',
-              boxShadow: '0 0 10px #00BFFF'
-            }}
-          >
-            PRO
-          </button>
-        </div>
+      {/* V4 STAT BAR */}
+      <StatBar
+        globalIndex={globalIndex}
+        modelScores={modelScores}
+        driftIncidents={driftIncidents}
+      />
 
-        {/* Desktop Ticker Tape */}
-        <div className="desktop-only">
-          <TickerTape key="desktop-ticker" items={tickerContent} />
-          <StupidMeter 
+      {/* TICKER TAPE */}
+      <TickerTape key="v4-ticker" items={tickerContent} />
+
+      {/* V4 CONTROLS BAR */}
+      <ControlsBar
+        leaderboardPeriod={leaderboardPeriod}
+        leaderboardSortBy={leaderboardSortBy}
+        dashboardMode={dashboardMode}
+        hasProAccess={hasProAccess}
+        isLoading={isLeaderboardUIBusy}
+        onPeriodChange={(period) => setLeaderboardPeriod(period)}
+        onSortByChange={(sortBy) => setLeaderboardSortBy(sortBy)}
+        onModeChange={(mode) => setDashboardMode(mode)}
+        onShowProModal={(feature) => {
+          setProModalFeature(feature);
+          setShowProModal(true);
+        }}
+      />
+
+      {/* V4 3-COLUMN LAYOUT */}
+      <div className="v4-grid3">
+        {/* LEFT PANEL: Intelligence Center (desktop only) */}
+        <IntelligencePanel
+          recommendations={recommendations}
+          degradations={degradations}
+          providerReliability={providerReliability}
+          modelScores={modelScores}
+          driftIncidents={driftIncidents}
+        />
+
+        {/* CENTER PANEL */}
+        <div className="v4-panel">
+          {/* Provider Health Strip */}
+          <ProviderStrip modelScores={modelScores} />
+
+          {/* Stupid Meter */}
+          <MeterBar
             globalIndex={globalIndex}
-            degradations={degradations}
             modelScores={modelScores}
             loading={loading}
           />
-        </div>
-        </div>
-      </header>
 
+          {/* V4 LEADERBOARD or DRIFT MONITOR */}
+          {dashboardMode === 'leaderboard' ? (
+            <V4Leaderboard
+              modelScores={modelScores}
+              modelHistoryData={modelHistoryData}
+              isLoading={isLeaderboardUIBusy}
+              showBatchRefreshing={showBatchRefreshing}
+              leaderboardSortBy={leaderboardSortBy}
+              leaderboardPeriod={leaderboardPeriod}
+              driftIncidents={driftIncidents}
+            />
+          ) : null}
 
-      {/* Model Leaderboard */}
-      <div className="vintage-grid" style={{ gridTemplateColumns: '1fr' }}>
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ marginBottom: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '1.3em', marginBottom: '8px' }}>
-              🏆 LIVE MODEL RANKINGS
-              {(isLeaderboardUIBusy || showBatchRefreshing) && <span className="vintage-loading" style={{ marginLeft: '8px' }}></span>}
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-              {showBatchRefreshing ? (
-                <>
-                  <span className="terminal-text--amber">🔄 Synchronized batch update in progress</span>
-                  <br/>
-                  <span style={{ fontSize: '0.8em' }}>All models are being refreshed simultaneously • Data will update shortly</span>
-                </>
-              ) : (
-                stupidMeterMode === 'stupid' ? 
-                  '🤡 Showing stupidest models first - embrace the chaos!' :
-                  'Based on hourly automated benchmarks • Higher scores = Better performance'
+          {/* Drift Monitor Mode */}
+          {(dashboardMode as string) === 'drift' && (
+            <div style={{ padding: '12px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 3px var(--phosphor-green)', marginBottom: '4px' }}>
+                  DRIFT DETECTION MONITOR
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}>
+                  Real-time regime classification with CUSUM change-point detection
+                </div>
+              </div>
+              <div className="v4-drift-grid">
+                {modelScores.filter(m => typeof m.currentScore === 'number').map((model: any) => (
+                  <DriftAwareModelCard key={model.id} model={model} compact={true} showDriftInfo={true} />
+                ))}
+              </div>
+              {modelScores.length > 0 && (
+                <DriftHeatmap models={modelScores.filter(m => typeof m.currentScore === 'number')} />
               )}
             </div>
-          </div>
-
-          {/* Loading Overlay */}
-          {isLeaderboardUIBusy && (
-            <div style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10,
-              borderRadius: '4px'
-            }}>
-              <div style={{
-                fontSize: '3em',
-                marginBottom: '16px',
-                animation: 'spin 1s linear infinite'
-              }}>
-                ⚡
-              </div>
-              <div className="terminal-text--green" style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-                UPDATING RANKINGS
-              </div>
-              <div className="vintage-loading" style={{ fontSize: '1.5em' }}></div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginTop: '12px' }}>
-                Fetching latest scores...
-              </div>
-            </div>
           )}
-
-          {/* Price View Explanation - Shows when price sorting is active */}
-          {leaderboardSortBy === 'price' && (
-            <div style={{
-              padding: '12px',
-              backgroundColor: 'rgba(0, 255, 65, 0.05)',
-              border: '1px solid rgba(0, 255, 65, 0.2)',
-              borderRadius: '4px',
-              marginBottom: '12px'
-            }}>
-              <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
-                Value Rankings (Performance per Dollar)
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.5' }}>
-                Models sorted by <strong>pts/$</strong> (points per dollar) - the best quality-to-cost ratio.
-                Higher values = better value. Example: 238 pts/$ means you get 238 quality points for every $1 spent.
-              </div>
-            </div>
-          )}
-
-          {/* Historical Controls */}
-          <div style={{ 
-            marginBottom: '16px',
-            padding: '8px 12px',
-            backgroundColor: 'rgba(0, 255, 65, 0.03)',
-            border: '1px solid rgba(0, 255, 65, 0.2)',
-            borderRadius: '3px'
-          }}>
-            {/* Mobile Layout */}
-            <div className="mobile-only">
-              <div style={{ marginBottom: '8px' }}>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                  Time Period:
-                </div>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setLeaderboardPeriod('latest')}
-                    className={`vintage-btn ${leaderboardPeriod === 'latest' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    LATEST
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!hasProAccess) {
-                        setProModalFeature('historical-data');
-                        setShowProModal(true);
-                      } else {
-                        setLeaderboardPeriod('24h');
-                      }
-                    }}
-                    className={`vintage-btn ${leaderboardPeriod === '24h' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    24H {!hasProAccess && '🔒'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!hasProAccess) {
-                        setProModalFeature('historical-data');
-                        setShowProModal(true);
-                      } else {
-                        setLeaderboardPeriod('7d');
-                      }
-                    }}
-                    className={`vintage-btn ${leaderboardPeriod === '7d' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    7D {!hasProAccess && '🔒'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!hasProAccess) {
-                        setProModalFeature('historical-data');
-                        setShowProModal(true);
-                      } else {
-                        setLeaderboardPeriod('1m');
-                      }
-                    }}
-                    className={`vintage-btn ${leaderboardPeriod === '1m' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    1M {!hasProAccess && '🔒'}
-                  </button>
-                </div>
-              </div>
-              
-              <div style={{ marginBottom: '8px' }}>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                  Sort By:
-                </div>
-                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => setLeaderboardSortBy('combined')}
-                    className={`vintage-btn ${leaderboardSortBy === 'combined' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                  >
-                    COMBINED
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('reasoning')}
-                    className={`vintage-btn ${leaderboardSortBy === 'reasoning' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                  >
-                    REASONING
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('speed')}
-                    className={`vintage-btn ${leaderboardSortBy === 'speed' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                  >
-                    7AXIS
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('tooling')}
-                    className={`vintage-btn ${leaderboardSortBy === 'tooling' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                  >
-                    TOOLING
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('price')}
-                    className={`vintage-btn ${leaderboardSortBy === 'price' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 6px', 
-                      fontSize: '0.7em',
-                      minHeight: '20px'
-                    }}
-                  >
-                    PRICE
-                  </button>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Desktop Layout */}
-            <div className="desktop-only">
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                gap: '16px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>Time Period:</span>
-                  <button
-                    onClick={() => setLeaderboardPeriod('latest')}
-                    className={`vintage-btn ${leaderboardPeriod === 'latest' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    LATEST
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!hasProAccess) {
-                        setProModalFeature('historical-data');
-                        setShowProModal(true);
-                      } else {
-                        setLeaderboardPeriod('24h');
-                      }
-                    }}
-                    className={`vintage-btn ${leaderboardPeriod === '24h' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    24H {!hasProAccess && '🔒'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!hasProAccess) {
-                        setProModalFeature('historical-data');
-                        setShowProModal(true);
-                      } else {
-                        setLeaderboardPeriod('7d');
-                      }
-                    }}
-                    className={`vintage-btn ${leaderboardPeriod === '7d' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    7D {!hasProAccess && '🔒'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!hasProAccess) {
-                        setProModalFeature('historical-data');
-                        setShowProModal(true);
-                      } else {
-                        setLeaderboardPeriod('1m');
-                      }
-                    }}
-                    className={`vintage-btn ${leaderboardPeriod === '1m' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                    disabled={isLeaderboardUIBusy}
-                  >
-                    1M {!hasProAccess && '🔒'}
-                  </button>
-                </div>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>Sort By:</span>
-                  <button
-                    onClick={() => setLeaderboardSortBy('combined')}
-                    className={`vintage-btn ${leaderboardSortBy === 'combined' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                  >
-                    COMBINED
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('reasoning')}
-                    className={`vintage-btn ${leaderboardSortBy === 'reasoning' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                  >
-                    REASONING
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('speed')}
-                    className={`vintage-btn ${leaderboardSortBy === 'speed' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                  >
-                    7AXIS
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('tooling')}
-                    className={`vintage-btn ${leaderboardSortBy === 'tooling' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                  >
-                    TOOLING
-                  </button>
-                  <button
-                    onClick={() => setLeaderboardSortBy('price')}
-                    className={`vintage-btn ${leaderboardSortBy === 'price' ? 'vintage-btn--active' : ''}`}
-                    style={{ 
-                      padding: '2px 8px', 
-                      fontSize: '0.75em',
-                      minHeight: '22px'
-                    }}
-                  >
-                    PRICE
-                  </button>
-                </div>
-              </div>
-            </div>
+          {/* MOBILE ANALYTICS: show right after leaderboard on mobile (hidden on desktop) */}
+          <div className="v4-mobile-analytics">
+            <AnalyticsPanel
+              modelScores={modelScores}
+              transparencyMetrics={transparencyMetrics}
+              modelHistoryData={modelHistoryData}
+              leaderboardSortBy={leaderboardSortBy}
+              leaderboardPeriod={leaderboardPeriod}
+            />
           </div>
 
-          {/* PHASE 3: Dashboard View Mode Switcher */}
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            marginBottom: '16px',
-            padding: '12px',
-            background: 'rgba(0, 255, 65, 0.03)',
-            borderRadius: '4px',
-            border: '1px solid rgba(0, 255, 65, 0.15)'
-          }}>
-            <button
-              className={`vintage-btn ${dashboardMode === 'leaderboard' ? 'vintage-btn--active' : ''}`}
-              onClick={() => setDashboardMode('leaderboard')}
-              style={{ flex: 1, padding: '8px 16px' }}
-            >
-              📊 Leaderboard
-            </button>
-            <button
-              className={`vintage-btn ${dashboardMode === 'drift' ? 'vintage-btn--active' : ''}`}
-              onClick={() => setDashboardMode('drift')}
-              style={{ flex: 1, padding: '8px 16px' }}
-            >
-              🔍 Drift Monitor
-            </button>
-          </div>
+          {/* QUICK INFO for mobile/tablet (when side panels hidden) */}
+          <QuickInfo recommendations={recommendations} />
 
-          {/* PHASE 3: Drift Heatmap (shown in drift mode) */}
-          {dashboardMode === 'drift' && (
-            <div style={{ marginBottom: '24px', maxWidth: '100%', overflow: 'hidden' }}>
-              <DriftHeatmap models={modelScores} />
-            </div>
-          )}
+          {/* BELOW LEADERBOARD: Transparency + Schedule */}
+          <BelowLeaderboard
+            transparencyMetrics={transparencyMetrics}
+            modelScores={modelScores}
+          />
+        </div>{/* end center panel */}
 
-          {/* CI Legend - Desktop only */}
-          <div className="desktop-only" style={{
-            marginBottom: '12px',
-            padding: '8px 12px',
-            backgroundColor: 'rgba(0, 255, 65, 0.05)',
-            border: '1px solid rgba(0, 255, 65, 0.2)',
-            borderRadius: '3px',
-            fontSize: '0.8em'
-          }}>
-            <div className="terminal-text--green" style={{ marginBottom: '4px', fontWeight: 'bold' }}>
-              📊 Reliability Badges:
-            </div>
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{
-                  backgroundColor: 'var(--phosphor-green)',
-                  color: 'var(--terminal-black)',
-                  fontSize: '0.9em',
-                  fontWeight: 'bold',
-                  padding: '2px 6px',
-                  borderRadius: '2px'
-                }}>HIGH</span>
-                <span className="terminal-text--dim">Very consistent</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{
-                  backgroundColor: 'var(--amber-warning)',
-                  color: 'var(--terminal-black)',
-                  fontSize: '0.9em',
-                  fontWeight: 'bold',
-                  padding: '2px 6px',
-                  borderRadius: '2px'
-                }}>MED</span>
-                <span className="terminal-text--dim">Moderate variance</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <span style={{
-                  backgroundColor: 'var(--red-alert)',
-                  color: 'var(--terminal-black)',
-                  fontSize: '0.9em',
-                  fontWeight: 'bold',
-                  padding: '2px 6px',
-                  borderRadius: '2px'
-                }}>LOW</span>
-                <span className="terminal-text--dim">High variance</span>
-              </div>
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px', fontStyle: 'italic' }}>
-              Hover badges for details • See FAQ for methodology
-            </div>
-          </div>
+        {/* RIGHT PANEL: Analytics (desktop sidebar) */}
+        <AnalyticsPanel
+          modelScores={modelScores}
+          transparencyMetrics={transparencyMetrics}
+          modelHistoryData={modelHistoryData}
+          leaderboardSortBy={leaderboardSortBy}
+          leaderboardPeriod={leaderboardPeriod}
+        />
+      </div>{/* end v4-grid3 */}
 
-          <div className="leaderboard-table" key={`${leaderboardPeriod}-${leaderboardSortBy}`}>
-            <div className="leaderboard-header">
-              <div className="col-rank">RANK</div>
-              <div className="col-model">MODEL</div>
-              <div className="col-score">{getDynamicColumnHeader()}</div>
-              <div className="col-trend">TREND</div>
-              <div className="col-updated">UPDATED</div>
-            </div>
-            
-            {loading ? (
-              // Loading skeleton
-              Array.from({ length: 6 }).map((_, index) => (
-                <div key={`skeleton-${index}`} className="leaderboard-row" style={{ opacity: 0.6 }}>
-                  <div className="col-rank">
-                    <span className="terminal-text--dim">#{index + 1}</span>
-                  </div>
-                  <div className="col-model">
-                    <div className="terminal-text--dim">LOADING...</div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      ████████
-                    </div>
-                  </div>
-                  <div className="col-score">
-                    <div className="score-display terminal-text--dim">--</div>
-                  </div>
-                  <div className="col-trend">
-                    <span className="terminal-text--dim">—</span>
-                  </div>
-                  <div className="col-updated terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                    Loading...
-                  </div>
-                </div>
-              ))
-            ) : (
-              (() => {
-                // Apply stupid meter sorting logic
-                const sortedModels = [...modelScores];
-                if (stupidMeterMode === 'stupid') {
-                  // Reverse the order - worst models first (ascending by score)
-                  sortedModels.sort((a: any, b: any) => {
-                    const aScore = typeof a.currentScore === 'number' ? a.currentScore : -1;
-                    const bScore = typeof b.currentScore === 'number' ? b.currentScore : -1;
-                    return aScore - bScore; // Ascending order (lowest/stupidest first)
-                  });
-                }
-                
-                
-                return sortedModels;
-              })().map((model: any, index: number) => (
-                  <div key={`${model.id}-${leaderboardPeriod}-${leaderboardSortBy}-${model.currentScore}-${forceUpdateCounter}`} 
-                       className={`leaderboard-row ${changedScores.has(model.id) ? 'score-highlight' : ''}`} 
-                       style={{ cursor: 'pointer' }}
-                       onClick={() => router.push(`/models/${model.id}`)}>
-                    <div className="col-rank">
-                      <span className={index < 3 ? 'terminal-text--green' : 'terminal-text'}>
-                        #{index + 1}
-                      </span>
-                    </div>
-                    <div className="col-model">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <div className="terminal-text">{(model.displayName || model.name).toUpperCase()}</div>
-                            {model.isNew && (
-                              <span style={{
-                                backgroundColor: 'var(--amber-warning)',
-                                color: 'var(--terminal-black)',
-                                fontSize: '0.6em',
-                                fontWeight: 'bold',
-                                padding: '2px 4px',
-                                borderRadius: '2px',
-                                animation: 'pulse 2s infinite'
-                              }}>
-                                NEW
-                              </span>
-                            )}
-                            {model.usesReasoningEffort && (
-                              <span style={{
-                                backgroundColor: '#00BFFF',
-                                color: 'var(--terminal-black)',
-                                fontSize: '0.6em',
-                                fontWeight: 'bold',
-                                padding: '2px 4px',
-                                borderRadius: '2px',
-                                cursor: 'help'
-                              }}
-                              title="Uses extended thinking for more accurate responses (slower inference)">
-                                🧠
-                              </span>
-                            )}
-                            {/* Drift Warning Indicator */}
-                            {(() => {
-                              // Check if this model has recent drift incidents
-                              const modelDriftIncidents = driftIncidents.filter((incident: any) => 
-                                incident.modelName?.toLowerCase() === model.name.toLowerCase() ||
-                                incident.modelId === parseInt(model.id)
-                              );
-                              
-                              if (modelDriftIncidents.length === 0) return null;
-                              
-                              // Find the most severe recent incident
-                              const criticalIncidents = modelDriftIncidents.filter((inc: any) => inc.severity === 'critical');
-                              const warningIncidents = modelDriftIncidents.filter((inc: any) => inc.severity === 'warning');
-                              
-                              const mostSevere = criticalIncidents.length > 0 ? criticalIncidents[0] : 
-                                               warningIncidents.length > 0 ? warningIncidents[0] : 
-                                               modelDriftIncidents[0];
-                              
-                              if (!mostSevere) return null;
-                              
-                              const isCritical = mostSevere.severity === 'critical';
-                              const hoursAgo = Math.round((Date.now() - new Date(mostSevere.detectedAt).getTime()) / (1000 * 60 * 60));
-                              
-                              return (
-                                <span 
-                                  style={{
-                                    backgroundColor: isCritical ? 'var(--red-alert)' : 'var(--amber-warning)',
-                                    color: 'var(--terminal-black)',
-                                    fontSize: '0.6em',
-                                    fontWeight: 'bold',
-                                    padding: '2px 4px',
-                                    borderRadius: '2px',
-                                    cursor: 'help',
-                                    animation: isCritical ? 'pulse 2s infinite' : 'none'
-                                  }}
-                                  title={`${mostSevere.incidentType.replace('_', ' ').toUpperCase()}: ${mostSevere.description} (${hoursAgo}h ago)`}
-                                >
-                                  {isCritical ? '🚨' : '⚠️'}
-                                </span>
-                              );
-                            })()}
-                            {/* CI Reliability Badge - Desktop only */}
-                            {(() => {
-                              // Get latest score with CI data from individual model history
-                              const modelHistory = modelHistoryData.get(model.id) || model.history || [];
-                              const latestWithCI = modelHistory.find((h: any) => 
-                                h.confidence_lower !== null && 
-                                h.confidence_upper !== null &&
-                                h.confidence_lower !== undefined &&
-                                h.confidence_upper !== undefined &&
-                                typeof h.confidence_lower === 'number' &&
-                                typeof h.confidence_upper === 'number'
-                              );
-                              
-                              // Only show badge if we have valid CI data
-                              if (!latestWithCI) return null;
-                              
-                              const ciWidth = latestWithCI.confidence_upper - latestWithCI.confidence_lower;
-                              
-                              // Don't show badge if CI width is invalid or zero
-                              if (ciWidth <= 0 || !isFinite(ciWidth)) return null;
-                              
-                              const reliability = ciWidth < 5 ? 'HIGH' : ciWidth < 10 ? 'MED' : 'LOW';
-                              const color = ciWidth < 5 ? 'var(--phosphor-green)' : 
-                                           ciWidth < 10 ? 'var(--amber-warning)' : 'var(--red-alert)';
-                              
-                              return (
-                                <span 
-                                  className="desktop-only"
-                                  style={{
-                                    backgroundColor: color,
-                                    color: 'var(--terminal-black)',
-                                    fontSize: '0.55em',
-                                    fontWeight: 'bold',
-                                    padding: '2px 4px',
-                                    borderRadius: '2px',
-                                    cursor: 'help'
-                                  }}
-                                  title={`Reliability: ${reliability} (±${Math.round(ciWidth / 2)} pts variation)\n95% Confidence Interval: [${Math.round(latestWithCI.confidence_lower)}-${Math.round(latestWithCI.confidence_upper)}]\nLower variation = more consistent performance`}
-                                >
-                                  {reliability}
-                                </span>
-                              );
-                            })()}
-                          </div>
-                          <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                            {getProviderName(model.provider)}
-                          </div>
-                        </div>
-                        {renderMiniChart(model.history, leaderboardPeriod, model.id)}
-                      </div>
-                    </div>
-                    <div className="col-score">
-                      {renderDynamicMetric(model)}
-                    </div>
-                    <div className="col-trend">
-                      <span className={
-                        model.trend === 'up' ? 'terminal-text--green' :
-                        model.trend === 'down' ? 'terminal-text--red' : 'terminal-text--dim'
-                      }>
-                        {getTrendIcon(model.trend)}
-                      </span>
-                    </div>
-                    <div className={`col-updated terminal-text--dim`} style={{ fontSize: '0.8em' }}>
-                      {formatTimeAgo(model.lastUpdated)}
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
-        </div>
-      </div>
+      {/* V4 FOOTER */}
+      <V4Footer visitorCount={visitorCount} />
 
-      {/* Model Intelligence Center */}
+      {/* MOBILE NAV */}
+      <MobileNav
+        selectedView={selectedView}
+        onViewChange={(view) => setSelectedView(view)}
+      />
+
+      {/* ═══ EXISTING SECTIONS KEPT: Intelligence Center, etc. ═══ */}
+      {/* The Intelligence Center data is now shown in left panel on desktop and QuickInfo on mobile */}
+      {/* Keeping original section hidden for backward compat — can remove later */}
+      <div style={{ display: 'none' }}>
       <div className="crt-monitor" style={{ backgroundColor: 'rgba(0, 255, 65, 0.03)' }}>
         <div className="terminal-text">
           <div style={{ fontSize: '1.2em', marginBottom: '16px', textAlign: 'center' }}>
@@ -5520,6 +4915,8 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      </div>{/* end display:none wrapper for old sections */}
 
       {/* Pro Feature Modal */}
       <ProFeatureModal
