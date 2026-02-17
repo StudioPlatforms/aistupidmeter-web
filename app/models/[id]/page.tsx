@@ -1265,33 +1265,48 @@ export default function ModelDetailPage() {
             const prov = modelDetails.vendor.toLowerCase();
             let pricing = { input: 0, output: 0 };
             
-            // Get pricing using same logic as frontend
+            // OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
             if (prov === 'openai') {
               if (name.includes('gpt-5') && name.includes('turbo')) pricing = { input: 10, output: 30 };
               else if (name.includes('gpt-5-nano')) pricing = { input: 0.05, output: 0.40 };
               else if (name.includes('gpt-5-mini')) pricing = { input: 0.25, output: 2.0 };
+              else if (name.includes('gpt-5.2') || name.includes('gpt-5-2')) pricing = { input: 1.75, output: 14.0 };
+              else if (name.includes('gpt-5') && name.includes('codex')) pricing = { input: 1.25, output: 10.0 };
               else if (name.includes('gpt-5')) pricing = { input: 1.25, output: 10.0 };
-              else if (name.includes('o3-pro')) pricing = { input: 60, output: 240 };  
+              else if (name.includes('o3-pro')) pricing = { input: 60, output: 240 };
               else if (name.includes('o3-mini')) pricing = { input: 3.5, output: 14 };
               else if (name.includes('o3')) pricing = { input: 15, output: 60 };
               else if (name.includes('gpt-4o') && name.includes('mini')) pricing = { input: 0.15, output: 0.6 };
               else if (name.includes('gpt-4o')) pricing = { input: 2.5, output: 10 };
               else pricing = { input: 5, output: 15 };
             } else if (prov === 'anthropic') {
-              if (name.includes('opus-4')) pricing = { input: 15, output: 75 };
+              // Note: Opus 4.1 legacy $15/$75; Opus 4.5/4.6 current $5/$25
+              if (name.includes('opus-4-1') || name.includes('opus-4.1')) pricing = { input: 15, output: 75 };
+              else if (name.includes('opus-4')) pricing = { input: 5, output: 25 };
               else if (name.includes('sonnet-4')) pricing = { input: 3, output: 15 };
               else if (name.includes('haiku-4')) pricing = { input: 0.25, output: 1.25 };
-              else pricing = { input: 8, output: 24 };
+              else if (name.includes('3-5-sonnet')) pricing = { input: 3, output: 15 };
+              else if (name.includes('3-5-haiku')) pricing = { input: 0.25, output: 1.25 };
+              else pricing = { input: 3, output: 15 };
             } else if (prov === 'xai' || prov === 'x.ai') {
-              if (name.includes('grok-4')) pricing = { input: 5, output: 15 };
-              else if (name.includes('grok-code-fast')) pricing = { input: 5, output: 15 };
-              else pricing = { input: 5, output: 15 };
+              if (name.includes('grok-code-fast')) pricing = { input: 0.20, output: 1.50 };
+              else if (name.includes('grok-4')) pricing = { input: 3, output: 15 };
+              else if (name.includes('grok-3')) pricing = { input: 3, output: 15 };
+              else pricing = { input: 3, output: 15 };
             } else if (prov === 'google') {
-              if (name.includes('2.5-pro')) pricing = { input: 1.25, output: 5 };
-              // FIXED: Corrected Gemini 2.5 Flash and Flash-Lite pricing based on latest Google AI pricing
+              if (name.includes('gemini-3') && name.includes('pro')) pricing = { input: 2, output: 12 };
+              else if (name.includes('2.5-pro')) pricing = { input: 1.25, output: 10 };
               else if (name.includes('2.5-flash-lite')) pricing = { input: 0.10, output: 0.40 };
               else if (name.includes('2.5-flash')) pricing = { input: 0.30, output: 2.50 };
+              else if (name.includes('1.5-pro')) pricing = { input: 1.25, output: 5 };
+              else if (name.includes('1.5-flash')) pricing = { input: 0.075, output: 0.30 };
               else pricing = { input: 2, output: 6 };
+            } else if (prov === 'deepseek') {
+              pricing = { input: 0.28, output: 0.42 };
+            } else if (prov === 'glm') {
+              pricing = { input: 0.60, output: 2.20 };
+            } else if (prov === 'kimi') {
+              pricing = { input: 0.60, output: 2.50 };
             } else {
               pricing = { input: 3, output: 10 };
             }
