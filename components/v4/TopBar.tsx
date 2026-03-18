@@ -40,19 +40,19 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
         <div className="v4-nav">
           <button
             className={`v4-nav-btn ${selectedView === 'dashboard' ? 'active' : ''}`}
-            onClick={() => onViewChange('dashboard')}
+            onClick={() => { onViewChange('dashboard'); router.push('/'); }}
           >
             DASHBOARD
           </button>
           <button
             className={`v4-nav-btn ${selectedView === 'about' ? 'active' : ''}`}
-            onClick={() => onViewChange('about')}
+            onClick={() => router.push('/about')}
           >
             ABOUT
           </button>
           <button
             className={`v4-nav-btn ${selectedView === 'faq' ? 'active' : ''}`}
-            onClick={() => onViewChange('faq')}
+            onClick={() => router.push('/faq')}
           >
             FAQ
           </button>
@@ -60,7 +60,7 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
             className="v4-nav-btn pro-btn"
             onClick={() => router.push('/router')}
           >
-            ⚡ PRO
+            PRO
           </button>
         </div>
       </div>

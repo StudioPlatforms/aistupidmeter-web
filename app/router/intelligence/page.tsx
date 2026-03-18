@@ -649,7 +649,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                       return entry;
                     });
 
-                    const CustomTooltip = ({ active, payload, label }: any) => {
+                    const renderLineTooltip = ({ active, payload, label }: any) => {
                       if (!active || !payload || payload.length === 0) return null;
                       return (
                         <div style={{
@@ -726,7 +726,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                                 tickLine={false}
                                 label={{ value: 'SCORE', angle: -90, position: 'insideLeft', fill: 'var(--phosphor-dim)', fontSize: 9, fontFamily: 'var(--font-mono)', dx: 6 }}
                               />
-                              <RechartsTip content={<CustomTooltip />} />
+                              <RechartsTip content={renderLineTooltip} />
                               {allModelsData.map((md) => (
                                 <Line
                                   key={md.model.id}
@@ -799,7 +799,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                       return entry;
                     });
 
-                    const CustomRadarTooltip = ({ active, payload }: any) => {
+                    const renderRadarTooltip = ({ active, payload }: any) => {
                       if (!active || !payload || payload.length === 0) return null;
                       return (
                         <div style={{
@@ -844,7 +844,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                                 tick={{ fill: 'var(--phosphor-dim)', fontSize: 8, fontFamily: 'var(--font-mono)' }}
                                 tickCount={4}
                               />
-                              <RechartsTip content={<CustomRadarTooltip />} />
+                              <RechartsTip content={renderRadarTooltip} />
                               {modelsWithAxes.map((model, idx) => {
                                 const color = LINE_COLORS[idx % LINE_COLORS.length];
                                 return (
