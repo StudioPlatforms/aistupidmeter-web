@@ -4,55 +4,18 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import PreferencesPreview from '@/components/PreferencesPreview';
-import PixelIcon from '@/components/PixelIcon';
 import { apiClient } from '@/lib/api-client';
 import type { UserPreferences } from '@/lib/api-client';
 
 type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_creative' | 'cheapest' | 'fastest';
 
 const ROUTING_STRATEGIES = [
-  {
-    id: 'best_overall' as RoutingStrategy,
-    name: 'Best Overall',
-    iconName: 'target',
-    description: 'Automatically selects the model with the lowest stupid score across all categories',
-    recommended: true,
-  },
-  {
-    id: 'best_coding' as RoutingStrategy,
-    name: 'Best for Coding',
-    iconName: 'code',
-    description: 'Optimized for code generation, debugging, and programming tasks',
-    recommended: false,
-  },
-  {
-    id: 'best_reasoning' as RoutingStrategy,
-    name: 'Best for Reasoning',
-    iconName: 'brain',
-    description: 'Optimized for complex reasoning, problem-solving, and analysis',
-    recommended: false,
-  },
-  {
-    id: 'best_creative' as RoutingStrategy,
-    name: 'Best for Creative',
-    iconName: 'palette',
-    description: 'Optimized for creative writing, content generation, and storytelling',
-    recommended: false,
-  },
-  {
-    id: 'cheapest' as RoutingStrategy,
-    name: 'Most Cost-Effective',
-    iconName: 'money',
-    description: 'Always selects the cheapest available model',
-    recommended: false,
-  },
-  {
-    id: 'fastest' as RoutingStrategy,
-    name: 'Fastest Response',
-    iconName: 'lightning',
-    description: 'Prioritizes models with the lowest latency',
-    recommended: false,
-  },
+  { id: 'best_overall' as RoutingStrategy, name: 'BEST OVERALL', desc: 'Automatically selects the model with the lowest stupid score across all categories', recommended: true },
+  { id: 'best_coding' as RoutingStrategy, name: 'BEST FOR CODING', desc: 'Optimized for code generation, debugging, and programming tasks', recommended: false },
+  { id: 'best_reasoning' as RoutingStrategy, name: 'BEST FOR REASONING', desc: 'Optimized for complex reasoning, problem-solving, and analysis', recommended: false },
+  { id: 'best_creative' as RoutingStrategy, name: 'BEST FOR CREATIVE', desc: 'Optimized for creative writing, content generation, and storytelling', recommended: false },
+  { id: 'cheapest' as RoutingStrategy, name: 'MOST COST-EFFECTIVE', desc: 'Always selects the cheapest available model', recommended: false },
+  { id: 'fastest' as RoutingStrategy, name: 'FASTEST RESPONSE', desc: 'Prioritizes models with the lowest latency', recommended: false },
 ];
 
 const PROVIDERS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'];
@@ -83,23 +46,12 @@ export default function RouterPreferencesPage() {
     try {
       const response = await fetch('/api/subscription/check', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: session!.user!.email!
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session!.user!.email! })
       });
-      
       const result = await response.json();
-      
-      if (result.success && result.data.hasAccess) {
-        setHasAccess(true);
-      } else {
-        setHasAccess(false);
-      }
-    } catch (err) {
-      console.error('Failed to check subscription:', err);
+      setHasAccess(result.success && result.data.hasAccess);
+    } catch {
       setHasAccess(false);
     } finally {
       setChecking(false);
@@ -113,7 +65,6 @@ export default function RouterPreferencesPage() {
       const prefs = await apiClient.getPreferences();
       setPreferences(prefs);
     } catch (err) {
-      console.error('Failed to fetch preferences:', err);
       setError(err instanceof Error ? err.message : 'Failed to load preferences');
     } finally {
       setLoading(false);
@@ -122,15 +73,12 @@ export default function RouterPreferencesPage() {
 
   const handleSave = async () => {
     if (!preferences) return;
-
     try {
       setIsSaving(true);
       await apiClient.updatePreferences(preferences);
-      
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      console.error('Failed to save preferences:', err);
       alert(`Failed to save preferences: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
@@ -138,11 +86,8 @@ export default function RouterPreferencesPage() {
   };
 
   const handleReset = async () => {
-    if (!confirm('Are you sure you want to reset all preferences to defaults?')) {
-      return;
-    }
-
-    const defaultPreferences: UserPreferences = {
+    if (!confirm('Reset all preferences to defaults?')) return;
+    setPreferences({
       routingStrategy: 'best_overall',
       fallbackEnabled: true,
       maxCostPer1kTokens: null,
@@ -151,14 +96,11 @@ export default function RouterPreferencesPage() {
       requireStreaming: false,
       excludedProviders: [],
       excludedModels: [],
-    };
-
-    setPreferences(defaultPreferences);
+    });
   };
 
   const toggleProvider = (provider: string) => {
     if (!preferences) return;
-    
     setPreferences({
       ...preferences,
       excludedProviders: preferences.excludedProviders.includes(provider)
@@ -170,12 +112,9 @@ export default function RouterPreferencesPage() {
   if (checking) {
     return (
       <RouterLayout>
-        <div className="vintage-container">
-          <div className="crt-monitor">
-            <div className="terminal-text terminal-text--green" style={{ fontSize: '1.5em', textAlign: 'center', padding: 'var(--space-xl)' }}>
-              CHECKING ACCESS<span className="vintage-loading"></span>
-            </div>
-          </div>
+        <div className="rv4-loading" style={{ minHeight: '300px' }}>
+          <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+          <span>CHECKING ACCESS</span>
         </div>
       </RouterLayout>
     );
@@ -192,14 +131,9 @@ export default function RouterPreferencesPage() {
   if (loading) {
     return (
       <RouterLayout>
-        <div className="vintage-container">
-        <div className="crt-monitor" style={{ textAlign: 'center', padding: '48px' }}>
-          <div className="terminal-text">
-            <div className="terminal-text--amber" style={{ fontSize: '1.5em' }}>
-              LOADING PREFERENCES<span className="vintage-loading"></span>
-            </div>
-          </div>
-        </div>
+        <div className="rv4-loading" style={{ minHeight: '300px' }}>
+          <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+          <span>LOADING PREFERENCES</span>
         </div>
       </RouterLayout>
     );
@@ -208,21 +142,17 @@ export default function RouterPreferencesPage() {
   if (error || !preferences) {
     return (
       <RouterLayout>
-        <div className="vintage-container">
-        <div className="crt-monitor" style={{ borderColor: 'var(--red-alert)', backgroundColor: 'rgba(255, 45, 0, 0.05)' }}>
-          <div className="terminal-text">
-            <div className="terminal-text--red" style={{ fontSize: '1.5em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <PixelIcon name="warning" size={28} />
-              SYSTEM ERROR
-            </div>
-            <div className="terminal-text--dim" style={{ marginBottom: '16px' }}>
-              {error || 'Unknown error'}
-            </div>
-            <button onClick={fetchPreferences} className="vintage-btn vintage-btn--danger">
-              TRY AGAIN
-            </button>
+        <div className="rv4-page-header">
+          <div className="rv4-page-header-left">
+            <div className="rv4-page-title">PREFERENCES</div>
           </div>
         </div>
+        <div className="rv4-body">
+          <div className="rv4-error-banner">
+            <span>⚠</span>
+            <div style={{ flex: 1 }}><div style={{ fontWeight: 'bold', marginBottom: '2px' }}>ERROR</div><div style={{ fontSize: '10px' }}>{error || 'Unknown error'}</div></div>
+            <button onClick={fetchPreferences} className="rv4-ctrl-btn danger" style={{ marginLeft: 'auto', fontSize: '10px' }}>RETRY</button>
+          </div>
         </div>
       </RouterLayout>
     );
@@ -230,380 +160,245 @@ export default function RouterPreferencesPage() {
 
   return (
     <RouterLayout>
-      <div className="vintage-container">
-        {/* Header */}
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <PixelIcon name="settings" size={28} className="terminal-text--green" />
-            <span className="terminal-text--green">SMART ROUTER PREFERENCES</span>
-            <span className="blinking-cursor"></span>
+      {/* Page header */}
+      <div className="rv4-page-header">
+        <div className="rv4-page-header-left">
+          <div>
+            <div className="rv4-page-title">SMART ROUTER PREFERENCES<span className="blinking-cursor"></span></div>
+            <div className="rv4-page-title-sub">Configure intelligent model selection powered by real-time benchmarks from AI Stupid Meter</div>
           </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px' }}>
-            Configure intelligent model selection powered by real-time benchmarks from AI Stupid Meter
-          </div>
-          <div style={{ 
-            padding: '12px', 
-            backgroundColor: 'rgba(0, 255, 65, 0.05)', 
-            border: '1px solid rgba(0, 255, 65, 0.2)',
-            borderRadius: '4px',
-            marginBottom: '16px'
-          }}>
-            <div className="terminal-text--green" style={{ fontSize: '0.85em', marginBottom: '4px', fontWeight: 'bold' }}>
-              💡 How Smart Routing Works:
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.8em', lineHeight: '1.5' }}>
-              Your router automatically selects the best AI model for each request based on live performance data. 
-              Choose a strategy below, and the router will pick models that match your priorities while staying within your constraints.
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            <button onClick={handleReset} className="vintage-btn">
-              RESET TO DEFAULTS
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="vintage-btn vintage-btn--active"
-            >
-              {isSaving ? (
-                <>SAVING<span className="vintage-loading"></span></>
-              ) : (
-                'SAVE CHANGES'
-              )}
-            </button>
-          </div>
+        </div>
+        <div className="rv4-page-header-right">
+          <button onClick={handleReset} className="rv4-ctrl-btn">RESET DEFAULTS</button>
+          <button onClick={handleSave} disabled={isSaving} className="rv4-ctrl-btn primary">
+            {isSaving ? 'SAVING...' : 'SAVE CHANGES'}
+          </button>
         </div>
       </div>
 
-      {/* Success Message */}
-      {showSuccess && (
-        <div className="crt-monitor" style={{ borderColor: 'var(--phosphor-green)', backgroundColor: 'rgba(0, 255, 65, 0.05)' }}>
-          <div className="terminal-text">
-            <div className="terminal-text--green" style={{ fontSize: '1.2em', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PixelIcon name="check" size={22} />
-              PREFERENCES SAVED SUCCESSFULLY!
+      <div className="rv4-body">
+        {showSuccess && (
+          <div className="rv4-success-banner" style={{ marginBottom: '14px' }}>
+            <span>✓</span>
+            <span>PREFERENCES SAVED SUCCESSFULLY</span>
+          </div>
+        )}
+
+        <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
+          <span className="rv4-info-banner-icon" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 'bold' }}>[i]</span>
+          <div className="rv4-info-banner-content">
+            <div className="rv4-info-banner-title">HOW SMART ROUTING WORKS</div>
+            <div className="rv4-info-banner-text">
+              Your router uses live benchmark data from AI Stupid Meter to make intelligent decisions.
+              Choose a strategy below, and the router will pick models matching your priorities within your constraints.
             </div>
           </div>
         </div>
-      )}
 
-      {/* Routing Strategy */}
-      <div className="crt-monitor">
-        <div className="terminal-text" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-            <span className="terminal-text--green">SMART ROUTING STRATEGY</span>
+        {/* Routing Strategy */}
+        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">ROUTING STRATEGY</span>
+            <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Select one</span>
           </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '8px' }}>
-            Select your routing mode - the router uses live benchmark data to pick the best model
-          </div>
-          <div style={{ 
-            padding: '8px 12px', 
-            backgroundColor: 'rgba(0, 191, 255, 0.05)', 
-            border: '1px solid rgba(0, 191, 255, 0.2)',
-            borderRadius: '3px',
-            fontSize: '0.8em'
-          }}>
-            <span className="terminal-text--amber">⚡ Pro Tip:</span>
-            <span className="terminal-text--dim"> "Best Overall" is recommended for most use cases. It balances performance, cost, and reliability using our 7-axis scoring system.</span>
-          </div>
-        </div>
-        
-        <div className="vintage-grid">
-          {ROUTING_STRATEGIES.map((strategy) => (
-            <button
-              key={strategy.id}
-              onClick={() => setPreferences({ ...preferences, routingStrategy: strategy.id })}
-              className="control-panel"
-              style={{
-                borderColor: preferences.routingStrategy === strategy.id ? 'var(--phosphor-green)' : 'var(--metal-silver)',
-                backgroundColor: preferences.routingStrategy === strategy.id ? 'rgba(0, 255, 65, 0.05)' : 'rgba(0, 0, 0, 0.2)',
-                cursor: 'pointer',
-                textAlign: 'left'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PixelIcon name={strategy.iconName} size={24} />
-                  <span className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
-                    {strategy.name}
-                  </span>
+          <div className="rv4-panel-body">
+            <div className="rv4-strategy-grid">
+              {ROUTING_STRATEGIES.map((strategy) => (
+                <div
+                  key={strategy.id}
+                  className={`rv4-strategy-card${preferences.routingStrategy === strategy.id ? ' active' : ''}`}
+                  onClick={() => setPreferences({ ...preferences, routingStrategy: strategy.id })}
+                >
+                  <div className="rv4-strategy-card-header">
+                    <span className="rv4-strategy-card-name">{strategy.name}</span>
+                    {strategy.recommended && <span className="rv4-strategy-card-recommended">RECOMMENDED</span>}
+                    {preferences.routingStrategy === strategy.id && (
+                      <span style={{ color: 'var(--phosphor-green)', fontFamily: 'var(--font-mono)', fontSize: '12px', marginLeft: 'auto' }}>✓</span>
+                    )}
+                  </div>
+                  <div className="rv4-strategy-card-desc">{strategy.desc}</div>
                 </div>
-                {strategy.recommended && (
-                  <span style={{
-                    backgroundColor: 'var(--phosphor-green)',
-                    color: 'var(--terminal-black)',
-                    fontSize: '0.6em',
-                    fontWeight: 'bold',
-                    padding: '2px 6px',
-                    borderRadius: '2px'
-                  }}>
-                    RECOMMENDED
-                  </span>
-                )}
-                {preferences.routingStrategy === strategy.id && (
-                  <PixelIcon name="check" size={20} className="terminal-text--green" />
-                )}
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-                {strategy.description}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Constraints */}
-      <div className="crt-monitor">
-        <div className="terminal-text" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-            <span className="terminal-text--green">CONSTRAINTS</span>
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-            Set limits on cost, latency, and required features
+              ))}
+            </div>
           </div>
         </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Max Cost */}
-          <div className="control-panel">
-            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', cursor: 'pointer' }}>
-              <span className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
-                MAXIMUM COST PER 1K TOKENS
-              </span>
-              <input
-                type="checkbox"
-                checked={preferences.maxCostPer1kTokens !== null}
-                onChange={(e) => setPreferences({
-                  ...preferences,
-                  maxCostPer1kTokens: e.target.checked ? 0.01 : null,
-                })}
-                style={{ width: '20px', height: '20px' }}
-              />
-            </label>
-            {preferences.maxCostPer1kTokens !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="terminal-text--dim">$</span>
-                <input
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  value={preferences.maxCostPer1kTokens}
-                  onChange={(e) => setPreferences({
-                    ...preferences,
-                    maxCostPer1kTokens: parseFloat(e.target.value) || 0,
-                  })}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    background: 'var(--terminal-black)',
-                    border: '2px solid var(--metal-silver)',
-                    borderRadius: '4px',
-                    color: 'var(--phosphor-green)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '14px'
-                  }}
-                />
-                <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>per 1K tokens</span>
-              </div>
-            )}
-            <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
-              Only use models that cost less than this amount
-            </div>
-          </div>
 
-          {/* Max Latency */}
-          <div className="control-panel">
-            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', cursor: 'pointer' }}>
-              <span className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
-                MAXIMUM LATENCY
-              </span>
-              <input
-                type="checkbox"
-                checked={preferences.maxLatencyMs !== null}
-                onChange={(e) => setPreferences({
-                  ...preferences,
-                  maxLatencyMs: e.target.checked ? 2000 : null,
-                })}
-                style={{ width: '20px', height: '20px' }}
-              />
-            </label>
-            {preferences.maxLatencyMs !== null && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="number"
-                  step="100"
-                  min="0"
-                  value={preferences.maxLatencyMs}
-                  onChange={(e) => setPreferences({
-                    ...preferences,
-                    maxLatencyMs: parseInt(e.target.value) || 0,
-                  })}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    background: 'var(--terminal-black)',
-                    border: '2px solid var(--metal-silver)',
-                    borderRadius: '4px',
-                    color: 'var(--phosphor-green)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '14px'
-                  }}
-                />
-                <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>milliseconds</span>
-              </div>
-            )}
-            <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
-              Only use models with response times below this threshold
-            </div>
+        {/* Constraints */}
+        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">CONSTRAINTS</span>
           </div>
-
-          {/* Feature Requirements */}
-          <div className="control-panel">
-            <div className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '12px' }}>
-              FEATURE REQUIREMENTS
-            </div>
-            
-            <label style={{ display: 'flex', alignItems: 'start', gap: '12px', marginBottom: '12px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={preferences.requireToolCalling}
-                onChange={(e) => setPreferences({
-                  ...preferences,
-                  requireToolCalling: e.target.checked,
-                })}
-                style={{ width: '20px', height: '20px', marginTop: '2px' }}
-              />
+          <div className="rv4-panel-body">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Max Cost */}
               <div>
-                <div className="terminal-text--green" style={{ fontSize: '0.85em', marginBottom: '4px' }}>
-                  REQUIRE TOOL CALLING SUPPORT
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    MAXIMUM COST PER 1K TOKENS
+                  </label>
+                  <input
+                    type="checkbox"
+                    className="rv4-checkbox"
+                    checked={preferences.maxCostPer1kTokens !== null}
+                    onChange={(e) => setPreferences({ ...preferences, maxCostPer1kTokens: e.target.checked ? 0.01 : null })}
+                  />
                 </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-                  Only use models that support function/tool calling
-                </div>
+                {preferences.maxCostPer1kTokens !== null && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}>$</span>
+                    <input
+                      type="number" step="0.001" min="0"
+                      value={preferences.maxCostPer1kTokens}
+                      onChange={(e) => setPreferences({ ...preferences, maxCostPer1kTokens: parseFloat(e.target.value) || 0 })}
+                      className="rv4-input"
+                    />
+                    <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', whiteSpace: 'nowrap' }}>per 1K tokens</span>
+                  </div>
+                )}
+                <div className="rv4-input-hint">Only use models that cost less than this amount</div>
               </div>
-            </label>
 
-            <label style={{ display: 'flex', alignItems: 'start', gap: '12px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={preferences.requireStreaming}
-                onChange={(e) => setPreferences({
-                  ...preferences,
-                  requireStreaming: e.target.checked,
-                })}
-                style={{ width: '20px', height: '20px', marginTop: '2px' }}
-              />
+              {/* Max Latency */}
               <div>
-                <div className="terminal-text--green" style={{ fontSize: '0.85em', marginBottom: '4px' }}>
-                  REQUIRE STREAMING SUPPORT
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    MAXIMUM LATENCY
+                  </label>
+                  <input
+                    type="checkbox"
+                    className="rv4-checkbox"
+                    checked={preferences.maxLatencyMs !== null}
+                    onChange={(e) => setPreferences({ ...preferences, maxLatencyMs: e.target.checked ? 2000 : null })}
+                  />
                 </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-                  Only use models that support streaming responses
+                {preferences.maxLatencyMs !== null && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number" step="100" min="0"
+                      value={preferences.maxLatencyMs}
+                      onChange={(e) => setPreferences({ ...preferences, maxLatencyMs: parseInt(e.target.value) || 0 })}
+                      className="rv4-input"
+                    />
+                    <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', whiteSpace: 'nowrap' }}>milliseconds</span>
+                  </div>
+                )}
+                <div className="rv4-input-hint">Only use models with response times below this threshold</div>
+              </div>
+
+              {/* Feature requirements */}
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '10px' }}>
+                  FEATURE REQUIREMENTS
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      className="rv4-checkbox"
+                      checked={preferences.requireToolCalling}
+                      onChange={(e) => setPreferences({ ...preferences, requireToolCalling: e.target.checked })}
+                      style={{ marginTop: '1px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '2px' }}>REQUIRE TOOL CALLING SUPPORT</div>
+                      <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Only use models that support function/tool calling</div>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      className="rv4-checkbox"
+                      checked={preferences.requireStreaming}
+                      onChange={(e) => setPreferences({ ...preferences, requireStreaming: e.target.checked })}
+                      style={{ marginTop: '1px' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '2px' }}>REQUIRE STREAMING SUPPORT</div>
+                      <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Only use models that support streaming responses</div>
+                    </div>
+                  </label>
                 </div>
               </div>
-            </label>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Exclusions */}
-      <div className="crt-monitor">
-        <div className="terminal-text" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-            <span className="terminal-text--green">EXCLUSIONS</span>
+        {/* Exclusions */}
+        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">EXCLUDED PROVIDERS</span>
           </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-            Exclude specific providers from routing
-          </div>
-        </div>
-        
-        <div className="control-panel">
-          <div className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '12px' }}>
-            EXCLUDED PROVIDERS
-          </div>
-          <div className="vintage-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-            {PROVIDERS.map((provider) => (
-              <button
-                key={provider}
-                onClick={() => toggleProvider(provider)}
-                className="vintage-btn"
-                style={{
-                  borderColor: preferences.excludedProviders.includes(provider) ? 'var(--red-alert)' : 'var(--metal-silver)',
-                  backgroundColor: preferences.excludedProviders.includes(provider) ? 'rgba(255, 45, 0, 0.1)' : 'rgba(0, 0, 0, 0.2)',
-                  color: preferences.excludedProviders.includes(provider) ? 'var(--red-alert)' : 'var(--phosphor-green)'
-                }}
-              >
-                {preferences.excludedProviders.includes(provider) && '✗ '}
-                {provider.charAt(0).toUpperCase() + provider.slice(1)}
-              </button>
-            ))}
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '8px' }}>
-            Click to exclude/include providers from routing
-          </div>
-        </div>
-      </div>
-
-      {/* Fallback */}
-      <div className="crt-monitor">
-        <div className="terminal-text" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-            <span className="terminal-text--green">FALLBACK BEHAVIOR</span>
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-            Configure what happens when the primary model is unavailable
-          </div>
-        </div>
-        
-        <div className="control-panel">
-          <label style={{ display: 'flex', alignItems: 'start', gap: '12px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={preferences.fallbackEnabled}
-              onChange={(e) => setPreferences({
-                ...preferences,
-                fallbackEnabled: e.target.checked,
+          <div className="rv4-panel-body">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+              {PROVIDERS.map((provider) => {
+                const excluded = preferences.excludedProviders.includes(provider);
+                return (
+                  <button
+                    key={provider}
+                    onClick={() => toggleProvider(provider)}
+                    className="rv4-ctrl-btn"
+                    style={{
+                      borderColor: excluded ? 'var(--red-alert)' : 'rgba(192,192,192,0.25)',
+                      color: excluded ? 'var(--red-alert)' : 'var(--phosphor-dim)',
+                      background: excluded ? 'rgba(255,45,0,0.08)' : 'transparent',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {excluded ? '✗ ' : ''}{provider}
+                  </button>
+                );
               })}
-              style={{ width: '20px', height: '20px', marginTop: '2px' }}
-            />
-            <div>
-              <div className="terminal-text--green" style={{ fontSize: '0.9em', marginBottom: '4px', fontWeight: 'bold' }}>
-                ENABLE AUTOMATIC FALLBACK
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.75em', lineHeight: '1.5' }}>
-                Automatically try alternative models if the primary model fails or is unavailable. 
-                This ensures zero downtime and maximum reliability.
-              </div>
             </div>
-          </label>
+            <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Click to exclude/include providers from routing</div>
+          </div>
         </div>
-      </div>
 
-      {/* Info Banner */}
-      <div className="crt-monitor" style={{ borderColor: 'var(--phosphor-green)', backgroundColor: 'rgba(0, 255, 65, 0.05)' }}>
-        <div className="terminal-text">
-          <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PixelIcon name="lightbulb" size={20} />
-            HOW SMART ROUTING WORKS
+        {/* Fallback */}
+        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">FALLBACK BEHAVIOR</span>
           </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6', marginBottom: '12px' }}>
-            <strong className="terminal-text--green">Real-Time Intelligence:</strong> Your router uses live benchmark data from AI Stupid Meter 
-            to make intelligent decisions. Every 4 hours, we test 16+ models across 7 performance axes (correctness, code quality, 
-            efficiency, stability, etc.) and update our rankings.
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6', marginBottom: '12px' }}>
-            <strong className="terminal-text--green">Automatic Selection:</strong> Based on your chosen strategy and constraints, 
-            the router automatically picks the best model for each request. You get optimal performance without manually tracking 
-            which models are performing well.
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
-            <strong className="terminal-text--green">Constraint Enforcement:</strong> Your preferences are applied to every request. 
-            The router will only select models that meet all your constraints. If no models match, the request will fail with a 
-            clear error message explaining why.
+          <div className="rv4-panel-body">
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                className="rv4-checkbox"
+                checked={preferences.fallbackEnabled}
+                onChange={(e) => setPreferences({ ...preferences, fallbackEnabled: e.target.checked })}
+                style={{ marginTop: '1px' }}
+              />
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  ENABLE AUTOMATIC FALLBACK
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
+                  Automatically try alternative models if the primary model fails or is unavailable.
+                  This ensures zero downtime and maximum reliability.
+                </div>
+              </div>
+            </label>
           </div>
         </div>
-      </div>
+
+        {/* Info */}
+        <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
+          <span className="rv4-info-banner-icon" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 'bold' }}>[i]</span>
+          <div className="rv4-info-banner-content">
+            <div className="rv4-info-banner-title">REAL-TIME INTELLIGENCE</div>
+            <div className="rv4-info-banner-text">
+              Your router uses live benchmark data from AI Stupid Meter. Every 4 hours, 16+ models are tested
+              across 7 performance axes. Based on your strategy and constraints, the router automatically picks
+              the best model for each request.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button onClick={handleReset} className="rv4-ctrl-btn">RESET DEFAULTS</button>
+          <button onClick={handleSave} disabled={isSaving} className="rv4-ctrl-btn primary">
+            {isSaving ? 'SAVING...' : 'SAVE CHANGES'}
+          </button>
+        </div>
       </div>
     </RouterLayout>
   );

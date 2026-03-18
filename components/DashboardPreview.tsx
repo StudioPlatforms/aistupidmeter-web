@@ -1,336 +1,210 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import PixelIcon from './PixelIcon';
-
 export default function DashboardPreview() {
-  const router = useRouter();
-
   const handleStartTrial = () => {
-    router.push('/api/stripe/checkout');
+    window.location.href = '/api/stripe/checkout';
   };
 
   return (
-    <div className="vintage-container">
-      {/* Sticky Upgrade Banner */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backgroundColor: 'rgba(255, 165, 0, 0.15)',
-        border: '2px solid var(--amber-warning)',
-        borderRadius: '6px',
-        padding: '12px 16px',
-        marginBottom: '20px',
-        boxShadow: '0 4px 12px rgba(255, 165, 0, 0.2)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '1.5em' }}>🔒</span>
-            <div>
-              <div className="terminal-text" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '2px' }}>
-                PREVIEW MODE
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                Unlock full dashboard with 7-day free trial
-              </div>
-            </div>
+    <div className="rv4-body">
+      {/* Sticky upgrade banner */}
+      <div className="rv4-upgrade-sticky">
+        <div className="rv4-upgrade-sticky-msg">
+          <span style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', color: 'var(--amber-warning)' }}>[LOCKED]</span>
+          <div>
+            <div className="rv4-upgrade-sticky-title">PREVIEW MODE — Upgrade to Access Full Dashboard</div>
+            <div className="rv4-upgrade-sticky-sub">7-day free trial • No credit card required • Cancel anytime</div>
           </div>
-          <button
-            onClick={handleStartTrial}
-            className="vintage-btn vintage-btn--active"
-            style={{
-              padding: '8px 20px',
-              fontSize: '0.9em',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            START FREE TRIAL →
-          </button>
         </div>
+        <button onClick={handleStartTrial} className="rv4-ctrl-btn primary" style={{ fontSize: '11px', padding: '8px 18px' }}>
+          START FREE TRIAL →
+        </button>
       </div>
 
-      {/* Dashboard Header */}
-      <div className="crt-monitor" style={{ marginBottom: '20px' }}>
-        <div className="terminal-text">
-          <h1 style={{ fontSize: '1.5em', marginBottom: '8px' }}>
-            <span className="terminal-text--green">AI ROUTER DASHBOARD</span>
-            <span className="blinking-cursor"></span>
-          </h1>
-          <p className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-            Universal API Gateway • Intelligent Model Selection • Cost Optimization
-          </p>
+      {/* Page header */}
+      <div className="rv4-page-header" style={{ position: 'relative', top: 'auto', marginBottom: '16px', borderRadius: '3px' }}>
+        <div className="rv4-page-header-left">
+          <div>
+            <div className="rv4-page-title">AI SMART ROUTER<span className="blinking-cursor"></span></div>
+            <div className="rv4-page-title-sub">Universal API Gateway • Intelligent Model Selection • Cost Optimization</div>
+          </div>
         </div>
+        <span className="rv4-badge amber">[LOCKED]</span>
       </div>
 
-      {/* Key Metrics - Blurred */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-        gap: '16px',
-        marginBottom: '20px',
-        position: 'relative'
-      }}>
-        {/* Blur overlay */}
+      {/* Metric cards — blurred */}
+      <div style={{ position: 'relative', marginBottom: '16px' }}>
+        <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', filter: 'blur(3px)', userSelect: 'none' }}>
+          {['Total Requests', 'Total Cost', 'Success Rate', 'Total Tokens'].map((label, i) => (
+            <div key={i} className="rv4-stat-cell accent-green">
+              <div className="rv4-stat-label">{label}</div>
+              <div className="rv4-stat-value" style={{ opacity: 0.3 }}>—</div>
+            </div>
+          ))}
+        </div>
         <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backdropFilter: 'blur(8px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          borderRadius: '6px',
-          border: '2px dashed var(--phosphor-green)'
+          position: 'absolute', inset: 0,
+          background: 'rgba(0,0,0,0.65)',
+          backdropFilter: 'blur(2px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          borderRadius: '3px', gap: '6px',
+          border: '1px dashed rgba(0,255,65,0.3)',
         }}>
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <div style={{ fontSize: '2em', marginBottom: '8px' }}>🔒</div>
-            <div className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>
-              ACTIVATE TO TRACK
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-              Real-time metrics with Pro
-            </div>
-          </div>
+          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1px', fontFamily: 'var(--font-mono)' }}>[ACTIVATE TO TRACK]</div>
+          <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Real-time metrics with Pro</div>
         </div>
+      </div>
 
+      {/* Hero upgrade section */}
+      <div className="rv4-upgrade-hero">
+        <div className="rv4-upgrade-hero-title">STOP OVERPAYING FOR AI</div>
+        <div className="rv4-upgrade-hero-sub">Save 50-70% on costs • Get better results with intelligence-based routing</div>
+        <div className="rv4-upgrade-price-original">$49.99/month</div>
+        <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
+        <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL — NO CREDIT CARD</div>
+        <button onClick={handleStartTrial} className="rv4-upgrade-cta">
+          Start Free Trial — No Credit Card →
+        </button>
+        <div className="rv4-upgrade-fine-print">Cancel anytime • Instant access • Powered by AI Stupid Meter benchmarks</div>
+      </div>
+
+      {/* Pain points */}
+      <div className="rv4-pain-points">
+        <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--red-alert)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '8px' }}>
+          WITHOUT AI ROUTER PRO:
+        </div>
         {[
-          { label: 'Total Requests', value: '0', icon: 'chart' },
-          { label: 'Total Cost', value: '$0.00', icon: 'money' },
-          { label: 'Success Rate', value: '0%', icon: 'check' },
-          { label: 'Total Tokens', value: '0', icon: 'numbers' }
-        ].map((metric, index) => (
-          <div key={index} className="control-panel" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <PixelIcon name={metric.icon} size={24} />
-              <div style={{ flex: 1 }}>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                  {metric.label}
-                </div>
-                <div className="terminal-text--green" style={{ fontSize: '1.3em', fontWeight: 'bold' }}>
-                  {metric.value}
-                </div>
-              </div>
-            </div>
+          'Overpaying for underperforming models without knowing it',
+          'Model degradation happens silently — you get bad results',
+          'Manually checking which model is best wastes developer time',
+          'No visibility into your actual AI spend and savings',
+        ].map((p, i) => (
+          <div key={i} className="rv4-pain-point">
+            <span className="cross">✗</span>
+            <span>{p}</span>
           </div>
         ))}
       </div>
 
-      {/* Cost Savings Teaser */}
-      <div className="crt-monitor" style={{ marginBottom: '20px', position: 'relative' }}>
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backdropFilter: 'blur(6px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.4)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          borderRadius: '6px'
-        }}>
-          <div style={{ fontSize: '2.5em', marginBottom: '12px' }}>💰</div>
-          <div className="terminal-text--green" style={{ fontSize: '1.2em', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
-            UNLOCK COST SAVINGS DATA
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px', textAlign: 'center', maxWidth: '400px' }}>
-            See exactly how much you save with intelligent routing
-          </div>
-          <button
-            onClick={handleStartTrial}
-            className="vintage-btn vintage-btn--active"
-            style={{ padding: '10px 24px' }}
-          >
-            START FREE TRIAL
-          </button>
+      {/* Benefits grid */}
+      <div className="rv4-panel" style={{ marginBottom: '16px' }}>
+        <div className="rv4-panel-header">
+          <span className="rv4-panel-title">WHAT YOU GET WITH PRO</span>
         </div>
-
-        <div className="terminal-text" style={{ padding: '20px', filter: 'blur(4px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <PixelIcon name="diamond" size={32} />
-            <div>
-              <div className="terminal-text--green" style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                DEMO: COST SAVINGS $127.40
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                Based on 500 typical requests • 52% saved vs. worst case
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Two Column Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-        {/* Recent Activity - Locked */}
-        <div className="crt-monitor">
-          <div className="terminal-text">
-            <div style={{ fontSize: '1.1em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PixelIcon name="list" size={20} />
-              <span className="terminal-text--green" style={{ fontWeight: 'bold' }}>RECENT ACTIVITY</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.7em' }}>🔒</span>
-            </div>
-            
-            <div style={{ 
-              padding: '40px 20px',
-              textAlign: 'center',
-              border: '2px dashed rgba(0, 255, 65, 0.3)',
-              borderRadius: '4px',
-              backgroundColor: 'rgba(0, 255, 65, 0.05)'
-            }}>
-              <div style={{ fontSize: '2em', marginBottom: '12px' }}>📊</div>
-              <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '8px' }}>
-                Real-time Request Tracking
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '16px' }}>
-                See every API call, model used, cost, and latency
-              </div>
-              <button
-                onClick={handleStartTrial}
-                className="vintage-btn"
-                style={{ fontSize: '0.85em', padding: '6px 16px' }}
-              >
-                UNLOCK WITH PRO
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Provider Usage - Locked */}
-        <div className="crt-monitor">
-          <div className="terminal-text">
-            <div style={{ fontSize: '1.1em', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PixelIcon name="plug" size={20} />
-              <span className="terminal-text--green" style={{ fontWeight: 'bold' }}>PROVIDER USAGE</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.7em' }}>🔒</span>
-            </div>
-            
-            <div style={{ 
-              padding: '40px 20px',
-              textAlign: 'center',
-              border: '2px dashed rgba(0, 255, 65, 0.3)',
-              borderRadius: '4px',
-              backgroundColor: 'rgba(0, 255, 65, 0.05)'
-            }}>
-              <div style={{ fontSize: '2em', marginBottom: '12px' }}>🔌</div>
-              <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '8px' }}>
-                Provider Cost Breakdown
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '16px' }}>
-                Track spending across OpenAI, Anthropic, xAI, Google
-              </div>
-              <button
-                onClick={handleStartTrial}
-                className="vintage-btn"
-                style={{ fontSize: '0.85em', padding: '6px 16px' }}
-              >
-                UNLOCK WITH PRO
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions - All Locked */}
-      <div className="crt-monitor" style={{ marginBottom: '20px' }}>
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.1em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PixelIcon name="lightning" size={20} />
-            <span className="terminal-text--green" style={{ fontWeight: 'bold' }}>QUICK ACTIONS</span>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+        <div className="rv4-panel-body">
+          <div className="rv4-upgrade-benefits">
             {[
-              { title: 'API Keys', icon: 'key', desc: 'Universal keys' },
-              { title: 'Providers', icon: 'plug', desc: 'Connect AI' },
-              { title: 'Preferences', icon: 'settings', desc: 'Configure' },
-              { title: 'Analytics', icon: 'analytics', desc: 'View stats' }
-            ].map((action, index) => (
-              <div
-                key={index}
-                style={{
-                  padding: '16px',
-                  border: '1px solid rgba(0, 255, 65, 0.3)',
-                  borderRadius: '4px',
-                  textAlign: 'center',
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  cursor: 'not-allowed',
-                  opacity: 0.6
-                }}
-              >
-                <PixelIcon name={action.icon} size={24} style={{ marginBottom: '8px' }} />
-                <div className="terminal-text" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '4px' }}>
-                  {action.title} 🔒
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-                  {action.desc}
-                </div>
+              { icon: '→', title: 'Cut Costs 50-70%', desc: 'Smart routing picks cheaper models when quality matches. Save real money.' },
+              { icon: '→', title: 'Best Model Always', desc: 'Real-time benchmarks from AI Stupid Meter prevent degraded models.' },
+              { icon: '→', title: 'Zero Downtime', desc: 'Auto-failover ensures your apps keep running if a model goes down.' },
+              { icon: '→', title: 'One Universal Key', desc: 'Replace all provider keys with one key for GPT, Claude, Grok, Gemini.' },
+              { icon: '→', title: 'Full Analytics', desc: 'See every request, cost, latency, and provider breakdown in real-time.' },
+              { icon: '→', title: 'Live Intelligence', desc: '171+ benchmarks run 24/7. When GPT-5 degrades, you benefit immediately.' },
+            ].map((b, i) => (
+              <div key={i} className="rv4-upgrade-benefit">
+                <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>{b.icon}</div>
+                <div className="rv4-upgrade-benefit-title">{b.title}</div>
+                <div className="rv4-upgrade-benefit-desc">{b.desc}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Why Upgrade Section */}
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.2em', marginBottom: '16px', textAlign: 'center' }}>
-            <span className="terminal-text--amber">💎 WHY UPGRADE TO PRO?</span>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth < 768 ? '1fr' : '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      {/* How it works */}
+      <div className="rv4-panel" style={{ marginBottom: '16px' }}>
+        <div className="rv4-panel-header">
+          <span className="rv4-panel-title">WORLD'S FIRST INTELLIGENCE-BASED AI ROUTER</span>
+        </div>
+        <div className="rv4-panel-body">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
             {[
-              { icon: '⚡', title: 'Automatic Routing', desc: 'Stop manually checking rankings - let AI Router Pro choose the best model for you' },
-              { icon: '💰', title: 'Save 50-70%', desc: 'Intelligent routing to cheapest models that meet your quality requirements' },
-              { icon: '🛡️', title: 'Degradation Protection', desc: 'Automatic failover when models degrade - never use a bad model again' },
-              { icon: '🔑', title: 'One API Key', desc: 'Replace all your provider keys with one universal key for all models' }
-            ].map((benefit, index) => (
-              <div key={index} style={{ 
-                padding: '16px',
-                border: '1px solid rgba(0, 255, 65, 0.3)',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(0, 255, 65, 0.05)'
+              { step: '01', title: 'LIVE INTELLIGENCE', desc: 'AI Stupid Meter runs 171+ benchmarks 24/7 tracking real performance' },
+              { step: '02', title: 'SMART ANALYSIS', desc: 'Router analyzes your request and matches with current model rankings' },
+              { step: '03', title: 'OPTIMAL ROUTING', desc: 'Automatically selects the best model for quality, speed, and cost' },
+              { step: '04', title: 'SAVE 50-70%', desc: 'Get better results while paying less — no manual switching needed' },
+            ].map((step, i) => (
+              <div key={i} style={{
+                padding: '12px', background: 'rgba(0,0,0,0.3)',
+                border: '1px solid rgba(0,255,65,0.15)', borderRadius: '3px',
+                position: 'relative',
               }}>
-                <div style={{ fontSize: '2em', marginBottom: '8px' }}>{benefit.icon}</div>
-                <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '6px' }}>
-                  {benefit.title}
+                <div style={{
+                  fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)',
+                  letterSpacing: '0.8px', marginBottom: '6px', fontFamily: 'var(--font-mono)',
+                }}>
+                  STEP {step.step}
                 </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.4' }}>
-                  {benefit.desc}
-                </div>
+                <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{step.title}</div>
+                <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{step.desc}</div>
               </div>
             ))}
           </div>
-
-          {/* Final CTA */}
-          <div style={{ textAlign: 'center', padding: '20px', backgroundColor: 'rgba(255, 165, 0, 0.1)', borderRadius: '6px', border: '2px solid var(--amber-warning)' }}>
-            <div className="terminal-text--amber" style={{ fontSize: '1.3em', fontWeight: 'bold', marginBottom: '8px' }}>
-              $4.99/mo • 7-Day Free Trial
+          <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,176,0,0.06)', border: '1px solid rgba(255,176,0,0.25)', borderRadius: '3px' }}>
+            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '3px', letterSpacing: '0.5px' }}>NO ONE ELSE DOES THIS</div>
+            <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
+              Other routers use static rules. We use <strong style={{ color: 'var(--phosphor-green)' }}>live benchmark intelligence</strong> from AI Stupid Meter.
+              When GPT-5 degrades, we know instantly. When Claude improves, you benefit immediately.
             </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '16px' }}>
-              No credit card required • Cancel anytime
-            </div>
-            <button
-              onClick={handleStartTrial}
-              className="vintage-btn vintage-btn--active"
-              style={{
-                padding: '14px 32px',
-                fontSize: '1.1em',
-                fontWeight: 'bold'
-              }}
-            >
-              START FREE TRIAL NOW →
-            </button>
           </div>
         </div>
+      </div>
+
+      {/* Stats proof */}
+      <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '16px' }}>
+        {[
+          { label: 'Benchmarks', value: '171+', accent: 'accent-green' },
+          { label: 'AI Models', value: '16+', accent: 'accent-green' },
+          { label: 'Monitoring', value: '24/7', accent: 'accent-blue' },
+          { label: 'Cost Savings', value: '50-70%', accent: 'accent-amber' },
+        ].map((s, i) => (
+          <div key={i} className={`rv4-stat-cell ${s.accent}`}>
+            <div className={`rv4-stat-value${s.accent === 'accent-amber' ? ' amber' : ''}`}>{s.value}</div>
+            <div className="rv4-stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Features checklist */}
+      <div className="rv4-panel" style={{ marginBottom: '16px' }}>
+        <div className="rv4-panel-header">
+          <span className="rv4-panel-title">EVERYTHING INCLUDED IN PRO</span>
+        </div>
+        <div className="rv4-panel-body">
+          <div className="rv4-features-checklist">
+            {[
+              'Unlimited API requests', 'All AI models', 'Real-time monitoring', 'Cost optimization',
+              'Auto failover', 'Priority support', 'Analytics dashboard', 'Custom routing preferences',
+              'Model Intelligence', 'Provider key management', 'Historical data', 'CSV/JSON exports',
+            ].map((f, i) => (
+              <div key={i} className="rv4-feature-check">
+                <span className="check">✓</span>
+                <span>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Final CTA */}
+      <div style={{
+        background: 'rgba(255,176,0,0.06)', border: '2px solid var(--amber-warning)',
+        borderRadius: '3px', padding: '20px', textAlign: 'center', marginBottom: '16px',
+      }}>
+        <div style={{ fontSize: '22px', fontWeight: 'bold', color: 'var(--amber-warning)', textShadow: '0 0 8px rgba(255,176,0,0.4)', marginBottom: '6px' }}>
+          $4.99/month
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
+          7-Day Free Trial • No Credit Card • Cancel Anytime
+        </div>
+        <button onClick={handleStartTrial} className="rv4-upgrade-cta">
+          UNLOCK FULL ACCESS — START FREE TRIAL →
+        </button>
+      </div>
+
+      <div className="rv4-footer">
+        Powered by AI Stupid Meter • Real-time intelligence from 16+ models • <a href="/">View Live Rankings</a>
       </div>
     </div>
   );

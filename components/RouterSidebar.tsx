@@ -4,48 +4,28 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
-import PixelIcon from './PixelIcon';
 
-interface SidebarItemProps {
-  iconName: string;
+interface NavItem {
   label: string;
   href: string;
-  active: boolean;
-  isCollapsed?: boolean;
 }
 
-function SidebarItem({ iconName, label, href, active, isCollapsed = false }: SidebarItemProps) {
+function NavLink({ item, active, collapsed, onClick }: { item: NavItem; active: boolean; collapsed: boolean; onClick?: () => void }) {
   return (
     <a
-      href={href}
-      className={`sidebar-item ${active ? 'active' : ''}`}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-        padding: '12px 20px',
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        textDecoration: 'none',
-        color: active ? 'var(--phosphor-green)' : 'var(--metal-silver)',
-        backgroundColor: active ? 'rgba(0, 255, 65, 0.15)' : 'transparent',
-        borderLeft: active ? '3px solid var(--phosphor-green)' : '3px solid transparent',
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 255, 65, 0.1)';
-          e.currentTarget.style.borderLeft = '3px solid var(--phosphor-green)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.borderLeft = '3px solid transparent';
-        }
-      }}
+      href={item.href}
+      onClick={onClick}
+      className={`rv4-nav-item${active ? ' active' : ''}`}
+      title={collapsed ? item.label : undefined}
     >
-      <PixelIcon name={iconName} size={20} />
-      {!isCollapsed && <span style={{ fontSize: '0.9em', fontWeight: active ? 'bold' : 'normal' }}>{label}</span>}
+      {!collapsed && (
+        <span className="rv4-nav-item-label">{item.label}</span>
+      )}
+      {collapsed && (
+        <span className="rv4-nav-item-label" style={{ fontSize: '10px', letterSpacing: '0.3px' }}>
+          {item.label.substring(0, 2).toUpperCase()}
+        </span>
+      )}
     </a>
   );
 }
@@ -53,492 +33,210 @@ function SidebarItem({ iconName, label, href, active, isCollapsed = false }: Sid
 export default function RouterSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navigationItems = [
-    { iconName: 'arrow-left', label: '← Back to Rankings', href: '/', isExternal: true },
-    { iconName: 'home', label: 'Dashboard', href: '/router' },
-    { iconName: 'key', label: 'API Keys', href: '/router/keys' },
-    { iconName: 'plug', label: 'Providers', href: '/router/providers' },
-    { iconName: 'settings', label: 'Preferences', href: '/router/preferences' },
-    { iconName: 'analytics', label: 'Analytics', href: '/router/analytics' },
-    { iconName: 'brain', label: 'Model Intelligence', href: '/router/intelligence' },
-    { iconName: 'clock', label: 'Performance Timing', href: '/router/performance-timing' },
-    { iconName: 'test', label: 'Test Your Keys', href: '/router/test-keys' },
+  const navItems: NavItem[] = [
+    { label: '← BACK TO RANKINGS', href: '/' },
+    { label: 'DASHBOARD', href: '/router' },
+    { label: 'API KEYS', href: '/router/keys' },
+    { label: 'PROVIDERS', href: '/router/providers' },
+    { label: 'PREFERENCES', href: '/router/preferences' },
+    { label: 'ANALYTICS', href: '/router/analytics' },
+    { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
+    { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
+    { label: 'TEST KEYS', href: '/router/test-keys' },
   ];
 
-  const userItems = [
-    { iconName: 'profile', label: 'Profile', href: '/router/profile' },
-    { iconName: 'credit-card', label: 'Subscription', href: '/router/subscription' },
+  const userItems: NavItem[] = [
+    { label: 'PROFILE', href: '/router/profile' },
+    { label: 'SUBSCRIPTION', href: '/router/subscription' },
   ];
 
-  const supportItems = [
-    { iconName: 'help', label: 'Help', href: '/router/help' },
-    { iconName: 'book', label: 'Docs', href: '/router/docs' },
+  const supportItems: NavItem[] = [
+    { label: 'HELP', href: '/router/help' },
+    { label: 'API DOCS', href: '/router/docs' },
   ];
 
-  // Close drawer on ESC key
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileDrawerOpen) {
-        setIsMobileDrawerOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isMobileDrawerOpen]);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
-  // Prevent body scroll when drawer is open
   useEffect(() => {
-    if (isMobileDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isMobileDrawerOpen]);
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileOpen]);
 
-  // Get display name with proper priority
-  const getDisplayName = () => {
-    if (session?.user?.name) return session.user.name;
-    if (session?.user?.email) return session.user.email;
-    return 'User';
-  };
+  const displayName = session?.user?.name || session?.user?.email || 'User';
+  const showEmail = session?.user?.name && session?.user?.email && session.user.name !== session.user.email;
+  const nameInitial = displayName.charAt(0).toUpperCase();
 
-  // Only show email separately if we have both name and email
-  const shouldShowEmail = () => {
-    return session?.user?.name && session?.user?.email && session.user.name !== session.user.email;
-  };
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {/* Logo header */}
+      <div className="rv4-sidebar-logo">
+        {(!collapsed || isMobile) && (
+          <span className="rv4-sidebar-brand">AI <em>ROUTER</em></span>
+        )}
+        {!isMobile && (
+          <button
+            className="rv4-sidebar-collapse"
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? 'Expand' : 'Collapse'}
+          >
+            {collapsed ? '→' : '←'}
+          </button>
+        )}
+        {isMobile && (
+          <button className="rv4-sidebar-collapse" onClick={() => setMobileOpen(false)}>
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="rv4-sidebar-section">
+        {(!collapsed || isMobile) && (
+          <div className="rv4-sidebar-section-label">Navigation</div>
+        )}
+        {navItems.map(item => (
+          <NavLink
+            key={item.href}
+            item={item}
+            active={pathname === item.href}
+            collapsed={collapsed && !isMobile}
+            onClick={isMobile ? () => setMobileOpen(false) : undefined}
+          />
+        ))}
+      </div>
+
+      {/* Account */}
+      <div className="rv4-sidebar-section">
+        {(!collapsed || isMobile) && (
+          <div className="rv4-sidebar-section-label">Account</div>
+        )}
+        {userItems.map(item => (
+          <NavLink
+            key={item.href}
+            item={item}
+            active={pathname === item.href}
+            collapsed={collapsed && !isMobile}
+            onClick={isMobile ? () => setMobileOpen(false) : undefined}
+          />
+        ))}
+      </div>
+
+      {/* Support */}
+      <div className="rv4-sidebar-section" style={{ flex: 1 }}>
+        {(!collapsed || isMobile) && (
+          <div className="rv4-sidebar-section-label">Support</div>
+        )}
+        {supportItems.map(item => (
+          <NavLink
+            key={item.href}
+            item={item}
+            active={pathname === item.href}
+            collapsed={collapsed && !isMobile}
+            onClick={isMobile ? () => setMobileOpen(false) : undefined}
+          />
+        ))}
+      </div>
+
+      {/* User footer */}
+      {session?.user && (
+        <div className="rv4-sidebar-footer">
+          {(!collapsed || isMobile) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '28px', height: '28px', borderRadius: '50%',
+                background: 'var(--phosphor-green)', color: 'var(--terminal-black)',
+                fontSize: '13px', fontWeight: 'bold',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                {nameInitial}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="rv4-sidebar-user-name" title={displayName}>{displayName}</div>
+                {showEmail && (
+                  <div className="rv4-sidebar-user-email" title={session.user.email || undefined}>
+                    {session.user.email}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <button
+            className="rv4-sidebar-signout"
+            onClick={() => signOut({ callbackUrl: '/' })}
+            title={collapsed && !isMobile ? 'Sign Out' : undefined}
+          >
+            {(!collapsed || isMobile) ? '← SIGN OUT' : '←'}
+          </button>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <>
       {/* Desktop Sidebar */}
       <div
-        className="desktop-only"
-        style={{
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: isCollapsed ? '60px' : '240px',
-          backgroundColor: 'var(--terminal-black)',
-          borderRight: '2px solid var(--metal-silver)',
-          display: 'flex',
-          flexDirection: 'column',
-          transition: 'width 0.3s ease',
-          zIndex: 100,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}
+        className={`rv4-sidebar${collapsed ? ' collapsed' : ''}`}
+        style={{ display: 'none' }}
+        id="rv4-desktop-sidebar"
       >
-        {/* Logo/Header */}
-        <div
-          style={{
-            padding: '20px',
-            borderBottom: '1px solid var(--metal-silver)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: isCollapsed ? 'center' : 'space-between',
-          }}
-        >
-          {!isCollapsed && (
-            <div className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold' }}>
-              AI ROUTER
-            </div>
-          )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--phosphor-green)',
-              cursor: 'pointer',
-              fontSize: '1.2em',
-              padding: '4px',
-            }}
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? '→' : '←'}
-          </button>
-        </div>
-
-        {/* Navigation Section */}
-        <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          {!isCollapsed && (
-            <div
-              className="terminal-text--dim"
-              style={{ padding: '0 20px 8px', fontSize: '0.75em', textTransform: 'uppercase', letterSpacing: '1px' }}
-            >
-              Navigation
-            </div>
-          )}
-          {navigationItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              iconName={item.iconName}
-              label={item.label}
-              href={item.href}
-              active={pathname === item.href}
-              isCollapsed={isCollapsed}
-            />
-          ))}
-        </div>
-
-        {/* User Section */}
-        <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          {!isCollapsed && (
-            <div
-              className="terminal-text--dim"
-              style={{ padding: '0 20px 8px', fontSize: '0.75em', textTransform: 'uppercase', letterSpacing: '1px' }}
-            >
-              Account
-            </div>
-          )}
-          {userItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              iconName={item.iconName}
-              label={item.label}
-              href={item.href}
-              active={pathname === item.href}
-              isCollapsed={isCollapsed}
-            />
-          ))}
-        </div>
-
-        {/* Support Section */}
-        <div style={{ padding: '16px 0', flex: 1 }}>
-          {!isCollapsed && (
-            <div
-              className="terminal-text--dim"
-              style={{ padding: '0 20px 8px', fontSize: '0.75em', textTransform: 'uppercase', letterSpacing: '1px' }}
-            >
-              Support
-            </div>
-          )}
-          {supportItems.map((item) => (
-            <SidebarItem
-              key={item.href}
-              iconName={item.iconName}
-              label={item.label}
-              href={item.href}
-              active={pathname === item.href}
-              isCollapsed={isCollapsed}
-            />
-          ))}
-        </div>
-
-        {/* User Info & Sign Out */}
-        {session?.user && (
-          <div
-            style={{
-              padding: '16px 20px',
-              borderTop: '1px solid var(--metal-silver)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-            }}
-          >
-            {!isCollapsed && (
-              <>
-                <div 
-                  className="terminal-text--green" 
-                  style={{ 
-                    fontSize: '0.85em', 
-                    fontWeight: 'bold',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={getDisplayName()}
-                >
-                  {getDisplayName()}
-                </div>
-                {shouldShowEmail() && (
-                  <div 
-                    className="terminal-text--dim" 
-                    style={{ 
-                      fontSize: '0.75em',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title={session.user.email || undefined}
-                  >
-                    {session.user.email}
-                  </div>
-                )}
-              </>
-            )}
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="vintage-btn vintage-btn--danger"
-              style={{
-                fontSize: '0.75em',
-                padding: '6px 12px',
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '6px',
-              }}
-              title={isCollapsed ? 'Sign Out' : undefined}
-            >
-              <PixelIcon name="logout" size={14} />
-              {!isCollapsed && 'SIGN OUT'}
-            </button>
-          </div>
-        )}
+        <SidebarContent />
       </div>
 
-      {/* Mobile: Hamburger Button */}
+      {/* Mobile FAB */}
       <button
-        className="mobile-only"
-        onClick={() => setIsMobileDrawerOpen(true)}
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--phosphor-green)',
-          border: 'none',
-          color: 'var(--terminal-black)',
-          fontSize: '1.5em',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(0, 255, 65, 0.4)',
-          zIndex: 999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'transform 0.2s ease',
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = 'scale(0.95)';
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-        }}
+        className="rv4-mobile-menu-btn"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Open menu"
+        style={{ fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.1em' }}
       >
-        <PixelIcon name="menu" size={24} />
+        ≡
       </button>
 
-      {/* Mobile: Drawer Overlay */}
-      {isMobileDrawerOpen && (
-        <div
-          className="mobile-only"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            zIndex: 1000,
-          }}
-          onClick={() => setIsMobileDrawerOpen(false)}
-        />
-      )}
-
-      {/* Mobile: Slide-out Drawer */}
+      {/* Mobile backdrop */}
       <div
-        className="mobile-only"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: '280px',
-          maxWidth: '80vw',
-          backgroundColor: 'var(--terminal-black)',
-          borderRight: '2px solid var(--phosphor-green)',
-          transform: isMobileDrawerOpen ? 'translateX(0)' : 'translateX(-100%)',
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          zIndex: 1001,
-          display: 'flex',
-          flexDirection: 'column',
-          overflowY: 'auto',
-        }}
-      >
-        {/* Drawer Header with User Info */}
-        {session?.user && (
-          <div
-            style={{
-              padding: '20px',
-              borderBottom: '2px solid var(--phosphor-green)',
-              backgroundColor: 'rgba(0, 255, 65, 0.1)',
-            }}
-          >
-            <div 
-              className="terminal-text--green" 
-              style={{ 
-                fontSize: '1em', 
-                fontWeight: 'bold', 
-                marginBottom: '4px',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-              title={getDisplayName()}
-            >
-              {getDisplayName()}
-            </div>
-            {shouldShowEmail() && (
-              <div 
-                className="terminal-text--dim" 
-                style={{ 
-                  fontSize: '0.8em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={session.user.email || undefined}
-              >
-                {session.user.email}
-              </div>
-            )}
-          </div>
-        )}
+        className={`rv4-mobile-drawer-backdrop${mobileOpen ? ' open' : ''}`}
+        onClick={() => setMobileOpen(false)}
+      />
 
-        {/* Navigation Section */}
-        <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <div
-            className="terminal-text--dim"
-            style={{ padding: '0 20px 8px', fontSize: '0.75em', textTransform: 'uppercase', letterSpacing: '1px' }}
-          >
-            Navigation
-          </div>
-          {navigationItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsMobileDrawerOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '14px 20px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: pathname === item.href ? 'var(--phosphor-green)' : 'var(--metal-silver)',
-                backgroundColor: pathname === item.href ? 'rgba(0, 255, 65, 0.15)' : 'transparent',
-                borderLeft: pathname === item.href ? '3px solid var(--phosphor-green)' : '3px solid transparent',
-                minHeight: '48px',
-              }}
-            >
-              <PixelIcon name={item.iconName} size={22} />
-              <span style={{ fontSize: '0.95em', fontWeight: pathname === item.href ? 'bold' : 'normal' }}>{item.label}</span>
-            </a>
-          ))}
-        </div>
-
-        {/* User Section */}
-        <div style={{ padding: '16px 0', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <div
-            className="terminal-text--dim"
-            style={{ padding: '0 20px 8px', fontSize: '0.75em', textTransform: 'uppercase', letterSpacing: '1px' }}
-          >
-            Account
-          </div>
-          {userItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsMobileDrawerOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '14px 20px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: pathname === item.href ? 'var(--phosphor-green)' : 'var(--metal-silver)',
-                backgroundColor: pathname === item.href ? 'rgba(0, 255, 65, 0.15)' : 'transparent',
-                borderLeft: pathname === item.href ? '3px solid var(--phosphor-green)' : '3px solid transparent',
-                minHeight: '48px',
-              }}
-            >
-              <PixelIcon name={item.iconName} size={22} />
-              <span style={{ fontSize: '0.95em', fontWeight: pathname === item.href ? 'bold' : 'normal' }}>{item.label}</span>
-            </a>
-          ))}
-        </div>
-
-        {/* Support Section */}
-        <div style={{ padding: '16px 0', flex: 1 }}>
-          <div
-            className="terminal-text--dim"
-            style={{ padding: '0 20px 8px', fontSize: '0.75em', textTransform: 'uppercase', letterSpacing: '1px' }}
-          >
-            Support
-          </div>
-          {supportItems.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              onClick={() => setIsMobileDrawerOpen(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '14px 20px',
-                cursor: 'pointer',
-                textDecoration: 'none',
-                color: pathname === item.href ? 'var(--phosphor-green)' : 'var(--metal-silver)',
-                backgroundColor: pathname === item.href ? 'rgba(0, 255, 65, 0.15)' : 'transparent',
-                borderLeft: pathname === item.href ? '3px solid var(--phosphor-green)' : '3px solid transparent',
-                minHeight: '48px',
-              }}
-            >
-              <PixelIcon name={item.iconName} size={22} />
-              <span style={{ fontSize: '0.95em', fontWeight: pathname === item.href ? 'bold' : 'normal' }}>{item.label}</span>
-            </a>
-          ))}
-        </div>
-
-        {/* Sign Out Button */}
-        {session?.user && (
-          <div style={{ padding: '16px 20px', borderTop: '2px solid var(--phosphor-green)' }}>
-            <button
-              onClick={() => {
-                setIsMobileDrawerOpen(false);
-                signOut({ callbackUrl: '/' });
-              }}
-              className="vintage-btn vintage-btn--danger"
-              style={{
-                fontSize: '0.9em',
-                padding: '12px',
-                width: '100%',
-                minHeight: '48px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-              }}
-            >
-              <PixelIcon name="logout" size={18} />
-              SIGN OUT
-            </button>
-          </div>
-        )}
+      {/* Mobile drawer */}
+      <div className={`rv4-mobile-drawer${mobileOpen ? ' open' : ''}`}>
+        <SidebarContent isMobile />
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         @media (min-width: 768px) {
-          .mobile-only {
+          #rv4-desktop-sidebar {
+            display: flex !important;
+          }
+          .rv4-mobile-menu-btn {
             display: none !important;
+          }
+          .rv4-mobile-drawer,
+          .rv4-mobile-drawer-backdrop {
+            display: none !important;
+          }
+          .rv4-content {
+            margin-left: 240px;
           }
         }
         @media (max-width: 767px) {
-          .desktop-only {
+          #rv4-desktop-sidebar {
             display: none !important;
+          }
+          .rv4-mobile-drawer {
+            display: flex !important;
+          }
+          .rv4-content {
+            margin-left: 0 !important;
           }
         }
       `}</style>

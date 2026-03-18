@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
@@ -10,7 +9,6 @@ interface SubscriptionGuardProps {
 }
 
 export default function SubscriptionGuard({ children, feature }: SubscriptionGuardProps) {
-  const router = useRouter();
   const { data: session, status } = useSession();
   const [checking, setChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
@@ -28,23 +26,12 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
     try {
       const response = await fetch('/api/subscription/check', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: session!.user!.email!
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session!.user!.email! })
       });
-      
       const result = await response.json();
-      
-      if (result.success && result.data.hasAccess) {
-        setHasAccess(true);
-      } else {
-        setHasAccess(false);
-      }
-    } catch (err) {
-      console.error('[SubscriptionGuard] Failed to check subscription:', err);
+      setHasAccess(result.success && result.data.hasAccess);
+    } catch {
       setHasAccess(false);
     } finally {
       setChecking(false);
@@ -57,180 +44,108 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
 
   if (checking) {
     return (
-      <div className="vintage-container">
-        <div className="crt-monitor">
-          <div className="terminal-text terminal-text--green" style={{ fontSize: '1.5em', textAlign: 'center', padding: 'var(--space-xl)' }}>
-            CHECKING ACCESS<span className="vintage-loading"></span>
-          </div>
-        </div>
+      <div className="rv4-loading" style={{ minHeight: '300px' }}>
+        <div className="rv4-loading-dot" />
+        <div className="rv4-loading-dot" />
+        <div className="rv4-loading-dot" />
+        <span>CHECKING ACCESS</span>
       </div>
     );
   }
 
   if (!hasAccess) {
+    const featureBenefits = getFeatureBenefits(feature);
+
     return (
-      <div className="vintage-container">
-        <div className="crt-monitor" style={{ maxWidth: 'min(1200px, 95vw)', margin: '0 auto', width: '100%' }}>
-          {/* Locked Feature Banner */}
-          <div style={{ 
-            textAlign: 'center', 
-            padding: 'clamp(1.5rem, 4vw, 3rem)',
-            borderBottom: '2px solid rgba(255,165,0,0.3)'
-          }}>
-            <div style={{ fontSize: 'clamp(3em, 6vw, 4em)', marginBottom: 'var(--space-md)' }}>🔒</div>
-            <h1 className="terminal-text terminal-text--amber" style={{ 
-              fontSize: 'clamp(1.5rem, 3vw, 2.5rem)',
-              fontWeight: 'bold',
-              marginBottom: 'var(--space-sm)',
-              textTransform: 'uppercase',
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word',
-              hyphens: 'auto'
-            }}>
-              {feature} - PRO FEATURE
-            </h1>
-            <p className="terminal-text terminal-text--dim" style={{ 
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-              maxWidth: '800px',
-              margin: '0 auto',
-              lineHeight: '1.5'
-            }}>
-              Upgrade to AI Router PRO to unlock this feature
-            </p>
-          </div>
-
-          {/* Preview Section */}
-          <div style={{ 
-            padding: 'clamp(1.5rem, 4vw, 2.5rem)',
-            background: 'rgba(0,0,0,0.3)',
-            borderBottom: '1px solid rgba(0,255,65,0.2)'
-          }}>
-            <div className="terminal-text terminal-text--green" style={{ 
-              fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
-              fontWeight: 'bold',
-              marginBottom: 'var(--space-lg)',
-              textAlign: 'center'
-            }}>
-              What You'll Get:
+      <div className="rv4-body">
+        {/* Sticky upgrade banner */}
+        <div className="rv4-upgrade-sticky">
+          <div className="rv4-upgrade-sticky-msg">
+            <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--amber-warning)', fontWeight: 'bold' }}>[LOCKED]</span>
+            <div>
+              <div className="rv4-upgrade-sticky-title">{feature.toUpperCase()} — PRO FEATURE</div>
+              <div className="rv4-upgrade-sticky-sub">Upgrade to AI Router PRO to unlock this feature</div>
             </div>
-            
-            <div style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))',
-              gap: 'clamp(1rem, 2vw, 1.5rem)',
-              marginBottom: 'var(--space-xl)',
-              maxWidth: '1000px',
-              margin: '0 auto var(--space-xl)'
-            }}>
-              {getFeatureBenefits(feature).map((benefit, i) => (
-                <div key={i} className="control-panel" style={{ 
-                  padding: 'clamp(1rem, 2vw, 1.5rem)',
-                  textAlign: 'center',
-                  minHeight: '180px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center'
-                }}>
-                  <div style={{ fontSize: 'clamp(2em, 4vw, 2.5em)', marginBottom: 'var(--space-sm)' }}>{benefit.icon}</div>
-                  <div className="terminal-text terminal-text--green" style={{ 
-                    fontSize: 'clamp(0.9rem, 1.8vw, 1.1rem)',
-                    fontWeight: 'bold',
-                    marginBottom: 'var(--space-xs)',
-                    wordWrap: 'break-word'
-                  }}>
-                    {benefit.title}
-                  </div>
-                  <div className="terminal-text--dim" style={{ 
-                    fontSize: 'clamp(0.8rem, 1.5vw, 0.95rem)',
-                    lineHeight: '1.5',
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}>
-                    {benefit.description}
-                  </div>
+          </div>
+          <button onClick={handleUpgrade} className="rv4-ctrl-btn primary" style={{ padding: '8px 18px', fontSize: '11px' }}>
+            START FREE TRIAL →
+          </button>
+        </div>
+
+        {/* Hero CTA */}
+        <div className="rv4-upgrade-hero">
+          <div className="rv4-upgrade-hero-title">{feature.toUpperCase()} IS A PRO FEATURE</div>
+          <div className="rv4-upgrade-hero-sub">Upgrade to AI Router PRO to unlock this and all other Pro features</div>
+          <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
+          <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL — NO CREDIT CARD</div>
+          <button onClick={handleUpgrade} className="rv4-upgrade-cta">
+            Upgrade to PRO →
+          </button>
+          <div className="rv4-upgrade-fine-print">Cancel anytime • Instant access</div>
+        </div>
+
+        {/* Feature benefits */}
+        <div className="rv4-panel" style={{ marginBottom: '16px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">WHAT YOU'LL UNLOCK</span>
+          </div>
+          <div className="rv4-panel-body">
+            <div className="rv4-upgrade-benefits">
+              {featureBenefits.map((b, i) => (
+                <div key={i} className="rv4-upgrade-benefit">
+                  <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>→</div>
+                  <div className="rv4-upgrade-benefit-title">{b.title}</div>
+                  <div className="rv4-upgrade-benefit-desc">{b.description}</div>
                 </div>
               ))}
             </div>
-
-            {/* CTA */}
-            <div style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
-              <button 
-                onClick={handleUpgrade}
-                className="vintage-btn"
-                style={{ 
-                  fontSize: 'clamp(1rem, 2vw, 1.25rem)',
-                  padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.5rem)',
-                  background: 'linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim))',
-                  border: '2px solid var(--phosphor-green)',
-                  color: 'var(--terminal-black)',
-                  fontWeight: 'bold',
-                  boxShadow: '0 0 15px rgba(0,255,0,0.4)',
-                  textTransform: 'uppercase',
-                  width: '100%',
-                  maxWidth: '450px',
-                  margin: '0 auto',
-                  display: 'block'
-                }}
-              >
-                Upgrade to PRO →
-              </button>
-              <div className="terminal-text--dim" style={{ 
-                marginTop: 'var(--space-md)',
-                fontSize: 'clamp(0.8rem, 1.5vw, 0.95rem)'
-              }}>
-                $4.99/month • 7-Day Free Trial • Cancel Anytime
-              </div>
-            </div>
           </div>
+        </div>
 
-          {/* Value Props */}
-          <div style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)' }}>
-            <div className="terminal-text terminal-text--green" style={{ 
-              fontSize: 'clamp(1.125rem, 2.5vw, 1.375rem)',
-              fontWeight: 'bold',
-              marginBottom: 'var(--space-lg)',
-              textAlign: 'center'
-            }}>
-              Why Upgrade to PRO?
-            </div>
-            <div style={{ 
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))',
-              gap: 'clamp(0.75rem, 1.5vw, 1rem)',
-              maxWidth: '1000px',
-              margin: '0 auto'
-            }}>
+        {/* Why upgrade */}
+        <div className="rv4-panel" style={{ marginBottom: '16px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">WHY UPGRADE TO PRO?</span>
+          </div>
+          <div className="rv4-panel-body">
+            <div className="rv4-features-checklist">
               {[
-                '💰 Save 50-70% on AI costs with intelligent routing',
-                '🎯 Access to all AI models (GPT, Claude, Grok, Gemini)',
-                '📊 Real-time analytics and performance tracking',
-                '🔑 Unlimited universal API keys',
-                '⚡ Zero downtime with automatic failover',
-                '🔒 Secure provider key management',
-                '📈 Advanced cost optimization',
-                '🎛️ Custom routing preferences'
+                'Save 50-70% on AI costs with intelligent routing',
+                'Access all AI models (GPT, Claude, Grok, Gemini)',
+                'Real-time analytics and performance tracking',
+                'Unlimited universal API keys',
+                'Zero downtime with automatic failover',
+                'Secure provider key management',
+                'Advanced cost optimization',
+                'Custom routing preferences',
               ].map((item, i) => (
-                <div key={i} style={{ 
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 'var(--space-sm)',
-                  padding: 'clamp(0.5rem, 1.5vw, 0.75rem)',
-                  background: 'rgba(0,255,0,0.05)',
-                  borderRadius: '4px'
-                }}>
-                  <span style={{ fontSize: 'clamp(1.1em, 2vw, 1.3em)', flexShrink: 0 }}>{item.split(' ')[0]}</span>
-                  <span className="terminal-text--dim" style={{ 
-                    fontSize: 'clamp(0.8rem, 1.5vw, 0.95rem)',
-                    lineHeight: '1.5',
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word'
-                  }}>
-                    {item.substring(item.indexOf(' ') + 1)}
-                  </span>
+                <div key={i} className="rv4-feature-check">
+                  <span className="check">✓</span>
+                  <span>{item}</span>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Final CTA */}
+        <div style={{
+          background: 'rgba(255,176,0,0.06)', border: '2px solid var(--amber-warning)',
+          borderRadius: '3px', padding: '20px', textAlign: 'center', marginBottom: '16px',
+        }}>
+          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '6px' }}>
+            $4.99/month
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
+            7-Day Free Trial • No Credit Card • Cancel Anytime
+          </div>
+          <button onClick={handleUpgrade} className="rv4-upgrade-cta">
+            UNLOCK {feature.toUpperCase()} — START FREE TRIAL →
+          </button>
+        </div>
+
+        <div className="rv4-footer">
+          Powered by AI Stupid Meter • Real-time benchmarks • <a href="/">View Live Rankings</a>
         </div>
       </div>
     );
@@ -240,37 +155,37 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
 }
 
 function getFeatureBenefits(feature: string) {
-  const benefits: Record<string, Array<{icon: string, title: string, description: string}>> = {
+  const benefits: Record<string, Array<{ title: string; description: string }>> = {
     'API Keys': [
-      { icon: '🔑', title: 'Unlimited Keys', description: 'Create as many universal API keys as you need' },
-      { icon: '🔒', title: 'Secure Storage', description: 'AES-256 encryption for all keys' },
-      { icon: '📊', title: 'Usage Tracking', description: 'Monitor key usage and performance' }
+      { title: 'UNLIMITED KEYS', description: 'Create as many universal API keys as you need for any application' },
+      { title: 'SECURE STORAGE', description: 'AES-256 encryption protects all your keys at rest and in transit' },
+      { title: 'USAGE TRACKING', description: 'Monitor key usage, last used date, and performance metrics' },
     ],
     'Providers': [
-      { icon: '🔌', title: 'All Providers', description: 'Connect OpenAI, Anthropic, XAI, Google' },
-      { icon: '✅', title: 'Auto Validation', description: 'Automatic key validation and testing' },
-      { icon: '🔄', title: 'Smart Routing', description: 'Intelligent model selection' }
+      { title: 'ALL PROVIDERS', description: 'Connect OpenAI, Anthropic, xAI, Google, DeepSeek, GLM, Kimi' },
+      { title: 'AUTO VALIDATION', description: 'Automatic key validation tests connectivity and lists available models' },
+      { title: 'SMART ROUTING', description: 'Intelligent routing uses your keys for optimal model selection' },
     ],
     'Analytics': [
-      { icon: '📈', title: 'Full Analytics', description: 'Complete usage and cost tracking' },
-      { icon: '💰', title: 'Cost Insights', description: 'See exactly how much you save' },
-      { icon: '📊', title: 'Export Data', description: 'Export to CSV or JSON' }
+      { title: 'FULL ANALYTICS', description: 'Complete usage and cost tracking across all your API requests' },
+      { title: 'COST INSIGHTS', description: 'See exactly how much you save vs. worst-case pricing' },
+      { title: 'DATA EXPORT', description: 'Download your analytics data in CSV or JSON format anytime' },
     ],
     'Preferences': [
-      { icon: '⚙️', title: 'Custom Rules', description: 'Set your own routing preferences' },
-      { icon: '🎯', title: 'Model Selection', description: 'Choose preferred models' },
-      { icon: '💵', title: 'Cost Controls', description: 'Set budget limits and alerts' }
+      { title: 'CUSTOM RULES', description: 'Set your own routing strategy optimized for your use case' },
+      { title: 'MODEL SELECTION', description: 'Choose preferred models and exclude providers you don\'t want' },
+      { title: 'COST CONTROLS', description: 'Set budget limits, latency thresholds, and feature requirements' },
     ],
     'Intelligence': [
-      { icon: '🧠', title: 'Model Insights', description: 'Real-time performance data' },
-      { icon: '📊', title: 'Benchmarks', description: 'Access to 171+ benchmarks' },
-      { icon: '🔍', title: 'Comparisons', description: 'Compare models side-by-side' }
-    ]
+      { title: 'MODEL INSIGHTS', description: 'Real-time performance data from 171+ continuous benchmarks' },
+      { title: 'SIDE-BY-SIDE COMPARE', description: 'Compare up to 4 models with overlaid charts and detailed analytics' },
+      { title: 'DATA EXPORT', description: 'Download comprehensive model data in CSV or JSON format' },
+    ],
   };
 
   return benefits[feature] || [
-    { icon: '✨', title: 'Full Access', description: 'Unlock all features' },
-    { icon: '🚀', title: 'No Limits', description: 'Unlimited usage' },
-    { icon: '💎', title: 'Premium Support', description: 'Priority customer support' }
+    { title: 'FULL ACCESS', description: 'Unlock all features and capabilities of AI Router' },
+    { title: 'NO LIMITS', description: 'Unlimited usage with no rate limits or feature restrictions' },
+    { title: 'PREMIUM SUPPORT', description: 'Priority customer support with fast response times' },
   ];
 }

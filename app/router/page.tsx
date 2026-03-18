@@ -5,12 +5,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
 import DashboardPreview from '@/components/DashboardPreview';
-import PixelIcon from '@/components/PixelIcon';
-
-export const dynamic = 'force-dynamic';
-
 import { apiClient } from '@/lib/api-client';
 import type { AnalyticsOverview, RecentRequest, CostSavings } from '@/lib/api-client';
+
+export const dynamic = 'force-dynamic';
 
 function RouterDashboardContent() {
   const router = useRouter();
@@ -27,19 +25,15 @@ function RouterDashboardContent() {
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   useEffect(() => {
-    // Check if user just completed a subscription
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       setShowSuccessBanner(true);
-      // Clean up URL by removing session_id parameter
       const url = new URL(window.location.href);
       url.searchParams.delete('session_id');
       window.history.replaceState({}, '', url.pathname);
-      
-      // Auto-hide success banner after 10 seconds
       setTimeout(() => setShowSuccessBanner(false), 10000);
     }
-    
+
     if (status === 'authenticated' && session?.user?.email) {
       checkUserSubscription();
     } else if (status === 'unauthenticated') {
@@ -52,42 +46,25 @@ function RouterDashboardContent() {
   const checkUserSubscription = async () => {
     try {
       setCheckingSubscription(true);
-      
-      // Call API route to check subscription server-side
       const response = await fetch('/api/subscription/check', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: session!.user!.email!
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: session!.user!.email! })
       });
-      
       const result = await response.json();
-      
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to check subscription');
-      }
-      
-      const subscriptionStatus = result.data;
-      
-      if (!subscriptionStatus.hasAccess) {
-        // User doesn't have active subscription - show sales overlay
+      if (!response.ok || !result.success) throw new Error(result.error || 'Failed to check subscription');
+      if (!result.data.hasAccess) {
         setShowSalesOverlay(true);
         setHasAccess(false);
         setLoading(false);
         return;
       }
-      
-      // User has active subscription - proceed to load dashboard
       setHasAccess(true);
       if (session?.user?.id) {
         apiClient.setUserId(session.user.id);
         fetchDashboardData();
       }
     } catch (err) {
-      console.error('[Dashboard] Failed to check subscription:', err);
       setError('Failed to verify subscription status');
       setLoading(false);
     } finally {
@@ -99,25 +76,21 @@ function RouterDashboardContent() {
     try {
       setLoading(true);
       setError(null);
-
       const [overviewData, requestsData, savingsData] = await Promise.all([
         apiClient.getAnalyticsOverview(),
         apiClient.getRecentRequests(5, 0),
         apiClient.getCostSavings().catch(() => null)
       ]);
-
       setOverview(overviewData);
       setRecentRequests(requestsData.requests);
       setCostSavings(savingsData);
     } catch (err) {
-      console.error('[Dashboard] Failed to fetch dashboard data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Show dashboard preview for non-subscribers
   if (showSalesOverlay && !hasAccess) {
     return (
       <RouterLayout>
@@ -126,15 +99,17 @@ function RouterDashboardContent() {
     );
   }
 
-  if (loading && !overview) {
+  if (checkingSubscription || (loading && !overview)) {
     return (
       <RouterLayout>
-        <div className="vintage-container">
-          <div className="dashboard-loading">
-            <div className="terminal-text terminal-text--green" style={{ fontSize: '1.5em', textAlign: 'center' }}>
-              LOADING DASHBOARD<span className="vintage-loading"></span>
-            </div>
+        <div className="rv4-page-header">
+          <div className="rv4-page-header-left">
+            <div className="rv4-page-title">AI SMART ROUTER<span className="blinking-cursor"></span></div>
           </div>
+        </div>
+        <div className="rv4-loading" style={{ minHeight: '300px' }}>
+          <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+          <span>LOADING DASHBOARD</span>
         </div>
       </RouterLayout>
     );
@@ -149,398 +124,230 @@ function RouterDashboardContent() {
 
   return (
     <RouterLayout>
-      <div className="vintage-container">
-        {/* Success Banner */}
-        {showSuccessBanner && (
-          <div className="savings-banner" style={{ marginBottom: '20px' }}>
-            <div className="terminal-text">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <PixelIcon name="check" size={32} />
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div className="terminal-text--green" style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                    SUBSCRIPTION ACTIVATED!
-                  </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                    Welcome to AI Router Pro • Your 7-day trial has started • Full access unlocked
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowSuccessBanner(false)} 
-                  className="vintage-btn vintage-btn--sm"
-                  style={{ fontSize: '0.85em' }}
-                >
-                  DISMISS
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Error Banner */}
-        {error && (
-          <div className="error-banner">
-            <div className="terminal-text">
-              <div className="terminal-text--red" style={{ fontSize: '1em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <PixelIcon name="warning" size={18} />
-                CONNECTION ERROR
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '8px' }}>
-                {error}
-              </div>
-              <button onClick={fetchDashboardData} className="vintage-btn vintage-btn--danger" style={{ fontSize: '0.85em' }}>
-                RETRY
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Header Section */}
-        <div className="dashboard-header">
+      {/* Page header */}
+      <div className="rv4-page-header">
+        <div className="rv4-page-header-left">
           <div>
-            <h1 className="dashboard-title">
-              <span className="terminal-text--green">AI SMART ROUTER</span>
-              <span className="blinking-cursor"></span>
-            </h1>
-            <p className="dashboard-subtitle terminal-text--dim">
-              Intelligent Model Selection Powered by Real-Time Benchmarks • Save 50-70% on AI Costs
-            </p>
+            <div className="rv4-page-title">AI SMART ROUTER<span className="blinking-cursor"></span></div>
+            <div className="rv4-page-title-sub">Intelligent Model Selection • Save 50-70% on AI Costs</div>
           </div>
-          <div className="dashboard-status">
-            {loading ? (
-              <span className="terminal-text--amber">
-                <PixelIcon name="hourglass" size={16} style={{ marginRight: '6px' }} />
-                LOADING<span className="vintage-loading"></span>
-              </span>
-            ) : error ? (
-              <span className="terminal-text--red">
-                <PixelIcon name="warning" size={16} style={{ marginRight: '6px' }} />
-                ERROR
-              </span>
-            ) : (
-              <span className="terminal-text--green">
-                <span className="status-led status-led--green"></span> ONLINE
-              </span>
-            )}
+        </div>
+        <div className="rv4-page-header-right">
+          {loading ? (
+            <span className="rv4-badge amber">REFRESHING</span>
+          ) : error ? (
+            <span className="rv4-badge red">ERROR</span>
+          ) : (
+            <span className="rv4-badge green">● ONLINE</span>
+          )}
+          <button onClick={fetchDashboardData} className="rv4-ctrl-btn" title="Refresh">↺</button>
+        </div>
+      </div>
+
+      <div className="rv4-body">
+        {/* Success banner */}
+        {showSuccessBanner && (
+          <div className="rv4-success-banner" style={{ marginBottom: '14px' }}>
+            <span>✓</span>
+            <div>
+              <strong>SUBSCRIPTION ACTIVATED</strong>
+              <span style={{ fontWeight: 'normal', marginLeft: '8px', opacity: 0.8 }}>Welcome to AI Router Pro • 7-day trial started • Full access unlocked</span>
+            </div>
+            <button onClick={() => setShowSuccessBanner(false)} className="rv4-ctrl-btn" style={{ marginLeft: 'auto', fontSize: '10px' }}>×</button>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {error && (
+          <div className="rv4-error-banner" style={{ marginBottom: '14px' }}>
+            <span>⚠</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>CONNECTION ERROR</div>
+              <div style={{ fontSize: '10px' }}>{error}</div>
+            </div>
+            <button onClick={fetchDashboardData} className="rv4-ctrl-btn danger" style={{ marginLeft: 'auto', fontSize: '10px' }}>RETRY</button>
+          </div>
+        )}
+
+        {/* KPI stat bar */}
+        <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '16px' }}>
+          <div className="rv4-stat-cell accent-green">
+            <div className="rv4-stat-label">Total Requests</div>
+            {loading ? <div className="rv4-stat-value" style={{ opacity: 0.4 }}>...</div>
+              : <div className="rv4-stat-value">{stats?.totalRequests.toLocaleString() || '0'}</div>}
+          </div>
+          <div className="rv4-stat-cell accent-amber">
+            <div className="rv4-stat-label">Total Cost</div>
+            {loading ? <div className="rv4-stat-value amber" style={{ opacity: 0.4 }}>...</div>
+              : <div className="rv4-stat-value amber">${stats?.totalCost || '0.00'}</div>}
+          </div>
+          <div className="rv4-stat-cell accent-green">
+            <div className="rv4-stat-label">Success Rate</div>
+            {loading ? <div className="rv4-stat-value" style={{ opacity: 0.4 }}>...</div>
+              : <div className="rv4-stat-value">{stats?.successRate || '0%'}</div>}
+          </div>
+          <div className="rv4-stat-cell accent-blue">
+            <div className="rv4-stat-label">Total Tokens</div>
+            {loading ? <div className="rv4-stat-value blue" style={{ opacity: 0.4 }}>...</div>
+              : <div className="rv4-stat-value blue">{stats?.totalTokens.toLocaleString() || '0'}</div>}
           </div>
         </div>
 
-        {/* Key Metrics - Compact Cards */}
-        <div className="metrics-grid">
-          <MetricCard
-            label="Total Requests"
-            value={stats?.totalRequests.toLocaleString() || '0'}
-            iconName="chart"
-            color="green"
-            loading={loading}
-          />
-          <MetricCard
-            label="Total Cost"
-            value={`$${stats?.totalCost || '0.00'}`}
-            iconName="money"
-            color="amber"
-            loading={loading}
-          />
-          <MetricCard
-            label="Success Rate"
-            value={stats?.successRate || '0%'}
-            iconName="check"
-            color="green"
-            loading={loading}
-          />
-          <MetricCard
-            label="Total Tokens"
-            value={stats?.totalTokens.toLocaleString() || '0'}
-            iconName="numbers"
-            color="green"
-            loading={loading}
-          />
-        </div>
-
-        {/* Cost Savings Highlight */}
+        {/* Cost savings highlight */}
         {costSavings && parseFloat(costSavings.savings) > 0 && (
-          <div className="savings-banner">
-            <div className="terminal-text">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                <PixelIcon name="diamond" size={32} />
-                <div style={{ flex: 1, minWidth: '200px' }}>
-                  <div className="terminal-text--green" style={{ fontSize: '1.2em', fontWeight: 'bold' }}>
-                    COST SAVINGS: ${costSavings.savings}
-                  </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                    {costSavings.savingsPercentage} saved vs. worst case • {costSavings.totalRequests} requests
-                  </div>
-                </div>
-              </div>
+          <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
+            <span className="rv4-info-banner-icon" style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}>[SAVED]</span>
+            <div className="rv4-info-banner-content">
+              <div className="rv4-info-banner-title">COST SAVINGS: ${costSavings.savings}</div>
+              <div className="rv4-info-banner-text">{costSavings.savingsPercentage} saved vs. worst case • {costSavings.totalRequests} requests processed</div>
             </div>
           </div>
         )}
 
-        {/* Two Column Layout */}
-        <div className="dashboard-columns">
-          {/* Left Column - Recent Activity */}
-          <div className="dashboard-column">
-            <div className="section-card">
-              <div className="section-header">
-                <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PixelIcon name="list" size={20} />
-                  RECENT ACTIVITY
-                </span>
-                <a href="/router/analytics" className="vintage-btn vintage-btn--sm">
-                  VIEW ALL →
-                </a>
-              </div>
-              
+        {/* Two column layout */}
+        <div className="rv4-cols-2">
+          {/* Recent Activity */}
+          <div className="rv4-panel">
+            <div className="rv4-panel-header">
+              <span className="rv4-panel-title">RECENT ACTIVITY</span>
+              <a href="/router/analytics" className="rv4-ctrl-btn" style={{ fontSize: '10px', textDecoration: 'none' }}>VIEW ALL →</a>
+            </div>
+            <div className="rv4-panel-body" style={{ padding: 0 }}>
               {loading ? (
-                <div className="activity-loading">
-                  <div className="terminal-text--dim">LOADING<span className="vintage-loading"></span></div>
+                <div className="rv4-loading" style={{ padding: '24px' }}>
+                  <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
                 </div>
               ) : recentRequests.length > 0 ? (
-                <div className="activity-list">
-                  {recentRequests.map((request) => (
-                    <div key={request.id} className="activity-item">
-                      <div className="activity-status">
-                        {request.success ? (
-                          <PixelIcon name="check" size={16} className="terminal-text--green" />
-                        ) : (
-                          <PixelIcon name="close" size={16} className="terminal-text--red" />
-                        )}
+                <div className="rv4-activity-list">
+                  {recentRequests.map((req) => (
+                    <div key={req.id} className="rv4-activity-item">
+                      <div className="rv4-activity-status">
+                        {req.success
+                          ? <span style={{ color: 'var(--phosphor-green)', fontSize: '12px', fontWeight: 'bold' }}>✓</span>
+                          : <span style={{ color: 'var(--red-alert)', fontSize: '12px', fontWeight: 'bold' }}>✗</span>}
                       </div>
-                      <div className="activity-details">
-                        <div className="activity-model terminal-text--green">
-                          {request.model}
-                        </div>
-                        <div className="activity-meta terminal-text--dim">
-                          {request.provider} • {request.tokensIn + request.tokensOut} tokens • ${request.cost} • {request.latency}ms
-                        </div>
+                      <div className="rv4-activity-model">
+                        <div className="rv4-activity-model-name">{req.model}</div>
+                        <div className="rv4-activity-meta">{req.provider} • {req.tokensIn + req.tokensOut} tokens • {req.latency}ms</div>
                       </div>
+                      <div className="rv4-activity-cost">${req.cost}</div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="activity-empty">
-                  <div className="terminal-text--dim" style={{ textAlign: 'center' }}>
-                    No activity yet<br/>
-                    Start making requests to see your activity here
-                  </div>
+                <div className="rv4-empty" style={{ padding: '32px 16px' }}>
+                  <div className="rv4-empty-title">NO ACTIVITY YET</div>
+                  <div className="rv4-empty-text">Start making requests to see your activity here</div>
                 </div>
               )}
             </div>
+          </div>
 
+          {/* Right column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Provider Breakdown */}
             {overview && overview.providers.length > 0 && (
-              <div className="section-card">
-                <div className="section-header">
-                  <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <PixelIcon name="plug" size={20} />
-                    PROVIDER USAGE
-                  </span>
+              <div className="rv4-panel">
+                <div className="rv4-panel-header">
+                  <span className="rv4-panel-title">PROVIDER USAGE</span>
                 </div>
-                <div className="provider-list">
-                  {overview.providers.map((provider) => (
-                    <div key={provider.provider} className="provider-item">
-                      <div className="provider-info">
-                        <span className="terminal-text--green">{provider.provider.toUpperCase()}</span>
-                        <span className="terminal-text--dim">{provider.requests} requests</span>
+                <div className="rv4-panel-body">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {overview.providers.map((provider) => {
+                      const pct = parseFloat(provider.percentage);
+                      return (
+                        <div key={provider.provider}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase' }}>{provider.provider}</span>
+                            <span style={{ fontSize: '10px', color: 'var(--amber-warning)' }}>${provider.totalCost}</span>
+                          </div>
+                          <div className="rv4-progress">
+                            <div className="rv4-progress-fill green" style={{ width: `${pct}%` }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                            <span style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>{provider.requests} requests</span>
+                            <span style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>{provider.percentage}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="rv4-panel">
+              <div className="rv4-panel-header">
+                <span className="rv4-panel-title">QUICK ACTIONS</span>
+              </div>
+              <div className="rv4-panel-body">
+                <div className="rv4-actions-grid">
+                  {[
+                    { title: 'API KEYS', desc: 'Manage universal keys', href: '/router/keys' },
+                    { title: 'PROVIDERS', desc: 'Connect AI providers', href: '/router/providers' },
+                    { title: 'PREFERENCES', desc: 'Configure routing', href: '/router/preferences' },
+                    { title: 'ANALYTICS', desc: 'View statistics', href: '/router/analytics' },
+                  ].map((a) => (
+                    <a key={a.href} href={a.href} className="rv4-action-btn">
+                      <div>
+                        <div className="rv4-action-btn-title">{a.title}</div>
+                        <div className="rv4-action-btn-desc">{a.desc}</div>
                       </div>
-                      <div className="provider-stats">
-                        <span className="terminal-text--amber">${provider.totalCost}</span>
-                        <span className="terminal-text--dim">{provider.percentage}</span>
+                      <span style={{ marginLeft: 'auto', color: 'var(--phosphor-dim)', fontSize: '12px', flexShrink: 0 }}>→</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Smart routing features */}
+            <div className="rv4-panel">
+              <div className="rv4-panel-header">
+                <span className="rv4-panel-title">SMART ROUTING FEATURES</span>
+              </div>
+              <div className="rv4-panel-body">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { title: 'LIVE BENCHMARK DATA', desc: 'Real-time performance data from AI Stupid Meter 7-axis testing' },
+                    { title: '6 ROUTING STRATEGIES', desc: 'Best Overall, Coding, Reasoning, Creative, Cheapest, or Fastest' },
+                    { title: 'COST OPTIMIZATION', desc: 'Save 50-70% by auto-selecting cost-effective models' },
+                    { title: 'AUTO FAILOVER', desc: 'Zero downtime with intelligent fallback to alternatives' },
+                  ].map((f, i) => (
+                    <div key={i} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: i < 3 ? '1px solid rgba(192,192,192,0.08)' : 'none' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--phosphor-green)', flexShrink: 0, marginTop: '1px' }}>→</span>
+                      <div>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{f.title}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{f.desc}</div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Right Column - Quick Actions & Info */}
-          <div className="dashboard-column">
-            <div className="section-card">
-              <div className="section-header">
-                <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PixelIcon name="lightning" size={20} />
-                  QUICK ACTIONS
-                </span>
-              </div>
-              <div className="actions-grid">
-                <ActionButton
-                  title="API Keys"
-                  description="Manage universal keys"
-                  iconName="key"
-                  href="/router/keys"
-                />
-                <ActionButton
-                  title="Providers"
-                  description="Connect AI providers"
-                  iconName="plug"
-                  href="/router/providers"
-                />
-                <ActionButton
-                  title="Preferences"
-                  description="Configure routing"
-                  iconName="settings"
-                  href="/router/preferences"
-                />
-                <ActionButton
-                  title="Analytics"
-                  description="View statistics"
-                  iconName="analytics"
-                  href="/router/analytics"
-                />
-              </div>
-            </div>
-
-            {/* Features */}
-            <div className="section-card">
-              <div className="section-header">
-                <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <PixelIcon name="sparkles" size={20} />
-                  SMART ROUTING FEATURES
-                </span>
-              </div>
-              <div className="features-list">
-                <FeatureItem
-                  iconName="target"
-                  title="Live Benchmark Data"
-                  description="Uses real-time performance data from AI Stupid Meter's 7-axis testing"
-                />
-                <FeatureItem
-                  iconName="brain"
-                  title="6 Routing Strategies"
-                  description="Best Overall, Coding, Reasoning, Creative, Cheapest, or Fastest"
-                />
-                <FeatureItem
-                  iconName="money"
-                  title="Cost Optimization"
-                  description="Save 50-70% on AI costs by auto-selecting cost-effective models"
-                />
-                <FeatureItem
-                  iconName="refresh"
-                  title="Automatic Failover"
-                  description="Zero downtime with intelligent fallback to alternative models"
-                />
-                <FeatureItem
-                  iconName="settings"
-                  title="Custom Constraints"
-                  description="Set max cost, latency limits, and feature requirements"
-                />
-                <FeatureItem
-                  iconName="chart"
-                  title="Performance Tracking"
-                  description="Monitor usage, costs, and savings across all your requests"
-                />
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="dashboard-footer">
-          <div className="terminal-text--dim">
-            Powered by AI Stupid Meter • Real-time model intelligence from 16+ models tested every 4 hours • <a href="/" className="footer-link">View Live Rankings</a>
-          </div>
+        <div className="rv4-footer">
+          Powered by AI Stupid Meter • Real-time model intelligence from 16+ models tested every 4 hours • <a href="/">View Live Rankings</a>
         </div>
       </div>
     </RouterLayout>
   );
 }
 
-// Compact Metric Card Component
-function MetricCard({ 
-  label, 
-  value, 
-  iconName, 
-  color,
-  loading 
-}: { 
-  label: string; 
-  value: string; 
-  iconName: string; 
-  color: 'green' | 'amber' | 'red';
-  loading?: boolean;
-}) {
-  const colorClass = 
-    color === 'green' ? 'terminal-text--green' :
-    color === 'amber' ? 'terminal-text--amber' : 'terminal-text--red';
-
-  return (
-    <div className="metric-card">
-      <div className="metric-icon">
-        <PixelIcon name={iconName} size={24} />
-      </div>
-      <div className="metric-content">
-        <div className="metric-label terminal-text--dim">{label}</div>
-        {loading ? (
-          <div className="metric-value terminal-text--dim">
-            <span className="vintage-loading"></span>
-          </div>
-        ) : (
-          <div className={`metric-value ${colorClass}`}>{value}</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Action Button Component
-function ActionButton({ 
-  title, 
-  description, 
-  iconName, 
-  href 
-}: { 
-  title: string; 
-  description: string; 
-  iconName: string; 
-  href: string;
-}) {
-  return (
-    <a href={href} className="action-button">
-      <div className="action-icon">
-        <PixelIcon name={iconName} size={24} />
-      </div>
-      <div className="action-content">
-        <div className="action-title terminal-text--green">{title}</div>
-        <div className="action-description terminal-text--dim">{description}</div>
-      </div>
-    </a>
-  );
-}
-
-// Feature Item Component
-function FeatureItem({ 
-  iconName, 
-  title, 
-  description 
-}: { 
-  iconName: string; 
-  title: string; 
-  description: string;
-}) {
-  return (
-    <div className="feature-item">
-      <div className="feature-icon">
-        <PixelIcon name={iconName} size={24} />
-      </div>
-      <div className="feature-content">
-        <div className="feature-title terminal-text--green">{title}</div>
-        <div className="feature-description terminal-text--dim">{description}</div>
-      </div>
-    </div>
-  );
-}
-
-// Wrapper component with Suspense boundary
 export default function RouterDashboard() {
   return (
     <Suspense fallback={
       <RouterLayout>
-        <div className="vintage-container">
-          <div className="dashboard-loading">
-            <div className="terminal-text terminal-text--green" style={{ fontSize: '1.5em', textAlign: 'center' }}>
-              LOADING DASHBOARD<span className="vintage-loading"></span>
-            </div>
+        <div className="rv4-page-header">
+          <div className="rv4-page-header-left">
+            <div className="rv4-page-title">AI SMART ROUTER<span className="blinking-cursor"></span></div>
           </div>
+        </div>
+        <div className="rv4-loading" style={{ minHeight: '300px' }}>
+          <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+          <span>LOADING</span>
         </div>
       </RouterLayout>
     }>

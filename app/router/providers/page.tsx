@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import PixelIcon from '@/components/PixelIcon';
 import ProviderLogo from '@/components/ProviderLogo';
 import { apiClient } from '@/lib/api-client';
 import type { ProviderKey } from '@/lib/api-client';
@@ -12,62 +11,13 @@ import type { ProviderKey } from '@/lib/api-client';
 type Provider = 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
 
 const PROVIDERS = [
-  {
-    id: 'openai' as Provider,
-    name: 'OpenAI',
-    iconName: 'computer',
-    description: 'GPT-4o, GPT-4o-mini, GPT-5 Codex, o1, o1-mini',
-    keyFormat: 'sk-proj-...',
-    docsUrl: 'platform.openai.com/api-keys',
-  },
-  {
-    id: 'anthropic' as Provider,
-    name: 'Anthropic',
-    iconName: 'brain',
-    description: 'Claude Sonnet 4, Claude Opus 4, Claude 3.5',
-    keyFormat: 'sk-ant-...',
-    docsUrl: 'console.anthropic.com/settings/keys',
-  },
-  {
-    id: 'xai' as Provider,
-    name: 'XAI',
-    iconName: 'lightning',
-    description: 'Grok 4 Latest, Grok 2 Latest, Grok Code Fast 1',
-    keyFormat: 'xai-...',
-    docsUrl: 'console.x.ai/api-keys',
-  },
-  {
-    id: 'google' as Provider,
-    name: 'Google',
-    iconName: 'star',
-    description: 'Gemini 2.5 Pro/Flash, Gemini 1.5 Pro/Flash',
-    keyFormat: 'AIza...',
-    docsUrl: 'console.cloud.google.com/apis/credentials',
-  },
-  {
-    id: 'glm' as Provider,
-    name: 'GLM',
-    iconName: 'chip',
-    description: 'GLM-4.6 - Advanced Chinese language model with 128K context',
-    keyFormat: 'API key format varies',
-    docsUrl: 'open.bigmodel.cn/pricing',
-  },
-  {
-    id: 'deepseek' as Provider,
-    name: 'DeepSeek',
-    iconName: 'search',
-    description: 'DeepSeek R1, V3 - Reasoning and MoE models with off-peak pricing',
-    keyFormat: 'API key format varies',
-    docsUrl: 'api-docs.deepseek.com',
-  },
-  {
-    id: 'kimi' as Provider,
-    name: 'Kimi',
-    iconName: 'moon',
-    description: 'Moonshot K2 - 1T parameter MoE model with vision support',
-    keyFormat: 'API key format varies',
-    docsUrl: 'platform.moonshot.ai/docs/guide/start-using-kimi-api',
-  },
+  { id: 'openai' as Provider, name: 'OpenAI', desc: 'GPT-4o, GPT-5, o1, o3 models', keyFormat: 'sk-proj-...', docsUrl: 'platform.openai.com/api-keys', dot: '#10a37f' },
+  { id: 'anthropic' as Provider, name: 'Anthropic', desc: 'Claude Sonnet 4, Opus 4, Haiku 4', keyFormat: 'sk-ant-...', docsUrl: 'console.anthropic.com/settings/keys', dot: '#d97706' },
+  { id: 'xai' as Provider, name: 'xAI', desc: 'Grok 4, Grok 2, Grok Code Fast', keyFormat: 'xai-...', docsUrl: 'console.x.ai/api-keys', dot: '#000000' },
+  { id: 'google' as Provider, name: 'Google', desc: 'Gemini 2.5 Pro/Flash/Flash-Lite', keyFormat: 'AIza...', docsUrl: 'console.cloud.google.com/apis/credentials', dot: '#4285f4' },
+  { id: 'glm' as Provider, name: 'GLM', desc: 'GLM-4.6 — 128K context Chinese model', keyFormat: 'API key varies', docsUrl: 'open.bigmodel.cn/pricing', dot: '#6366f1' },
+  { id: 'deepseek' as Provider, name: 'DeepSeek', desc: 'DeepSeek R1, V3 — Reasoning & MoE', keyFormat: 'API key varies', docsUrl: 'api-docs.deepseek.com', dot: '#0ea5e9' },
+  { id: 'kimi' as Provider, name: 'Kimi', desc: 'Moonshot K2 — 1T parameter MoE', keyFormat: 'API key varies', docsUrl: 'platform.moonshot.ai/docs', dot: '#8b5cf6' },
 ];
 
 export default function RouterProvidersPage() {
@@ -79,11 +29,7 @@ export default function RouterProvidersPage() {
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<{
-    success: boolean;
-    message: string;
-    models?: string[];
-  } | null>(null);
+  const [validationResult, setValidationResult] = useState<{ success: boolean; message: string; models?: string[] } | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
@@ -102,50 +48,26 @@ export default function RouterProvidersPage() {
       const response = await apiClient.getProviderKeys();
       setProviderKeys(response.keys);
     } catch (err) {
-      console.error('Failed to fetch provider keys:', err);
       setError(err instanceof Error ? err.message : 'Failed to load provider keys');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddProvider = (provider: Provider) => {
-    setSelectedProvider(provider);
-    setShowAddModal(true);
-    setValidationResult(null);
-  };
-
   const handleSaveKey = async () => {
     if (!selectedProvider || !apiKey.trim()) return;
-
     try {
       setIsValidating(true);
       setValidationResult(null);
-
       const response = await apiClient.addProviderKey(selectedProvider, apiKey.trim());
       const validation = await apiClient.validateProviderKey(response.keyId);
-      
-      setValidationResult({
-        success: validation.valid,
-        message: validation.message,
-        models: validation.models,
-      });
-
+      setValidationResult({ success: validation.valid, message: validation.message, models: validation.models });
       if (validation.valid) {
         await fetchProviderKeys();
-        setTimeout(() => {
-          setShowAddModal(false);
-          setSelectedProvider(null);
-          setApiKey('');
-          setValidationResult(null);
-        }, 2000);
+        setTimeout(() => { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); }, 2000);
       }
     } catch (err) {
-      console.error('Failed to add provider key:', err);
-      setValidationResult({
-        success: false,
-        message: err instanceof Error ? err.message : 'Failed to add key',
-      });
+      setValidationResult({ success: false, message: err instanceof Error ? err.message : 'Failed to add key' });
     } finally {
       setIsValidating(false);
     }
@@ -154,370 +76,215 @@ export default function RouterProvidersPage() {
   const handleValidateKey = async (keyId: number) => {
     try {
       const validation = await apiClient.validateProviderKey(keyId);
-      
       if (validation.valid) {
-        alert(`✅ Key is valid!\n\n${validation.modelsAvailable} models available`);
+        alert(`✓ Key is valid!\n\n${validation.modelsAvailable} models available`);
         await fetchProviderKeys();
       } else {
-        alert(`❌ Key validation failed:\n\n${validation.message}`);
+        alert(`✗ Key validation failed:\n\n${validation.message}`);
       }
     } catch (err) {
-      console.error('Failed to validate key:', err);
       alert(`Failed to validate key: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
   const handleDeleteKey = async (keyId: number) => {
-    if (!confirm('Are you sure you want to delete this provider key? This action cannot be undone.')) {
-      return;
-    }
-
+    if (!confirm('Are you sure you want to delete this provider key? This action cannot be undone.')) return;
     try {
       await apiClient.deleteProviderKey(keyId);
       await fetchProviderKeys();
-      alert('Provider key deleted successfully');
     } catch (err) {
-      console.error('Failed to delete key:', err);
       alert(`Failed to delete key: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  const getProviderInfo = (providerId: Provider) => {
-    return PROVIDERS.find(p => p.id === providerId);
-  };
-
-  const hasProvider = (providerId: Provider) => {
-    return providerKeys.some(k => k.provider === providerId);
-  };
-
+  const hasProvider = (id: Provider) => providerKeys.some(k => k.provider === id);
+  const getProviderKey = (id: Provider) => providerKeys.find(k => k.provider === id);
+  const selectedProviderInfo = PROVIDERS.find(p => p.id === selectedProvider);
   const connectedCount = providerKeys.length;
 
   return (
     <RouterLayout>
       <SubscriptionGuard feature="Providers">
-      <div className="vintage-container">
-        {/* Header */}
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <PixelIcon name="plug" size={28} className="terminal-text--green" />
-            <span className="terminal-text--green">PROVIDER API KEYS</span>
-            <span className="blinking-cursor"></span>
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-            Connect your AI provider accounts to enable intelligent routing
-          </div>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="crt-monitor" style={{ borderColor: 'var(--red-alert)', backgroundColor: 'rgba(255, 45, 0, 0.05)' }}>
-          <div className="terminal-text">
-            <div className="terminal-text--red" style={{ fontSize: '1.2em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PixelIcon name="warning" size={20} />
-              SYSTEM ERROR
-            </div>
-            <div className="terminal-text--dim" style={{ marginBottom: '12px' }}>
-              {error}
-            </div>
-            <button onClick={fetchProviderKeys} className="vintage-btn vintage-btn--danger">
-              RETRY
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Info Banner */}
-      <div className="crt-monitor" style={{ borderColor: 'var(--phosphor-green)', backgroundColor: 'rgba(0, 255, 65, 0.05)' }}>
-        <div className="terminal-text">
-          <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PixelIcon name="info" size={20} />
-            HOW PROVIDER KEYS WORK
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
-            Add your API keys from different providers. The router will automatically select 
-            the best-performing model from your available providers for each request. Your keys 
-            are encrypted and stored securely.
-          </div>
-        </div>
-      </div>
-
-      {/* Available Providers */}
-      <div className="crt-monitor">
-        <div className="terminal-text" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '1.2em', marginBottom: '12px' }}>
-            <span className="terminal-text--green">
-              {loading ? 'LOADING...' : `AVAILABLE PROVIDERS (${connectedCount}/${PROVIDERS.length} CONNECTED)`}
-            </span>
-          </div>
-        </div>
-        
-        {loading ? (
-          <div className="terminal-text" style={{ textAlign: 'center', padding: '24px' }}>
-            <div className="terminal-text--amber">
-              LOADING PROVIDERS<span className="vintage-loading"></span>
+        {/* Page header */}
+        <div className="rv4-page-header">
+          <div className="rv4-page-header-left">
+            <span style={{ fontSize: '18px' }}>🔌</span>
+            <div>
+              <div className="rv4-page-title">PROVIDER API KEYS<span className="blinking-cursor"></span></div>
+              <div className="rv4-page-title-sub">Connect your AI provider accounts to enable intelligent routing</div>
             </div>
           </div>
-        ) : (
-          <div className="vintage-grid">
-            {PROVIDERS.map((provider) => {
-              const isConnected = hasProvider(provider.id);
-              const providerKey = providerKeys.find(k => k.provider === provider.id);
-              
-              return (
-                <div key={provider.id} className="control-panel" style={{
-                  borderColor: isConnected ? 'var(--phosphor-green)' : 'var(--metal-silver)',
-                  backgroundColor: isConnected ? 'rgba(0, 255, 65, 0.05)' : 'rgba(0, 0, 0, 0.2)'
-                }}>
-                  <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-                    <div style={{ marginBottom: '8px', color: 'var(--phosphor-green)' }}>
-                      <ProviderLogo provider={provider.id} size={48} className="terminal-text--green" />
-                    </div>
-                    <div className="terminal-text--green" style={{ fontSize: '1.2em', fontWeight: 'bold', marginBottom: '4px' }}>
-                      {provider.name}
-                    </div>
-                    {isConnected && (
-                      <span style={{
-                        backgroundColor: 'var(--phosphor-green)',
-                        color: 'var(--terminal-black)',
-                        fontSize: '0.7em',
-                        fontWeight: 'bold',
-                        padding: '2px 8px',
-                        borderRadius: '2px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}>
-                        <PixelIcon name="check" size={12} />
-                        CONNECTED
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginBottom: '12px', textAlign: 'center' }}>
-                    {provider.description}
-                  </div>
-                  
-                  {isConnected && providerKey ? (
-                    <>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginBottom: '8px', textAlign: 'center' }}>
-                        ADDED: {new Date(providerKey.createdAt).toLocaleDateString()}<br/>
-                        {providerKey.lastValidated && `VALIDATED: ${new Date(providerKey.lastValidated).toLocaleDateString()}`}
+          <div className="rv4-page-header-right">
+            <span className="rv4-badge green">{loading ? '...' : `${connectedCount}/${PROVIDERS.length}`} CONNECTED</span>
+          </div>
+        </div>
+
+        <div className="rv4-body">
+          {error && (
+            <div className="rv4-error-banner" style={{ marginBottom: '14px' }}>
+              <span>⚠</span>
+              <div style={{ flex: 1 }}><div style={{ fontWeight: 'bold', marginBottom: '2px' }}>ERROR</div><div style={{ fontSize: '10px' }}>{error}</div></div>
+              <button onClick={fetchProviderKeys} className="rv4-ctrl-btn danger" style={{ marginLeft: 'auto', fontSize: '10px' }}>RETRY</button>
+            </div>
+          )}
+
+          {/* How it works */}
+          <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
+            <span className="rv4-info-banner-icon">ℹ</span>
+            <div className="rv4-info-banner-content">
+              <div className="rv4-info-banner-title">HOW PROVIDER KEYS WORK</div>
+              <div className="rv4-info-banner-text">
+                Add your API keys from different providers. The router will automatically select the best-performing
+                model from your available providers for each request. Your keys are encrypted with AES-256-GCM.
+              </div>
+            </div>
+          </div>
+
+          {/* Providers grid */}
+          <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+            <div className="rv4-panel-header">
+              <span className="rv4-panel-title">🔌 AVAILABLE PROVIDERS</span>
+            </div>
+            <div className="rv4-panel-body">
+              {loading ? (
+                <div className="rv4-loading">
+                  <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+                  <span>LOADING PROVIDERS</span>
+                </div>
+              ) : (
+                <div className="rv4-provider-grid">
+                  {PROVIDERS.map((prov) => {
+                    const connected = hasProvider(prov.id);
+                    const key = getProviderKey(prov.id);
+                    return (
+                      <div key={prov.id} className={`rv4-provider-card${connected ? ' connected' : ''}`}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: 'rgba(0,0,0,0.4)', border: `1px solid ${connected ? 'rgba(0,255,65,0.3)' : 'rgba(192,192,192,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                          <ProviderLogo provider={prov.id} size={24} className="terminal-text--green" />
+                        </div>
+                        <div className="rv4-provider-card-name">{prov.name}</div>
+                        {connected && <span className="rv4-badge green" style={{ fontSize: '8px' }}>✓ CONNECTED</span>}
+                        <div className="rv4-provider-card-desc">{prov.desc}</div>
+                        {connected && key ? (
+                          <>
+                            <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', marginTop: '4px' }}>
+                              Added: {new Date(key.createdAt).toLocaleDateString()}
+                              {key.lastValidated && <><br />Validated: {new Date(key.lastValidated).toLocaleDateString()}</>}
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', marginTop: '8px', width: '100%' }}>
+                              <button onClick={() => handleValidateKey(key.id)} className="rv4-ctrl-btn" style={{ flex: 1, fontSize: '9px' }}>VALIDATE</button>
+                              <button onClick={() => handleDeleteKey(key.id)} className="rv4-ctrl-btn danger" style={{ flex: 1, fontSize: '9px' }}>REMOVE</button>
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => { setSelectedProvider(prov.id); setShowAddModal(true); setValidationResult(null); }}
+                            className="rv4-ctrl-btn primary"
+                            style={{ width: '100%', marginTop: '8px', fontSize: '10px' }}
+                          >
+                            + ADD {prov.name.toUpperCase()}
+                          </button>
+                        )}
                       </div>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button
-                          onClick={() => handleValidateKey(providerKey.id)}
-                          className="vintage-btn"
-                          style={{ fontSize: '0.8em', padding: '4px 12px' }}
-                        >
-                          VALIDATE
-                        </button>
-                        <button
-                          onClick={() => handleDeleteKey(providerKey.id)}
-                          className="vintage-btn vintage-btn--danger"
-                          style={{ fontSize: '0.8em', padding: '4px 12px' }}
-                        >
-                          REMOVE
-                        </button>
-                      </div>
-                    </>
-                  ) : (
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Benefits */}
+          <div className="rv4-cols-3">
+            {[
+              { icon: '💰', title: 'SAVE MONEY', desc: 'Automatically use the most cost-effective model for each request' },
+              { icon: '🎯', title: 'BEST PERFORMANCE', desc: 'Route to the best-performing model based on real-time benchmarks' },
+              { icon: '🔄', title: 'AUTO FAILOVER', desc: 'Zero downtime with automatic failover when models are unavailable' },
+            ].map((b, i) => (
+              <div key={i} className="rv4-panel">
+                <div className="rv4-panel-body" style={{ textAlign: 'center', padding: '16px' }}>
+                  <div style={{ fontSize: '28px', marginBottom: '8px' }}>{b.icon}</div>
+                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '0.5px', marginBottom: '6px' }}>{b.title}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{b.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Security notice */}
+          <div className="rv4-info-banner amber" style={{ marginTop: '4px' }}>
+            <span className="rv4-info-banner-icon">🔒</span>
+            <div className="rv4-info-banner-content">
+              <div className="rv4-info-banner-title">YOUR KEYS ARE SECURE</div>
+              <div className="rv4-info-banner-text">
+                All provider API keys are encrypted using AES-256-GCM before being stored.
+                We never log or expose your keys. You can remove them at any time.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Add Provider Modal */}
+        {showAddModal && selectedProvider && selectedProviderInfo && (
+          <div className="rv4-modal-backdrop" onClick={() => { if (!isValidating) { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); } }}>
+            <div className="rv4-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="rv4-modal-header">
+                <span className="rv4-modal-title">🔌 ADD {selectedProviderInfo.name.toUpperCase()} KEY</span>
+                <button className="rv4-modal-close" onClick={() => { if (!isValidating) { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); } }}>✕ CLOSE</button>
+              </div>
+              <div className="rv4-modal-body">
+                {validationResult && (
+                  <div className={`rv4-${validationResult.success ? 'success' : 'error'}-banner`} style={{ marginBottom: '14px' }}>
+                    <span>{validationResult.success ? '✓' : '⚠'}</span>
+                    <div>
+                      <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{validationResult.success ? 'KEY VALIDATED!' : 'VALIDATION FAILED'}</div>
+                      <div style={{ fontSize: '10px' }}>{validationResult.message}</div>
+                      {validationResult.models && validationResult.models.length > 0 && (
+                        <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.7 }}>{validationResult.models.length} models available</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="rv4-form-group">
+                  <label className="rv4-input-label">API KEY</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder={selectedProviderInfo.keyFormat}
+                    className="rv4-input"
+                    disabled={isValidating || (validationResult?.success ?? false)}
+                    autoFocus
+                  />
+                  <div className="rv4-input-hint">Your API key will be encrypted and stored securely</div>
+                </div>
+                <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
+                  <span className="rv4-info-banner-icon">🔑</span>
+                  <div className="rv4-info-banner-content">
+                    <div className="rv4-info-banner-title">WHERE TO FIND YOUR KEY</div>
+                    <div className="rv4-info-banner-text">{selectedProviderInfo.docsUrl}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); }}
+                    disabled={isValidating}
+                    className="rv4-ctrl-btn"
+                  >
+                    {validationResult?.success ? 'DONE' : 'CANCEL'}
+                  </button>
+                  {!validationResult?.success && (
                     <button
-                      onClick={() => handleAddProvider(provider.id)}
-                      className="vintage-btn vintage-btn--active"
-                      style={{ width: '100%' }}
+                      onClick={handleSaveKey}
+                      disabled={!apiKey.trim() || isValidating}
+                      className="rv4-ctrl-btn primary"
                     >
-                      + ADD {provider.name.toUpperCase()} KEY
+                      {isValidating ? 'VALIDATING...' : 'ADD & VALIDATE KEY'}
                     </button>
                   )}
                 </div>
-              );
-            })}
+              </div>
+            </div>
           </div>
         )}
-      </div>
-
-      {/* Benefits */}
-      <div className="vintage-grid">
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center' }}>
-            <div style={{ marginBottom: '12px' }}>
-              <PixelIcon name="money" size={40} />
-            </div>
-            <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '8px' }}>
-              SAVE MONEY
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-              Automatically use the most cost-effective model for each request
-            </div>
-          </div>
-        </div>
-        
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center' }}>
-            <div style={{ marginBottom: '12px' }}>
-              <PixelIcon name="target" size={40} />
-            </div>
-            <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '8px' }}>
-              BEST PERFORMANCE
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-              Route to the best-performing model based on real-time benchmarks
-            </div>
-          </div>
-        </div>
-        
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center' }}>
-            <div style={{ marginBottom: '12px' }}>
-              <PixelIcon name="refresh" size={40} />
-            </div>
-            <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '8px' }}>
-              AUTOMATIC FAILOVER
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-              Zero downtime with automatic failover when models are unavailable
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Security Notice */}
-      <div className="crt-monitor" style={{ borderColor: 'var(--amber-warning)', backgroundColor: 'rgba(255, 176, 0, 0.05)' }}>
-        <div className="terminal-text">
-          <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PixelIcon name="lock" size={20} />
-            YOUR KEYS ARE SECURE
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.85em', lineHeight: '1.6' }}>
-            All provider API keys are encrypted using AES-256-GCM encryption before being stored. 
-            We never log or expose your keys. You can remove them at any time.
-          </div>
-        </div>
-      </div>
-
-      {/* Add Provider Modal */}
-      {showAddModal && selectedProvider && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}>
-          <div className="crt-monitor" style={{ maxWidth: '700px', width: '100%' }}>
-            <div className="terminal-text">
-              <div style={{ fontSize: '1.3em', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <ProviderLogo provider={selectedProvider} size={24} className="terminal-text--green" />
-                <span className="terminal-text--green">
-                  ADD {getProviderInfo(selectedProvider)?.name.toUpperCase()} KEY
-                </span>
-                <span className="blinking-cursor"></span>
-              </div>
-              
-              {validationResult && (
-                <div className="crt-monitor" style={{ 
-                  borderColor: validationResult.success ? 'var(--phosphor-green)' : 'var(--red-alert)',
-                  backgroundColor: validationResult.success ? 'rgba(0, 255, 65, 0.05)' : 'rgba(255, 45, 0, 0.05)',
-                  marginBottom: '16px'
-                }}>
-                  <div className="terminal-text">
-                    <div className={validationResult.success ? 'terminal-text--green' : 'terminal-text--red'} style={{ fontSize: '1.1em', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <PixelIcon name={validationResult.success ? 'check' : 'close'} size={20} />
-                      {validationResult.success ? 'KEY VALIDATED!' : 'VALIDATION FAILED'}
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                      {validationResult.message}
-                    </div>
-                    {validationResult.models && validationResult.models.length > 0 && (
-                      <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
-                        {validationResult.models.length} models available
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ marginBottom: '16px' }}>
-                <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '8px' }}>
-                  API KEY:
-                </div>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={getProviderInfo(selectedProvider)?.keyFormat}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    background: 'var(--terminal-black)',
-                    border: '2px solid var(--metal-silver)',
-                    borderRadius: '4px',
-                    color: 'var(--phosphor-green)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '14px'
-                  }}
-                  disabled={isValidating || (validationResult?.success ?? false)}
-                />
-                <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
-                  Your API key will be encrypted and stored securely
-                </div>
-              </div>
-              
-              <div className="crt-monitor" style={{ 
-                borderColor: 'var(--phosphor-green)', 
-                backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                marginBottom: '16px'
-              }}>
-                <div className="terminal-text">
-                  <div className="terminal-text--green" style={{ fontSize: '0.85em', marginBottom: '4px' }}>
-                    WHERE TO FIND YOUR KEY:
-                  </div>
-                  <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-                    {getProviderInfo(selectedProvider)?.docsUrl}
-                  </div>
-                </div>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setSelectedProvider(null);
-                    setApiKey('');
-                    setValidationResult(null);
-                  }}
-                  disabled={isValidating}
-                  className="vintage-btn"
-                >
-                  {validationResult?.success ? 'DONE' : 'CANCEL'}
-                </button>
-                {!validationResult?.success && (
-                  <button
-                    onClick={handleSaveKey}
-                    disabled={!apiKey.trim() || isValidating}
-                    className="vintage-btn vintage-btn--active"
-                  >
-                    {isValidating ? (
-                      <>VALIDATING<span className="vintage-loading"></span></>
-                    ) : (
-                      'ADD & VALIDATE KEY'
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      </div>
       </SubscriptionGuard>
     </RouterLayout>
   );
