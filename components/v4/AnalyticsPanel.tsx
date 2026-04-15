@@ -198,27 +198,54 @@ export default function AnalyticsPanel({
       <div className="v4-radar-wrap">
         <div className="v4-radar-title">{config.title}</div>
         <div className="v4-radar-sub">{config.subtitle} • {periodLabel}</div>
-        <RadarChart
-          models={radarModels}
-          colors={radarColors}
-          modelHistoryData={modelHistoryData}
-          axKeys={axKeys}
-          axisLabels={axisLabels}
-          highlightIndices={config.highlightIndices}
-        />
-        <div className="v4-radar-legend">
-          {radarModels.map((m, i) => (
-            <div key={m.id || i} className="v4-radar-legend-item">
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: radarColors[i], boxShadow: `0 0 3px ${radarColors[i]}` }}></div>
-              {m.name}
+        {modelHistoryData.size === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0', gap: '10px' }}>
+            <div style={{
+              width: '32px', height: '32px',
+              border: '2px solid rgba(0, 255, 65, 0.1)',
+              borderTop: '2px solid var(--phosphor-green)',
+              borderRadius: '50%',
+              animation: 'v4-analytics-spin 1s linear infinite'
+            }} />
+            <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', letterSpacing: '1px' }}>LOADING RADAR DATA...</div>
+            <style dangerouslySetInnerHTML={{ __html: `@keyframes v4-analytics-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }` }} />
+          </div>
+        ) : (
+          <>
+            <RadarChart
+              models={radarModels}
+              colors={radarColors}
+              modelHistoryData={modelHistoryData}
+              axKeys={axKeys}
+              axisLabels={axisLabels}
+              highlightIndices={config.highlightIndices}
+            />
+            <div className="v4-radar-legend">
+              {radarModels.map((m, i) => (
+                <div key={m.id || i} className="v4-radar-legend-item">
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: radarColors[i], boxShadow: `0 0 3px ${radarColors[i]}` }}></div>
+                  {m.name}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
 
       {/* Heatmap — adapts title per mode, highlights relevant axes */}
       <div className="v4-section-divider">{config.heatmapTitle}</div>
-      {config.showHeatmap ? (
+      {modelHistoryData.size === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '10px' }}>
+          <div style={{
+            width: '32px', height: '32px',
+            border: '2px solid rgba(0, 255, 65, 0.1)',
+            borderTop: '2px solid var(--phosphor-green)',
+            borderRadius: '50%',
+            animation: 'v4-analytics-spin 1s linear infinite'
+          }} />
+          <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', letterSpacing: '1px' }}>LOADING HEATMAP DATA...</div>
+        </div>
+      ) : config.showHeatmap ? (
         <div className="v4-heatmap" style={{ gridTemplateColumns: `80px repeat(${axKeys.length}, 1fr)` }}>
           <div className="v4-hm-hdr"></div>
           {axisLabels.map((label, i) => (
