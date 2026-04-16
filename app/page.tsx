@@ -177,6 +177,11 @@ export default function Dashboard() {
   // CRITICAL FIX: Ref to prevent multiple initial data loads
   const initialDataLoaded = useRef(false);
   
+  // Ref to track if history was already loaded from the cached /dashboard/cached response.
+  // This prevents the batch history useEffect from making a redundant API call
+  // (React state updates are batched, so the useEffect can't see the new modelHistoryData yet)
+  const historyLoadedFromCache = useRef(false);
+  
   // Helper to validate if data matches user's current selection
   const matchesUserSelection = (period: string, sortBy: string) => {
     const cur = userSelectionRef.current;
@@ -234,12 +239,13 @@ export default function Dashboard() {
   // Price info modal state
   const [showPriceInfoModal, setShowPriceInfoModal] = useState(false);
 
-  // Smart caching system for leaderboard data
+  // Smart caching system for leaderboard data (now includes historyMap for charts)
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
     data: ModelScore[];
     timestamp: number;
     period: string;
     sortBy: string;
+    historyMap?: Record<string, any[]>;
   }>>(new Map());
   
   // Cache analytics data too
@@ -295,15 +301,23 @@ export default function Dashboard() {
   /**
    * PERFORMANCE OPTIMIZATION: Batch history API call
    *
-   * BEFORE: N+1 query pattern - 16+ individual HTTP requests
-   * AFTER: Single batch API call
-   *
-   * Expected impact: 50-70% faster load time, eliminates retry amplification
+   * Now SKIPS the separate API call if historyMap was already loaded from the
+   * cached /dashboard/cached response (which now includes history).
+   * Falls back to the batch API only when history is missing from the cache.
    */
   useEffect(() => {
     const fetchAllModelHistory = async () => {
       if (!modelScores.length) {
-        // No data to render; clear loading to avoid stuck spinner
+        setHistoryLoading(false);
+        setLoadingLeaderboard(false);
+        return;
+      }
+
+      // SKIP: If history was already loaded from the /dashboard/cached response, don't re-fetch.
+      // We check the ref (synchronous) instead of state (may not be updated yet due to batching).
+      if (historyLoadedFromCache.current) {
+        console.log(`⏭️ History already loaded from cache (ref=true), skipping batch fetch`);
+        historyLoadedFromCache.current = false; // Reset for next filter change
         setHistoryLoading(false);
         setLoadingLeaderboard(false);
         return;
@@ -315,21 +329,18 @@ export default function Dashboard() {
       
       console.log(`🚀 Fetching batch history for ${modelScores.length} models (${leaderboardPeriod}/${sortByParam}) [Attempt ${historyRetryToken + 1}/${MAX_RETRIES + 1}]`);
       
-      // Exponential backoff: 0ms, 2s, 4s
       const backoffDelay = historyRetryToken > 0 ? Math.pow(2, historyRetryToken) * 1000 : 0;
       if (backoffDelay > 0) {
-        console.log(`⏳ Waiting ${backoffDelay}ms before retry...`);
         await new Promise(resolve => setTimeout(resolve, backoffDelay));
       }
       
       try {
-        // Build batch request with all model IDs
         const modelIds = modelScores.map(m => m.id).join(',');
         const batchUrl = `${apiUrl}/dashboard/history/batch?modelIds=${modelIds}&period=${leaderboardPeriod}&sortBy=${sortByParam}`;
         
         const startTime = Date.now();
         const response = await fetch(batchUrl, {
-          signal: AbortSignal.timeout(45000) // 45s timeout for batch request
+          signal: AbortSignal.timeout(45000)
         });
         const duration = Date.now() - startTime;
         
@@ -340,8 +351,6 @@ export default function Dashboard() {
         const result = await response.json();
         
         if (result.success && result.data) {
-          // CRITICAL FIX: API returns object { "46": [...], "171": [...] }, not array
-          // Convert object response to Map for quick lookup
           const historyMap = new Map<string, any[]>();
           
           Object.entries(result.data).forEach(([modelId, history]: [string, any]) => {
@@ -350,13 +359,10 @@ export default function Dashboard() {
             }
           });
           
-          const successCount = historyMap.size;
-          const successRate = successCount / modelScores.length;
-          
-          console.log(`✅ Batch history loaded in ${duration}ms: ${successCount}/${modelScores.length} models (${Math.round(successRate * 100)}%)`);
+          console.log(`✅ Batch history loaded in ${duration}ms: ${historyMap.size}/${modelScores.length} models`);
           
           setModelHistoryData(historyMap);
-          setHistoryRetryToken(0); // Reset retry counter on success
+          setHistoryRetryToken(0);
           setHistoryLoading(false);
           setLoadingLeaderboard(false);
           
@@ -365,17 +371,13 @@ export default function Dashboard() {
         }
         
       } catch (error: any) {
-        const errorType = error.name === 'TimeoutError' || error.name === 'AbortError' ? 'timeout' : 'network';
-        console.error(`❌ Batch history fetch ${errorType} error:`, error.message);
+        console.error(`❌ Batch history fetch error:`, error.message);
         
-        // Retry logic
         if (historyRetryToken < MAX_RETRIES) {
-          console.warn(`⚠️ Retrying batch history fetch (${historyRetryToken + 1}/${MAX_RETRIES})...`);
           setHistoryRetryToken(prev => prev + 1);
           return;
         }
         
-        // Retries exhausted - fall back to showing without charts
         console.warn(`⚠️ Chart loading failed after ${historyRetryToken + 1} attempts, showing leaderboard without charts`);
         setHistoryLoading(false);
         setLoadingLeaderboard(false);
@@ -846,11 +848,60 @@ export default function Dashboard() {
   };
 
   // Fetch all dashboard data from cached endpoints - INSTANT loading!
-  // FIXED: Now returns the fetched data for validation before state updates
+  // Now returns ALL data including historyMap for charts/radar/heatmap in a single request.
   const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false): Promise<{ success: boolean; data?: any }> => {
     // CRITICAL FIX: Convert 'speed' to '7axis' for API compatibility
     const sortByParam = sortBy === 'speed' ? '7axis' : sortBy;
     console.log(`⚡ Fetching cached dashboard data: ${period}/${sortByParam}/${analyticsP}`);
+    
+    // CLIENT-SIDE CACHE: Check if we already have this data cached locally
+    const clientCacheKey = getCacheKey(period, sortByParam);
+    if (!forceRefresh) {
+      const cached = leaderboardCache.get(clientCacheKey);
+      if (cached && isCacheValid(cached.timestamp, 5)) {
+        console.log(`🚀 CLIENT CACHE HIT for ${clientCacheKey} — serving instantly!`);
+        
+        // Restore all state from client cache
+        setModelScores([...cached.data]); // New array reference
+        setForceUpdateCounter(prev => prev + 1);
+        
+        // Restore history from client cache
+        if (cached.historyMap && Object.keys(cached.historyMap).length > 0) {
+          const hMap = new Map<string, any[]>();
+          Object.entries(cached.historyMap).forEach(([id, history]: [string, any]) => {
+            if (Array.isArray(history) && history.length > 0) hMap.set(id, history);
+          });
+          setModelHistoryData(hMap);
+          setHistoryLoading(false);
+          historyLoadedFromCache.current = true; // Prevent batch useEffect from re-fetching
+        }
+        
+        // Restore analytics from client cache
+        const aCached = analyticsCache.get(clientCacheKey);
+        if (aCached && isCacheValid(aCached.timestamp, 5)) {
+          if (aCached.degradations) setDegradations(aCached.degradations);
+          if (aCached.recommendations) setRecommendations(aCached.recommendations);
+          if (aCached.transparency) setTransparencyMetrics(aCached.transparency);
+        }
+        
+        setLoadingLeaderboard(false);
+        setLastUpdateTime(new Date());
+        
+        return {
+          success: true,
+          data: {
+            modelScores: cached.data,
+            historyMap: cached.historyMap || {},
+            globalIndex,
+            alerts,
+            degradations,
+            recommendations,
+            transparencyMetrics,
+            providerReliability
+          }
+        };
+      }
+    }
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
@@ -858,40 +909,27 @@ export default function Dashboard() {
       console.log(`🚀 Trying cache URL: ${cacheUrl}`);
       const response = await fetch(cacheUrl);
       const result = await response.json();
-      console.log(`📊 Cache response:`, result);
       
       if (result.success && result.data) {
-        console.log(`✅ Received cached data from ${result.meta?.cachedAt || 'unknown time'}`);
-        
-        // DEBUG: Log the entire result.data structure to see what we're getting
-        console.log('🔍 Full result.data structure:', {
-          hasModelScores: !!result.data.modelScores,
-          hasAlerts: !!result.data.alerts,
-          hasGlobalIndex: !!result.data.globalIndex,
-          hasDegradations: !!result.data.degradations,
-          hasRecommendations: !!result.data.recommendations,
-          hasTransparencyMetrics: !!result.data.transparencyMetrics,
-          hasProviderReliability: !!result.data.providerReliability,
-          recommendationsValue: result.data.recommendations
-        });
+        console.log(`✅ Received cached data from ${result.meta?.cachedAt || 'unknown time'} (includesHistory: ${result.meta?.includesHistory}, historyModels: ${result.meta?.historyModels})`);
         
         // CRITICAL VALIDATION: Only update state if data matches user's CURRENT selection
         const metaPeriod = result.meta?.period ?? period;
-        const metaSortBy = result.meta?.sortBy ?? sortByParam; // Use sortByParam (converted value) for comparison
+        const metaSortBy = result.meta?.sortBy ?? sortByParam;
         
-        // Compare against the converted sortByParam, not the original sortBy
         const currentSortByParam = userSelectionRef.current.sortBy === 'speed' ? '7axis' : userSelectionRef.current.sortBy;
         if (metaPeriod !== userSelectionRef.current.period || metaSortBy !== currentSortByParam) {
           console.log(`🚫 Skip state update: user changed filters meanwhile (expected ${userSelectionRef.current.period}/${currentSortByParam}, got ${metaPeriod}/${metaSortBy})`);
           return { success: false };
         }
         
-        // Extract all the data components
-        const { modelScores, alerts, globalIndex, degradations, recommendations, transparencyMetrics, providerReliability, driftIncidents } = result.data;
+        // Extract all the data components including historyMap
+        const { modelScores, historyMap, alerts: resAlerts, globalIndex: resGlobalIndex, degradations: resDegradations, recommendations: resRecommendations, transparencyMetrics: resTransparency, providerReliability: resProviderReliability, driftIncidents: resDriftIncidents } = result.data;
         
         // Process model scores
+        let processedScores: any[] = [];
         if (modelScores && Array.isArray(modelScores)) {
-          const processedScores = modelScores.map((score: any) => ({
+          processedScores = modelScores.map((score: any) => ({
             ...score,
             lastUpdated: new Date(score.lastUpdated),
             history: score.history || []
@@ -908,125 +946,121 @@ export default function Dashboard() {
             setPreviousScores(initialScores);
           }
           
-          // Create completely new objects to force React state change
+          // Create new objects to force React state change
           const timestamp = Date.now();
-          const scoresToSet = processedScores.map((score: any, index: number) => {
-            const newScore = {
-              // Create completely new object structure
-              id: score.id,
-              name: score.name,
-              displayName: score.displayName,
-              provider: score.provider,
-              currentScore: score.currentScore,
-              trend: score.trend,
-              lastUpdated: new Date(score.lastUpdated),
-              status: score.status,
-              weeklyBest: score.weeklyBest,
-              weeklyWorst: score.weeklyWorst,
-              unavailableReason: score.unavailableReason,
-              history: score.history ? [...score.history] : [], // Clone array
-              isNew: score.isNew,
-              // Force React to see this as a new object
-              _renderKey: `${score.id}_${period}_${sortBy}_${score.currentScore}_${timestamp}_${index}`,
-              _period: period,
-              _sortBy: sortBy
-            };
-            return newScore;
-          });
+          const scoresToSet = processedScores.map((score: any, index: number) => ({
+            id: score.id,
+            name: score.name,
+            displayName: score.displayName,
+            provider: score.provider,
+            currentScore: score.currentScore,
+            trend: score.trend,
+            lastUpdated: new Date(score.lastUpdated),
+            status: score.status,
+            weeklyBest: score.weeklyBest,
+            weeklyWorst: score.weeklyWorst,
+            unavailableReason: score.unavailableReason,
+            history: score.history ? [...score.history] : [],
+            isNew: score.isNew,
+            _renderKey: `${score.id}_${period}_${sortBy}_${score.currentScore}_${timestamp}_${index}`,
+            _period: period,
+            _sortBy: sortBy
+          }));
           
-          // Force state update with completely new array
-          setModelScores([...scoresToSet]); // Create new array reference
+          setModelScores([...scoresToSet]);
           setForceUpdateCounter(prev => prev + 1);
-          console.log(`⚡ Loaded ${processedScores.length} models with complete object recreation for ${period}/${sortBy}`);
+          console.log(`⚡ Loaded ${processedScores.length} models for ${period}/${sortBy}`);
+          
+          // PERFORMANCE: Store in client-side cache for instant filter switches
+          setLeaderboardCache(prev => {
+            const next = new Map(prev);
+            next.set(clientCacheKey, {
+              data: scoresToSet,
+              timestamp: Date.now(),
+              period,
+              sortBy,
+              historyMap: historyMap || {}
+            });
+            return next;
+          });
+        }
+        
+        // CRITICAL: Extract historyMap and populate modelHistoryData immediately
+        if (historyMap && typeof historyMap === 'object' && Object.keys(historyMap).length > 0) {
+          const hMap = new Map<string, any[]>();
+          Object.entries(historyMap).forEach(([modelId, history]: [string, any]) => {
+            if (Array.isArray(history) && history.length > 0) {
+              hMap.set(modelId, history);
+            }
+          });
+          setModelHistoryData(hMap);
+          setHistoryLoading(false);
+          setLoadingLeaderboard(false);
+          historyLoadedFromCache.current = true; // Signal to batch useEffect: don't re-fetch
+          console.log(`📊 History loaded from cache for ${hMap.size} models — charts/radar/heatmap ready instantly!`);
         }
         
         // Set all other data components
-        if (alerts) setAlerts(alerts);
-        if (globalIndex) setGlobalIndex(globalIndex);
-        if (degradations) setDegradations(degradations);
+        if (resAlerts) setAlerts(resAlerts);
+        if (resGlobalIndex) setGlobalIndex(resGlobalIndex);
+        if (resDegradations) setDegradations(resDegradations);
         
-        // CRITICAL: Always set recommendations, even if empty, to trigger UI update
-        console.log('🔍 Recommendations data from cache:', recommendations);
-        if (recommendations) {
-          console.log('✅ Setting recommendations from cached response:', {
-            hasBestForCode: !!recommendations.bestForCode,
-            hasMostReliable: !!recommendations.mostReliable,
-            hasFastestResponse: !!recommendations.fastestResponse,
-            hasAvoidNow: !!recommendations.avoidNow
-          });
-          setRecommendations(recommendations);
+        if (resRecommendations) {
+          setRecommendations(resRecommendations);
         } else {
-          console.warn('⚠️ No recommendations in cached response, setting empty object');
           setRecommendations({});
         }
         
-        if (transparencyMetrics) setTransparencyMetrics(transparencyMetrics);
-        if (providerReliability) setProviderReliability(providerReliability);
-        if (driftIncidents) setDriftIncidents(driftIncidents);
+        if (resTransparency) setTransparencyMetrics(resTransparency);
+        if (resProviderReliability) setProviderReliability(resProviderReliability);
+        if (resDriftIncidents) setDriftIncidents(resDriftIncidents);
+        
+        // Store analytics in client-side cache for instant filter switches
+        setAnalyticsCache(prev => {
+          const next = new Map(prev);
+          next.set(clientCacheKey, {
+            degradations: resDegradations || [],
+            recommendations: resRecommendations || null,
+            transparency: resTransparency || null,
+            timestamp: Date.now()
+          });
+          return next;
+        });
         
         // CRITICAL FIX: If cached globalIndex is null, fetch it directly (non-blocking)
-        if (!globalIndex) {
-          console.log('🔧 Cache returned null globalIndex, fetching directly...');
+        if (!resGlobalIndex) {
           fetch(`${apiUrl}/dashboard/global-index`)
             .then(response => response.json())
             .then(globalIndexData => {
               if (globalIndexData.success && globalIndexData.data) {
                 setGlobalIndex(globalIndexData.data);
-                console.log('✅ Successfully fetched globalIndex directly:', globalIndexData.data.current.globalScore);
               }
             })
-            .catch(error => {
-              console.error('❌ Failed to fetch globalIndex directly:', error);
-            });
+            .catch(() => {});
         }
         
         setLastUpdateTime(new Date());
         
-        // Debug: Log the first few scores to see what we got
-        if (modelScores && Array.isArray(modelScores) && modelScores.length > 0) {
-          console.log('🎯 First 3 models after cache load:', modelScores.slice(0, 3).map(m => ({
-            name: m.name,
-            currentScore: m.currentScore,
-            period: period,
-            sortBy: sortBy
-          })));
-          
-          // More detailed debugging to see if scores are different
-          console.log('🔍 DETAILED SCORE DEBUG for', period, sortBy, ':', {
-            'gpt-5-auto': modelScores.find(m => m.name === 'gpt-5-auto')?.currentScore,
-            'gemini-1.5-pro': modelScores.find(m => m.name === 'gemini-1.5-pro')?.currentScore,
-            'claude-3-5-sonnet-20241022': modelScores.find(m => m.name === 'claude-3-5-sonnet-20241022')?.currentScore,
-            'gpt-4o-2024-11-20': modelScores.find(m => m.name === 'gpt-4o-2024-11-20')?.currentScore
-          });
-        }
-        
-        // FIXED: Return the actual fetched data for validation
-        // Process model scores before returning
-        const processedScores = modelScores.map((score: any) => ({
-          ...score,
-          lastUpdated: new Date(score.lastUpdated),
-          history: score.history || []
-        }));
-        
-        return { 
-          success: true, 
-          data: { 
-            modelScores: processedScores, 
-            globalIndex,
-            alerts,
-            degradations,
-            recommendations,
-            transparencyMetrics,
-            providerReliability
-          } 
+        return {
+          success: true,
+          data: {
+            modelScores: processedScores,
+            globalIndex: resGlobalIndex,
+            alerts: resAlerts,
+            degradations: resDegradations,
+            recommendations: resRecommendations,
+            transparencyMetrics: resTransparency,
+            providerReliability: resProviderReliability,
+            historyMap: historyMap || {}
+          }
         };
       } else {
         console.warn(`⚠️ Cache miss or error: ${result.message || result.error}`);
-        return { success: false }; // Cache miss - will need to use fallback
+        return { success: false };
       }
     } catch (error) {
       console.error('Error fetching cached dashboard data:', error);
-      return { success: false }; // Error - will need to use fallback
+      return { success: false };
     }
   };
 
@@ -1270,45 +1304,39 @@ export default function Dashboard() {
         setLoadingProgress(Math.min(50 + (attemptNumber * 6), 90));
         
         if (cacheResult.success && cacheResult.data) {
-          console.log('🚀 Dashboard loaded INSTANTLY from cache!');
+          const modelScoresArr = cacheResult.data.modelScores || [];
+          const dataIsComplete = validateDataCompleteness(modelScoresArr, cacheResult.data.globalIndex);
+          const hasHistory = cacheResult.data.historyMap && Object.keys(cacheResult.data.historyMap).length > 0;
           
-          // FIXED: Validate the FETCHED data, not the state (which hasn't updated yet)
-          const dataIsComplete = validateDataCompleteness(
-            cacheResult.data.modelScores || [], 
-            cacheResult.data.globalIndex
-          );
+          console.log(`🚀 Dashboard cache result: models=${dataIsComplete} (${modelScoresArr.length}), history=${hasHistory} (${Object.keys(cacheResult.data.historyMap || {}).length} models)`);
           
-          if (!dataIsComplete && attemptNumber < 15) {
-            // AGGRESSIVE RETRY: Faster initial retries, then exponential backoff
-            let retryDelay;
-            if (attemptNumber < 3) {
-              // First 3 attempts: very fast (500ms, 1s, 2s)
-              retryDelay = 500 * Math.pow(2, attemptNumber);
-            } else {
-              // After 3 attempts: exponential backoff
-              retryDelay = Math.min(2000 * Math.pow(1.5, attemptNumber - 3), 10000);
-            }
-            
-            console.log(`⏳ Data incomplete, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/15) - will use current user selections`);
-            
-            setLoadingStage(`Fetching models (${attemptNumber + 1}/15)...`);
-            setLoadingProgress(Math.min(70 + (attemptNumber * 2), 95));
-            
-            // CRITICAL FIX: Don't retry if user has changed selections
-            // The new selection will trigger its own fetch via the useEffect
-            setTimeout(() => {
-              fetchDashboardData(attemptNumber + 1);
-            }, retryDelay);
-            
-            return; // Don't set loading to false yet
+          // CRITICAL FIX: Distinguish between "API returned success but 0 models" (legitimate)
+          // vs "data still warming up" (transient). The API returns success:true even when
+          // a filter combo has no data (e.g., 24h/reasoning has no deep benchmarks).
+          // We should NOT endlessly retry in that case — just show the page.
+          const apiReturnedSuccessWithData = modelScoresArr.length > 0;
+          const shouldRetry = !apiReturnedSuccessWithData && attemptNumber < 5;
+          
+          if (shouldRetry) {
+            // Only retry a few times for genuinely empty results (cache warming)
+            const retryDelay = 500 * Math.pow(2, attemptNumber);
+            console.log(`⏳ No models yet, retrying in ${retryDelay}ms (attempt ${attemptNumber + 1}/5)`);
+            setLoadingStage(`Fetching models (${attemptNumber + 1}/5)...`);
+            setLoadingProgress(Math.min(70 + (attemptNumber * 4), 95));
+            setTimeout(() => { fetchDashboardData(attemptNumber + 1); }, retryDelay);
+            return;
           }
           
-          if (!dataIsComplete && attemptNumber >= 15) {
-            console.log('⚠️ Max retry attempts reached, showing available data');
-            setLoadingStage('Showing available data (some models may be missing)');
-          } else if (dataIsComplete) {
-            console.log('✅ Data validation passed, showing dashboard');
+          if (apiReturnedSuccessWithData && hasHistory) {
+            console.log('✅ Data validation passed (models + history), showing fully populated dashboard');
             setLoadingStage('Complete!');
+          } else if (apiReturnedSuccessWithData && !hasHistory) {
+            // Models loaded but history is empty (could be a legitimate state for some filters)
+            console.log('⚠️ Models loaded but no history — showing dashboard, charts may load separately');
+            setLoadingStage('Complete!');
+          } else {
+            console.log('⚠️ No data available for this filter combination, showing dashboard');
+            setLoadingStage('Complete — no data for this filter');
           }
         } else {
           console.log('🔄 Cache miss, falling back to individual API calls...');
@@ -1459,21 +1487,21 @@ export default function Dashboard() {
     };
   }, [showBatchRefreshing]);
 
-  // Effect for leaderboard controls changes - now using INSTANT cache!
+  // Effect for leaderboard controls changes - now using INSTANT client cache!
   useEffect(() => {
     if (!loading) {
       console.log(`⚡ User changed to ${leaderboardPeriod}/${leaderboardSortBy}, trying cache...`);
       
-      // CRITICAL FIX: Reset the initial data loaded guard when user changes selections
-      // This allows data to load when switching tabs
       initialDataLoaded.current = false;
       
-      // CRITICAL FIX: Clear model scores immediately for optimistic update
+      // Clear old history so the batch useEffect doesn't skip on stale data
+      setModelHistoryData(new Map());
       setLoadingLeaderboard(true);
       setHistoryLoading(true);
-      setModelScores([]); // Clear old data to prevent showing wrong data
+      setModelScores([]);
       
-      // Try cache first for instant loading
+      // fetchDashboardDataCached now checks the client-side Map cache first
+      // If it has valid data there, it will restore scores + history + analytics instantly
       fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod)
         .then((res) => {
           if (!res?.success) {
@@ -1483,32 +1511,10 @@ export default function Dashboard() {
             return;
           }
           
-          // CRITICAL FIX: Verify metadata matches user selection
-          const metaPeriod = res.data?.meta?.period || leaderboardPeriod;
-          const metaSortBy = res.data?.meta?.sortBy || leaderboardSortBy;
-          
-          console.log(`📊 API returned: period=${metaPeriod}, sortBy=${metaSortBy}`);
-          console.log(`👤 User selected: period=${leaderboardPeriod}, sortBy=${leaderboardSortBy}`);
-          
-          if (metaPeriod !== leaderboardPeriod || metaSortBy !== leaderboardSortBy) {
-            console.error(`❌ METADATA MISMATCH! Expected ${leaderboardPeriod}/${leaderboardSortBy}, got ${metaPeriod}/${metaSortBy}`);
-            console.log('🔄 Retrying with fallback API...');
-            fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
-            fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
-            return;
-          }
-          
-          console.log('✅ Metadata matches! Loading data...');
-          console.log('🚀 Control change loaded INSTANTLY from cache!');
-          console.log(`🎯 Current modelScores count: ${modelScores.length}`);
-          
-          // CRITICAL FIX: Clear loading state when cache succeeds
-          // The batch history useEffect will handle chart loading separately
-          // This prevents the "UPDATING RANKINGS" overlay from getting stuck
+          console.log('🚀 Control change loaded from cache!');
           setLoadingLeaderboard(false);
         })
         .catch((error) => {
-          // Hard fallback on unexpected errors — do not change user selections
           console.error('❌ Unexpected error in cache fetch:', error);
           fetchLeaderboardData(leaderboardPeriod, leaderboardSortBy);
           fetchAnalyticsData(analyticsPeriod, leaderboardSortBy);
