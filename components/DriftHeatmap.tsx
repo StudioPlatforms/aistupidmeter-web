@@ -38,39 +38,37 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
   const dimensions = ['correctness', 'refusal', 'stability', 'efficiency'];
 
   useEffect(() => {
-    // Fetch drift signatures for all models
+    // Use single batch endpoint instead of N individual requests
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
+    const modelIds = new Set(models.slice(0, 12).map(m => m.id));
     
-    Promise.all(
-      models.slice(0, 12).map(async (model) => { // Limit to top 12 for heatmap
-        try {
-          const res = await fetch(`${apiUrl}/api/drift/signature/${model.id}`);
-          const data = await res.json();
-          if (data.success) {
-            return {
-              modelId: parseInt(model.id),
-              modelName: model.name,
-              provider: model.provider,
-              regime: data.data.regime,
-              driftStatus: data.data.driftStatus,
-              axes: data.data.axes
-            };
+    fetch(`${apiUrl}/api/drift/batch`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data) {
+          const validResults: DriftStatus[] = [];
+          for (const item of data.data) {
+            // Only include models that were requested (top 12)
+            if (modelIds.has(String(item.modelId)) && item.data) {
+              const model = models.find(m => m.id === String(item.modelId));
+              validResults.push({
+                modelId: item.modelId,
+                modelName: item.modelName || model?.name || `Model ${item.modelId}`,
+                provider: model?.provider || '',
+                regime: item.data.regime || 'STABLE',
+                driftStatus: item.data.driftStatus || 'NORMAL',
+                axes: item.data.axes || {}
+              });
+            }
           }
-        } catch (error) {
-          console.error(`Failed to fetch drift for ${model.name}:`, error);
+          setDriftData(validResults);
         }
-        return null;
+        setLoading(false);
       })
-    )
-    .then(results => {
-      const validResults = results.filter((r): r is DriftStatus => r !== null);
-      setDriftData(validResults);
-      setLoading(false);
-    })
-    .catch(error => {
-      console.error('Failed to load heatmap data:', error);
-      setLoading(false);
-    });
+      .catch(error => {
+        console.error('Failed to load heatmap data:', error);
+        setLoading(false);
+      });
   }, [models]);
 
   if (loading) {
