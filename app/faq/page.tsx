@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import SubpageLayout from '@/components/SubpageLayout';
 
 export const metadata: Metadata = {
   title: 'FAQ | AI Benchmarking Questions Answered',
@@ -66,7 +67,7 @@ const faqs: FAQItem[] = [
   {
     category: "Methodology",
     question: "How accurate are your benchmarks?",
-    answer: "We use 5-trial median scoring with 95% confidence intervals calculated using t-distribution (df=4). Our standard error is typically ±1-3 points on a 100-point scale. For example, a score of \"24.8 ± 1.3\" means we're 95% confident the true score is between 23.5 and 26.1. This is far more rigorous than single-shot benchmarks that show no uncertainty."
+    answer: "We use 5-trial median scoring with 95% confidence intervals calculated using t-distribution (df=4). Our standard error is typically +/-1-3 points on a 100-point scale. For example, a score of \"24.8 +/- 1.3\" means we're 95% confident the true score is between 23.5 and 26.1. This is far more rigorous than single-shot benchmarks that show no uncertainty."
   },
   {
     category: "Methodology",
@@ -86,7 +87,7 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "What are confidence intervals and why do they matter?",
-    answer: "Confidence intervals show the range where we're 95% confident the true score lies. For example, \"24.8 ± 1.3\" means [23.5, 26.1]. This matters because: (1) AI is probabilistic, (2) single measurements are unreliable, (3) you need to know measurement uncertainty to make decisions, and (4) overlapping intervals mean differences might not be statistically significant."
+    answer: "Confidence intervals show the range where we're 95% confident the true score lies. For example, \"24.8 +/- 1.3\" means [23.5, 26.1]. This matters because: (1) AI is probabilistic, (2) single measurements are unreliable, (3) you need to know measurement uncertainty to make decisions, and (4) overlapping intervals mean differences might not be statistically significant."
   },
   {
     category: "Technical",
@@ -167,230 +168,228 @@ export default function FAQPage() {
   const containerStyle: React.CSSProperties = {
     maxWidth: '900px',
     margin: '0 auto',
-    padding: '32px 20px 60px',
+    padding: '32px 20px 80px',
   };
 
   return (
-    <div style={pageStyle}>
-      <div style={containerStyle}>
-        <Link href="/" style={{ fontSize: '11px', color: 'var(--phosphor-dim, #4a7a4a)', textDecoration: 'none', letterSpacing: '0.5px', display: 'inline-block', marginBottom: '24px' }}>
-          ← BACK TO LIVE RANKINGS
-        </Link>
+    <SubpageLayout>
+      <div style={pageStyle}>
+        <div style={containerStyle}>
+          <div style={{ fontSize: 'clamp(20px, 3.5vw, 28px)', fontWeight: 'bold', color: 'var(--phosphor-green, #00ff41)', letterSpacing: '2px', textShadow: '0 0 8px rgba(0,255,65,0.4)', marginBottom: '8px' }}>
+            FREQUENTLY ASKED QUESTIONS<span className="blinking-cursor"></span>
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #4a7a4a)', marginBottom: '24px', letterSpacing: '0.3px' }}>
+            Everything you need to know about AI model benchmarking, performance testing, and our methodology.
+          </div>
 
-        <div style={{ fontSize: 'clamp(20px, 3.5vw, 28px)', fontWeight: 'bold', color: 'var(--phosphor-green, #00ff41)', letterSpacing: '2px', textShadow: '0 0 8px rgba(0,255,65,0.4)', marginBottom: '8px' }}>
-          FREQUENTLY ASKED QUESTIONS<span className="blinking-cursor"></span>
-        </div>
-        <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #4a7a4a)', marginBottom: '24px', letterSpacing: '0.3px' }}>
-          Everything you need to know about AI model benchmarking, performance testing, and our methodology.
-        </div>
+          {/* Category navigation */}
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '12px 14px',
+            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.15)',
+            borderRadius: '3px', marginBottom: '24px',
+          }}>
+            <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontWeight: 'bold', letterSpacing: '0.8px', textTransform: 'uppercase', alignSelf: 'center', marginRight: '4px' }}>
+              JUMP TO:
+            </span>
+            {categories.map(cat => (
+              <a
+                key={cat}
+                href={`#${cat.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '')}`}
+                style={{
+                  fontSize: '10px',
+                  padding: '4px 10px',
+                  background: 'rgba(0,0,0,0.4)',
+                  border: `1px solid ${CATEGORY_COLORS[cat] || 'rgba(0,255,65,0.25)'}44`,
+                  color: CATEGORY_COLORS[cat] || 'var(--phosphor-green)',
+                  textDecoration: 'none',
+                  borderRadius: '2px',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.3px',
+                  transition: 'all 0.15s',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {cat}
+              </a>
+            ))}
+          </div>
 
-        {/* Category navigation */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '12px 14px',
-          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.15)',
-          borderRadius: '3px', marginBottom: '24px',
-        }}>
-          <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontWeight: 'bold', letterSpacing: '0.8px', textTransform: 'uppercase', alignSelf: 'center', marginRight: '4px' }}>
-            JUMP TO:
-          </span>
-          {categories.map(cat => (
-            <a
-              key={cat}
-              href={`#${cat.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '')}`}
-              style={{
-                fontSize: '10px',
-                padding: '4px 10px',
-                background: 'rgba(0,0,0,0.4)',
-                border: `1px solid ${CATEGORY_COLORS[cat] || 'rgba(0,255,65,0.25)'}44`,
-                color: CATEGORY_COLORS[cat] || 'var(--phosphor-green)',
-                textDecoration: 'none',
-                borderRadius: '2px',
-                fontWeight: 'bold',
-                letterSpacing: '0.3px',
-                transition: 'all 0.15s',
-                textTransform: 'uppercase',
-              }}
-            >
-              {cat}
-            </a>
-          ))}
-        </div>
-
-        {/* FAQ by category */}
-        {categories.map(category => {
-          const categoryFaqs = faqs.filter(f => f.category === category);
-          const color = CATEGORY_COLORS[category] || 'var(--phosphor-green)';
-          return (
-            <section
-              key={category}
-              id={category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '')}
-              style={{ marginBottom: '28px' }}
-            >
-              {/* Category header */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                paddingBottom: '10px', marginBottom: '12px',
-                borderBottom: `2px solid ${color}33`,
-              }}>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'var(--font-mono)', color }}>
-                  [→]
-                </span>
-                <span style={{
-                  fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase',
-                  letterSpacing: '1.5px', color,
+          {/* FAQ by category */}
+          {categories.map(category => {
+            const categoryFaqs = faqs.filter(f => f.category === category);
+            const color = CATEGORY_COLORS[category] || 'var(--phosphor-green)';
+            return (
+              <section
+                key={category}
+                id={category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, '')}
+                style={{ marginBottom: '28px' }}
+              >
+                {/* Category header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  paddingBottom: '10px', marginBottom: '12px',
+                  borderBottom: `2px solid ${color}33`,
                 }}>
-                  {category}
-                </span>
-              </div>
-
-              {/* FAQ items */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {categoryFaqs.map((faq, index) => (
-                  <div key={index} style={{
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid rgba(192,192,192,0.12)',
-                    borderLeft: `3px solid ${color}66`,
-                    borderRadius: '3px',
-                    padding: '14px 16px',
+                  <span style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'var(--font-mono)', color }}>
+                    [&rarr;]
+                  </span>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase',
+                    letterSpacing: '1.5px', color,
                   }}>
-                    <div style={{
-                      display: 'flex', gap: '8px', alignItems: 'flex-start',
-                      marginBottom: '8px',
+                    {category}
+                  </span>
+                </div>
+
+                {/* FAQ items */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {categoryFaqs.map((faq, index) => (
+                    <div key={index} style={{
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid rgba(192,192,192,0.12)',
+                      borderLeft: `3px solid ${color}66`,
+                      borderRadius: '3px',
+                      padding: '14px 16px',
                     }}>
-                      <span style={{
-                        fontSize: '10px', fontWeight: 'bold', color,
-                        fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px',
-                      }}>Q:</span>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 'bold', color: 'var(--metal-silver, #c0c0c0)',
-                        lineHeight: '1.4',
+                      <div style={{
+                        display: 'flex', gap: '8px', alignItems: 'flex-start',
+                        marginBottom: '8px',
                       }}>
-                        {faq.question}
-                      </span>
+                        <span style={{
+                          fontSize: '10px', fontWeight: 'bold', color,
+                          fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px',
+                        }}>Q:</span>
+                        <span style={{
+                          fontSize: '11px', fontWeight: 'bold', color: 'var(--metal-silver, #c0c0c0)',
+                          lineHeight: '1.4',
+                        }}>
+                          {faq.question}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                        <span style={{
+                          fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)',
+                          fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px',
+                        }}>A:</span>
+                        <span style={{
+                          fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.65',
+                        }}>
+                          {faq.answer}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                      <span style={{
-                        fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)',
-                        fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px',
-                      }}>A:</span>
-                      <span style={{
-                        fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.65',
-                      }}>
-                        {faq.answer}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+                  ))}
+                </div>
+              </section>
+            );
+          })}
 
-        {/* Still have questions */}
-        <div style={{
-          background: 'rgba(0,255,65,0.04)',
-          border: '2px solid rgba(0,255,65,0.3)',
-          borderRadius: '3px',
-          padding: '20px',
-          marginTop: '12px',
-          marginBottom: '20px',
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1.5px', marginBottom: '10px', textShadow: '0 0 6px rgba(0,255,65,0.4)' }}>
-            STILL HAVE QUESTIONS?
+          {/* Still have questions */}
+          <div style={{
+            background: 'rgba(0,255,65,0.04)',
+            border: '2px solid rgba(0,255,65,0.3)',
+            borderRadius: '3px',
+            padding: '20px',
+            marginTop: '12px',
+            marginBottom: '20px',
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1.5px', marginBottom: '10px', textShadow: '0 0 6px rgba(0,255,65,0.4)' }}>
+              STILL HAVE QUESTIONS?
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', marginBottom: '14px' }}>
+              Can't find what you're looking for? We're here to help.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+              {[
+                { title: 'READ DOCUMENTATION', desc: 'Detailed technical docs of our methodology', href: '/router/docs', internal: true },
+                { title: 'JOIN DISCUSSION', desc: 'Ask questions and discuss with the community', href: 'https://www.reddit.com/r/AIStupidLevel/', internal: false },
+                { title: 'FOLLOW UPDATES', desc: 'Get the latest news and announcements', href: 'https://twitter.com/AIStupidlevel', internal: false },
+              ].map((item, i) => (
+                item.internal
+                  ? <Link key={i} href={item.href} style={{
+                      background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px',
+                      padding: '12px', display: 'block', textDecoration: 'none',
+                    }}>
+                      <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{item.title} &rarr;</div>
+                      <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{item.desc}</div>
+                    </Link>
+                  : <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" style={{
+                      background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px',
+                      padding: '12px', display: 'block', textDecoration: 'none',
+                    }}>
+                      <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{item.title} &rarr;</div>
+                      <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{item.desc}</div>
+                    </a>
+              ))}
+            </div>
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', marginBottom: '14px' }}>
-            Can't find what you're looking for? We're here to help.
+
+          {/* Explore more */}
+          <div style={{
+            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.12)',
+            borderRadius: '3px', padding: '14px 16px', marginBottom: '20px',
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
+              EXPLORE MORE
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {[
+                { label: 'VIEW CURRENT RANKINGS', href: '/', internal: true },
+                { label: 'COMPARE AI MODELS', href: '/compare', internal: true },
+                { label: 'READ METHODOLOGY', href: '/methodology', internal: true },
+                { label: 'ABOUT OUR TEAM', href: '/about', internal: true },
+                { label: 'TEST YOUR KEYS', href: '/router/test-keys', internal: true },
+                { label: 'VIEW SOURCE CODE', href: 'https://github.com/StudioPlatforms/aistupidmeter-web', internal: false },
+              ].map((item, i) => (
+                item.internal
+                  ? <Link key={i} href={item.href} style={{
+                      fontSize: '10px', fontWeight: 'bold',
+                      color: 'var(--phosphor-green)', textDecoration: 'none',
+                      padding: '5px 10px',
+                      border: '1px solid rgba(0,255,65,0.2)',
+                      borderRadius: '2px',
+                      background: 'rgba(0,0,0,0.3)',
+                      letterSpacing: '0.4px',
+                    }}>
+                      {item.label} &rarr;
+                    </Link>
+                  : <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" style={{
+                      fontSize: '10px', fontWeight: 'bold',
+                      color: 'var(--phosphor-green)', textDecoration: 'none',
+                      padding: '5px 10px',
+                      border: '1px solid rgba(0,255,65,0.2)',
+                      borderRadius: '2px',
+                      background: 'rgba(0,0,0,0.3)',
+                      letterSpacing: '0.4px',
+                    }}>
+                      {item.label} &rarr;
+                    </a>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-            {[
-              { title: 'READ DOCUMENTATION', desc: 'Detailed technical docs of our methodology', href: '/methodology', internal: true },
-              { title: 'JOIN DISCUSSION', desc: 'Ask questions and discuss with the community', href: 'https://github.com/ionutvi/aistupidlevel.info/discussions', internal: false },
-              { title: 'FOLLOW UPDATES', desc: 'Get the latest news and announcements', href: 'https://twitter.com/AIStupidlevel', internal: false },
-            ].map((item, i) => (
-              item.internal
-                ? <Link key={i} href={item.href} style={{
-                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px',
-                    padding: '12px', display: 'block', textDecoration: 'none',
-                  }}>
-                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{item.title} →</div>
-                    <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{item.desc}</div>
-                  </Link>
-                : <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" style={{
-                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px',
-                    padding: '12px', display: 'block', textDecoration: 'none',
-                  }}>
-                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{item.title} →</div>
-                    <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{item.desc}</div>
-                  </a>
-            ))}
+
+          {/* Footer */}
+          <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.12)' }}>
+            AI Stupid Level &bull; Independent benchmarking since 2024 &bull; <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none', fontWeight: 'bold' }}>View Rankings</Link>
           </div>
         </div>
 
-        {/* Explore more */}
-        <div style={{
-          background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.12)',
-          borderRadius: '3px', padding: '14px 16px', marginBottom: '20px',
-        }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
-            EXPLORE MORE
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {[
-              { label: 'VIEW CURRENT RANKINGS', href: '/', internal: true },
-              { label: 'COMPARE AI MODELS', href: '/compare', internal: true },
-              { label: 'READ METHODOLOGY', href: '/methodology', internal: true },
-              { label: 'ABOUT OUR TEAM', href: '/about', internal: true },
-              { label: 'TEST YOUR KEYS', href: '/router/test-keys', internal: true },
-              { label: 'VIEW SOURCE CODE', href: 'https://github.com/ionutvi/aistupidlevel.info', internal: false },
-            ].map((item, i) => (
-              item.internal
-                ? <Link key={i} href={item.href} style={{
-                    fontSize: '10px', fontWeight: 'bold',
-                    color: 'var(--phosphor-green)', textDecoration: 'none',
-                    padding: '5px 10px',
-                    border: '1px solid rgba(0,255,65,0.2)',
-                    borderRadius: '2px',
-                    background: 'rgba(0,0,0,0.3)',
-                    letterSpacing: '0.4px',
-                  }}>
-                    {item.label} →
-                  </Link>
-                : <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" style={{
-                    fontSize: '10px', fontWeight: 'bold',
-                    color: 'var(--phosphor-green)', textDecoration: 'none',
-                    padding: '5px 10px',
-                    border: '1px solid rgba(0,255,65,0.2)',
-                    borderRadius: '2px',
-                    background: 'rgba(0,0,0,0.3)',
-                    letterSpacing: '0.4px',
-                  }}>
-                    {item.label} →
-                  </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.12)' }}>
-          AI Stupid Level • Independent benchmarking since 2024 • <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none', fontWeight: 'bold' }}>View Rankings</Link>
-        </div>
+        {/* FAQ Schema.org */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": faqs.map(faq => ({
+                "@type": "Question",
+                "name": faq.question,
+                "acceptedAnswer": { "@type": "Answer", "text": faq.answer }
+              }))
+            })
+          }}
+        />
       </div>
-
-      {/* FAQ Schema.org */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": faqs.map(faq => ({
-              "@type": "Question",
-              "name": faq.question,
-              "acceptedAnswer": { "@type": "Answer", "text": faq.answer }
-            }))
-          })
-        }}
-      />
-    </div>
+    </SubpageLayout>
   );
 }
