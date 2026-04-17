@@ -3788,7 +3788,11 @@ export default function Dashboard() {
       {/* V4 TOP BAR */}
       <TopBar
         selectedView={selectedView}
-        onViewChange={(view) => setSelectedView(view)}
+        onViewChange={(view) => {
+          if (view === 'about') { router.push('/about'); return; }
+          if (view === 'faq') { router.push('/faq'); return; }
+          setSelectedView(view);
+        }}
         visitorCount={visitorCount}
         todayVisits={todayVisits}
       />
@@ -3916,7 +3920,11 @@ export default function Dashboard() {
       {/* MOBILE NAV */}
       <MobileNav
         selectedView={selectedView}
-        onViewChange={(view) => setSelectedView(view)}
+        onViewChange={(view) => {
+          if (view === 'about') { router.push('/about'); return; }
+          if (view === 'faq') { router.push('/faq'); return; }
+          setSelectedView(view);
+        }}
       />
 
       {/* ═══ EXISTING SECTIONS KEPT: Intelligence Center, etc. ═══ */}
@@ -4678,7 +4686,7 @@ export default function Dashboard() {
 
       {/* Mobile Navigation */}
       <div className="mobile-nav">
-        <button 
+        <button
           className={getButtonClassName('dashboard').replace('vintage-btn', 'mobile-nav-btn')}
           onClick={() => {
             setSelectedView('dashboard');
@@ -4691,14 +4699,14 @@ export default function Dashboard() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <ThemeButton />
         </div>
-        <button 
+        <button
           className={getButtonClassName('about').replace('vintage-btn', 'mobile-nav-btn')}
-          onClick={() => setSelectedView('about')}
+          onClick={() => router.push('/about')}
           style={{ flexShrink: 0, minWidth: '70px' }}
         >
           ABOUT
         </button>
-        <button 
+        <button
           className="mobile-nav-btn"
           onClick={() => router.push('/router')}
           style={{
@@ -4713,9 +4721,9 @@ export default function Dashboard() {
         >
           PRO
         </button>
-        <button 
+        <button
           className={getButtonClassName('faq').replace('vintage-btn', 'mobile-nav-btn')}
-          onClick={() => setSelectedView('faq')}
+          onClick={() => router.push('/faq')}
           style={{ flexShrink: 0, minWidth: '60px' }}
         >
           FAQ
