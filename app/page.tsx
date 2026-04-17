@@ -1270,20 +1270,10 @@ export default function Dashboard() {
           console.log(`🎯 Initializing with user selection: ${leaderboardPeriod}/${leaderboardSortBy}`);
           userSelectionRef.current = { period: leaderboardPeriod, sortBy: leaderboardSortBy };
           
-          // HEALTH CHECK: Verify API is responsive before attempting data fetch
-          setLoadingStage('Checking API health...');
-          const isHealthy = await healthCheck();
-          if (!isHealthy && attemptNumber < 15) {
-            // API unhealthy - faster retry for health check
-            const retryDelay = Math.min(500 * Math.pow(1.5, attemptNumber), 5000);
-            console.log(`⚠️ API health check failed, retrying in ${retryDelay}ms`);
-            setLoadingStage(`System starting up, retrying in ${Math.round(retryDelay / 1000)}s...`);
-            
-            setTimeout(() => {
-              fetchDashboardData(attemptNumber + 1);
-            }, retryDelay);
-            return;
-          }
+          // PERFORMANCE FIX: Skip health check gate — go straight to nginx-cached dashboard data.
+          // The dashboard endpoint is nginx-cached (~1ms) so it's faster than a separate health check.
+          // If the API is truly down, the dashboard fetch will fail and the error handler retries.
+          console.log('⚡ Skipping health check — going straight to cached dashboard data');
         }
         
         setLoadingAttempts(attemptNumber);
