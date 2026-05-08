@@ -85,12 +85,22 @@ const getModelPricing = (name: string, provider: string): string => {
 
 function formatTimeAgo(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
+  
+  // Guard against invalid/epoch dates (e.g. null timestamps producing 1970 dates)
+  const MIN_VALID_DATE = new Date('2024-01-01').getTime();
+  if (isNaN(d.getTime()) || d.getTime() < MIN_VALID_DATE) {
+    return '—'; // Show dash instead of "20581d" for invalid dates
+  }
+  
   const minutes = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (minutes < 0) return 'now'; // Future dates (clock skew)
   if (minutes < 1) return 'now';
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d`;
+  const days = Math.floor(hours / 24);
+  if (days > 365) return '—'; // Clearly invalid if > 1 year ago
+  return `${days}d`;
 }
 
 function MiniSparkline({ history, modelId, modelHistoryData }: { history: any[]; modelId: string; modelHistoryData: Map<string, any[]> }) {
