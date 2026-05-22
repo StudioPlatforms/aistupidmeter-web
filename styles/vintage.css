@@ -5147,3 +5147,33 @@ body[data-christmas-theme="true"] .christmas-animations {
   background: var(--phosphor-green);
   color: var(--terminal-black);
 }
+
+/* ============================================================
+   Safari-specific: reduce text-shadow blur (issue #4)
+   Safari renders glow text-shadows much more aggressively than
+   Chrome/Firefox, making text unreadable. This block targets
+   only Safari via -webkit-hyphens feature detection and either
+   removes or halves all text-shadow blur values.
+   ============================================================ */
+@supports (-webkit-hyphens: none) {
+  /* Remove glow from all elements that use it */
+  * {
+    text-shadow: none !important;
+  }
+
+  /* Re-apply very subtle (readable) shadows only where absolutely needed */
+  .terminal-text,
+  .leaderboard-model-name,
+  .rank-number,
+  .score-value,
+  .stat-value,
+  .metric-value,
+  .v4-rank-num,
+  .v4-model-name,
+  .v4-score-val,
+  .rv4-stat-value,
+  .rv4-metric-value,
+  .footer-link:hover {
+    text-shadow: 0 0 1px currentColor !important;
+  }
+}
