@@ -440,7 +440,7 @@ export default function MethodologyPage() {
               { title: 'OPEN SOURCE', desc: 'Full code on GitHub. Fully auditable methodology. Run locally to verify.' },
               { title: 'INDEPENDENT', desc: 'Zero vendor funding. No affiliate revenue. 100% unbiased.' },
               { title: 'VERIFIABLE', desc: '"Test Your Keys" feature. Reproduce our results. Compare independently.' },
-              { title: 'PEER REVIEWED', desc: 'Academic validation. Community audited. 500+ GitHub stars.' },
+              { title: 'PEER REVIEWED', desc: 'Academic validation. Community audited. 100+ combined GitHub stars across frontend and backend.' },
             ].map((item, i) => (
               <div key={i} style={{ ...styles.panel, background: 'rgba(0,255,65,0.04)', borderColor: 'rgba(0,255,65,0.2)' }}>
                 <div style={styles.panelTitle}>{item.title}</div>
