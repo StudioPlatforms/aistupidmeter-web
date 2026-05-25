@@ -180,9 +180,15 @@ export default function TestKeysPage() {
 
         // Connect to the streaming endpoint
         const eventSource = new EventSource(`${apiUrl}/api/test-adapters/benchmark-stream/${sessionId}`);
-        
+        let completed = false;
+        let errorRetries = 0;
+        const maxErrorRetries = 3;
+
         eventSource.onmessage = (event) => {
           try {
+            // Ignore SSE comment heartbeats (lines starting with ':')
+            if (!event.data || event.data.startsWith(':')) return;
+
             const data = JSON.parse(event.data);
             
             // Add log message
@@ -192,11 +198,13 @@ export default function TestKeysPage() {
             
             // Handle completion
             if (data.type === 'complete' && data.data) {
+              completed = true;
               setResult(data.data);
               setTestLogs(prev => [...prev, '🎉 Streaming benchmark completed successfully!']);
               eventSource.close();
               setTesting(false);
             } else if (data.type === 'error') {
+              completed = true;
               setResult({
                 success: false,
                 provider: selectedProvider,
@@ -209,20 +217,40 @@ export default function TestKeysPage() {
             }
           } catch (parseError) {
             console.error('Error parsing streaming data:', parseError);
-            setTestLogs(prev => [...prev, `⚠️ Received malformed data: ${event.data.substring(0, 100)}...`]);
+            setTestLogs(prev => [...prev, `⚠️ Received malformed data: ${event.data?.substring(0, 100)}...`]);
           }
         };
 
         eventSource.onerror = (error) => {
+          // If we already completed, the browser is just signalling the server
+          // closed the stream cleanly. Don't kick off a second full benchmark.
+          if (completed) {
+            eventSource.close();
+            return;
+          }
+
+          // EventSource auto-reconnects on transient drops. Only escalate after
+          // repeated failures and only when readyState is permanently CLOSED.
+          if (eventSource.readyState === EventSource.CONNECTING) {
+            errorRetries += 1;
+            if (errorRetries <= maxErrorRetries) {
+              setTestLogs(prev => [...prev, `⚠️ Stream hiccup, reconnecting (${errorRetries}/${maxErrorRetries})...`]);
+              return;
+            }
+          }
+
           console.error('EventSource error:', error);
-          setTestLogs(prev => [...prev, '❌ Connection error - switching to non-streaming mode']);
+          setTestLogs(prev => [...prev, '❌ Real-time stream lost - benchmark continues on the server. Check back on the dashboard in a few minutes.']);
           eventSource.close();
-          
-          // Fallback to regular benchmark endpoint
-          fallbackToRegularBenchmark();
+          setTesting(false);
+          // NOTE: We intentionally do NOT call /benchmark-test as a fallback here.
+          // The streaming benchmark is already running server-side (and may even
+          // have finished); starting another full benchmark would double-bill the
+          // user's API key and cause 502s from nginx's read timeout.
         };
 
         eventSource.onopen = () => {
+          errorRetries = 0;
           setTestLogs(prev => [...prev, '✅ Real-time streaming connected']);
         };
 

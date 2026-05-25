@@ -2338,9 +2338,15 @@ export default function Dashboard() {
 
       // Connect to the streaming endpoint
       const eventSource = new EventSource(`${apiUrl}/api/test-adapters/benchmark-stream/${sessionId}`);
-      
+      let completed = false;
+      let errorRetries = 0;
+      const maxErrorRetries = 3;
+
       eventSource.onmessage = (event) => {
         try {
+          // Ignore SSE comment heartbeats
+          if (!event.data || event.data.startsWith(':')) return;
+
           const data = JSON.parse(event.data);
           
           // Add log message
@@ -2350,11 +2356,13 @@ export default function Dashboard() {
           
           // Handle completion
           if (data.type === 'complete' && data.data) {
+            completed = true;
             setUserBenchmarkResult(data.data);
             setTestLogs(prev => [...prev, '🎉 Streaming benchmark completed successfully!']);
             eventSource.close();
             setLoadingUserBenchmark(false);
           } else if (data.type === 'error') {
+            completed = true;
             setUserBenchmarkResult({
               success: false,
               error: data.message || 'Streaming benchmark failed'
@@ -2365,20 +2373,38 @@ export default function Dashboard() {
           }
         } catch (parseError) {
           console.error('Error parsing streaming data:', parseError);
-          setTestLogs(prev => [...prev, `⚠️ Received malformed data: ${event.data.substring(0, 100)}...`]);
+          setTestLogs(prev => [...prev, `⚠️ Received malformed data: ${event.data?.substring(0, 100)}...`]);
         }
       };
 
       eventSource.onerror = (error) => {
+        // If benchmark already completed, the server simply closed the stream.
+        // Do NOT trigger a second full benchmark run (would double-bill the user).
+        if (completed) {
+          eventSource.close();
+          return;
+        }
+
+        // EventSource auto-reconnects. Allow a few transient drops before giving up.
+        if (eventSource.readyState === EventSource.CONNECTING) {
+          errorRetries += 1;
+          if (errorRetries <= maxErrorRetries) {
+            setTestLogs(prev => [...prev, `⚠️ Stream hiccup, reconnecting (${errorRetries}/${maxErrorRetries})...`]);
+            return;
+          }
+        }
+
         console.error('EventSource error:', error);
-        setTestLogs(prev => [...prev, '❌ Connection error - switching to non-streaming mode']);
+        setTestLogs(prev => [...prev, '❌ Real-time stream lost - benchmark continues on the server. Check the dashboard in a few minutes.']);
         eventSource.close();
-        
-        // Fallback to regular benchmark endpoint
-        fallbackToRegularBenchmark();
+        setLoadingUserBenchmark(false);
+        // Intentionally no fallback call to /benchmark-test: the server-side
+        // benchmark is still running; another POST would duplicate the work and
+        // hit nginx's 400s read timeout (502 Bad Gateway).
       };
 
       eventSource.onopen = () => {
+        errorRetries = 0;
         setTestLogs(prev => [...prev, '✅ Real-time streaming connected']);
       };
 
