@@ -44,6 +44,82 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // AI Router & Monitoring pages (public-facing, SEO-valuable)
+  const routerPages: MetadataRoute.Sitemap = [
+    {
+      url: `${baseUrl}/router`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/router/docs`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/router/help`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/router/keys`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/router/monitoring`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/router/analytics`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/router/intelligence`,
+      lastModified: currentDate,
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/router/providers`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.75,
+    },
+    {
+      url: `${baseUrl}/router/preferences`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/router/profile`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/router/subscription`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/router/test-keys`,
+      lastModified: currentDate,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    },
+  ];
+
   // Fetch model data for dynamic model pages
   let modelPages: MetadataRoute.Sitemap = [];
   
@@ -70,14 +146,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Fallback: include known top models manually
     const fallbackModels = [
       'openai-gpt-5',
+      'openai-gpt-5-turbo',
       'openai-o3',
       'openai-o3-mini',
       'openai-gpt-4o',
+      'openai-gpt-4o-mini',
       'anthropic-claude-opus-4',
       'anthropic-claude-sonnet-4',
       'google-gemini-2-5-pro',
       'google-gemini-2-5-flash',
+      'google-gemini-2-5-flash-lite',
       'xai-grok-4',
+      'xai-grok-code-fast-1',
+      'deepseek-deepseek-v4',
+      'kimi-kimi-k2',
     ];
 
     modelPages = fallbackModels.map(slug => ({
@@ -89,5 +171,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Combine all pages
-  return [...staticPages, ...modelPages];
+  return [...staticPages, ...routerPages, ...modelPages];
 }

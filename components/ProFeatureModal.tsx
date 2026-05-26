@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
@@ -34,6 +34,16 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         'Deep reasoning analysis',
         'Tool calling metrics',
         'Combined performance view'
+      ]
+    },
+    'api-monitoring': {
+      title: '🔍 Unlock API Monitoring',
+      description: 'Track every API request, audit prompts, control budgets, and optimize costs across all your keys',
+      benefits: [
+        'Per-key usage tracking with model & cost breakdown',
+        'Prompt auditing with automatic secret scrubbing',
+        'Budget controls with hard/soft limits and alerts',
+        'Efficiency metrics and cost trend analysis'
       ]
     }
   };

@@ -236,8 +236,11 @@ export default function Dashboard() {
   // Fund Us popup state
   const [showFundUsPopup, setShowFundUsPopup] = useState(false);
 
-  // Price info modal state
-  const [showPriceInfoModal, setShowPriceInfoModal] = useState(false);
+ // Price info modal state
+ const [showPriceInfoModal, setShowPriceInfoModal] = useState(false);
+
+ // API Monitoring announcement popup state
+ const [showMonitoringAnnouncement, setShowMonitoringAnnouncement] = useState(false);
 
   // Smart caching system for leaderboard data (now includes historyMap for charts)
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
@@ -1541,6 +1544,12 @@ export default function Dashboard() {
     } else if (!hasConsentPreference) {
       setShowWelcomePopup(true);   // Just privacy step for returning users
       setWelcomeStep('privacy');   // Skip straight to consent question
+    } else {
+      // Returning user who completed welcome — show monitoring announcement once
+      const hasSeenMonitoring = localStorage.getItem('stupidmeter-monitoring-announcement-seen');
+      if (!hasSeenMonitoring) {
+        setTimeout(() => setShowMonitoringAnnouncement(true), 2000);
+      }
     }
     
     // Load stupid meter mode preference
@@ -1582,6 +1591,12 @@ export default function Dashboard() {
     localStorage.setItem('stupidmeter-welcome-seen', 'true');
     setShowWelcomePopup(false);
     setWelcomeStep('updates'); // Reset for next time
+
+    // After welcome completes, show monitoring announcement if not seen yet
+    const hasSeenMonitoring = localStorage.getItem('stupidmeter-monitoring-announcement-seen');
+    if (!hasSeenMonitoring) {
+      setTimeout(() => setShowMonitoringAnnouncement(true), 500);
+    }
   };
 
   // Generate ticker content immediately when any data becomes available
@@ -4967,6 +4982,121 @@ export default function Dashboard() {
         onClose={() => setShowProModal(false)}
         feature={proModalFeature}
       />
+
+      {/* API Monitoring Feature Announcement Popup */}
+      {showMonitoringAnnouncement && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '10px',
+          animation: 'fadeIn 0.3s ease'
+        }}
+        onClick={() => {
+          localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+          setShowMonitoringAnnouncement(false);
+        }}>
+          <div className="crt-monitor" style={{
+            maxWidth: '600px',
+            width: '95%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '32px',
+            backgroundColor: 'var(--terminal-black)',
+            border: '3px solid var(--phosphor-green)',
+            borderRadius: '6px',
+            boxShadow: '0 0 30px var(--phosphor-green)',
+            animation: 'slideUp 0.3s ease'
+          }}
+          onClick={(e) => e.stopPropagation()}>
+            <div className="terminal-text">
+              {/* Header */}
+              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ fontSize: '2.5em', marginBottom: '8px' }}>🔍</div>
+                <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 10px var(--phosphor-green)', marginBottom: '8px' }}>
+                  NEW: API MONITORING
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.95em', lineHeight: 1.5 }}>
+                  Track every API request, audit prompts, control budgets — all in one dashboard
+                </div>
+              </div>
+
+              {/* Features */}
+              <div style={{
+                padding: '16px',
+                backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(0, 255, 65, 0.2)',
+                borderRadius: '6px',
+                marginBottom: '20px'
+              }}>
+                <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '10px' }}>
+                  ✨ What&apos;s Included:
+                </div>
+                {[
+                  '📋 Per-key request logging with model, cost & latency breakdown',
+                  '💰 Cost dashboard with daily trends and model spend analysis',
+                  '📝 Prompt auditing with automatic secret scrubbing & encryption',
+                  '🎯 Budget controls with hard/soft limits and threshold alerts',
+                  '⚡ Key efficiency metrics and error rate tracking',
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: i < 4 ? '8px' : '0', fontSize: '0.9em' }}>
+                    <span className="terminal-text">{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pro badge */}
+              <div style={{
+                textAlign: 'center',
+                padding: '12px',
+                backgroundColor: 'rgba(0, 191, 255, 0.08)',
+                border: '1px solid rgba(0, 191, 255, 0.3)',
+                borderRadius: '4px',
+                marginBottom: '20px'
+              }}>
+                <div className="terminal-text--amber" style={{ fontSize: '0.9em', marginBottom: '4px' }}>
+                  💎 Available with AI Router PRO
+                </div>
+                <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
+                  $4.99/month • 7-day free trial • Cancel anytime
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+                    setShowMonitoringAnnouncement(false);
+                    router.push('/router/monitoring');
+                  }}
+                  className="vintage-btn vintage-btn--active"
+                  style={{ padding: '12px 28px', fontSize: '1em', fontWeight: 'bold' }}
+                >
+                  EXPLORE MONITORING →
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+                    setShowMonitoringAnnouncement(false);
+                  }}
+                  className="vintage-btn"
+                  style={{ padding: '10px 24px', opacity: 0.7 }}
+                >
+                  MAYBE LATER
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Share Button - Floating */}
       <ShareButton 

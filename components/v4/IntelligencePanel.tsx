@@ -352,37 +352,6 @@ export default function IntelligencePanel({
         )}
       </ul>
 
-      {/* Sponsored — QELT Blockchain */}
-      <a
-        href="https://presale.qelt.ai/"
-        target="_blank"
-        rel="noopener noreferrer sponsored"
-        className="v4-sponsor-card"
-        style={{
-          display: 'block',
-          margin: '8px 12px',
-          padding: '12px 16px',
-          border: '1px solid rgba(255, 176, 0, 0.25)',
-          background: 'rgba(255, 176, 0, 0.03)',
-          textAlign: 'center',
-          textDecoration: 'none',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-        }}
-      >
-        <div style={{ fontSize: '6px', color: 'var(--phosphor-dim)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.5 }}>
-          SPONSORED
-        </div>
-        <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--amber-warning)', textShadow: '0 0 3px rgba(255, 176, 0, 0.4)', marginBottom: '4px' }}>
-          🔗 QELT BLOCKCHAIN PRESALE
-        </div>
-        <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '2px' }}>
-          World&apos;s first RWA blockchain • $1.1T in-ground assets on-chain
-        </div>
-        <div style={{ fontSize: '11px', color: 'var(--amber-warning)', marginTop: '4px' }}>
-          Join the presale →
-        </div>
-      </a>
     </div>
   );
 }
