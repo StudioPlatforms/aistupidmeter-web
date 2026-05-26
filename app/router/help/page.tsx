@@ -2,537 +2,230 @@
 
 import { useState } from 'react';
 import RouterLayout from '@/components/RouterLayout';
-import PixelIcon from '@/components/PixelIcon';
 
 export default function HelpPage() {
   const [openSection, setOpenSection] = useState<string | null>('getting-started');
-
-  const toggleSection = (section: string) => {
-    setOpenSection(openSection === section ? null : section);
-  };
+  const toggle = (s: string) => setOpenSection(openSection === s ? null : s);
 
   return (
     <RouterLayout>
-      <div className="vintage-container">
-        {/* Header */}
-        <div className="dashboard-header" style={{ marginBottom: '30px' }}>
+      {/* Header */}
+      <div className="rv4-page-header">
+        <div className="rv4-page-header-left">
+          <span style={{ fontSize: '18px' }}>❓</span>
           <div>
-            <h1 className="dashboard-title">
-              <span className="terminal-text--green">HELP CENTER</span>
-              <span className="blinking-cursor"></span>
-            </h1>
-            <p className="dashboard-subtitle terminal-text--dim">
-              Everything you need to know about AI Router
-            </p>
-          </div>
-        </div>
-
-        {/* Quick Links */}
-        <div className="section-card" style={{ marginBottom: '20px' }}>
-          <div className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PixelIcon name="lightning" size={20} />
-            QUICK LINKS
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-            <a href="/router/keys" className="action-button" style={{ textDecoration: 'none' }}>
-              <PixelIcon name="key" size={20} />
-              <span className="terminal-text--green">Create API Key</span>
-            </a>
-            <a href="/router/providers" className="action-button" style={{ textDecoration: 'none' }}>
-              <PixelIcon name="plug" size={20} />
-              <span className="terminal-text--green">Add Providers</span>
-            </a>
-            <a href="/router/docs" className="action-button" style={{ textDecoration: 'none' }}>
-              <PixelIcon name="book" size={20} />
-              <span className="terminal-text--green">API Docs</span>
-            </a>
-            <a href="/router/analytics" className="action-button" style={{ textDecoration: 'none' }}>
-              <PixelIcon name="analytics" size={20} />
-              <span className="terminal-text--green">View Analytics</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="help-content">
-          
-          {/* Getting Started */}
-          <HelpSection
-            id="getting-started"
-            title="GETTING STARTED"
-            icon="rocket"
-            isOpen={openSection === 'getting-started'}
-            onToggle={() => toggleSection('getting-started')}
-          >
-            <div className="help-section-content">
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>What is AI Router?</h3>
-              <p className="terminal-text--dim" style={{ marginBottom: '15px', lineHeight: '1.6' }}>
-                AI Router is an intelligent API gateway that automatically selects the best AI model for your requests. 
-                Instead of manually choosing between Claude, GPT, Gemini, or xAI, our system continuously benchmarks 
-                all models and routes your requests to the optimal one based on performance, cost, and your preferences.
-              </p>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Quick Start (5 Minutes)</h3>
-              <div className="terminal-text--dim" style={{ lineHeight: '1.6' }}>
-                <p style={{ marginBottom: '10px' }}><strong className="terminal-text--amber">Step 1:</strong> Create a Universal API Key</p>
-                <ul style={{ marginLeft: '20px', marginBottom: '15px' }}>
-                  <li>Go to <a href="/router/keys" className="terminal-text--green" style={{ textDecoration: 'underline' }}>API Keys</a></li>
-                  <li>Click "Create New Key"</li>
-                  <li>Give it a name (e.g., "My App")</li>
-                  <li>Save the key securely - you won't see it again!</li>
-                </ul>
-
-                <p style={{ marginBottom: '10px' }}><strong className="terminal-text--amber">Step 2:</strong> Add Provider API Keys</p>
-                <ul style={{ marginLeft: '20px', marginBottom: '15px' }}>
-                  <li>Go to <a href="/router/providers" className="terminal-text--green" style={{ textDecoration: 'underline' }}>Providers</a></li>
-                  <li>Add keys for OpenAI, Anthropic, Google, or xAI</li>
-                  <li>The more providers you add, the better the routing!</li>
-                </ul>
-
-                <p style={{ marginBottom: '10px' }}><strong className="terminal-text--amber">Step 3:</strong> Start Using It</p>
-                <ul style={{ marginLeft: '20px', marginBottom: '15px' }}>
-                  <li>Use your universal key with any OpenAI-compatible app</li>
-                  <li>Base URL: <code className="terminal-text--green">http://aistupidlevel.info:4000/v1</code></li>
-                  <li>Model: <code className="terminal-text--green">best_for_coding</code> (or any routing mode)</li>
-                </ul>
-              </div>
-            </div>
-          </HelpSection>
-
-          {/* Core Concepts */}
-          <HelpSection
-            id="core-concepts"
-            title="CORE CONCEPTS"
-            icon="brain"
-            isOpen={openSection === 'core-concepts'}
-            onToggle={() => toggleSection('core-concepts')}
-          >
-            <div className="help-section-content">
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Universal API Keys</h3>
-              <p className="terminal-text--dim" style={{ marginBottom: '15px', lineHeight: '1.6' }}>
-                Your universal API key (starts with <code className="terminal-text--green">aism_</code>) is what you use in your applications. 
-                It's a single key that gives you access to all AI providers you've configured. Think of it as a master key 
-                that unlocks all the AI models.
-              </p>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Provider API Keys</h3>
-              <p className="terminal-text--dim" style={{ marginBottom: '15px', lineHeight: '1.6' }}>
-                These are your actual API keys from OpenAI, Anthropic, Google, and xAI. You add them to your account, 
-                and we securely store them encrypted. The router uses these keys to make requests on your behalf to 
-                whichever provider has the best model for your request.
-              </p>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Intelligent Routing</h3>
-              <p className="terminal-text--dim" style={{ marginBottom: '10px', lineHeight: '1.6' }}>
-                Our system continuously benchmarks all AI models across different categories:
-              </p>
-              <ul className="terminal-text--dim" style={{ marginLeft: '20px', marginBottom: '15px', lineHeight: '1.6' }}>
-                <li><strong className="terminal-text--amber">Overall Performance:</strong> Best general-purpose model</li>
-                <li><strong className="terminal-text--amber">Coding:</strong> Best for code generation and debugging</li>
-                <li><strong className="terminal-text--amber">Reasoning:</strong> Best for complex problem-solving</li>
-                <li><strong className="terminal-text--amber">Creative:</strong> Best for creative writing</li>
-                <li><strong className="terminal-text--amber">Speed:</strong> Fastest response times</li>
-                <li><strong className="terminal-text--amber">Cost:</strong> Most cost-effective</li>
-              </ul>
-              <p className="terminal-text--dim" style={{ lineHeight: '1.6' }}>
-                When you make a request, we automatically select the best model based on your chosen routing strategy 
-                and your preferences (cost limits, latency requirements, etc.).
-              </p>
-            </div>
-          </HelpSection>
-
-          {/* Using with Apps */}
-          <HelpSection
-            id="using-with-apps"
-            title="USING WITH POPULAR APPS"
-            icon="plug"
-            isOpen={openSection === 'using-with-apps'}
-            onToggle={() => toggleSection('using-with-apps')}
-          >
-            <div className="help-section-content">
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Cursor IDE</h3>
-              <div className="terminal-text--dim" style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                <p style={{ marginBottom: '10px' }}>In Cursor settings:</p>
-                <ol style={{ marginLeft: '20px' }}>
-                  <li>Go to Models → Add Custom Model</li>
-                  <li>Base URL: <code className="terminal-text--green">http://aistupidlevel.info:4000/v1</code></li>
-                  <li>API Key: Your universal key</li>
-                  <li>Model: <code className="terminal-text--green">best_for_coding</code></li>
-                </ol>
-              </div>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Continue.dev (VSCode)</h3>
-              <div className="terminal-text--dim" style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                <p style={{ marginBottom: '10px' }}>In <code>~/.continue/config.json</code>:</p>
-                <pre className="code-block" style={{ backgroundColor: 'rgba(0, 255, 65, 0.1)', padding: '15px', borderRadius: '4px', overflow: 'auto' }}>
-{`{
-  "models": [{
-    "title": "AI Router",
-    "provider": "openai",
-    "model": "best_for_coding",
-    "apiKey": "aism_your_key_here",
-    "apiBase": "http://aistupidlevel.info:4000/v1"
-  }]
-}`}
-                </pre>
-              </div>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Cline (VSCode)</h3>
-              <div className="terminal-text--dim" style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                <p style={{ marginBottom: '10px' }}>Once our PR is merged, you'll be able to select "AI Stupid Level" directly in Cline's provider settings!</p>
-              </div>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Any OpenAI-Compatible App</h3>
-              <div className="terminal-text--dim" style={{ lineHeight: '1.6' }}>
-                <p style={{ marginBottom: '10px' }}>Most AI apps support custom OpenAI endpoints. Just use:</p>
-                <ul style={{ marginLeft: '20px' }}>
-                  <li>Base URL: <code className="terminal-text--green">http://aistupidlevel.info:4000/v1</code></li>
-                  <li>API Key: Your universal key</li>
-                  <li>Model: Any routing mode (see <a href="/router/docs" className="terminal-text--green" style={{ textDecoration: 'underline' }}>docs</a>)</li>
-                </ul>
-              </div>
-            </div>
-          </HelpSection>
-
-          {/* Routing Strategies */}
-          <HelpSection
-            id="routing-strategies"
-            title="ROUTING STRATEGIES"
-            icon="target"
-            isOpen={openSection === 'routing-strategies'}
-            onToggle={() => toggleSection('routing-strategies')}
-          >
-            <div className="help-section-content">
-              <p className="terminal-text--dim" style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                Choose the routing strategy that best fits your use case. You can specify this as the "model" parameter 
-                in your API requests, or set a default in your <a href="/router/preferences" className="terminal-text--green" style={{ textDecoration: 'underline' }}>preferences</a>.
-              </p>
-
-              <div style={{ display: 'grid', gap: '15px' }}>
-                <StrategyCard
-                  name="best_overall"
-                  description="Automatically selects the best-performing model across all categories. Great for general-purpose use."
-                  useCase="Default choice for most applications"
-                />
-                <StrategyCard
-                  name="best_for_coding"
-                  description="Optimized for code generation, debugging, and software development tasks."
-                  useCase="IDEs, code assistants, development tools"
-                />
-                <StrategyCard
-                  name="best_for_reasoning"
-                  description="Selects models that excel at complex problem-solving and logical thinking."
-                  useCase="Math problems, analysis, strategic planning"
-                />
-                <StrategyCard
-                  name="best_for_creative"
-                  description="Optimized for creative writing, brainstorming, and generating innovative ideas."
-                  useCase="Content creation, storytelling, marketing"
-                />
-                <StrategyCard
-                  name="fastest"
-                  description="Prioritizes speed over everything else. Selects the fastest-responding model."
-                  useCase="Real-time applications, chatbots, quick queries"
-                />
-                <StrategyCard
-                  name="cheapest"
-                  description="Optimizes for cost while maintaining acceptable quality."
-                  useCase="High-volume applications, budget-conscious usage"
-                />
-              </div>
-            </div>
-          </HelpSection>
-
-          {/* Monitoring & Analytics */}
-          <HelpSection
-            id="monitoring"
-            title="MONITORING & ANALYTICS"
-            icon="analytics"
-            isOpen={openSection === 'monitoring'}
-            onToggle={() => toggleSection('monitoring')}
-          >
-            <div className="help-section-content">
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Dashboard Overview</h3>
-              <p className="terminal-text--dim" style={{ marginBottom: '15px', lineHeight: '1.6' }}>
-                Your <a href="/router" className="terminal-text--green" style={{ textDecoration: 'underline' }}>dashboard</a> shows 
-                real-time statistics including total requests, costs, success rates, and recent activity.
-              </p>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Analytics Page</h3>
-              <p className="terminal-text--dim" style={{ marginBottom: '15px', lineHeight: '1.6' }}>
-                The <a href="/router/analytics" className="terminal-text--green" style={{ textDecoration: 'underline' }}>analytics page</a> provides 
-                detailed insights:
-              </p>
-              <ul className="terminal-text--dim" style={{ marginLeft: '20px', marginBottom: '15px', lineHeight: '1.6' }}>
-                <li>Usage timeline (hourly/daily breakdown)</li>
-                <li>Cost savings compared to worst-case scenario</li>
-                <li>Provider and model distribution</li>
-                <li>Performance metrics per model</li>
-                <li>Request history with full details</li>
-              </ul>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px', marginTop: '20px' }}>Cost Tracking</h3>
-              <p className="terminal-text--dim" style={{ lineHeight: '1.6' }}>
-                Every request is tracked with precise cost calculations. You can see exactly how much you're spending 
-                and how much you're saving by using intelligent routing instead of always using the most expensive model.
-              </p>
-            </div>
-          </HelpSection>
-
-          {/* FAQ */}
-          <HelpSection
-            id="faq"
-            title="FREQUENTLY ASKED QUESTIONS"
-            icon="help"
-            isOpen={openSection === 'faq'}
-            onToggle={() => toggleSection('faq')}
-          >
-            <div className="help-section-content">
-              <FAQItem
-                question="How much does AI Router cost?"
-                answer="AI Router itself is free during beta. You only pay for the actual API usage from your provider keys (OpenAI, Anthropic, etc.). We help you save 50-70% on those costs through intelligent routing."
-              />
-              <FAQItem
-                question="Is my data secure?"
-                answer="Yes! Your provider API keys are encrypted at rest. We never log your request content. All requests are proxied directly to the providers without storing the actual messages."
-              />
-              <FAQItem
-                question="What happens if a model fails?"
-                answer="We have automatic failover. If the selected model fails, we immediately try the next best model. You can configure fallback behavior in your preferences."
-              />
-              <FAQItem
-                question="Can I use this with streaming?"
-                answer="Yes! All routing modes support streaming. Just set stream: true in your request, and we'll stream the response from whichever model is selected."
-              />
-              <FAQItem
-                question="How often are benchmarks updated?"
-                answer="We run continuous benchmarks 24/7. Model rankings are updated in real-time as new benchmark results come in, ensuring you always get routed to the current best model."
-              />
-              <FAQItem
-                question="Can I exclude certain models or providers?"
-                answer="Yes! Go to your preferences and add models or providers to your exclusion list. The router will never select them for your requests."
-              />
-              <FAQItem
-                question="What if I want to use a specific model?"
-                answer="You can! Just specify the exact model name (e.g., 'gpt-4o', 'claude-3-5-sonnet-20241022') instead of a routing strategy. The router will use that specific model."
-              />
-            </div>
-          </HelpSection>
-
-          {/* Best Practices */}
-          <HelpSection
-            id="best-practices"
-            title="BEST PRACTICES"
-            icon="sparkles"
-            isOpen={openSection === 'best-practices'}
-            onToggle={() => toggleSection('best-practices')}
-          >
-            <div className="help-section-content">
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Cost Optimization</h3>
-              <ul className="terminal-text--dim" style={{ marginLeft: '20px', marginBottom: '20px', lineHeight: '1.6' }}>
-                <li>Use <code className="terminal-text--green">cheapest</code> routing for high-volume, simple tasks</li>
-                <li>Set cost limits in preferences to prevent expensive models</li>
-                <li>Monitor your analytics to identify cost-heavy patterns</li>
-                <li>Add multiple providers to increase routing options</li>
-              </ul>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Performance Optimization</h3>
-              <ul className="terminal-text--dim" style={{ marginLeft: '20px', marginBottom: '20px', lineHeight: '1.6' }}>
-                <li>Use <code className="terminal-text--green">fastest</code> routing for real-time applications</li>
-                <li>Set latency limits to ensure responsive experiences</li>
-                <li>Enable streaming for better perceived performance</li>
-                <li>Use task-specific routing (coding, reasoning, creative)</li>
-              </ul>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Security</h3>
-              <ul className="terminal-text--dim" style={{ marginLeft: '20px', marginBottom: '20px', lineHeight: '1.6' }}>
-                <li>Never share your universal API keys publicly</li>
-                <li>Create separate keys for different applications</li>
-                <li>Revoke keys immediately if compromised</li>
-                <li>Regularly rotate your provider API keys</li>
-                <li>Monitor usage for unexpected patterns</li>
-              </ul>
-
-              <h3 className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '10px' }}>Monitoring</h3>
-              <ul className="terminal-text--dim" style={{ marginLeft: '20px', lineHeight: '1.6' }}>
-                <li>Check your dashboard regularly for anomalies</li>
-                <li>Review cost savings to validate routing effectiveness</li>
-                <li>Analyze model performance to optimize preferences</li>
-                <li>Track success rates to identify issues early</li>
-              </ul>
-            </div>
-          </HelpSection>
-
-          {/* Troubleshooting */}
-          <HelpSection
-            id="troubleshooting"
-            title="TROUBLESHOOTING"
-            icon="warning"
-            isOpen={openSection === 'troubleshooting'}
-            onToggle={() => toggleSection('troubleshooting')}
-          >
-            <div className="help-section-content">
-              <TroubleshootItem
-                problem="401 Unauthorized Error"
-                solution="Check that your universal API key is correct and hasn't been revoked. Make sure you're including it in the Authorization header as 'Bearer aism_your_key'."
-              />
-              <TroubleshootItem
-                problem="No Models Available"
-                solution="You need to add at least one provider API key. Go to Providers and add keys for OpenAI, Anthropic, Google, or xAI."
-              />
-              <TroubleshootItem
-                problem="High Costs"
-                solution="Set cost limits in your preferences, use 'cheapest' routing mode, or exclude expensive models. Check analytics to see which models are costing the most."
-              />
-              <TroubleshootItem
-                problem="Slow Responses"
-                solution="Use 'fastest' routing mode, set latency limits in preferences, or exclude slow models. Check if your provider keys are valid and not rate-limited."
-              />
-              <TroubleshootItem
-                problem="Provider Key Validation Failed"
-                solution="Double-check that you copied the API key correctly. Make sure the key has the necessary permissions and isn't expired. Try generating a new key from the provider."
-              />
-            </div>
-          </HelpSection>
-
-        </div>
-
-        {/* Footer */}
-        <div className="dashboard-footer" style={{ marginTop: '40px' }}>
-          <div className="terminal-text--dim">
-            Need more help? Check the <a href="/router/docs" className="footer-link">API Documentation</a> or contact support
+            <div className="rv4-page-title">HELP CENTER<span className="blinking-cursor"></span></div>
+            <div className="rv4-page-title-sub">Everything you need to know about the AI Smart Router</div>
           </div>
         </div>
       </div>
 
-      <style jsx>{`
-        .help-content {
-          display: flex;
-          flex-direction: column;
-          gap: 15px;
-        }
+      <div className="rv4-body">
+        {/* Quick Links */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px', marginBottom: '14px' }}>
+          {[
+            { href: '/router/keys', icon: '🔑', label: 'Create API Key' },
+            { href: '/router/providers', icon: '🔌', label: 'Add Providers' },
+            { href: '/router/docs', icon: '📖', label: 'API Docs' },
+            { href: '/router/monitoring', icon: '📊', label: 'Monitoring' },
+            { href: '/router/analytics', icon: '📈', label: 'Analytics' },
+            { href: '/router/preferences', icon: '⚙️', label: 'Preferences' },
+          ].map(link => (
+            <a key={link.href} href={link.href} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', textDecoration: 'none',
+              background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)', borderRadius: '3px',
+              color: 'var(--phosphor-green)', fontSize: '11px', fontWeight: 600, transition: 'border-color 0.2s',
+            }}>
+              <span>{link.icon}</span>
+              <span>{link.label}</span>
+            </a>
+          ))}
+        </div>
 
-        .help-section-content {
-          padding: 20px;
-          line-height: 1.6;
-        }
+        {/* Getting Started */}
+        <HelpPanel title="🚀 GETTING STARTED" isOpen={openSection === 'getting-started'} onToggle={() => toggle('getting-started')}>
+          <h4 style={{ color: 'var(--phosphor-green)', fontSize: '11px', margin: '0 0 8px 0' }}>What is the AI Smart Router?</h4>
+          <p style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '14px' }}>
+            The AI Smart Router is an intelligent API gateway that automatically selects the best AI model for your requests.
+            Instead of manually choosing between Claude, GPT, Gemini, Grok, DeepSeek, Kimi, or GLM, our system continuously benchmarks
+            all models and routes your requests to the optimal one based on performance, cost, and your preferences.
+          </p>
 
-        .code-block {
-          font-family: 'Courier New', monospace;
-          font-size: 0.9em;
-        }
+          <h4 style={{ color: 'var(--phosphor-green)', fontSize: '11px', margin: '0 0 8px 0' }}>Quick Start (5 Minutes)</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px' }}>
+            <StepCard step={1} title="Create a Universal API Key">
+              Go to <a href="/router/keys" style={{ color: 'var(--phosphor-green)' }}>API Keys</a> → Click "Create Key" → Copy and save it securely. Your key starts with <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>aism_</code>
+            </StepCard>
+            <StepCard step={2} title="Add Provider API Keys">
+              Go to <a href="/router/providers" style={{ color: 'var(--phosphor-green)' }}>Providers</a> → Add keys for OpenAI, Anthropic, Google, xAI, DeepSeek, Kimi, or GLM. The more providers you add, the better the routing!
+            </StepCard>
+            <StepCard step={3} title="Configure Your Tool">
+              Use your <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>aism_</code> key with any OpenAI-compatible tool:
+              <div style={{ marginTop: '6px' }}>
+                <code style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--phosphor-green)', background: 'var(--bg-primary)', padding: '6px 8px', borderRadius: '2px', lineHeight: 1.6 }}>
+                  Base URL: https://aistupidlevel.info/v1<br/>
+                  API Key: aism_your_key_here<br/>
+                  Model: auto-coding (or auto, auto-reasoning, etc.)
+                </code>
+              </div>
+            </StepCard>
+          </div>
+        </HelpPanel>
 
-        .action-button {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 12px 16px;
-          background: rgba(0, 255, 65, 0.1);
-          border: 1px solid var(--phosphor-green);
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
+        {/* Using with Tools */}
+        <HelpPanel title="🖥️ SETTING UP YOUR IDE / TOOL" isOpen={openSection === 'tools'} onToggle={() => toggle('tools')}>
+          <p style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '12px' }}>
+            Your <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>aism_</code> key works with any tool that supports custom OpenAI base URLs. For detailed setup instructions with copy-paste configs, visit the <a href="/router/keys" style={{ color: 'var(--phosphor-green)' }}>API Keys page</a> and expand "How to Use Your API Key".
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+            {[
+              { name: 'Roo Code', how: 'Settings → "OpenAI Compatible" → paste Base URL + Key' },
+              { name: 'Cline', how: 'Settings → "OpenAI Compatible" → paste Base URL + Key' },
+              { name: 'Continue', how: 'Edit config.yaml → provider: openai + apiBase + apiKey' },
+              { name: 'Cursor IDE', how: 'Settings → Override OpenAI Base URL (chat/plan mode only)' },
+              { name: 'Aider', how: 'Set OPENAI_API_BASE + OPENAI_API_KEY env vars' },
+              { name: 'Open WebUI', how: 'Admin → Connections → OpenAI → Add Connection' },
+              { name: 'Chatbox', how: 'API Host: https://aistupidlevel.info (no /v1)' },
+              { name: 'TypingMind', how: 'Full endpoint URL per model + Bearer header' },
+              { name: 'Jan.ai', how: 'OpenAI extension → paste URL + Key' },
+              { name: 'LibreChat', how: 'librechat.yaml custom endpoint with fetch: true' },
+              { name: 'AnythingLLM', how: 'Generic OpenAI provider → Base URL + Key' },
+              { name: 'LiteLLM', how: 'litellm-config.yaml → openai/auto-coding' },
+            ].map(t => (
+              <div key={t.name} style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)', borderRadius: '3px', padding: '8px 10px' }}>
+                <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>{t.name}</div>
+                <div style={{ fontSize: '9.5px', color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{t.how}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rv4-info-banner amber" style={{ marginTop: '12px' }}>
+            <span className="rv4-info-banner-icon">⚠</span>
+            <div className="rv4-info-banner-content">
+              <div className="rv4-info-banner-title">KNOWN LIMITATIONS</div>
+              <div className="rv4-info-banner-text">
+                <strong>Cursor:</strong> Only chat/plan mode uses your base URL — Composer, inline edit, and autocomplete are locked to Cursor's backend.<br/>
+                <strong>Windsurf:</strong> Cascade is locked to Codeium's backend. Install Roo Code or Cline inside Windsurf instead.
+              </div>
+            </div>
+          </div>
+        </HelpPanel>
 
-        .action-button:hover {
-          background: rgba(0, 255, 65, 0.2);
-          transform: translateY(-2px);
-        }
-      `}</style>
+        {/* Virtual Models */}
+        <HelpPanel title="🤖 ROUTING STRATEGIES (VIRTUAL MODELS)" isOpen={openSection === 'strategies'} onToggle={() => toggle('strategies')}>
+          <p style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '12px' }}>
+            Use these as the <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>model</code> parameter. The router picks the best real model based on live benchmarks.
+          </p>
+          <div className="rv4-table-wrapper">
+            <table className="rv4-table">
+              <thead><tr><th>Model ID</th><th>Strategy</th><th>Best For</th></tr></thead>
+              <tbody>
+                {[
+                  { id: 'auto', strategy: 'Saved Preference', use: 'Uses your configured default strategy' },
+                  { id: 'auto-coding', strategy: 'Best Coding', use: 'Code generation, debugging, refactoring' },
+                  { id: 'auto-reasoning', strategy: 'Best Reasoning', use: 'Complex analysis, math, logic puzzles' },
+                  { id: 'auto-creative', strategy: 'Best Creative', use: 'Creative writing, brainstorming, content' },
+                  { id: 'auto-cheapest', strategy: 'Lowest Cost', use: 'High-volume tasks, budget-conscious usage' },
+                  { id: 'auto-fastest', strategy: 'Lowest Latency', use: 'Real-time apps, chatbots, quick queries' },
+                ].map(s => (
+                  <tr key={s.id}>
+                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)', fontWeight: 600 }}>{s.id}</td>
+                    <td style={{ color: 'var(--amber-warning)' }}>{s.strategy}</td>
+                    <td style={{ color: 'var(--text-tertiary)' }}>{s.use}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p style={{ fontSize: '9.5px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+            You can also pin specific models (e.g., <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-4-7</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-5.5</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gemini-3.5-flash</code>) to bypass routing entirely.
+          </p>
+        </HelpPanel>
+
+        {/* Monitoring */}
+        <HelpPanel title="📊 MONITORING & BUDGETS" isOpen={openSection === 'monitoring'} onToggle={() => toggle('monitoring')}>
+          <p style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '12px' }}>
+            The <a href="/router/monitoring" style={{ color: 'var(--phosphor-green)' }}>Monitoring page</a> provides per-key activity tracking, cost dashboards, prompt auditing, and budget management.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {[
+              { label: 'Key Activity', desc: 'Per-request log with provider, model, cost, latency, and category' },
+              { label: 'Cost Dashboard', desc: 'Daily/weekly/monthly spend breakdown by model and provider' },
+              { label: 'Prompt Audit', desc: 'Encrypted prompt logging with PII scrubbing (opt-in)' },
+              { label: 'Budgets & Alerts', desc: 'Monthly spend limits (soft warnings + hard enforcement) per key' },
+              { label: 'Efficiency Report', desc: 'Success rates, category distribution, avg cost per request' },
+            ].map(f => (
+              <div key={f.label} style={{ display: 'flex', gap: '8px', fontSize: '10.5px' }}>
+                <span style={{ color: 'var(--phosphor-green)', fontWeight: 700, flexShrink: 0, width: '120px' }}>{f.label}:</span>
+                <span style={{ color: 'var(--text-tertiary)' }}>{f.desc}</span>
+              </div>
+            ))}
+          </div>
+        </HelpPanel>
+
+        {/* FAQ */}
+        <HelpPanel title="💬 FREQUENTLY ASKED QUESTIONS" isOpen={openSection === 'faq'} onToggle={() => toggle('faq')}>
+          {[
+            { q: 'How much does it cost?', a: 'The router itself is free. You pay only for actual API usage via your provider keys. Intelligent routing typically saves 30-60% compared to always using the most expensive model.' },
+            { q: 'Is my data secure?', a: 'Provider keys are encrypted at rest with HKDF-derived subkeys. Prompt logging (opt-in) uses separate encryption domains. PII is automatically scrubbed before storage.' },
+            { q: 'What happens if a model fails?', a: 'Automatic failover: if the primary model fails, the router tries up to 2 fallbacks from different providers. Configure fallback behavior in Preferences.' },
+            { q: 'Does streaming work?', a: 'Yes — set stream: true. Streaming is currently simulated (sentence-level chunking). True token-level streaming is a future enhancement.' },
+            { q: 'How often are benchmarks updated?', a: 'Continuous 24/7 benchmarking. Model rankings update in real-time as new results arrive.' },
+            { q: 'Can I use a specific model directly?', a: 'Yes — send any real model ID (e.g., "claude-opus-4-7", "gpt-5.5") instead of an auto-* strategy. The router forwards directly to that provider.' },
+            { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, xAI (Grok), Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI). Add as many as you like.' },
+            { q: 'Does it work with embeddings?', a: 'Yes — POST /v1/embeddings proxies to OpenAI embedding models. Required by Continue, LibreChat, and Open WebUI for RAG.' },
+          ].map((faq, i) => (
+            <div key={i} style={{ marginBottom: '12px' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--amber-warning)', marginBottom: '4px' }}>Q: {faq.q}</div>
+              <div style={{ fontSize: '10.5px', color: 'var(--text-tertiary)', lineHeight: 1.5, paddingLeft: '14px' }}>A: {faq.a}</div>
+            </div>
+          ))}
+        </HelpPanel>
+
+        {/* Troubleshooting */}
+        <HelpPanel title="🔧 TROUBLESHOOTING" isOpen={openSection === 'troubleshooting'} onToggle={() => toggle('troubleshooting')}>
+          {[
+            { problem: '401 Unauthorized', fix: 'Check your aism_ key is correct and not revoked. Include it as "Authorization: Bearer aism_..." header. Some tools also accept sk-aism_ prefix.' },
+            { problem: 'No models in dropdown', fix: 'Your tool calls GET /v1/models — this requires a valid aism_ key. Check that auth is configured correctly.' },
+            { problem: 'Model not found', fix: 'If using a specific model ID, check spelling. Direct pin routing infers the provider from the model name prefix.' },
+            { problem: 'High costs', fix: 'Set budget limits in Monitoring → Budgets. Use auto-cheapest strategy. Check Analytics for cost patterns.' },
+            { problem: 'Slow responses', fix: 'Use auto-fastest strategy. Set latency limits in Preferences. Enable streaming for better perceived speed.' },
+            { problem: 'Provider key validation failed', fix: 'Re-check the key on the provider\'s dashboard. Ensure it has active credits and correct permissions.' },
+            { problem: 'CORS errors in browser', fix: 'The /v1/* endpoints allow all origins. If you see CORS errors, check that your tool is using the correct base URL.' },
+          ].map((t, i) => (
+            <div key={i} style={{ marginBottom: '10px', padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: '3px', border: '1px solid var(--border-primary)' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--red-alert)', marginBottom: '3px' }}>⚠ {t.problem}</div>
+              <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{t.fix}</div>
+            </div>
+          ))}
+        </HelpPanel>
+
+        <div className="rv4-footer" style={{ marginTop: '14px' }}>
+          Need more detail? Check the <a href="/router/docs" style={{ color: 'var(--phosphor-green)' }}>API Documentation</a>
+        </div>
+      </div>
     </RouterLayout>
   );
 }
 
-// Collapsible Section Component
-function HelpSection({ 
-  id, 
-  title, 
-  icon, 
-  isOpen, 
-  onToggle, 
-  children 
-}: { 
-  id: string; 
-  title: string; 
-  icon: string; 
-  isOpen: boolean; 
-  onToggle: () => void; 
-  children: React.ReactNode;
-}) {
+function HelpPanel({ title, isOpen, onToggle, children }: { title: string; isOpen: boolean; onToggle: () => void; children: React.ReactNode }) {
   return (
-    <div className="section-card">
-      <div
-        onClick={onToggle}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '15px 20px',
-          cursor: 'pointer',
-          borderBottom: isOpen ? '1px solid rgba(0, 255, 65, 0.3)' : 'none',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <PixelIcon name={icon} size={24} />
-          <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold' }}>
-            {title}
-          </span>
-        </div>
-        <span className="terminal-text--green" style={{ fontSize: '1.2em' }}>
-          {isOpen ? '−' : '+'}
-        </span>
+    <div className="rv4-panel" style={{ marginBottom: '10px' }}>
+      <div className="rv4-panel-header" style={{ cursor: 'pointer' }} onClick={onToggle}>
+        <span className="rv4-panel-title">{title}</span>
+        <span style={{ fontSize: '10px', opacity: 0.6 }}>{isOpen ? '▼' : '▶'}</span>
       </div>
-      {isOpen && children}
+      {isOpen && <div className="rv4-panel-body" style={{ padding: '14px' }}>{children}</div>}
     </div>
   );
 }
 
-// Strategy Card Component
-function StrategyCard({ name, description, useCase }: { name: string; description: string; useCase: string }) {
+function StepCard({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
   return (
-    <div style={{
-      padding: '15px',
-      background: 'rgba(0, 255, 65, 0.05)',
-      border: '1px solid rgba(0, 255, 65, 0.3)',
-      borderRadius: '4px',
-    }}>
-      <div className="terminal-text--green" style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '8px' }}>
-        {name}
-      </div>
-      <p className="terminal-text--dim" style={{ fontSize: '0.9em', marginBottom: '8px', lineHeight: '1.5' }}>
-        {description}
-      </p>
-      <div className="terminal-text--amber" style={{ fontSize: '0.85em' }}>
-        Use case: {useCase}
-      </div>
-    </div>
-  );
-}
-
-// FAQ Item Component
-function FAQItem({ question, answer }: { question: string; answer: string }) {
-  return (
-    <div style={{ marginBottom: '20px' }}>
-      <div className="terminal-text--amber" style={{ fontSize: '0.95em', fontWeight: 'bold', marginBottom: '8px' }}>
-        Q: {question}
-      </div>
-      <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.6', paddingLeft: '15px' }}>
-        A: {answer}
-      </div>
-    </div>
-  );
-}
-
-// Troubleshoot Item Component
-function TroubleshootItem({ problem, solution }: { problem: string; solution: string }) {
-  return (
-    <div style={{ marginBottom: '20px' }}>
-      <div className="terminal-text--red" style={{ fontSize: '0.95em', fontWeight: 'bold', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <PixelIcon name="warning" size={16} />
-        {problem}
-      </div>
-      <div className="terminal-text--dim" style={{ fontSize: '0.9em', lineHeight: '1.6', paddingLeft: '24px' }}>
-        {solution}
+    <div style={{ display: 'flex', gap: '10px', padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: '3px', border: '1px solid var(--border-primary)' }}>
+      <span style={{ color: 'var(--phosphor-green)', fontWeight: 700, fontSize: '14px', flexShrink: 0, width: '22px', textAlign: 'center' }}>{step}</span>
+      <div>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>{title}</div>
+        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>{children}</div>
       </div>
     </div>
   );

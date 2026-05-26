@@ -61,11 +61,18 @@ export default function ProfilePage() {
         mostUsedModel = performance.models[0].model;
       }
 
+      // Parse success rate — backend returns "97.50" (no %), append % for display
+      const rawRate = overview?.overview?.successRate;
+      const successRateDisplay = rawRate ? `${rawRate}%` : '0%';
+      
+      // Parse savings — backend returns string when there are requests, number 0 when none
+      const totalSaved = savings?.savings ? parseFloat(String(savings.savings)) : 0;
+      
       setStats({
         totalRequests: overview?.overview?.totalRequests || 0,
-        totalSaved: savings ? parseFloat(savings.savings) : 0,
+        totalSaved,
         mostUsedModel,
-        successRate: overview?.overview?.successRate || '0%',
+        successRate: successRateDisplay,
         activeKeys: keysData?.keys?.filter((k: any) => !k.revoked).length || 0,
         memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       });
@@ -205,8 +212,12 @@ export default function ProfilePage() {
               {[
                 { label: 'DASHBOARD', href: '/router' },
                 { label: 'API KEYS', href: '/router/keys' },
+                { label: 'PROVIDERS', href: '/router/providers' },
+                { label: 'MONITORING', href: '/router/monitoring' },
                 { label: 'ANALYTICS', href: '/router/analytics' },
-                { label: 'MAIN SITE', href: '/' },
+                { label: 'PREFERENCES', href: '/router/preferences' },
+                { label: 'API DOCS', href: '/router/docs' },
+                { label: 'HELP CENTER', href: '/router/help' },
               ].map((a) => (
                 <button key={a.href} onClick={() => router.push(a.href)} className="rv4-action-btn">
                   <div className="rv4-action-btn-title">{a.label}</div>

@@ -43,6 +43,7 @@ export default function RouterSidebar() {
     { label: 'PROVIDERS', href: '/router/providers' },
     { label: 'PREFERENCES', href: '/router/preferences' },
     { label: 'ANALYTICS', href: '/router/analytics' },
+    { label: 'API MONITORING', href: '/router/monitoring' },
     { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
     { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
     { label: 'TEST KEYS', href: '/router/test-keys' },

@@ -181,6 +181,11 @@ function getFeatureBenefits(feature: string) {
       { title: 'SIDE-BY-SIDE COMPARE', description: 'Compare up to 4 models with overlaid charts and detailed analytics' },
       { title: 'DATA EXPORT', description: 'Download comprehensive model data in CSV or JSON format' },
     ],
+    'API Monitoring': [
+      { title: 'PER-KEY TRACKING', description: 'See exactly how each API key is being used, by whom, and how much it costs' },
+      { title: 'PROMPT AUDITING', description: 'Opt-in prompt logging with automatic secret scrubbing and encryption at rest' },
+      { title: 'BUDGET CONTROLS', description: 'Set spending limits per key with soft or hard enforcement and threshold alerts' },
+    ],
   };
 
   return benefits[feature] || [

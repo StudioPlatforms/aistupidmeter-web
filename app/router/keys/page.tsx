@@ -13,6 +13,8 @@ export default function RouterKeysPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSetupGuide, setShowSetupGuide] = useState(false);
+  const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -164,27 +166,56 @@ export default function RouterKeysPage() {
                       flexWrap: 'wrap',
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{key.name}</span>
                           {key.revoked
                             ? <span className="rv4-badge red">REVOKED</span>
                             : <span className="rv4-badge green">ACTIVE</span>}
+                          {(key as any).department && (
+                            <span className="rv4-badge" style={{ fontSize: '8px', background: 'rgba(74,158,255,0.12)', color: '#4a9eff', border: '1px solid rgba(74,158,255,0.3)' }}>
+                              {(key as any).department}
+                            </span>
+                          )}
+                          {(key as any).assignedTo && (
+                            <span style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>→ {(key as any).assignedTo}</span>
+                          )}
+                          {(key as any).tags?.length > 0 && (key as any).tags.map((tag: string) => (
+                            <span key={tag} className="rv4-badge" style={{ fontSize: '8px', background: 'rgba(255,176,0,0.1)', color: 'var(--amber-warning)', border: '1px solid rgba(255,176,0,0.25)' }}>
+                              {tag}
+                            </span>
+                          ))}
                         </div>
                         <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontFamily: 'var(--font-mono)' }}>
                           <span>KEY: {key.keyPrefix}...</span>
                           <span style={{ marginLeft: '12px' }}>CREATED: {new Date(key.createdAt).toLocaleDateString()}</span>
                           {key.lastUsedAt && <span style={{ marginLeft: '12px' }}>LAST USED: {new Date(key.lastUsedAt).toLocaleDateString()}</span>}
+                          {(key as any).budgetLimitMonthly && (
+                            <span style={{ marginLeft: '12px', color: 'var(--amber-warning)' }}>
+                              BUDGET: ${(key as any).currentMonthSpend?.toFixed(4) || '0'} / ${(key as any).budgetLimitMonthly}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      {!key.revoked && (
-                        <button
-                          onClick={() => handleRevokeKey(key.id)}
-                          className="rv4-ctrl-btn danger"
-                          style={{ fontSize: '10px', flexShrink: 0 }}
-                        >
-                          REVOKE
-                        </button>
-                      )}
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        {!key.revoked && (
+                          <a
+                            href={`/router/monitoring?key=${key.id}&tab=activity`}
+                            className="rv4-ctrl-btn"
+                            style={{ fontSize: '10px', textDecoration: 'none' }}
+                          >
+                            VIEW ACTIVITY →
+                          </a>
+                        )}
+                        {!key.revoked && (
+                          <button
+                            onClick={() => handleRevokeKey(key.id)}
+                            className="rv4-ctrl-btn danger"
+                            style={{ fontSize: '10px' }}
+                          >
+                            REVOKE
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -213,6 +244,184 @@ export default function RouterKeysPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* How to Use Your API Key — Setup Guide */}
+          <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+            <div className="rv4-panel-header" style={{ cursor: 'pointer' }} onClick={() => setShowSetupGuide(!showSetupGuide)}>
+              <span className="rv4-panel-title">📖 HOW TO USE YOUR API KEY</span>
+              <span style={{ fontSize: '10px', opacity: 0.6 }}>{showSetupGuide ? '▼ COLLAPSE' : '▶ EXPAND'}</span>
+            </div>
+            {showSetupGuide && (
+              <div className="rv4-panel-body" style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Quick Start */}
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--phosphor-green)', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                    ⚡ QUICK START
+                  </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.5 }}>
+                    Use your <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>aism_</code> key anywhere you'd normally put an OpenAI key. Set the base URL to <code style={{ background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>https://aistupidlevel.info/v1</code>
+                  </div>
+                  <SetupSnippet
+                    title="Python (OpenAI SDK)"
+                    code={`from openai import OpenAI\nclient = OpenAI(\n    api_key="aism_your_key_here",\n    base_url="https://aistupidlevel.info/v1"\n)\nresponse = client.chat.completions.create(\n    model="auto-coding",\n    messages=[{"role": "user", "content": "Hello!"}]\n)`}
+                    copiedSnippet={copiedSnippet}
+                    setCopiedSnippet={setCopiedSnippet}
+                  />
+                  <SetupSnippet
+                    title="Node.js / TypeScript"
+                    code={`import OpenAI from 'openai';\nconst client = new OpenAI({\n    apiKey: "aism_your_key_here",\n    baseURL: "https://aistupidlevel.info/v1"\n});\nconst response = await client.chat.completions.create({\n    model: "auto-coding",\n    messages: [{ role: "user", content: "Hello!" }]\n});`}
+                    copiedSnippet={copiedSnippet}
+                    setCopiedSnippet={setCopiedSnippet}
+                  />
+                </div>
+
+                {/* IDE Extensions */}
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--phosphor-green)', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                    🖥️ IDE EXTENSIONS
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
+                    <ToolCard
+                      name="Roo Code"
+                      subtitle="VS Code Extension"
+                      steps={[
+                        'Open Settings → Extensions → Roo Code',
+                        'Select provider: "OpenAI Compatible"',
+                        'Base URL: https://aistupidlevel.info/v1',
+                        'Paste your aism_ key',
+                        'Model dropdown auto-populates'
+                      ]}
+                    />
+                    <ToolCard
+                      name="Cline"
+                      subtitle="VS Code Extension"
+                      steps={[
+                        'Open Cline settings → API Configuration',
+                        'Select: "OpenAI Compatible"',
+                        'Base URL: https://aistupidlevel.info/v1',
+                        'Paste your aism_ key',
+                        'Type model: auto-coding'
+                      ]}
+                    />
+                    <ToolCard
+                      name="Continue"
+                      subtitle="VS Code / JetBrains"
+                      steps={[
+                        'Edit ~/.continue/config.yaml',
+                        'provider: openai',
+                        'apiBase: https://aistupidlevel.info/v1',
+                        'apiKey: aism_your_key_here',
+                        'model: auto-coding'
+                      ]}
+                    />
+                    <ToolCard
+                      name="Cursor IDE"
+                      subtitle="Chat/Plan mode only"
+                      steps={[
+                        'Settings → Models',
+                        'Toggle "Override OpenAI Base URL"',
+                        'URL: https://aistupidlevel.info/v1',
+                        'Paste key in OpenAI API Key field',
+                        '+ Add Model → auto-coding'
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* CLI & Desktop Apps */}
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--phosphor-green)', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                    💻 CLI TOOLS & DESKTOP APPS
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
+                    <ToolCard
+                      name="Aider"
+                      subtitle="CLI Agent"
+                      steps={[
+                        'export OPENAI_API_BASE="https://aistupidlevel.info/v1"',
+                        'export OPENAI_API_KEY="aism_your_key_here"',
+                        'aider --model openai/auto-coding',
+                        '(openai/ prefix is required)'
+                      ]}
+                    />
+                    <ToolCard
+                      name="Open WebUI"
+                      subtitle="Self-hosted UI"
+                      steps={[
+                        'Admin → Settings → Connections → OpenAI',
+                        'Click "+ Add Connection"',
+                        'URL: https://aistupidlevel.info/v1',
+                        'Paste your aism_ key',
+                        'Models auto-populate'
+                      ]}
+                    />
+                    <ToolCard
+                      name="Chatbox"
+                      subtitle="Desktop App"
+                      steps={[
+                        'Settings → API Provider → OpenAI API',
+                        'API Host: https://aistupidlevel.info',
+                        '(No /v1 — Chatbox adds it)',
+                        'Paste your aism_ key'
+                      ]}
+                    />
+                    <ToolCard
+                      name="TypingMind"
+                      subtitle="Web App"
+                      steps={[
+                        'Settings → Add Custom Model',
+                        'Full URL: https://aistupidlevel.info/v1/chat/completions',
+                        'Header: Bearer aism_your_key_here',
+                        'Model ID: auto-coding'
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                {/* Available Models */}
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--phosphor-green)', marginBottom: '8px', letterSpacing: '0.5px' }}>
+                    🤖 AVAILABLE VIRTUAL MODELS
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '6px' }}>
+                    {[
+                      { id: 'auto', desc: 'Uses your saved preference' },
+                      { id: 'auto-coding', desc: 'Best for code generation' },
+                      { id: 'auto-reasoning', desc: 'Best for complex reasoning' },
+                      { id: 'auto-creative', desc: 'Best for creative writing' },
+                      { id: 'auto-cheapest', desc: 'Lowest cost per token' },
+                      { id: 'auto-fastest', desc: 'Lowest latency' },
+                    ].map(m => (
+                      <div key={m.id} style={{
+                        background: 'var(--bg-tertiary)', borderRadius: '3px', padding: '8px 10px',
+                        border: '1px solid var(--border-primary)'
+                      }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 700, color: 'var(--phosphor-green)' }}>{m.id}</div>
+                        <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '2px' }}>{m.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
+                    You can also pin specific models (e.g., <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-4-7</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-5.5</code>) — the full list is in your tool's model dropdown.
+                  </div>
+                </div>
+
+                {/* Endpoints */}
+                <div className="rv4-info-banner green">
+                  <span className="rv4-info-banner-icon">🔗</span>
+                  <div className="rv4-info-banner-content">
+                    <div className="rv4-info-banner-title">API ENDPOINTS</div>
+                    <div className="rv4-info-banner-text" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>POST /v1/chat/completions</code> — Chat (auto-routing or direct pin)</div>
+                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>GET /v1/models</code> — List available models</div>
+                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>POST /v1/embeddings</code> — Embeddings (proxied to OpenAI)</div>
+                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>POST /v1/messages</code> — Native Anthropic Messages API</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -286,5 +495,52 @@ export default function RouterKeysPage() {
         )}
       </SubscriptionGuard>
     </RouterLayout>
+  );
+}
+
+/** Code snippet with copy button for the setup guide */
+function SetupSnippet({ title, code, copiedSnippet, setCopiedSnippet }: {
+  title: string; code: string;
+  copiedSnippet: string | null; setCopiedSnippet: (v: string | null) => void;
+}) {
+  const handleCopy = async () => {
+    try { await navigator.clipboard.writeText(code); setCopiedSnippet(title); setTimeout(() => setCopiedSnippet(null), 2000); } catch {}
+  };
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
+        <button onClick={handleCopy} className="rv4-ctrl-btn" style={{ fontSize: '9px', padding: '2px 8px' }}>
+          {copiedSnippet === title ? '✓ COPIED' : 'COPY'}
+        </button>
+      </div>
+      <pre style={{
+        background: 'var(--bg-tertiary)', borderRadius: '3px', padding: '10px 12px',
+        fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)',
+        overflowX: 'auto', whiteSpace: 'pre', border: '1px solid var(--border-primary)',
+        lineHeight: 1.5, margin: 0,
+      }}>{code}</pre>
+    </div>
+  );
+}
+
+/** Tool setup card for the setup guide */
+function ToolCard({ name, subtitle, steps }: { name: string; subtitle: string; steps: string[] }) {
+  return (
+    <div style={{
+      background: 'var(--bg-tertiary)', borderRadius: '3px', padding: '10px 12px',
+      border: '1px solid var(--border-primary)',
+    }}>
+      <div style={{ fontWeight: 700, fontSize: '11px', color: 'var(--text-primary)' }}>{name}</div>
+      <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginBottom: '6px' }}>{subtitle}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        {steps.map((step, i) => (
+          <div key={i} style={{ fontSize: '9.5px', color: 'var(--text-secondary)', display: 'flex', gap: '5px' }}>
+            <span style={{ color: 'var(--phosphor-green)', fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+            <span style={{ fontFamily: step.startsWith('export ') || step.startsWith('aider') || step.startsWith('(') ? 'var(--font-mono)' : 'inherit' }}>{step}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

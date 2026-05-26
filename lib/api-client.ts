@@ -106,6 +106,95 @@ export interface ApiError {
 }
 
 // ============================================================================
+// API Monitoring Types
+// ============================================================================
+
+export interface KeyActivity {
+  id: number;
+  model: string;
+  provider: string;
+  category: string | null;
+  language: string | null;
+  complexity: string | null;
+  promptPreview: string | null;
+  tokensIn: number;
+  tokensOut: number;
+  cost: string;
+  latency: number;
+  success: boolean;
+  timestamp: string;
+}
+
+export interface KeyCostBreakdown {
+  keyId: number;
+  keyName: string;
+  department: string | null;
+  assignedTo: string | null;
+  period: string;
+  totalCost: string;
+  totalRequests: number;
+  totalTokens: number;
+  dailyCosts: Array<{ date: string; cost: number; requests: number }>;
+  modelBreakdown: Array<{ model: string; cost: string; requests: number; percentage: string }>;
+  forecast: { daysUntilBudget: number | null; projectedMonthEnd: number };
+}
+
+export interface KeySummary {
+  id: number;
+  name: string;
+  keyPrefix: string;
+  department: string | null;
+  assignedTo: string | null;
+  tags: string[];
+  budgetLimit: number | null;
+  budgetHardLimit: boolean;
+  currentSpend: number;
+  budgetUtilization: number | null;
+  requestCount: number;
+  lastUsed: string | null;
+  topCategory: string | null;
+}
+
+export interface BudgetAlert {
+  id: number;
+  keyId: number;
+  keyName: string;
+  alertType: 'threshold_warning' | 'budget_exceeded';
+  thresholdPct: number;
+  amountSpent: number;
+  budgetLimit: number;
+  acknowledged: boolean;
+  createdAt: string;
+}
+
+export interface PromptAuditEntry {
+  id: number;
+  keyId: number;
+  keyName: string;
+  department: string | null;
+  promptPreview: string;
+  category: string;
+  language: string;
+  complexity: string;
+  model: string;
+  provider: string;
+  cost: string;
+  timestamp: string;
+}
+
+export interface EfficiencyMetrics {
+  keyId: number;
+  keyName: string;
+  department: string | null;
+  avgTokensPerRequest: number;
+  avgCostPerRequest: number;
+  errorRate: string;
+  avgLatency: number;
+  requestCount: number;
+  topCategories: Array<{ category: string; percentage: string }>;
+}
+
+// ============================================================================
 // API Client Class
 // ============================================================================
 
@@ -388,6 +477,105 @@ class ApiClient {
     }>;
   }> {
     return this.request('/api/router/analytics/available-models');
+  }
+
+  // ==========================================================================
+  // API Monitoring
+  // ==========================================================================
+
+  async getPromptLoggingState(): Promise<{ enabled: boolean; retentionDays: number }> {
+    return this.request('/api/router/monitoring/prompt-logging');
+  }
+
+  async togglePromptLogging(enabled: boolean, retentionDays?: number): Promise<{ success: boolean }> {
+    return this.request('/api/router/monitoring/prompt-logging', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled, retentionDays }),
+    });
+  }
+
+  async getKeyActivity(keyId: number, opts?: { before?: string; limit?: number; category?: string }): Promise<{
+    activity: KeyActivity[];
+    nextCursor: string | null;
+  }> {
+    const params = new URLSearchParams();
+    if (opts?.before) params.set('before', opts.before);
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    if (opts?.category) params.set('category', opts.category);
+    return this.request(`/api/router/monitoring/keys/${keyId}/activity?${params}`);
+  }
+
+  async getKeyCosts(keyId: number, period?: '7d' | '30d' | '90d'): Promise<{ costs: KeyCostBreakdown | null }> {
+    return this.request(`/api/router/monitoring/keys/${keyId}/costs?period=${period || '30d'}`);
+  }
+
+  async getKeysSummary(): Promise<{ keys: KeySummary[] }> {
+    return this.request('/api/router/monitoring/keys/summary');
+  }
+
+  async getPromptAudit(opts?: { before?: string; limit?: number; keyId?: number; category?: string }): Promise<{
+    prompts: PromptAuditEntry[];
+    nextCursor: string | null;
+  }> {
+    const params = new URLSearchParams();
+    if (opts?.before) params.set('before', opts.before);
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    if (opts?.keyId) params.set('keyId', String(opts.keyId));
+    if (opts?.category) params.set('category', opts.category);
+    return this.request(`/api/router/monitoring/prompts?${params}`);
+  }
+
+  async getPromptCategories(): Promise<{
+    categories: Array<{ category: string; count: number; percentage: string }>;
+  }> {
+    return this.request('/api/router/monitoring/prompt-categories');
+  }
+
+  async getBudgetStatus(): Promise<{ keys: Array<{
+    id: number; name: string; department: string | null;
+    budgetLimit: number | null; budgetHardLimit: boolean; budgetAlertThreshold: number;
+    currentSpend: number; utilization: number | null;
+  }> }> {
+    return this.request('/api/router/monitoring/budget-status');
+  }
+
+  async getBudgetAlerts(acknowledged?: boolean): Promise<{ alerts: BudgetAlert[] }> {
+    return this.request(`/api/router/monitoring/budget-alerts?acknowledged=${acknowledged || false}`);
+  }
+
+  async acknowledgeBudgetAlert(alertId: number): Promise<{ success: boolean }> {
+    return this.request(`/api/router/monitoring/budget-alerts/${alertId}/acknowledge`, { method: 'POST' });
+  }
+
+  async getEfficiencyMetrics(): Promise<{ keys: EfficiencyMetrics[] }> {
+    return this.request('/api/router/monitoring/efficiency');
+  }
+
+  async deletePrompt(requestId: number): Promise<{ success: boolean }> {
+    return this.request(`/api/router/monitoring/prompts/${requestId}`, { method: 'DELETE' });
+  }
+
+  async purgePrompts(opts?: { keyId?: number; before?: string }): Promise<{ success: boolean; purged: number }> {
+    const params = new URLSearchParams();
+    params.set('confirm', 'true'); // Fix #10: explicit confirm required by backend
+    if (opts?.keyId) params.set('keyId', String(opts.keyId));
+    if (opts?.before) params.set('before', opts.before);
+    return this.request(`/api/router/monitoring/prompts/purge?${params}`, { method: 'DELETE' });
+  }
+
+  async updateKey(keyId: number, data: {
+    department?: string | null;
+    assignedTo?: string | null;
+    tags?: string[];
+    budgetLimitMonthly?: number | null;
+    budgetHardLimit?: boolean;
+    budgetAlertThreshold?: number;
+    promptLoggingOverride?: number | null;
+  }): Promise<{ success: boolean }> {
+    return this.request(`/api/router/keys/${keyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 }
 
