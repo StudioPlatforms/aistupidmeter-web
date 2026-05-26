@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
+import { apiClient } from '@/lib/api-client';
 
 interface UserStats {
   totalRequests: number;
@@ -24,35 +25,45 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated') {
+    } else if (status === 'authenticated' && session?.user?.id) {
+      // Set user ID for apiClient (same pattern as keys page)
+      apiClient.setUserId(session.user.id);
       fetchUserData();
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   const fetchUserData = async () => {
     try {
       setLoading(true);
-      const subResponse = await fetch('/api/subscription/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session!.user!.email! })
-      });
-      const subData = await subResponse.json();
-      if (subData.success && subData.data.hasAccess) {
-        setSubscriptionStatus(subData.data.isTrialing ? 'trial' : 'pro');
+
+      // Subscription check — isolated so a failure here doesn't block stats loading
+      try {
+        const subResponse = await fetch('/api/subscription/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: session?.user?.email || '' })
+        });
+        if (subResponse.ok) {
+          const subData = await subResponse.json();
+          if (subData.success && subData.data?.hasAccess) {
+            setSubscriptionStatus(subData.data.isTrialing ? 'trial' : 'pro');
+          }
+        }
+      } catch {
+        // Subscription check failed — continue with stats loading
       }
 
-      const [overviewRes, keysRes, savingsRes, performanceRes] = await Promise.all([
-        fetch('/api/router/analytics/overview').catch(() => null),
-        fetch('/api/router/keys').catch(() => null),
-        fetch('/api/router/analytics/cost-savings').catch(() => null),
-        fetch('/api/router/analytics/model-performance').catch(() => null)
-      ]);
+      // Use apiClient (same pattern as keys page — proven to work)
+      // Each call is isolated so one failure doesn't zero out all stats
+      let overview: any = null;
+      let keysData: any = null;
+      let savings: any = null;
+      let performance: any = null;
 
-      const overview = overviewRes?.ok ? await overviewRes.json() : null;
-      const keysData = keysRes?.ok ? await keysRes.json() : null;
-      const savings = savingsRes?.ok ? await savingsRes.json() : null;
-      const performance = performanceRes?.ok ? await performanceRes.json() : null;
+      try { overview = await apiClient.getAnalyticsOverview(); } catch { /* skip */ }
+      try { keysData = await apiClient.getUniversalKeys(); } catch { /* skip */ }
+      try { savings = await apiClient.getCostSavings(); } catch { /* skip */ }
+      try { performance = await apiClient.getModelPerformance(); } catch { /* skip */ }
 
       let mostUsedModel = 'N/A';
       if (overview?.topModels && overview.topModels.length > 0) {
@@ -67,13 +78,18 @@ export default function ProfilePage() {
       
       // Parse savings — backend returns string when there are requests, number 0 when none
       const totalSaved = savings?.savings ? parseFloat(String(savings.savings)) : 0;
+
+      // Count active keys — filter out revoked (revoked can be 0/1 integer or false/true boolean)
+      const activeKeyCount = Array.isArray(keysData?.keys)
+        ? keysData.keys.filter((k: any) => !k.revoked && k.status !== 'revoked').length
+        : 0;
       
       setStats({
         totalRequests: overview?.overview?.totalRequests || 0,
         totalSaved,
         mostUsedModel,
         successRate: successRateDisplay,
-        activeKeys: keysData?.keys?.filter((k: any) => !k.revoked).length || 0,
+        activeKeys: activeKeyCount,
         memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       });
     } catch {
