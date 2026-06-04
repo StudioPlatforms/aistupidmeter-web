@@ -234,10 +234,19 @@ export default function IntelligencePanel({
     });
   }
 
-  // Provider trust data
-  const providerData = providerReliability.length > 0
+  // Provider trust data — show the top 4 providers by trust score.
+  // xAI / Grok are excluded: the API no longer returns them, and the
+  // fallback builder filters them as a safety net.
+  const providerData = (providerReliability.length > 0
     ? providerReliability
-    : buildProviderTrustFromScores(modelScores);
+    : buildProviderTrustFromScores(modelScores)
+  )
+    .filter((prov: any) => {
+      const key = String(prov.provider || prov.name || '').toLowerCase();
+      return key !== 'xai' && key !== 'x.ai' && key !== 'grok';
+    })
+    .sort((a: any, b: any) => (b.score || b.trustScore || 0) - (a.score || a.trustScore || 0))
+    .slice(0, 4);
 
   return (
     <div className="v4-panel v4-left-panel">
@@ -371,6 +380,9 @@ function formatTimeAgo(date: Date | string): string {
 function buildProviderTrustFromScores(modelScores: any[]): any[] {
   const providers = new Map<string, { total: number; count: number }>();
   modelScores.forEach(m => {
+    // Exclude xAI/Grok models from the fallback builder as well
+    const vendor = String(m.provider || '').toLowerCase();
+    if (vendor === 'xai' || vendor === 'x.ai' || vendor === 'grok') return;
     if (typeof m.currentScore === 'number' && m.provider) {
       const existing = providers.get(m.provider) || { total: 0, count: 0 };
       existing.total += m.currentScore;
@@ -378,9 +390,12 @@ function buildProviderTrustFromScores(modelScores: any[]): any[] {
       providers.set(m.provider, existing);
     }
   });
-  return Array.from(providers.entries()).map(([name, data]) => ({
-    name,
-    provider: name,
-    score: Math.round(data.total / data.count),
-  }));
+  return Array.from(providers.entries())
+    .map(([name, data]) => ({
+      name,
+      provider: name,
+      score: Math.round(data.total / data.count),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
 }

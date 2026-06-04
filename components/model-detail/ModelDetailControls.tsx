@@ -23,7 +23,7 @@ const periods: Array<{ key: HistoricalPeriod; label: string; proOnly: boolean }>
 const scoringModes: Array<{ key: ScoringMode; label: string }> = [
   { key: 'combined', label: 'COMBINED' },
   { key: 'reasoning', label: 'REASONING' },
-  { key: 'speed', label: '7AXIS' },
+  { key: 'speed', label: 'CODING' },
   { key: 'tooling', label: 'TOOLING' },
 ];
 

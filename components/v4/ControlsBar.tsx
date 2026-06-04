@@ -33,7 +33,7 @@ export default function ControlsBar({
   const sortModes: Array<{ key: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'; label: string; proOnly: boolean }> = [
     { key: 'combined', label: 'COMBINED', proOnly: false },
     { key: 'reasoning', label: 'REASONING', proOnly: true },
-    { key: 'speed', label: '7AXIS', proOnly: true },
+    { key: 'speed', label: 'CODING', proOnly: true },
     { key: 'tooling', label: 'TOOLING', proOnly: true },
     { key: 'price', label: 'PRICE', proOnly: false },
   ];

@@ -2141,7 +2141,7 @@ export default function Dashboard() {
     switch (leaderboardSortBy) {
       case 'price': return 'PRICE';
       case 'reasoning': return 'REASONING';
-      case 'speed': return '7AXIS';
+      case 'speed': return 'CODING';
       case 'combined':
       default: return 'SCORE';
     }

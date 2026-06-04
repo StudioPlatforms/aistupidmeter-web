@@ -50,7 +50,7 @@ export default function ModelDetailChart({
 
   const data = [...filteredHistory].reverse(); // oldest → newest (left to right)
 
-  const modeLabel = selectedScoringMode === 'speed' ? '7AXIS'
+  const modeLabel = selectedScoringMode === 'speed' ? 'CODING'
     : selectedScoringMode.toUpperCase();
 
   // Build empty state info
