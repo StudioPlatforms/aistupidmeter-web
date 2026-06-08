@@ -36,28 +36,48 @@ export default function RouterSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navItems: NavItem[] = [
-    { label: '← BACK TO RANKINGS', href: '/' },
-    { label: 'DASHBOARD', href: '/router' },
-    { label: 'API KEYS', href: '/router/keys' },
-    { label: 'PROVIDERS', href: '/router/providers' },
-    { label: 'PREFERENCES', href: '/router/preferences' },
-    { label: 'ANALYTICS', href: '/router/analytics' },
-    { label: 'API MONITORING', href: '/router/monitoring' },
-    { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
-    { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
-    { label: 'TEST KEYS', href: '/router/test-keys' },
-  ];
+  const isGuest = !session?.user;
+  const isForumPage = pathname?.startsWith('/router/forum');
 
-  const userItems: NavItem[] = [
-    { label: 'PROFILE', href: '/router/profile' },
-    { label: 'SUBSCRIPTION', href: '/router/subscription' },
-  ];
+  // Guest on forum page — show minimal sidebar
+  const guestForumMode = isGuest && isForumPage;
 
-  const supportItems: NavItem[] = [
-    { label: 'HELP', href: '/router/help' },
-    { label: 'API DOCS', href: '/router/docs' },
-  ];
+  const navItems: NavItem[] = guestForumMode
+    ? [
+        { label: '← BACK TO RANKINGS', href: '/' },
+        { label: 'FORUM', href: '/router/forum' },
+      ]
+    : [
+        { label: '← BACK TO RANKINGS', href: '/' },
+        { label: 'DASHBOARD', href: '/router' },
+        { label: 'API KEYS', href: '/router/keys' },
+        { label: 'PROVIDERS', href: '/router/providers' },
+        { label: 'PREFERENCES', href: '/router/preferences' },
+        { label: 'ANALYTICS', href: '/router/analytics' },
+        { label: 'API MONITORING', href: '/router/monitoring' },
+        { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
+        { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
+        { label: 'FORUM', href: '/router/forum' },
+        { label: 'TEST KEYS', href: '/router/test-keys' },
+      ];
+
+  const userItems: NavItem[] = guestForumMode
+    ? []
+    : [
+        { label: 'PROFILE', href: '/router/profile' },
+        { label: 'SUBSCRIPTION', href: '/router/subscription' },
+      ];
+
+  const userRole = (session?.user as any)?.role;
+  const isForumAdmin = userRole === 'admin' || userRole === 'superadmin';
+
+  const supportItems: NavItem[] = guestForumMode
+    ? []
+    : [
+        { label: 'HELP', href: '/router/help' },
+        { label: 'API DOCS', href: '/router/docs' },
+        ...(isForumAdmin ? [{ label: 'FORUM ADMIN', href: '/router/forum/admin' }] : []),
+      ];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false); };
@@ -113,40 +133,46 @@ export default function RouterSidebar() {
         ))}
       </div>
 
-      {/* Account */}
-      <div className="rv4-sidebar-section">
-        {(!collapsed || isMobile) && (
-          <div className="rv4-sidebar-section-label">Account</div>
-        )}
-        {userItems.map(item => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href}
-            collapsed={collapsed && !isMobile}
-            onClick={isMobile ? () => setMobileOpen(false) : undefined}
-          />
-        ))}
-      </div>
+      {/* Account — hidden for guests */}
+      {userItems.length > 0 && (
+        <div className="rv4-sidebar-section">
+          {(!collapsed || isMobile) && (
+            <div className="rv4-sidebar-section-label">Account</div>
+          )}
+          {userItems.map(item => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+              collapsed={collapsed && !isMobile}
+              onClick={isMobile ? () => setMobileOpen(false) : undefined}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Support */}
-      <div className="rv4-sidebar-section" style={{ flex: 1 }}>
-        {(!collapsed || isMobile) && (
-          <div className="rv4-sidebar-section-label">Support</div>
-        )}
-        {supportItems.map(item => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href}
-            collapsed={collapsed && !isMobile}
-            onClick={isMobile ? () => setMobileOpen(false) : undefined}
-          />
-        ))}
-      </div>
+      {/* Support — hidden for guests */}
+      {supportItems.length > 0 ? (
+        <div className="rv4-sidebar-section" style={{ flex: 1 }}>
+          {(!collapsed || isMobile) && (
+            <div className="rv4-sidebar-section-label">Support</div>
+          )}
+          {supportItems.map(item => (
+            <NavLink
+              key={item.href}
+              item={item}
+              active={pathname === item.href}
+              collapsed={collapsed && !isMobile}
+              onClick={isMobile ? () => setMobileOpen(false) : undefined}
+            />
+          ))}
+        </div>
+      ) : (
+        <div style={{ flex: 1 }} />
+      )}
 
       {/* User footer */}
-      {session?.user && (
+      {session?.user ? (
         <div className="rv4-sidebar-footer">
           {(!collapsed || isMobile) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -177,7 +203,29 @@ export default function RouterSidebar() {
             {(!collapsed || isMobile) ? '← SIGN OUT' : '←'}
           </button>
         </div>
-      )}
+      ) : guestForumMode ? (
+        <div className="rv4-sidebar-footer" style={{ gap: '6px' }}>
+          {(!collapsed || isMobile) && (
+            <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '4px' }}>
+              Sign in to join discussions
+            </div>
+          )}
+          <a
+            href="/auth/signin?callbackUrl=/router/forum"
+            className="rv4-sidebar-signout"
+            style={{ textDecoration: 'none', textAlign: 'center', background: 'var(--phosphor-green)', color: 'var(--terminal-black)', fontWeight: 'bold' }}
+          >
+            {(!collapsed || isMobile) ? 'SIGN IN' : '→'}
+          </a>
+          <a
+            href="/auth/signup?callbackUrl=/router/forum"
+            className="rv4-sidebar-signout"
+            style={{ textDecoration: 'none', textAlign: 'center' }}
+          >
+            {(!collapsed || isMobile) ? 'CREATE ACCOUNT' : '+'}
+          </a>
+        </div>
+      ) : null}
     </>
   );
 

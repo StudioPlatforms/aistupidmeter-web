@@ -22,6 +22,9 @@ export interface User {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   subscription_tier: string;
+  role: string;
+  forum_username: string | null;
+  forum_username_set_at: string | null;
   trial_started_at: string | null;
   trial_ends_at: string | null;
   subscription_ends_at: string | null;

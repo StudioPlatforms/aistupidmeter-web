@@ -143,6 +143,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (session.user as any).subscriptionStatus = hasProAccess ? 'active' : 'inactive';
             (session.user as any).subscriptionId = user.stripe_subscription_id;
             (session.user as any).subscriptionTier = user.subscription_tier;
+            (session.user as any).role = user.role || 'user';
+            (session.user as any).forumUsername = user.forum_username || null;
           }
         } catch (error) {
           console.error('[AUTH] Error fetching subscription status:', error);

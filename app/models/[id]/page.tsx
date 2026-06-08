@@ -542,7 +542,10 @@ export default function ModelDetailPage() {
           COMPARE
         </button>
         <button className="md-mobile-nav-btn pro" onClick={() => router.push('/router')}>
-          ⚡ PRO
+          PRO
+        </button>
+        <button className="md-mobile-nav-btn" onClick={() => router.push('/router/forum')} style={{ color: '#ffb000', borderColor: 'rgba(255,176,0,0.4)' }}>
+          FORUM
         </button>
         <button className="md-mobile-nav-btn" onClick={() => router.push('/methodology')}>
           DOCS

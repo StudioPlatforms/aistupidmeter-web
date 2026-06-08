@@ -32,6 +32,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
+  // Allow unauthenticated access to forum (read-only)
+  if (pathname.startsWith('/router/forum')) {
+    return NextResponse.next();
+  }
+
   // Protect /router routes - require authentication
   if (pathname.startsWith('/router') && !isLoggedIn) {
     const signInUrl = new URL('/auth/signin', request.url);

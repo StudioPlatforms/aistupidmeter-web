@@ -49,6 +49,21 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
         ABOUT
       </button>
       <button
+        onClick={() => router.push('/router/forum')}
+        className="vintage-btn"
+        style={{
+          flex: 1,
+          minHeight: '42px',
+          fontSize: '9px',
+          padding: '8px 4px',
+          borderRadius: '4px',
+          borderColor: 'var(--amber-warning, #ffb000)',
+          color: 'var(--amber-warning, #ffb000)',
+        }}
+      >
+        FORUM
+      </button>
+      <button
         onClick={() => router.push('/router')}
         className="vintage-btn"
         style={{
@@ -61,7 +76,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
           color: '#00BFFF',
         }}
       >
-        ⚡ PRO
+        PRO
       </button>
       <button
         onClick={() => onViewChange('faq')}

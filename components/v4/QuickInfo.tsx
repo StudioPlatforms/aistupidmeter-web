@@ -2,9 +2,14 @@
 
 interface QuickInfoProps {
   recommendations: any;
+  degradations?: any[];
 }
 
-export default function QuickInfo({ recommendations }: QuickInfoProps) {
+function formatModelName(name: string): string {
+  return name.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+export default function QuickInfo({ recommendations, degradations }: QuickInfoProps) {
   if (!recommendations) return null;
 
   const items: Array<{ label: string; value: string; detail: string; danger?: boolean; color: string }> = [];
@@ -12,7 +17,7 @@ export default function QuickInfo({ recommendations }: QuickInfoProps) {
   if (recommendations.bestForCode?.name) {
     items.push({
       label: 'BEST FOR CODE',
-      value: recommendations.bestForCode.name.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      value: formatModelName(recommendations.bestForCode.name),
       detail: `${recommendations.bestForCode.correctness ? Math.round(recommendations.bestForCode.correctness) + '% correct' : recommendations.bestForCode.score ? Math.round(recommendations.bestForCode.score) + 'pts' : 'Top performer'}`,
       color: 'var(--phosphor-green)',
     });
@@ -21,7 +26,7 @@ export default function QuickInfo({ recommendations }: QuickInfoProps) {
   if (recommendations.mostReliable?.name) {
     items.push({
       label: 'MOST RELIABLE',
-      value: recommendations.mostReliable.name.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      value: formatModelName(recommendations.mostReliable.name),
       detail: recommendations.mostReliable.reason || 'Consistent performance',
       color: 'var(--phosphor-green)',
     });
@@ -30,19 +35,39 @@ export default function QuickInfo({ recommendations }: QuickInfoProps) {
   if (recommendations.fastestResponse?.name) {
     items.push({
       label: 'BEST VALUE',
-      value: recommendations.fastestResponse.name.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      value: formatModelName(recommendations.fastestResponse.name),
       detail: recommendations.fastestResponse.reason || 'Fast response',
       color: 'var(--amber-warning)',
     });
   }
 
-  if (recommendations.avoidNow?.[0]?.name) {
+  // 4th card: Avoid Now — check recommendations.avoidNow first, then fall back to degradations
+  const avoidItem = recommendations.avoidNow?.[0];
+  const firstDegradation = (!avoidItem?.name && degradations?.length) ? degradations[0] : null;
+
+  if (avoidItem?.name) {
     items.push({
       label: 'AVOID NOW',
-      value: recommendations.avoidNow[0].name.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-      detail: recommendations.avoidNow[0].reason || 'Performance issues',
+      value: formatModelName(avoidItem.name),
+      detail: avoidItem.reason || 'Performance issues',
       danger: true,
       color: 'var(--red-alert)',
+    });
+  } else if (firstDegradation?.modelName) {
+    items.push({
+      label: 'AVOID NOW',
+      value: formatModelName(firstDegradation.modelName),
+      detail: firstDegradation.message || `Severity: ${firstDegradation.severity || 'detected'}`,
+      danger: true,
+      color: 'var(--red-alert)',
+    });
+  } else {
+    items.push({
+      label: 'AVOID NOW',
+      value: 'None Flagged',
+      detail: 'All models performing well',
+      danger: false,
+      color: 'var(--phosphor-green)',
     });
   }
 

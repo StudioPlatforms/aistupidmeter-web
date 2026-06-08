@@ -3936,7 +3936,7 @@ export default function Dashboard() {
           </div>
 
           {/* QUICK INFO for mobile/tablet (when side panels hidden) */}
-          <QuickInfo recommendations={recommendations} />
+          <QuickInfo recommendations={recommendations} degradations={degradations} />
 
           {/* BELOW LEADERBOARD: Transparency + Schedule */}
           <BelowLeaderboard
@@ -4031,121 +4031,144 @@ export default function Dashboard() {
                 (Based on {leaderboardSortBy.toUpperCase()} performance)
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
-              {/* Best for Code */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+              {/* 1. Best for Code */}
               {recommendations?.bestForCode ? (
-                <div style={{ 
-                  padding: '8px', 
+                <div style={{
+                  padding: '8px',
                   border: '1px solid rgba(0, 255, 65, 0.3)',
                   backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                  fontSize: '0.85em'
+                  fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                    Best for Code: {recommendations.bestForCode.name?.toUpperCase() || 'UNKNOWN'}
+                    🏆 Best for Code
+                  </div>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold', fontSize: '1.05em' }}>
+                    {recommendations.bestForCode.name?.toUpperCase() || 'UNKNOWN'}
                   </div>
                   <div className="terminal-text--dim">{recommendations.bestForCode.reason || `${recommendations.bestForCode.score || 0}% performance rating`}</div>
-                  {recommendations.bestForCode.correctness && (
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      Correctness: {recommendations.bestForCode.correctness}% • Quality: {recommendations.bestForCode.codeQuality || 'N/A'}%
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div style={{ 
-                  padding: '8px', 
+                <div style={{
+                  padding: '8px',
                   border: '1px solid rgba(255, 176, 0, 0.3)',
                   backgroundColor: 'rgba(255, 176, 0, 0.05)',
-                  fontSize: '0.85em'
+                  fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
-                    Best for Code: Analyzing...
+                    🏆 Best for Code
                   </div>
-                  <div className="terminal-text--dim">Evaluating models for coding performance</div>
+                  <div className="terminal-text--dim">Analyzing...</div>
                 </div>
               )}
 
-              {/* Most Reliable */}
+              {/* 2. Most Reliable */}
               {recommendations?.mostReliable ? (
-                <div style={{ 
-                  padding: '8px', 
+                <div style={{
+                  padding: '8px',
                   border: '1px solid rgba(0, 255, 65, 0.3)',
                   backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                  fontSize: '0.85em'
+                  fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                    Most Reliable: {recommendations.mostReliable.name?.toUpperCase() || 'UNKNOWN'}
+                    🛡️ Most Reliable
+                  </div>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold', fontSize: '1.05em' }}>
+                    {recommendations.mostReliable.name?.toUpperCase() || 'UNKNOWN'}
                   </div>
                   <div className="terminal-text--dim">{recommendations.mostReliable.reason || `${recommendations.mostReliable.score || 0}% performance rating`}</div>
-                  {recommendations.mostReliable.stabilityScore && (
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      Stability: {recommendations.mostReliable.stabilityScore}%
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div style={{ 
-                  padding: '8px', 
+                <div style={{
+                  padding: '8px',
                   border: '1px solid rgba(255, 176, 0, 0.3)',
                   backgroundColor: 'rgba(255, 176, 0, 0.05)',
-                  fontSize: '0.85em'
+                  fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
-                    Most Reliable: Analyzing...
+                    🛡️ Most Reliable
                   </div>
-                  <div className="terminal-text--dim">Evaluating consistency metrics</div>
+                  <div className="terminal-text--dim">Analyzing...</div>
                 </div>
               )}
 
-              {/* Fastest Response */}
+              {/* 3. Fastest Response */}
               {recommendations?.fastestResponse ? (
-                <div style={{ 
-                  padding: '8px', 
+                <div style={{
+                  padding: '8px',
                   border: '1px solid rgba(0, 255, 65, 0.3)',
                   backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                  fontSize: '0.85em'
+                  fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                    Fastest: {recommendations.fastestResponse.name?.toUpperCase() || 'UNKNOWN'}
+                    ⚡ Fastest
+                  </div>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold', fontSize: '1.05em' }}>
+                    {recommendations.fastestResponse.name?.toUpperCase() || 'UNKNOWN'}
                   </div>
                   <div className="terminal-text--dim">{recommendations.fastestResponse.reason || `${recommendations.fastestResponse.responseTime || 'Unknown'}ms average response time`}</div>
-                  {recommendations.fastestResponse.score && (
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      Performance: {recommendations.fastestResponse.score}%
-                    </div>
-                  )}
                 </div>
               ) : (
-                <div style={{ 
-                  padding: '8px', 
+                <div style={{
+                  padding: '8px',
                   border: '1px solid rgba(255, 176, 0, 0.3)',
                   backgroundColor: 'rgba(255, 176, 0, 0.05)',
-                  fontSize: '0.85em'
+                  fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
-                    Fastest: Analyzing...
+                    ⚡ Fastest
                   </div>
-                  <div className="terminal-text--dim">Measuring response times</div>
+                  <div className="terminal-text--dim">Analyzing...</div>
+                </div>
+              )}
+
+              {/* 4. Avoid Now (first model in grid) */}
+              {recommendations?.avoidNow && recommendations.avoidNow.length > 0 ? (
+                <div style={{
+                  padding: '8px',
+                  border: '1px solid rgba(255, 80, 80, 0.35)',
+                  backgroundColor: 'rgba(255, 50, 50, 0.06)',
+                  fontSize: '0.8em'
+                }}>
+                  <div className="terminal-text--red" style={{ fontWeight: 'bold' }}>
+                    ⚠️ Avoid Now
+                  </div>
+                  <div className="terminal-text--red" style={{ fontWeight: 'bold', fontSize: '1.05em' }}>
+                    {recommendations.avoidNow[0].name?.toUpperCase() || 'UNKNOWN'}
+                  </div>
+                  <div className="terminal-text--dim">{recommendations.avoidNow[0].reason || 'Performance issues'}</div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '8px',
+                  border: '1px solid rgba(0, 255, 65, 0.2)',
+                  backgroundColor: 'rgba(0, 255, 65, 0.03)',
+                  fontSize: '0.8em'
+                }}>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
+                    ✅ All Clear
+                  </div>
+                  <div className="terminal-text--green" style={{ fontWeight: 'bold', fontSize: '1.05em' }}>
+                    No Issues
+                  </div>
+                  <div className="terminal-text--dim">All models performing well</div>
                 </div>
               )}
             </div>
             
-            {/* Avoid Now Section */}
-            <div style={{ marginTop: '12px' }}>
-              <div className="terminal-text--red" style={{ fontSize: '0.95em', marginBottom: '6px' }}>
-                ⚠️ Avoid Now:
-              </div>
-              {recommendations?.avoidNow && recommendations.avoidNow.length > 0 ? (
-                recommendations.avoidNow.slice(0, 3).map((model: any, index: number) => (
-                  <div key={index} className="terminal-text--amber" style={{ fontSize: '0.85em', marginLeft: '16px', marginBottom: '2px' }}>
+            {/* Additional Avoid Now items (if more than 1) */}
+            {recommendations?.avoidNow && recommendations.avoidNow.length > 1 && (
+              <div style={{ marginTop: '10px' }}>
+                <div className="terminal-text--red" style={{ fontSize: '0.9em', marginBottom: '4px' }}>
+                  ⚠️ Also avoid:
+                </div>
+                {recommendations.avoidNow.slice(1, 3).map((model: any, index: number) => (
+                  <div key={index} className="terminal-text--amber" style={{ fontSize: '0.8em', marginLeft: '12px', marginBottom: '2px' }}>
                     • {model.name?.toUpperCase() || 'UNKNOWN'} - {model.reason || `Low performance score (${model.score || 'N/A'}/100)`}
                   </div>
-                ))
-              ) : (
-                <div className="terminal-text--green" style={{ fontSize: '0.85em', marginLeft: '16px' }}>
-                  • No models currently flagged for avoidance
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Model Reliability & Consistency */}
@@ -4761,6 +4784,18 @@ export default function Dashboard() {
           }}
         >
           PRO
+        </button>
+        <button
+          className="mobile-nav-btn"
+          onClick={() => router.push('/router/forum')}
+          style={{
+            flexShrink: 0,
+            minWidth: '60px',
+            color: '#ffb000',
+            border: '1px solid rgba(255,176,0,0.4)',
+          }}
+        >
+          FORUM
         </button>
         <button
           className={getButtonClassName('faq').replace('vintage-btn', 'mobile-nav-btn')}

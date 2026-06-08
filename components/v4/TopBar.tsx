@@ -57,6 +57,13 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
             FAQ
           </button>
           <button
+            className="v4-nav-btn"
+            onClick={() => router.push('/router/forum')}
+            style={{ color: 'var(--amber-warning, #ffb000)' }}
+          >
+            FORUM
+          </button>
+          <button
             className="v4-nav-btn pro-btn"
             onClick={() => router.push('/router')}
           >
