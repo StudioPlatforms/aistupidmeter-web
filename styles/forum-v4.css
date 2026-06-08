@@ -1548,20 +1548,13 @@
     gap: 8px;
   }
 
-  /* Editor: full-screen overlay on mobile */
+  /* Editor: keep inline on mobile, adapt sizing */
   .rv4-forum-editor {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
     border-radius: 0;
-    border: none;
-    display: flex;
-    flex-direction: column;
   }
   .rv4-forum-editor-textarea {
-    flex: 1;
-    min-height: 0;
-    resize: none;
+    min-height: 120px;
+    font-size: 16px; /* prevent iOS zoom */
   }
 
   /* Breadcrumbs: horizontal scroll, truncated */
@@ -1741,9 +1734,8 @@
     padding: 16px 20px;
   }
 
-  /* Editor not fullscreen on desktop */
+  /* Editor: restore border-radius on desktop */
   .rv4-forum-editor {
-    position: static;
     border-radius: 3px;
     border: 1px solid rgba(192, 192, 192, 0.2);
   }
