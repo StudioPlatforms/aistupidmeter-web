@@ -55,15 +55,6 @@ export default function CategoryCard({ category }: CategoryCardProps) {
         </span>
       </div>
 
-      {category.last_post_at && (
-        <div className="rv4-forum-category-last-post">
-          {category.last_post_by && (
-            <div className="last-post-title">by {category.last_post_by}</div>
-          )}
-          <div className="last-post-meta">{formatDate(category.last_post_at)}</div>
-        </div>
-      )}
-
       {category.is_locked ? (
         <span className="rv4-forum-category-locked">🔒 Locked</span>
       ) : null}
