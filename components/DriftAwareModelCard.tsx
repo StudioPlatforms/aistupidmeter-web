@@ -15,6 +15,10 @@ interface DriftSignature {
   baselineScore: number;
   currentScore: number;
   confidenceInterval: [number, number];
+  // Frozen "golden" baseline (A1): the model's earliest stable window.
+  // driftVsGolden = goldenBaseline - current (positive = degraded since launch).
+  goldenBaselineScore?: number;
+  driftVsGolden?: number;
   regime: 'STABLE' | 'VOLATILE' | 'DEGRADED' | 'RECOVERING';
   variance24h: number;
   driftStatus: 'NORMAL' | 'WARNING' | 'ALERT';
@@ -119,6 +123,9 @@ export default function DriftAwareModelCard({ model, compact = true, showDriftIn
         )}
       </div>
 
+      {/* Since-launch drift badge (golden baseline) */}
+      {renderSinceLaunch(drift)}
+
       {/* Staleness warning */}
       {model.isStale && model.staleDuration && (
         <div className="issue-warning">
@@ -191,6 +198,20 @@ export default function DriftAwareModelCard({ model, compact = true, showDriftIn
                   {drift.driftStatus}
                 </span>
               </div>
+              {typeof drift.goldenBaselineScore === 'number' && (
+                <div className="summary-item">
+                  <span className="label">At Launch</span>
+                  <span className="value">{Math.round(drift.goldenBaselineScore)}</span>
+                </div>
+              )}
+              {typeof drift.driftVsGolden === 'number' && (
+                <div className="summary-item">
+                  <span className="label">Since Launch</span>
+                  <span className={`value ${sinceLaunchClass(drift.driftVsGolden)}`}>
+                    {formatSinceLaunch(drift.driftVsGolden)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -275,4 +296,37 @@ function formatTimeSince(hours: number): string {
   if (hours < 24) return `${Math.round(hours)}h`;
   const days = Math.round(hours / 24);
   return `${days}d`;
+}
+
+// ---- Golden-baseline "since launch" helpers (A1) ----
+// driftVsGolden = goldenBaseline - current; positive means degraded since launch.
+// We only surface the badge once the gap is meaningful (>= 8 points).
+const SINCE_LAUNCH_MIN = 8;   // floor matching backend goldenWarn
+const SINCE_LAUNCH_SEVERE = 12; // floor matching backend goldenAlert
+
+function sinceLaunchClass(driftVsGolden: number): string {
+  if (driftVsGolden <= -SINCE_LAUNCH_MIN) return 'since-launch--up';
+  if (driftVsGolden >= SINCE_LAUNCH_SEVERE) return 'since-launch--severe';
+  if (driftVsGolden >= SINCE_LAUNCH_MIN) return 'since-launch--down';
+  return 'since-launch--flat';
+}
+
+function formatSinceLaunch(driftVsGolden: number): string {
+  // Change since launch = current - goldenBaseline = -driftVsGolden
+  const delta = Math.round(-driftVsGolden);
+  if (delta > 0) return `+${delta}`;
+  return `${delta}`; // already carries the minus sign, or "0"
+}
+
+// Collapsed-view badge: only render when the gap is meaningful.
+function renderSinceLaunch(drift: DriftSignature) {
+  const d = drift.driftVsGolden;
+  if (typeof d !== 'number' || Math.abs(d) < SINCE_LAUNCH_MIN) return null;
+  const cls = sinceLaunchClass(d);
+  const icon = d > 0 ? '📉' : '📈';
+  return (
+    <div className={`since-launch-badge ${cls}`}>
+      {icon} {formatSinceLaunch(d)} since launch
+    </div>
+  );
 }

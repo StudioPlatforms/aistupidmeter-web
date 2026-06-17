@@ -337,6 +337,43 @@
   font-style: italic;
 }
 
+/* Golden-baseline "since launch" badge (A1) */
+.since-launch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  margin-top: 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.since-launch-badge.since-launch--up {
+  background: rgba(0, 255, 65, 0.08);
+  border: 1px solid var(--phosphor-green);
+  color: var(--phosphor-green);
+}
+
+.since-launch-badge.since-launch--down {
+  background: rgba(255, 176, 0, 0.1);
+  border: 1px solid var(--amber-warning);
+  color: var(--amber-warning);
+}
+
+.since-launch-badge.since-launch--severe {
+  background: rgba(255, 45, 0, 0.1);
+  border: 1px solid var(--red-alert);
+  color: var(--red-alert);
+}
+
+/* Expanded summary-grid value variants reuse the same accent colors */
+.summary-item .value.since-launch--up { color: var(--phosphor-green); }
+.summary-item .value.since-launch--down { color: var(--amber-warning); }
+.summary-item .value.since-launch--severe { color: var(--red-alert); }
+.summary-item .value.since-launch--flat { opacity: 0.7; }
+
 /* ============================================================================
    EXPANDED VIEW (AXES BREAKDOWN)
    ============================================================================ */
