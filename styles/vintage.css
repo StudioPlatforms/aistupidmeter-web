@@ -4416,10 +4416,10 @@ body[data-christmas-theme="true"] .christmas-animations {
 
 /* Light theme rank badge - ensure visibility */
 [data-theme="light"] .rank-badge {
-  background: linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim)) !important;
-  color: var(--terminal-black) !important;
-  border: 1px solid var(--phosphor-green);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #16a34a, #0e8a44) !important;
+  color: #ffffff !important;
+  border: 1px solid #0e8a44;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.18);
 }
 
 /* Empty State */
@@ -4667,15 +4667,15 @@ body[data-christmas-theme="true"] .christmas-animations {
 
 /* Light theme share button */
 [data-theme="light"] .share-button-floating {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  color: var(--phosphor-green);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 0 20px var(--light-shadow-strong);
+  background: linear-gradient(135deg, #16a34a, #0e8a44);
+  color: #ffffff;
+  border-color: #0e8a44;
+  box-shadow: 0 4px 14px rgba(22, 163, 74, 0.28);
 }
 
 [data-theme="light"] .share-button-floating:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  box-shadow: 0 0 25px var(--light-shadow-strong);
+  background: linear-gradient(135deg, #15913f, #0c7a3c);
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.36);
 }
 
 /* ============================================================================
@@ -4761,289 +4761,309 @@ body[data-christmas-theme="true"] .christmas-animations {
    LIGHT THEME OVERRIDES - Paper Terminal Mode
    ============================================================================ */
 
+/* ============================================================================
+   CLEAN LIGHT THEME — professional white/slate redesign
+   All rules scoped to [data-theme="light"]; dark themes are unaffected.
+   ============================================================================ */
 [data-theme="light"] {
-  /* Invert shadows for light theme */
-  --light-shadow: rgba(0, 0, 0, 0.1);
-  --light-shadow-strong: rgba(0, 0, 0, 0.2);
+  /* Surfaces & structure */
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --surface-3: #eef1f5;
+  --border-soft: #e4e7ec;
+  --border-strong: #d3d8df;
+
+  /* Accent (positive / brand green, tuned to read well on white) */
+  --accent: #16a34a;
+  --accent-strong: #0e8a44;
+  --accent-soft: rgba(22, 163, 74, 0.10);
+
+  /* Shadows */
+  --light-shadow: rgba(16, 24, 40, 0.06);
+  --light-shadow-strong: rgba(16, 24, 40, 0.12);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.10);
 }
 
-/* Body and base elements */
+/* Page background: soft cool grey so white cards lift off it */
 [data-theme="light"] body {
+  background: #f5f6f8;
   color: var(--phosphor-green);
 }
 
-/* Buttons - Light theme styling */
+/* Kill phosphor glow text-shadows — they smear dark text on a white page */
+[data-theme="light"] .terminal-text,
+[data-theme="light"] .terminal-text--green,
+[data-theme="light"] .terminal-text--amber,
+[data-theme="light"] .terminal-text--red {
+  text-shadow: none !important;
+}
+
+/* Semantic text colors retuned for white backgrounds */
+[data-theme="light"] .terminal-text { color: var(--phosphor-green); }
+[data-theme="light"] .terminal-text--dim { color: var(--phosphor-dim); }
+[data-theme="light"] .terminal-text--green { color: var(--accent-strong); }
+[data-theme="light"] .terminal-text--amber { color: #b45309; }
+[data-theme="light"] .terminal-text--red { color: #dc2626; }
+
+/* CRT monitor: drop the green glow + scanlines, become a clean panel */
+[data-theme="light"] .crt-monitor {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+[data-theme="light"] .crt-monitor::before,
+[data-theme="light"] .crt-monitor::after {
+  display: none;
+}
+
+/* Buttons */
 [data-theme="light"] .vintage-btn {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  background: var(--surface);
   color: var(--phosphor-green);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 2px 4px var(--light-shadow);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  text-shadow: none;
 }
 
 [data-theme="light"] .vintage-btn:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  box-shadow: 0 2px 6px var(--light-shadow-strong);
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 [data-theme="light"] .vintage-btn--active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent-strong);
 }
 
 /* Control Panel */
 [data-theme="light"] .control-panel {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 2px 5px var(--light-shadow);
-}
-
-/* CRT Monitor */
-[data-theme="light"] .crt-monitor {
-  background: var(--terminal-black);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 0 8px var(--light-shadow-strong);
+  background: var(--surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Leaderboard */
 [data-theme="light"] .leaderboard-header {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  border-color: var(--phosphor-green);
+  background: var(--surface-3);
+  border-color: var(--border-soft);
 }
 
 [data-theme="light"] .leaderboard-row {
-  background: linear-gradient(135deg, #f0f0e0, #e8e8d0);
-  border-color: var(--phosphor-green);
+  background: var(--surface);
+  border-color: var(--border-soft);
 }
 
 [data-theme="light"] .leaderboard-row:hover {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  background: var(--surface-2);
 }
 
 /* Mobile Navigation */
 [data-theme="light"] .mobile-nav {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  border-top-color: var(--phosphor-green);
-  box-shadow: 0 -4px 20px var(--light-shadow-strong);
+  background: var(--surface);
+  border-top-color: var(--border-soft);
+  box-shadow: 0 -2px 12px var(--light-shadow);
 }
 
 [data-theme="light"] .mobile-nav-btn {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  border-color: var(--phosphor-green);
+  background: var(--surface);
+  border-color: var(--border-soft);
   color: var(--phosphor-green);
 }
 
 [data-theme="light"] .mobile-nav-btn:active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent-strong);
 }
 
-/* Dashboard Components */
-[data-theme="light"] .metric-card {
-  background: linear-gradient(135deg, #f0f0e0, #e8e8d0);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 2px 8px var(--light-shadow);
+/* Dashboard Cards */
+[data-theme="light"] .metric-card,
+[data-theme="light"] .section-card {
+  background: var(--surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 [data-theme="light"] .metric-card:hover {
-  box-shadow: 0 4px 12px var(--light-shadow-strong);
-}
-
-[data-theme="light"] .section-card {
-  background: linear-gradient(135deg, #f0f0e0, #e8e8d0);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 2px 8px var(--light-shadow);
+  box-shadow: var(--shadow-md);
 }
 
 [data-theme="light"] .dashboard-header {
-  background: linear-gradient(135deg, rgba(42, 42, 42, 0.05), rgba(42, 42, 42, 0.02));
-  border-color: var(--phosphor-green);
-  box-shadow: 0 0 8px var(--light-shadow);
+  background: var(--surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Activity and Provider Items */
+/* Activity / Provider / Analytics / Health list items */
 [data-theme="light"] .activity-item,
-[data-theme="light"] .provider-item {
-  background: rgba(42, 42, 42, 0.03);
-  border-color: rgba(42, 42, 42, 0.2);
+[data-theme="light"] .provider-item,
+[data-theme="light"] .analytics-item,
+[data-theme="light"] .health-provider {
+  background: var(--surface);
+  border-color: var(--border-soft);
 }
 
 [data-theme="light"] .activity-item:hover,
-[data-theme="light"] .provider-item:hover {
-  background: rgba(42, 42, 42, 0.05);
-  border-color: rgba(42, 42, 42, 0.4);
+[data-theme="light"] .provider-item:hover,
+[data-theme="light"] .analytics-item:hover,
+[data-theme="light"] .health-provider:hover {
+  background: var(--surface-2);
+  border-color: var(--border-strong);
+}
+
+[data-theme="light"] .health-provider {
+  box-shadow: var(--shadow-sm);
 }
 
 /* Action Buttons */
 [data-theme="light"] .action-button {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  border-color: var(--phosphor-green);
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--phosphor-green);
 }
 
 [data-theme="light"] .action-button:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  box-shadow: 0 0 10px var(--light-shadow-strong);
+  background: var(--surface-2);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Time Range Buttons */
 [data-theme="light"] .time-range-btn {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  background: var(--surface);
   color: var(--phosphor-dim);
-  border-color: var(--phosphor-dim);
+  border-color: var(--border-soft);
 }
 
 [data-theme="light"] .time-range-btn:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  border-color: var(--phosphor-green);
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 [data-theme="light"] .time-range-btn.active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent-strong);
 }
 
-/* Analytics Items */
-[data-theme="light"] .analytics-item {
-  background: rgba(42, 42, 42, 0.03);
-  border-color: rgba(42, 42, 42, 0.2);
-}
-
-[data-theme="light"] .analytics-item:hover {
-  background: rgba(42, 42, 42, 0.05);
-  border-color: rgba(42, 42, 42, 0.4);
-}
-
-/* Chart Container */
-[data-theme="light"] .chart-container {
-  background: rgba(42, 42, 42, 0.02);
-  border-color: rgba(42, 42, 42, 0.2);
+/* Chart Containers */
+[data-theme="light"] .chart-container,
+[data-theme="light"] .professional-chart-container {
+  background: var(--surface);
+  border-color: var(--border-soft);
 }
 
 /* Mobile Control Buttons */
 [data-theme="light"] .mobile-control-btn {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  background: var(--surface);
   color: var(--phosphor-green);
-  border-color: var(--phosphor-dim);
-  box-shadow: 0 2px 4px var(--light-shadow);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 [data-theme="light"] .mobile-control-btn:hover {
-  background: linear-gradient(135deg, #c8c8b0, #b8b8a0);
-  border-color: var(--phosphor-green);
-  box-shadow: 0 2px 6px var(--light-shadow-strong);
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
 [data-theme="light"] .mobile-control-btn--active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
-  border-color: var(--phosphor-green);
-}
-
-/* Health Provider Status */
-[data-theme="light"] .health-provider {
-  background: rgba(42, 42, 42, 0.03);
-  border-color: rgba(42, 42, 42, 0.2);
-  box-shadow: 0 1px 2px var(--light-shadow);
-}
-
-[data-theme="light"] .health-provider:hover {
-  background: rgba(42, 42, 42, 0.05);
-  border-color: rgba(42, 42, 42, 0.4);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent-strong);
 }
 
 /* Form Inputs */
 [data-theme="light"] .mobile-form-input,
 [data-theme="light"] .mobile-form-select {
-  background: #ffffff;
-  border-color: var(--phosphor-green);
+  background: var(--surface);
+  border-color: var(--border-strong);
   color: var(--phosphor-green);
 }
 
 [data-theme="light"] .mobile-form-input:focus,
 [data-theme="light"] .mobile-form-select:focus {
-  border-color: var(--phosphor-green);
-  box-shadow: 0 0 8px var(--light-shadow-strong);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* Requests Table */
 [data-theme="light"] .requests-table thead {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  border-color: var(--phosphor-green);
+  background: var(--surface-3);
+  border-color: var(--border-soft);
 }
 
 [data-theme="light"] .requests-table tbody tr:hover {
-  background: rgba(42, 42, 42, 0.05);
+  background: var(--surface-2);
 }
 
 /* Progress Bars */
 [data-theme="light"] .progress-bar {
-  background: rgba(42, 42, 42, 0.1);
+  background: var(--surface-3);
 }
 
-/* Retro Progress Track */
-[data-theme="light"] .retro-progress-track {
-  background: #ffffff;
-  border-color: var(--phosphor-green);
-}
-
-/* Retro Score Display */
+[data-theme="light"] .retro-progress-track,
 [data-theme="light"] .retro-score-display {
-  background: #ffffff;
-  border-color: var(--phosphor-green);
+  background: var(--surface);
+  border-color: var(--border-soft);
 }
 
 /* Ticker Tape */
 [data-theme="light"] .ticker-tape-container {
-  background: rgba(42, 42, 42, 0.03);
-  border-top-color: var(--phosphor-green);
-  border-bottom-color: var(--phosphor-green);
+  background: var(--surface);
+  border-top-color: var(--border-soft);
+  border-bottom-color: var(--border-soft);
 }
 
 /* Mobile Controls Container */
 [data-theme="light"] .mobile-controls-container {
-  background: linear-gradient(135deg, rgba(42, 42, 42, 0.03), rgba(42, 42, 42, 0.01));
-  border-color: rgba(42, 42, 42, 0.2);
-  box-shadow: inset 0 0 10px var(--light-shadow);
+  background: var(--surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Period Tabs */
 [data-theme="light"] .period-tabs {
-  background: rgba(42, 42, 42, 0.02);
-  border-color: rgba(42, 42, 42, 0.2);
+  background: var(--surface-2);
+  border-color: var(--border-soft);
 }
 
 /* Savings Banner */
 [data-theme="light"] .savings-banner {
-  background: linear-gradient(135deg, rgba(42, 42, 42, 0.08), rgba(42, 42, 42, 0.04));
-  border-color: var(--phosphor-green);
-  box-shadow: 0 0 15px var(--light-shadow-strong);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Error Banner */
 [data-theme="light"] .error-banner {
-  background: rgba(255, 45, 0, 0.08);
-  border-color: var(--red-alert);
-  box-shadow: 0 0 10px rgba(255, 45, 0, 0.15);
+  background: rgba(220, 38, 38, 0.06);
+  border-color: #dc2626;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Feature Items */
 [data-theme="light"] .feature-item {
-  background: rgba(42, 42, 42, 0.02);
+  background: var(--surface-2);
 }
 
 /* Model Intelligence Cards */
 [data-theme="light"] .model-intelligence-card {
-  background: linear-gradient(135deg, #f0f0e0, #e8e8d0) !important;
-  border-color: var(--phosphor-green) !important;
-  box-shadow: 0 2px 8px var(--light-shadow) !important;
+  background: var(--surface) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-sm) !important;
   color: var(--phosphor-green) !important;
 }
 
 [data-theme="light"] .model-intelligence-card:hover {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0) !important;
-  box-shadow: 0 4px 15px var(--light-shadow-strong) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
-/* Ensure text inside intelligence cards is visible */
 [data-theme="light"] .model-intelligence-card * {
   color: inherit;
 }
@@ -5057,95 +5077,67 @@ body[data-christmas-theme="true"] .christmas-animations {
 }
 
 [data-theme="light"] .model-intelligence-card .terminal-text--green {
-  color: var(--phosphor-green) !important;
+  color: var(--accent-strong) !important;
 }
 
 /* Gauge Display */
 [data-theme="light"] .vintage-gauge {
-  background: radial-gradient(circle, #f0f0e0, #e8e8d0);
-  border-color: var(--phosphor-green);
-  box-shadow: inset 0 0 20px var(--light-shadow), 0 0 8px var(--light-shadow-strong);
+  background: var(--surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Toggle Slider */
 [data-theme="light"] .toggle-slider {
-  background: #d8d8c0;
-  border-color: var(--phosphor-green);
+  background: #cbd2da;
+  border-color: var(--border-strong);
 }
 
 [data-theme="light"] input:checked + .toggle-slider {
-  background: var(--phosphor-green);
+  background: var(--accent);
+  border-color: var(--accent-strong);
 }
 
 /* Model Tooltip */
 [data-theme="light"] .model-tooltip {
-  background-color: #ffffff !important;
-  border-color: var(--phosphor-green) !important;
-  box-shadow: 0 4px 12px var(--light-shadow-strong) !important;
+  background-color: var(--surface) !important;
+  border-color: var(--border-strong) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
-/* Scrollbar for light theme */
+/* Scrollbar */
 [data-theme="light"] .mobile-scroll-container::-webkit-scrollbar-track {
-  background: #e8e8d0;
+  background: var(--surface-3);
 }
 
 [data-theme="light"] .mobile-scroll-container::-webkit-scrollbar-thumb {
-  background: var(--phosphor-green);
+  background: var(--border-strong);
+  border-radius: 4px;
 }
 
-/* Professional Chart Container */
-[data-theme="light"] .professional-chart-container {
-  background: rgba(42, 42, 42, 0.02);
-}
-
-/* Model Detail Page - Period Tabs */
-[data-theme="light"] .period-tab {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  color: var(--phosphor-green);
-  border-color: var(--phosphor-dim);
-}
-
-[data-theme="light"] .period-tab:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  border-color: var(--phosphor-green);
-}
-
-[data-theme="light"] .period-tab.vintage-btn--active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
-}
-
-/* Model Detail Page - Scoring Mode Tabs */
-[data-theme="light"] .scoring-mode-tab {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
-  color: var(--phosphor-green);
-  border-color: var(--phosphor-dim);
-}
-
-[data-theme="light"] .scoring-mode-tab:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
-  border-color: var(--phosphor-green);
-}
-
-[data-theme="light"] .scoring-mode-tab.vintage-btn--active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
-}
-
-/* Model Control Buttons */
+/* Model Detail Page — Period / Scoring / Control tabs */
+[data-theme="light"] .period-tab,
+[data-theme="light"] .scoring-mode-tab,
 [data-theme="light"] .model-control-btn {
-  background: linear-gradient(135deg, #e8e8d0, #d8d8c0);
+  background: var(--surface);
   color: var(--phosphor-green);
-  border-color: var(--phosphor-green);
+  border-color: var(--border-soft);
 }
 
+[data-theme="light"] .period-tab:hover,
+[data-theme="light"] .scoring-mode-tab:hover,
 [data-theme="light"] .model-control-btn:hover {
-  background: linear-gradient(135deg, #d8d8c0, #c8c8b0);
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--accent-strong);
 }
 
+[data-theme="light"] .period-tab.vintage-btn--active,
+[data-theme="light"] .scoring-mode-tab.vintage-btn--active,
 [data-theme="light"] .model-control-btn.vintage-btn--active {
-  background: var(--phosphor-green);
-  color: var(--terminal-black);
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent-strong);
 }
 
 /* ============================================================

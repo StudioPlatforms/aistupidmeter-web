@@ -65,12 +65,12 @@ export const THEMES: ThemeColors[] = [
     isLight: false,
   },
   {
-    name: 'Paper Terminal',
-    description: 'Light mode - classic paper printout',
-    primary: '#2a2a2a',  // Dark grey text
-    primaryDim: '#4a4a4a',  // Medium grey
-    background: '#f5f5dc',  // Beige paper color
-    backgroundDark: '#e8e8d0',  // Slightly darker beige
+    name: 'Clean Light',
+    description: 'Professional light mode - crisp white & slate',
+    primary: '#1f2933',  // Slate primary text (crisp, readable on white)
+    primaryDim: '#5b6573',  // Muted slate for secondary text
+    background: '#ffffff',  // Clean white base / on-accent text color
+    backgroundDark: '#eef1f5',  // Soft cool grey for darker surfaces
     isLight: true,  // This is the light theme!
   },
   {
