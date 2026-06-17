@@ -4791,11 +4791,14 @@ body[data-christmas-theme="true"] .christmas-animations {
   color: var(--phosphor-green);
 }
 
-/* Kill phosphor glow text-shadows — they smear dark text on a white page */
-[data-theme="light"] .terminal-text,
-[data-theme="light"] .terminal-text--green,
-[data-theme="light"] .terminal-text--amber,
-[data-theme="light"] .terminal-text--red {
+/* Kill ALL phosphor glow text-shadows in light mode — they smear text on white.
+   :root[data-theme="light"] gives specificity (0,2,0) so this beats every
+   glow rule in the file (incl. the 2-class ticker-tape rules and the Safari
+   re-apply block) regardless of source order. A professional light theme has
+   no text glow anywhere, so removing it globally is intentional. */
+:root[data-theme="light"] *,
+:root[data-theme="light"] *::before,
+:root[data-theme="light"] *::after {
   text-shadow: none !important;
 }
 
