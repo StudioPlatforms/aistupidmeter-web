@@ -5020,114 +5020,64 @@ export default function Dashboard() {
 
       {/* API Monitoring Feature Announcement Popup */}
       {showMonitoringAnnouncement && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '10px',
-          animation: 'fadeIn 0.3s ease'
-        }}
-        onClick={() => {
-          localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
-          setShowMonitoringAnnouncement(false);
-        }}>
-          <div className="crt-monitor" style={{
-            maxWidth: '600px',
-            width: '95%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '32px',
-            backgroundColor: 'var(--terminal-black)',
-            border: '3px solid var(--phosphor-green)',
-            borderRadius: '6px',
-            boxShadow: '0 0 30px var(--phosphor-green)',
-            animation: 'slideUp 0.3s ease'
+        <div
+          className="pro-modal"
+          onClick={() => {
+            localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+            setShowMonitoringAnnouncement(false);
           }}
-          onClick={(e) => e.stopPropagation()}>
-            <div className="terminal-text">
-              {/* Header */}
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <div style={{ fontSize: '2.5em', marginBottom: '8px' }}>🔍</div>
-                <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 10px var(--phosphor-green)', marginBottom: '8px' }}>
-                  NEW: API MONITORING
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.95em', lineHeight: 1.5 }}>
-                  Track every API request, audit prompts, control budgets — all in one dashboard
-                </div>
-              </div>
+        >
+          <div className="pro-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="pro-modal-close"
+              aria-label="Close"
+              onClick={() => {
+                localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+                setShowMonitoringAnnouncement(false);
+              }}
+            >
+              ×
+            </button>
 
-              {/* Features */}
-              <div style={{
-                padding: '16px',
-                backgroundColor: 'rgba(26, 115, 232, 0.05)',
-                border: '1px solid rgba(26, 115, 232, 0.2)',
-                borderRadius: '6px',
-                marginBottom: '20px'
-              }}>
-                <div className="terminal-text--green" style={{ fontWeight: 'bold', marginBottom: '10px' }}>
-                  ✨ What&apos;s Included:
-                </div>
-                {[
-                  '📋 Per-key request logging with model, cost & latency breakdown',
-                  '💰 Cost dashboard with daily trends and model spend analysis',
-                  '📝 Prompt auditing with automatic secret scrubbing & encryption',
-                  '🎯 Budget controls with hard/soft limits and threshold alerts',
-                  '⚡ Key efficiency metrics and error rate tracking',
-                ].map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: i < 4 ? '8px' : '0', fontSize: '0.9em' }}>
-                    <span className="terminal-text">{item}</span>
-                  </div>
-                ))}
-              </div>
+            <span className="pro-modal-badge">✦ New in PRO</span>
+            <div className="pro-modal-title">See exactly where your AI spend goes</div>
+            <div className="pro-modal-sub">
+              API Monitoring tracks every request across all your provider keys — with live cost,
+              prompt audits and budget alerts, all in one dashboard.
+            </div>
 
-              {/* Pro badge */}
-              <div style={{
-                textAlign: 'center',
-                padding: '12px',
-                backgroundColor: 'rgba(0, 191, 255, 0.08)',
-                border: '1px solid rgba(0, 191, 255, 0.3)',
-                borderRadius: '4px',
-                marginBottom: '20px'
-              }}>
-                <div className="terminal-text--amber" style={{ fontSize: '0.9em', marginBottom: '4px' }}>
-                  💎 Available with AI Router PRO
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                  $4.99/month • 7-day free trial • Cancel anytime
-                </div>
-              </div>
+            <ul className="pro-modal-features">
+              <li><span className="pro-modal-check">✓</span><span>Per-key request logs — model, tokens, cost &amp; latency</span></li>
+              <li><span className="pro-modal-check">✓</span><span>Cost dashboard with daily trends and per-model spend</span></li>
+              <li><span className="pro-modal-check">✓</span><span>Prompt auditing with automatic secret scrubbing</span></li>
+              <li><span className="pro-modal-check">✓</span><span>Budget limits with hard/soft thresholds and alerts</span></li>
+            </ul>
 
-              {/* Buttons */}
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => {
-                    localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
-                    setShowMonitoringAnnouncement(false);
-                    router.push('/router/monitoring');
-                  }}
-                  className="vintage-btn vintage-btn--active"
-                  style={{ padding: '12px 28px', fontSize: '1em', fontWeight: 'bold' }}
-                >
-                  EXPLORE MONITORING →
-                </button>
-                <button
-                  onClick={() => {
-                    localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
-                    setShowMonitoringAnnouncement(false);
-                  }}
-                  className="vintage-btn"
-                  style={{ padding: '10px 24px', opacity: 0.7 }}
-                >
-                  MAYBE LATER
-                </button>
-              </div>
+            <div className="pro-modal-pricebox">
+              <div className="pro-modal-price"><b>$4.99</b><span>/month</span></div>
+              <div className="pro-modal-priceline">7-day free trial · cancel anytime</div>
+            </div>
+
+            <div className="pro-modal-actions">
+              <button
+                className="pro-modal-btn primary"
+                onClick={() => {
+                  localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+                  setShowMonitoringAnnouncement(false);
+                  router.push('/router/monitoring');
+                }}
+              >
+                Explore monitoring →
+              </button>
+              <button
+                className="pro-modal-btn ghost"
+                onClick={() => {
+                  localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+                  setShowMonitoringAnnouncement(false);
+                }}
+              >
+                Maybe later
+              </button>
             </div>
           </div>
         </div>
