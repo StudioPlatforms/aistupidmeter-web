@@ -70,7 +70,7 @@ export default function StatCounter({
       case 'green': return 'var(--phosphor-green)';
       case 'amber': return 'var(--amber-warning)';
       case 'red': return 'var(--red-alert)';
-      case 'blue': return '#00bfff';
+      case 'blue': return '#1a73e8';
       default: return 'var(--phosphor-green)';
     }
   };

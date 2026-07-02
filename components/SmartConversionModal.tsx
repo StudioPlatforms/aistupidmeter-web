@@ -191,8 +191,8 @@ export default function SmartConversionModal({ isOpen, onClose, context = 'defau
           <div style={{ 
             marginBottom: '24px',
             padding: '20px',
-            backgroundColor: 'rgba(0, 255, 65, 0.05)',
-            border: '1px solid rgba(0, 255, 65, 0.2)',
+            backgroundColor: 'rgba(26, 115, 232, 0.05)',
+            border: '1px solid rgba(26, 115, 232, 0.2)',
             borderRadius: '6px'
           }}>
             {content.benefits.map((benefit, index) => (
@@ -268,7 +268,7 @@ export default function SmartConversionModal({ isOpen, onClose, context = 'defau
               background: 'linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim))',
               border: '2px solid var(--phosphor-green)',
               color: 'var(--terminal-black)',
-              boxShadow: '0 0 20px rgba(0, 255, 65, 0.4)',
+              boxShadow: '0 0 20px rgba(26, 115, 232, 0.4)',
               marginBottom: '16px'
             }}
           >

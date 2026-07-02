@@ -104,6 +104,63 @@ export default function ControlsBar({
           </button>
         </div>
       </div>
+
+      {/* Mobile: compact dropdown pills (Period / Sort / View) */}
+      <div className="v4-controls-mobile">
+        <label className="v4-mc-item">
+          <span className="v4-mc-label">Period</span>
+          <span className="v4-mc-select">
+            <select
+              value={leaderboardPeriod}
+              disabled={isLoading}
+              onChange={(e) => {
+                const p = periods.find(x => x.key === e.target.value)!;
+                if (p.proOnly && !hasProAccess) { onShowProModal('historical-data'); return; }
+                onPeriodChange(p.key);
+              }}
+            >
+              {periods.map(p => (
+                <option key={p.key} value={p.key}>{p.label}{p.proOnly && !hasProAccess ? '  🔒' : ''}</option>
+              ))}
+            </select>
+            <span className="v4-mc-chev" aria-hidden>▾</span>
+          </span>
+        </label>
+
+        <label className="v4-mc-item">
+          <span className="v4-mc-label">Sort</span>
+          <span className="v4-mc-select">
+            <select
+              value={leaderboardSortBy}
+              disabled={isLoading}
+              onChange={(e) => {
+                const s = sortModes.find(x => x.key === e.target.value)!;
+                if (s.proOnly && !hasProAccess) { onShowProModal('performance-matrix'); return; }
+                onSortByChange(s.key);
+              }}
+            >
+              {sortModes.map(s => (
+                <option key={s.key} value={s.key}>{s.label}{s.proOnly && !hasProAccess ? '  🔒' : ''}</option>
+              ))}
+            </select>
+            <span className="v4-mc-chev" aria-hidden>▾</span>
+          </span>
+        </label>
+
+        <label className="v4-mc-item">
+          <span className="v4-mc-label">View</span>
+          <span className="v4-mc-select">
+            <select
+              value={dashboardMode}
+              onChange={(e) => onModeChange(e.target.value as 'leaderboard' | 'drift')}
+            >
+              <option value="leaderboard">Leaderboard</option>
+              <option value="drift">Drift Monitor</option>
+            </select>
+            <span className="v4-mc-chev" aria-hidden>▾</span>
+          </span>
+        </label>
+      </div>
     </div>
   );
 }

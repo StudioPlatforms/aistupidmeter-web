@@ -20,8 +20,8 @@ export default function FeatureCard({
       className={`feature-card ${highlight ? 'feature-card--highlight' : ''}`}
       style={{
         animationDelay: `${delay}ms`,
-        border: highlight ? '2px solid var(--phosphor-green)' : '1px solid rgba(0, 255, 65, 0.3)',
-        backgroundColor: highlight ? 'rgba(0, 255, 65, 0.1)' : 'rgba(0, 255, 65, 0.05)',
+        border: highlight ? '2px solid var(--phosphor-green)' : '1px solid rgba(26, 115, 232, 0.3)',
+        backgroundColor: highlight ? 'rgba(26, 115, 232, 0.1)' : 'rgba(26, 115, 232, 0.05)',
         padding: '20px',
         borderRadius: '6px',
         position: 'relative',
@@ -34,13 +34,13 @@ export default function FeatureCard({
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 8px 25px rgba(0, 255, 65, 0.3)';
+        e.currentTarget.style.boxShadow = '0 8px 25px rgba(26, 115, 232, 0.3)';
         e.currentTarget.style.borderColor = 'var(--phosphor-green)';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.borderColor = highlight ? 'var(--phosphor-green)' : 'rgba(0, 255, 65, 0.3)';
+        e.currentTarget.style.borderColor = highlight ? 'var(--phosphor-green)' : 'rgba(26, 115, 232, 0.3)';
       }}
     >
       {/* Scan line effect */}

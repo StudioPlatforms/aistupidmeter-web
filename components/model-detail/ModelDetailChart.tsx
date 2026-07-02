@@ -136,7 +136,7 @@ export default function ModelDetailChart({
         showMinMax={false}
         xAxisInterval="preserveStartEnd"
         yAxisLabel="SCORE"
-        lineColor="#00ff41"
+        lineColor="#1a73e8"
       />
     </div>
   );

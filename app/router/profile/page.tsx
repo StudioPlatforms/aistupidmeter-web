@@ -117,7 +117,7 @@ export default function ProfilePage() {
 
   const getBadge = () => {
     if (subscriptionStatus === 'trial') return { text: 'PRO TRIAL', color: 'var(--amber-warning)', border: 'rgba(255,176,0,0.4)', bg: 'rgba(255,176,0,0.1)' };
-    if (subscriptionStatus === 'pro') return { text: 'PRO', color: 'var(--phosphor-green)', border: 'rgba(0,255,65,0.4)', bg: 'rgba(0,255,65,0.1)' };
+    if (subscriptionStatus === 'pro') return { text: 'PRO', color: 'var(--phosphor-green)', border: 'rgba(26, 115, 232,0.4)', bg: 'rgba(26, 115, 232,0.1)' };
     return { text: 'FREE', color: 'var(--phosphor-dim)', border: 'rgba(128,128,128,0.3)', bg: 'rgba(128,128,128,0.08)' };
   };
 
@@ -167,15 +167,15 @@ export default function ProfilePage() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
-              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
+              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
                 <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Email</div>
                 <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', wordBreak: 'break-all' }}>{session.user.email}</div>
               </div>
-              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
+              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
                 <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Member Since</div>
                 <div style={{ fontSize: '11px', color: 'var(--phosphor-green)' }}>{stats?.memberSince || 'N/A'}</div>
               </div>
-              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
+              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
                 <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Authentication</div>
                 <div style={{ fontSize: '11px', color: 'var(--phosphor-green)' }}>
                   {session.user.image?.includes('google') ? 'Google OAuth' : session.user.image?.includes('github') ? 'GitHub OAuth' : 'Email and Password'}

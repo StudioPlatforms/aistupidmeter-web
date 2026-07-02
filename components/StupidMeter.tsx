@@ -142,9 +142,9 @@ export default function StupidMeter({ globalIndex, degradations, modelScores, lo
 
   // Get color based on score (inverted for stupidity - low score = red/stupid, high score = green/smart)
   const getScoreColor = (score: number): string => {
-    if (score >= 70) return 'var(--phosphor-green)';
-    if (score >= 50) return 'var(--amber-warning)';
-    return 'var(--red-alert)';
+    if (score >= 70) return 'var(--good)';
+    if (score >= 50) return 'var(--warn)';
+    return 'var(--bad)';
   };
 
   const scoreColor = getScoreColor(animatedScore);

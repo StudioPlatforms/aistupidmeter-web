@@ -1,154 +1,112 @@
-// Theme configuration for retro color schemes
+// Theme configuration — clean, professional palettes (Google-Analytics style).
+// The old terminal variable names are kept so every existing
+// var(--phosphor-*) / var(--terminal-*) usage across the app keeps working:
+//   primary        -> --phosphor-green  (primary INK / text)
+//   primaryDim     -> --phosphor-dim    (secondary text)
+//   background     -> --terminal-black  (page CANVAS)
+//   backgroundDark -> --terminal-dark   (SURFACE / cards)
 export interface ThemeColors {
-  primary: string;
-  primaryDim: string;
-  background: string;
-  backgroundDark: string;
   name: string;
   description: string;
-  isLight: boolean;  // Flag to indicate if this is a light theme
+  isLight: boolean;
+  primary: string;        // primary text / ink
+  primaryDim: string;     // secondary text
+  background: string;     // page canvas
+  backgroundDark: string; // surface / cards
+  border: string;         // hairline border
+  accent: string;         // links, active state, primary button
+  accentInk: string;      // accent hover / pressed
+  accentBg: string;       // accent tint background
+  good: string;  goodBg: string;   // positive / success
+  warn: string;  warnBg: string;   // warning
+  bad: string;   badBg: string;    // negative / error
 }
 
 export const THEMES: ThemeColors[] = [
   {
-    name: 'Halloween Spooky',
-    description: 'Spooky jack-o-lantern glow for Halloween',
-    primary: '#ff6b00',
-    primaryDim: '#cc5500',
-    background: '#0a0508',  // Deep purple-black night
-    backgroundDark: '#050204',  // Near-black with purple tint
-    isLight: false,
+    name: 'Light',
+    description: 'Clean professional light — crisp white surfaces & blue accent',
+    isLight: true,
+    primary: '#202124',
+    primaryDim: '#5f6368',
+    background: '#f6f8fc',
+    backgroundDark: '#ffffff',
+    border: '#e3e6ea',
+    accent: '#1a73e8',
+    accentInk: '#174ea6',
+    accentBg: '#e8f0fe',
+    good: '#1e8e3e', goodBg: '#e6f4ea',
+    warn: '#b06000', warnBg: '#fef7e0',
+    bad: '#d93025',  badBg: '#fce8e6',
   },
   {
-    name: 'Christmas Festive',
-    description: 'Festive holiday green with twinkling lights',
-    primary: '#00a86b',  // Christmas emerald green
-    primaryDim: '#007a4d',  // Darker festive green
-    background: '#050f08',  // Rich forest green-black
-    backgroundDark: '#020805',  // Deep green-black for depth
+    name: 'Dark',
+    description: 'Clean dark — slate surfaces & soft blue accent',
     isLight: false,
-  },
-  {
-    name: 'Classic Green',
-    description: 'Original phosphor green terminal',
-    primary: '#00ff41',
-    primaryDim: '#00cc33',
-    background: '#0a0a0a',  // Original pure dark background - no tint
-    backgroundDark: '#000000',  // Pure black for darkest areas
-    isLight: false,
-  },
-  {
-    name: 'Amber Terminal',
-    description: 'Warm IBM/DOS amber',
-    primary: '#ffb000',
-    primaryDim: '#cc8800',
-    background: '#0f0a05',  // Very dark warm brown - subtle amber warmth
-    backgroundDark: '#080503',  // Deep warm black
-    isLight: false,
-  },
-  {
-    name: 'Faded Blue',
-    description: 'Classic IBM blue screen',
-    primary: '#5c9ccc',
-    primaryDim: '#4a7a9f',
-    background: '#0a0f14',  // Dark cool blue-grey - subtle blue tint
-    backgroundDark: '#050810',  // Deep cool black
-    isLight: false,
-  },
-  {
-    name: 'Cyan Terminal',
-    description: 'Cool DEC cyan phosphor',
-    primary: '#00d4ff',
-    primaryDim: '#0099cc',
-    background: '#050f12',  // Dark cyan-tinted background
-    backgroundDark: '#020a0c',  // Deep cyan black
-    isLight: false,
-  },
-  {
-    name: 'Clean Light',
-    description: 'Professional light mode - crisp white & slate',
-    primary: '#1f2933',  // Slate primary text (crisp, readable on white)
-    primaryDim: '#5b6573',  // Muted slate for secondary text
-    background: '#ffffff',  // Clean white base / on-accent text color
-    backgroundDark: '#eef1f5',  // Soft cool grey for darker surfaces
-    isLight: true,  // This is the light theme!
-  },
-  {
-    name: 'Soft Teal',
-    description: 'Easy on eyes teal-green',
-    primary: '#00cc88',
-    primaryDim: '#009966',
-    background: '#050f0c',  // Dark teal-green tinted background
-    backgroundDark: '#020805',  // Deep teal black
-    isLight: false,
+    primary: '#e8eaed',
+    primaryDim: '#9aa0a6',
+    background: '#202124',
+    backgroundDark: '#292a2d',
+    border: '#3c4043',
+    accent: '#8ab4f8',
+    accentInk: '#aecbfa',
+    accentBg: '#28344a',
+    good: '#81c995', goodBg: '#1f2e23',
+    warn: '#fdd663', warnBg: '#332b16',
+    bad: '#f28b82',  badBg: '#33211f',
   },
 ];
 
+const hexToRgb = (hex: string) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+    : '26, 115, 232';
+};
+
 export function applyTheme(theme: ThemeColors) {
-  document.documentElement.style.setProperty('--phosphor-green', theme.primary);
-  document.documentElement.style.setProperty('--phosphor-dim', theme.primaryDim);
-  document.documentElement.style.setProperty('--terminal-black', theme.background);
-  document.documentElement.style.setProperty('--terminal-dark', theme.backgroundDark);
-  
-  // Convert hex to RGB for opacity support
-  const hexToRgb = (hex: string) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 255, 65';
-  };
-  
-  document.documentElement.style.setProperty('--primary-rgb', hexToRgb(theme.primary));
-  
-  // Add data attribute for CSS to detect light/dark theme
-  document.documentElement.setAttribute('data-theme', theme.isLight ? 'light' : 'dark');
-  
-  // Update meta theme-color
+  const root = document.documentElement;
+  const set = (k: string, v: string) => root.style.setProperty(k, v);
+
+  // Core (legacy variable names, new clean values)
+  set('--phosphor-green', theme.primary);
+  set('--phosphor-dim', theme.primaryDim);
+  set('--terminal-black', theme.background);
+  set('--terminal-dark', theme.backgroundDark);
+  set('--metal-silver', theme.border);
+  set('--paper-white', theme.backgroundDark);
+
+  // Accent + semantic tokens
+  set('--accent', theme.accent);
+  set('--accent-ink', theme.accentInk);
+  set('--accent-bg', theme.accentBg);
+  set('--accent-rgb', hexToRgb(theme.accent));
+  set('--primary-rgb', hexToRgb(theme.accent)); // tints resolve to the accent
+  set('--good', theme.good); set('--good-bg', theme.goodBg);
+  set('--warn', theme.warn); set('--warn-bg', theme.warnBg);
+  set('--bad', theme.bad);   set('--bad-bg', theme.badBg);
+  set('--amber-warning', theme.warn);
+  set('--red-alert', theme.bad);
+
+  // Light/dark hook for CSS + native form controls
+  root.setAttribute('data-theme', theme.isLight ? 'light' : 'dark');
+  root.style.colorScheme = theme.isLight ? 'light' : 'dark';
+
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-  if (metaThemeColor) {
-    metaThemeColor.setAttribute('content', theme.primary);
-  }
+  if (metaThemeColor) metaThemeColor.setAttribute('content', theme.backgroundDark);
+}
+
+function getDefaultThemeIndex(): number {
+  return 0; // Light
 }
 
 export function getCurrentThemeIndex(): number {
   if (typeof window === 'undefined') return getDefaultThemeIndex();
   const saved = localStorage.getItem('retro-theme-index');
-  return saved ? parseInt(saved, 10) : getDefaultThemeIndex();
-}
-
-function getDefaultThemeIndex(): number {
-  const today = new Date();
-  const month = today.getMonth(); // 0-indexed: 0=Jan, 9=Oct, 11=Dec
-  const day = today.getDate();
-  
-  // Check for seasonal themes
-  const isHalloween = month === 9 && day === 31; // October 31st
-  const isChristmasSeason = month === 11; // December (entire month)
-  
-  // Return seasonal theme if applicable, otherwise Classic Green (index 2)
-  if (isHalloween) return 0;      // Halloween Spooky
-  if (isChristmasSeason) return 1; // Christmas Festive
-  return 2;                        // Classic Green (default)
-}
-
-function isSeasonalTheme(themeIndex: number): boolean {
-  return themeIndex === 0 || themeIndex === 1; // Halloween or Christmas
-}
-
-function shouldResetSeasonalTheme(themeIndex: number): boolean {
-  const today = new Date();
-  const month = today.getMonth();
-  const day = today.getDate();
-  
-  // Reset Halloween theme after October 31st
-  if (themeIndex === 0 && !(month === 9 && day === 31)) {
-    return true;
-  }
-  
-  // Reset Christmas theme after December
-  if (themeIndex === 1 && month !== 11) {
-    return true;
-  }
-  
-  return false;
+  const idx = saved !== null ? parseInt(saved, 10) : getDefaultThemeIndex();
+  // Clamp: older builds saved indices 0-7 that no longer exist
+  if (Number.isNaN(idx) || idx < 0 || idx >= THEMES.length) return getDefaultThemeIndex();
+  return idx;
 }
 
 export function saveThemeIndex(index: number) {
@@ -166,14 +124,7 @@ export function cycleTheme(): number {
 
 export function initializeTheme() {
   if (typeof window === 'undefined') return;
-  let index = getCurrentThemeIndex();
-  
-  // Auto-reset seasonal themes when their season passes
-  if (isSeasonalTheme(index) && shouldResetSeasonalTheme(index)) {
-    console.log(`Seasonal theme expired, resetting to default theme`);
-    index = getDefaultThemeIndex();
-    saveThemeIndex(index);
-  }
-  
+  const index = getCurrentThemeIndex();
+  saveThemeIndex(index); // normalise any stale saved value
   applyTheme(THEMES[index]);
 }

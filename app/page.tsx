@@ -411,7 +411,7 @@ export default function Dashboard() {
             <text x="8" y="22" fontSize="8" fill="var(--amber-warning)" textAnchor="middle" opacity="0.6">50</text>
             <text x="8" y="36" fontSize="8" fill="var(--red-alert)" textAnchor="middle" opacity="0.6">0</text>
             {/* Performance zones */}
-            <rect x="12" y="4" width="66" height="10" fill="rgba(0,255,65,0.1)" opacity="0.3"/>
+            <rect x="12" y="4" width="66" height="10" fill="rgba(26, 115, 232,0.1)" opacity="0.3"/>
             <rect x="12" y="14" width="66" height="10" fill="rgba(255,176,0,0.1)" opacity="0.3"/>
             <rect x="12" y="24" width="66" height="10" fill="rgba(255,45,0,0.1)" opacity="0.3"/>
             <line x1="12" y1="20" x2="78" y2="20" stroke="var(--phosphor-green)" strokeWidth="1" opacity="0.3"/>
@@ -483,7 +483,7 @@ export default function Dashboard() {
           <text x="8" y="36" fontSize="8" fill={minScore < 50 ? "var(--red-alert)" : "var(--phosphor-green)"} textAnchor="middle" opacity="0.6">{Math.round(minScore)}</text>
           
           {/* Performance zone backgrounds */}
-          <rect x="12" y="4" width="66" height="8" fill="rgba(0,255,65,0.08)" opacity="0.4"/>
+          <rect x="12" y="4" width="66" height="8" fill="rgba(26, 115, 232,0.08)" opacity="0.4"/>
           <rect x="12" y="12" width="66" height="12" fill="rgba(255,176,0,0.08)" opacity="0.4"/>
           <rect x="12" y="24" width="66" height="12" fill="rgba(255,45,0,0.08)" opacity="0.4"/>
           
@@ -515,7 +515,7 @@ export default function Dashboard() {
             
             // Calculate average CI width to determine color
             const avgCIWidth = ciPoints.reduce((sum, p) => sum + p.ciWidth, 0) / ciPoints.length;
-            const ciColor = avgCIWidth < 5 ? 'rgba(0, 255, 65, 0.15)' : 
+            const ciColor = avgCIWidth < 5 ? 'rgba(26, 115, 232, 0.15)' : 
                            avgCIWidth < 10 ? 'rgba(255, 176, 0, 0.15)' : 'rgba(255, 45, 0, 0.15)';
             
             // Create polygon path for CI band
@@ -2191,7 +2191,7 @@ export default function Dashboard() {
               <span className="terminal-text--dim">Out:</span>
               <span className="terminal-text">${pricing.output}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', borderTop: '1px solid rgba(0,255,65,0.3)', paddingTop: '1px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', borderTop: '1px solid rgba(26, 115, 232,0.3)', paddingTop: '1px' }}>
               <span className="terminal-text--dim">Est:</span>
               <span className="terminal-text--amber">${estimatedCost.toFixed(2)}</span>
             </div>
@@ -2770,7 +2770,7 @@ export default function Dashboard() {
                 <span className="terminal-text--green">📝 LIVE TEST LOGS</span>
               </div>
               <div style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backgroundColor: 'rgba(0,0,0,0.04)',
                 padding: '12px',
                 borderRadius: '4px',
                 maxHeight: '300px',
@@ -2996,7 +2996,7 @@ export default function Dashboard() {
             {/* Latest Update Banner */}
             <div style={{ 
               padding: '16px', 
-              backgroundColor: 'rgba(0, 255, 65, 0.1)', 
+              backgroundColor: 'rgba(26, 115, 232, 0.1)', 
               border: '2px solid var(--phosphor-green)',
               borderRadius: '8px',
               textAlign: 'center',
@@ -3131,7 +3131,7 @@ export default function Dashboard() {
                 <div className="terminal-text--dim">
                   <strong>Combined Score Formula:</strong><br/>
                   <code style={{ 
-                    background: 'rgba(0,255,65,0.1)', 
+                    background: 'rgba(26, 115, 232,0.1)', 
                     padding: '4px 8px', 
                     borderRadius: '3px',
                     fontFamily: 'var(--font-mono)'
@@ -3261,7 +3261,7 @@ export default function Dashboard() {
             
             <div style={{
               padding: '20px',
-              backgroundColor: 'rgba(0, 255, 65, 0.1)',
+              backgroundColor: 'rgba(26, 115, 232, 0.1)',
               border: '2px solid var(--phosphor-green)',
               borderRadius: '8px',
               textAlign: 'center',
@@ -3287,7 +3287,7 @@ export default function Dashboard() {
                   fontSize: '1.0em',
                   display: 'inline-block',
                   textDecoration: 'none',
-                  boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
+                  boxShadow: '0 0 20px rgba(26, 115, 232, 0.5)'
                 }}
               >
                 VIEW PRICING & CONTACT SALES →
@@ -3321,7 +3321,7 @@ export default function Dashboard() {
                 style={{
                   padding: '12px 32px',
                   fontSize: '1.1em',
-                  boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
+                  boxShadow: '0 0 20px rgba(26, 115, 232, 0.5)'
                 }}
               >
                 EXPLORE LIVE RANKINGS
@@ -3400,8 +3400,8 @@ export default function Dashboard() {
             {/* Search/Filter Info */}
             <div style={{ 
               padding: '12px', 
-              backgroundColor: 'rgba(0, 255, 65, 0.05)', 
-              border: '1px solid rgba(0, 255, 65, 0.2)',
+              backgroundColor: 'rgba(26, 115, 232, 0.05)', 
+              border: '1px solid rgba(26, 115, 232, 0.2)',
               borderRadius: '4px',
               textAlign: 'center',
               fontSize: '0.9em'
@@ -3544,7 +3544,7 @@ export default function Dashboard() {
               marginBottom: '16px', 
               textAlign: 'center',
               color: 'var(--terminal-text)',
-              textShadow: '0 0 10px #00bfff'
+              textShadow: '0 0 10px #1a73e8'
             }}>
               ❓ GENERAL QUESTIONS
             </div>
@@ -3660,7 +3660,7 @@ export default function Dashboard() {
               style={{ 
                 padding: '12px 32px',
                 fontSize: '1.1em',
-                boxShadow: '0 0 20px rgba(0, 255, 65, 0.5)'
+                boxShadow: '0 0 20px rgba(26, 115, 232, 0.5)'
               }}
             >
               BACK TO LIVE RANKINGS
@@ -3764,8 +3764,8 @@ export default function Dashboard() {
                 fontSize: 'var(--font-size-sm)',
                 marginBottom: 'var(--space-md)',
                 padding: 'var(--space-sm)',
-                background: 'rgba(0, 255, 65, 0.05)',
-                border: '1px solid rgba(0, 255, 65, 0.2)',
+                background: 'rgba(26, 115, 232, 0.05)',
+                border: '1px solid rgba(26, 115, 232, 0.2)',
                 borderRadius: '4px',
                 minHeight: '40px',
                 display: 'flex',
@@ -3783,8 +3783,8 @@ export default function Dashboard() {
                 fontSize: 'var(--font-size-sm)',
                 marginTop: 'var(--space-md)',
                 padding: 'var(--space-sm)',
-                background: 'rgba(0, 255, 65, 0.05)',
-                border: '1px solid rgba(0, 255, 65, 0.2)',
+                background: 'rgba(26, 115, 232, 0.05)',
+                border: '1px solid rgba(26, 115, 232, 0.2)',
                 borderRadius: '4px'
               }}>
                 <span className="terminal-text--dim">Attempt: </span>
@@ -3972,7 +3972,7 @@ export default function Dashboard() {
       {/* The Intelligence Center data is now shown in left panel on desktop and QuickInfo on mobile */}
       {/* Keeping original section hidden for backward compat — can remove later */}
       <div style={{ display: 'none' }}>
-      <div className="crt-monitor" style={{ backgroundColor: 'rgba(0, 255, 65, 0.03)' }}>
+      <div className="crt-monitor" style={{ backgroundColor: 'rgba(26, 115, 232, 0.03)' }}>
         <div className="terminal-text">
           <div style={{ fontSize: '1.2em', marginBottom: '16px', textAlign: 'center' }}>
             <span className="terminal-text--green">📊 MODEL INTELLIGENCE CENTER</span>
@@ -4011,8 +4011,8 @@ export default function Dashboard() {
             ) : (
               <div style={{ 
                 padding: '12px', 
-                border: '1px solid rgba(0, 255, 65, 0.3)',
-                backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(26, 115, 232, 0.3)',
+                backgroundColor: 'rgba(26, 115, 232, 0.05)',
                 fontSize: '0.85em',
                 textAlign: 'center'
               }}>
@@ -4036,8 +4036,8 @@ export default function Dashboard() {
               {recommendations?.bestForCode ? (
                 <div style={{
                   padding: '8px',
-                  border: '1px solid rgba(0, 255, 65, 0.3)',
-                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  border: '1px solid rgba(26, 115, 232, 0.3)',
+                  backgroundColor: 'rgba(26, 115, 232, 0.05)',
                   fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
@@ -4066,8 +4066,8 @@ export default function Dashboard() {
               {recommendations?.mostReliable ? (
                 <div style={{
                   padding: '8px',
-                  border: '1px solid rgba(0, 255, 65, 0.3)',
-                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  border: '1px solid rgba(26, 115, 232, 0.3)',
+                  backgroundColor: 'rgba(26, 115, 232, 0.05)',
                   fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
@@ -4096,8 +4096,8 @@ export default function Dashboard() {
               {recommendations?.fastestResponse ? (
                 <div style={{
                   padding: '8px',
-                  border: '1px solid rgba(0, 255, 65, 0.3)',
-                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  border: '1px solid rgba(26, 115, 232, 0.3)',
+                  backgroundColor: 'rgba(26, 115, 232, 0.05)',
                   fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
@@ -4141,8 +4141,8 @@ export default function Dashboard() {
               ) : (
                 <div style={{
                   padding: '8px',
-                  border: '1px solid rgba(0, 255, 65, 0.2)',
-                  backgroundColor: 'rgba(0, 255, 65, 0.03)',
+                  border: '1px solid rgba(26, 115, 232, 0.2)',
+                  backgroundColor: 'rgba(26, 115, 232, 0.03)',
                   fontSize: '0.8em'
                 }}>
                   <div className="terminal-text--green" style={{ fontWeight: 'bold' }}>
@@ -4228,9 +4228,9 @@ export default function Dashboard() {
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
                   {modelsWithCI.slice(0, 6).map((model: any, index: number) => {
-                    const color = model.reliability === 'HIGH' ? 'rgba(0, 255, 65, 0.3)' : 
+                    const color = model.reliability === 'HIGH' ? 'rgba(26, 115, 232, 0.3)' : 
                                  model.reliability === 'MED' ? 'rgba(255, 176, 0, 0.3)' : 'rgba(255, 45, 0, 0.3)';
-                    const bgColor = model.reliability === 'HIGH' ? 'rgba(0, 255, 65, 0.05)' : 
+                    const bgColor = model.reliability === 'HIGH' ? 'rgba(26, 115, 232, 0.05)' : 
                                    model.reliability === 'MED' ? 'rgba(255, 176, 0, 0.05)' : 'rgba(255, 45, 0, 0.05)';
                     
                     return (
@@ -4282,8 +4282,8 @@ export default function Dashboard() {
                 {providerReliability.map((provider, index) => (
                   <div key={index} style={{ 
                     padding: '6px 8px', 
-                    border: '1px solid rgba(0, 255, 65, 0.2)',
-                    backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                    border: '1px solid rgba(26, 115, 232, 0.2)',
+                    backgroundColor: 'rgba(26, 115, 232, 0.05)',
                     fontSize: '0.85em'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -4374,8 +4374,8 @@ export default function Dashboard() {
             ) : (
               <div style={{ 
                 padding: '12px', 
-                border: '1px solid rgba(0, 255, 65, 0.3)',
-                backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                border: '1px solid rgba(26, 115, 232, 0.3)',
+                backgroundColor: 'rgba(26, 115, 232, 0.05)',
                 fontSize: '0.85em',
                 textAlign: 'center'
               }}>
@@ -4390,7 +4390,7 @@ export default function Dashboard() {
 
           {/* Data Transparency */}
           {transparencyMetrics && (
-            <div style={{ borderTop: '1px solid rgba(0, 255, 65, 0.2)', paddingTop: '12px' }}>
+            <div style={{ borderTop: '1px solid rgba(26, 115, 232, 0.2)', paddingTop: '12px' }}>
               <div style={{ fontSize: '1.1em', marginBottom: '8px' }}>
                 <span className="terminal-text--amber">🔍 DATA TRANSPARENCY</span>
               </div>
@@ -4472,7 +4472,7 @@ export default function Dashboard() {
 
         {/* Historical 6-hour breakdown */}
         {globalIndex && globalIndex.history && globalIndex.history.length > 0 && (
-          <div style={{ marginTop: '20px', borderTop: '1px solid rgba(0, 255, 65, 0.3)', paddingTop: '16px' }}>
+          <div style={{ marginTop: '20px', borderTop: '1px solid rgba(26, 115, 232, 0.3)', paddingTop: '16px' }}>
             <div className="terminal-text--dim" style={{ textAlign: 'center', fontSize: '0.9em', marginBottom: '12px' }}>
               📊 PAST 24 HOURS BREAKDOWN
             </div>
@@ -4481,8 +4481,8 @@ export default function Dashboard() {
                 <div key={index} style={{ 
                   textAlign: 'center', 
                   padding: '8px 4px',
-                  backgroundColor: index === 0 ? 'rgba(0, 255, 65, 0.1)' : 'rgba(0, 255, 65, 0.05)',
-                  border: index === 0 ? '1px solid rgba(0, 255, 65, 0.3)' : '1px solid rgba(0, 255, 65, 0.1)',
+                  backgroundColor: index === 0 ? 'rgba(26, 115, 232, 0.1)' : 'rgba(26, 115, 232, 0.05)',
+                  border: index === 0 ? '1px solid rgba(26, 115, 232, 0.3)' : '1px solid rgba(26, 115, 232, 0.1)',
                   borderRadius: '2px'
                 }}>
                   <div className={
@@ -4570,7 +4570,7 @@ export default function Dashboard() {
           <div style={{ 
             textAlign: 'center', 
             marginTop: '20px', 
-            borderTop: '1px solid rgba(0, 255, 65, 0.3)',
+            borderTop: '1px solid rgba(26, 115, 232, 0.3)',
             paddingTop: '16px',
             fontSize: '0.8em'
           }}>
@@ -4774,11 +4774,11 @@ export default function Dashboard() {
           className="mobile-nav-btn"
           onClick={() => router.push('/router')}
           style={{
-            backgroundColor: '#00BFFF',
-            color: '#00BFFF',
+            backgroundColor: '#1a73e8',
+            color: '#1a73e8',
             fontWeight: 'bold',
-            border: '2px solid #00BFFF',
-            boxShadow: '0 0 10px #00BFFF',
+            border: '2px solid #1a73e8',
+            boxShadow: '0 0 10px #1a73e8',
             flexShrink: 0,
             minWidth: '60px'
           }}
@@ -4847,8 +4847,8 @@ export default function Dashboard() {
                     
                     <div style={{ 
                       padding: window.innerWidth < 768 ? '12px' : '16px', 
-                      backgroundColor: 'rgba(0, 255, 65, 0.1)', 
-                      border: '2px solid rgba(0, 255, 65, 0.3)',
+                      backgroundColor: 'rgba(26, 115, 232, 0.1)', 
+                      border: '2px solid rgba(26, 115, 232, 0.3)',
                       borderRadius: '6px',
                       marginBottom: '12px',
                       fontSize: window.innerWidth < 768 ? '0.8em' : '0.9em'
@@ -4913,8 +4913,8 @@ export default function Dashboard() {
                     
                     <div style={{ 
                       padding: window.innerWidth < 768 ? '8px' : '12px', 
-                      backgroundColor: 'rgba(0, 255, 65, 0.05)', 
-                      border: '1px solid rgba(0, 255, 65, 0.3)',
+                      backgroundColor: 'rgba(26, 115, 232, 0.05)', 
+                      border: '1px solid rgba(26, 115, 232, 0.3)',
                       borderRadius: '4px',
                       fontSize: window.innerWidth < 768 ? '0.75em' : '0.85em'
                     }}>
@@ -5066,8 +5066,8 @@ export default function Dashboard() {
               {/* Features */}
               <div style={{
                 padding: '16px',
-                backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                border: '1px solid rgba(0, 255, 65, 0.2)',
+                backgroundColor: 'rgba(26, 115, 232, 0.05)',
+                border: '1px solid rgba(26, 115, 232, 0.2)',
                 borderRadius: '6px',
                 marginBottom: '20px'
               }}>
@@ -5220,8 +5220,8 @@ export default function Dashboard() {
                 <div style={{ 
                   marginBottom: '16px',
                   padding: '12px',
-                  border: '1px solid rgba(0, 255, 65, 0.3)',
-                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
+                  border: '1px solid rgba(26, 115, 232, 0.3)',
+                  backgroundColor: 'rgba(26, 115, 232, 0.05)',
                   borderRadius: '4px'
                 }}>
                   <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
@@ -5274,7 +5274,7 @@ export default function Dashboard() {
                       style={{
                         fontSize: '0.75em',
                         fontFamily: 'var(--font-mono)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        backgroundColor: 'rgba(0,0,0,0.04)',
                         padding: '4px 8px',
                         borderRadius: '2px',
                         cursor: 'pointer',
@@ -5300,7 +5300,7 @@ export default function Dashboard() {
                       style={{
                         fontSize: '0.75em',
                         fontFamily: 'var(--font-mono)',
-                        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                        backgroundColor: 'rgba(0,0,0,0.04)',
                         padding: '4px 8px',
                         borderRadius: '2px',
                         cursor: 'pointer',
@@ -5320,8 +5320,8 @@ export default function Dashboard() {
                 textAlign: 'center',
                 marginBottom: '20px',
                 padding: '12px',
-                backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                border: '1px solid rgba(0, 255, 65, 0.2)',
+                backgroundColor: 'rgba(26, 115, 232, 0.05)',
+                border: '1px solid rgba(26, 115, 232, 0.2)',
                 borderRadius: '4px'
               }}>
                 <div className="terminal-text--green" style={{ fontSize: '1.0em', marginBottom: '6px' }}>

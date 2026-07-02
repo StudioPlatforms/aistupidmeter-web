@@ -1,0 +1,435 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CLEAN THEME — Google-Analytics-style overhaul layer
+   Loaded LAST from the root layout. Component-level rules use !important
+   so this layer also wins over nested route CSS (router-v4 / forum-v4 /
+   model-detail-v4) regardless of bundler import order.
+
+   Pairs with the clean design tokens in theme-config.ts + vintage.css :root
+     --phosphor-green = primary INK/text   --terminal-black = page CANVAS
+     --phosphor-dim   = secondary text     --terminal-dark  = SURFACE/cards
+     --metal-silver   = hairline border    --accent         = blue accent
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Typography ─────────────────────────────────────────────────── */
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: var(--font-mono) !important; /* now a sans stack (see :root) */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--phosphor-green);
+  background: var(--terminal-black);
+  line-height: 1.5;
+  letter-spacing: normal;
+}
+body, button, input, select, textarea,
+.terminal-text, .terminal-text--dim, .terminal-text--amber, .terminal-text--red,
+[class^="v4-"], [class*=" v4-"], [class^="rv4-"], [class*=" rv4-"] {
+  font-family: var(--font-mono) !important;
+  letter-spacing: normal;
+}
+/* keep true monospace only for code / keys / tokens */
+code, pre, kbd, samp, tt, .mono,
+[class*="api-key"], [class*="apikey"], [class*="code-block"], [class*="codeblock"],
+[class*="snippet"], [class*="curl"], [class*="token-display"] {
+  font-family: var(--font-code) !important;
+}
+h1, h2, h3, h4,
+.v4-logo, .rv4-sidebar-brand, .rv4-page-title {
+  font-family: var(--font-display) !important;
+}
+.v4-logo, .rv4-sidebar-brand, .rv4-page-title, .rv4-panel-title,
+.v4-panel-header, .v4-stat-label, .rv4-stat-label, .rv4-sidebar-section-label {
+  letter-spacing: 0.3px !important;
+}
+
+/* ── 2. Kill glow (text-shadow) everywhere ─────────────────────────── */
+*, *::before, *::after { text-shadow: none !important; }
+
+/* ── 3. Kill ambient motion ────────────────────────────────────────── */
+.blinking-cursor::after { content: "" !important; animation: none !important; display: none !important; }
+.ticker-tape-container, .ticker-tape-scroll, .ticker-tape-track { animation: none !important; }
+.ticker-tape-container { display: none !important; }
+.crt-monitor::before, .crt-monitor::after { display: none !important; content: none !important; }
+.v4-live-dot { animation: none !important; }
+[class*="pulse"], [class*="pulsing"], [class*="marquee"], [class*="scanline"],
+[class*="flicker"], [class*="glitch"], [class*="typewriter"], [class*="shine"] {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── 3b. Text colour semantics ─────────────────────────────────────
+   The old theme used .terminal-text--green as the *primary/heading*
+   colour (because everything was green), NOT as "success". So it maps
+   to primary ink here. True success/positive colour comes from the
+   explicit .text-good / status classes and inline var(--good) usage. */
+.terminal-text--green { color: var(--phosphor-green) !important; }
+.text-good, .status-good, .positive, .trend-up { color: var(--good) !important; }
+.terminal-text--amber, .text-warn, .status-warning { color: var(--warn) !important; }
+.terminal-text--red, .text-bad, .status-critical, .negative, .trend-down {
+  color: var(--bad) !important;
+}
+.terminal-text--dim { color: var(--phosphor-dim) !important; }
+
+/* ── 4. Surfaces: white cards on soft grey canvas ──────────────────── */
+.crt-monitor,
+.control-panel,
+.rv4-panel,
+.model-detail-card, [class*="detail-card"],
+.rv4-forum-category, .forum-card, [class*="forum-card"] {
+  background: var(--terminal-dark) !important;   /* white */
+  border: 1px solid var(--metal-silver) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08), 0 1px 3px rgba(60, 64, 67, 0.06) !important;
+}
+.crt-monitor { margin: 12px !important; padding: 16px !important; }
+.v4-panel { background: var(--terminal-dark) !important; border-color: var(--metal-silver) !important; }
+.v4-panel:last-child { border-left-color: var(--metal-silver) !important; }
+.v4-grid3 { background: var(--terminal-black) !important; }
+
+/* ── 5. Top bar + primary nav (main dashboard) ─────────────────────── */
+.v4-topbar {
+  background: var(--terminal-dark) !important;
+  border-bottom: 1px solid var(--metal-silver) !important;
+  height: 56px !important;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.06) !important;
+}
+.v4-logo { color: var(--phosphor-green) !important; font-weight: 600 !important; letter-spacing: 0.2px !important; }
+.v4-logo em { color: var(--accent) !important; font-style: normal !important; }
+.v4-nav-btn {
+  color: var(--phosphor-dim) !important;
+  font-weight: 500 !important;
+  font-size: 13px !important;
+  text-transform: none !important;
+  border-radius: 6px !important;
+  border-bottom: none !important;
+}
+.v4-nav-btn:hover { color: var(--phosphor-green) !important; background: var(--terminal-black) !important; }
+.v4-nav-btn.active { color: var(--accent) !important; background: var(--accent-bg) !important; }
+.v4-nav-btn.pro-btn {
+  color: #fff !important; background: var(--accent) !important;
+  border: 1px solid var(--accent) !important; border-radius: 999px !important; font-weight: 600 !important;
+}
+.v4-nav-btn.pro-btn:hover { background: var(--accent-ink) !important; box-shadow: none !important; }
+.v4-topbar-right { color: var(--phosphor-dim) !important; font-size: 12px !important; }
+.v4-clock { color: var(--phosphor-green) !important; font-weight: 500 !important; }
+.v4-live-dot { background: var(--good) !important; box-shadow: none !important; }
+
+/* ── 6. KPI stat bar ───────────────────────────────────────────────── */
+.v4-stat-bar { background: var(--metal-silver) !important; border-bottom: 1px solid var(--metal-silver) !important; }
+.v4-stat-cell { background: var(--terminal-dark) !important; }
+.v4-stat-cell::before { display: none !important; }
+.v4-stat-value { font-weight: 600 !important; color: var(--phosphor-green) !important; }
+.v4-stat-label, .v4-stat-detail { color: var(--phosphor-dim) !important; }
+
+/* ── 7. Stupid-meter bar ───────────────────────────────────────────── */
+.v4-meter-track { background: var(--metal-silver) !important; border-radius: 999px !important; }
+.v4-meter-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-ink)) !important;
+  box-shadow: none !important; border-radius: 999px !important;
+}
+.v4-meter-fill::after { display: none !important; }
+.v4-meter-value { color: var(--phosphor-green) !important; font-weight: 600 !important; }
+
+/* ── 8. Badges / chips -> soft tinted pills ────────────────────────── */
+.v4-badge, .rv4-badge {
+  border-radius: 999px !important; border: 1px solid transparent !important;
+  padding: 3px 9px !important; font-weight: 600 !important;
+  text-transform: uppercase !important; letter-spacing: 0.3px !important;
+}
+.v4-badge-green, .rv4-badge.green { background: var(--good-bg) !important; color: var(--good) !important; }
+.v4-badge-amber, .rv4-badge.amber { background: var(--warn-bg) !important; color: var(--warn) !important; }
+.v4-badge-red,   .rv4-badge.red   { background: var(--bad-bg) !important;  color: var(--bad) !important; }
+.v4-badge-blue,  .rv4-badge.blue  { background: var(--accent-bg) !important; color: var(--accent) !important; }
+
+/* ── 9. Buttons ────────────────────────────────────────────────────── */
+.vintage-btn, .rv4-ctrl-btn, .v4-ctrl-btn {
+  font-family: var(--font-mono) !important; font-weight: 500 !important;
+  text-transform: none !important; border-radius: 8px !important;
+  border: 1px solid var(--metal-silver) !important; background: var(--terminal-dark) !important;
+  color: var(--phosphor-green) !important; box-shadow: none !important;
+  transition: background 0.15s, border-color 0.15s, color 0.15s !important;
+}
+.vintage-btn:hover, .rv4-ctrl-btn:hover, .v4-ctrl-btn:hover {
+  background: var(--terminal-black) !important; border-color: var(--phosphor-dim) !important;
+}
+.vintage-btn--active, .v4-ctrl-btn.active, .rv4-ctrl-btn.active {
+  background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important;
+}
+.vintage-btn--primary, .rv4-ctrl-btn.primary { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.vintage-btn--primary:hover, .rv4-ctrl-btn.primary:hover { background: var(--accent-ink) !important; border-color: var(--accent-ink) !important; }
+.vintage-btn--danger, .rv4-ctrl-btn.danger { background: var(--bad) !important; border-color: var(--bad) !important; color: #fff !important; }
+.vintage-btn--warning { background: var(--warn) !important; border-color: var(--warn) !important; color: #fff !important; }
+
+/* ── 10. Controls bar / segmented groups ───────────────────────────── */
+.v4-controls { background: var(--terminal-dark) !important; border-bottom: 1px solid var(--metal-silver) !important; }
+.v4-ctrl-group { border: 1px solid var(--metal-silver) !important; border-radius: 8px !important; overflow: hidden !important; }
+.v4-ctrl-group .v4-ctrl-btn { border-right: 1px solid var(--metal-silver) !important; border-radius: 0 !important; }
+
+/* ── 11. Progress bars ─────────────────────────────────────────────── */
+.rv4-progress { background: var(--metal-silver) !important; border-radius: 999px !important; }
+.rv4-progress-fill, .rv4-progress-fill.green { background: var(--accent) !important; box-shadow: none !important; border-radius: 999px !important; }
+
+/* ── 12. Panel headers / section titles ────────────────────────────── */
+.v4-panel-header, .rv4-panel-header {
+  background: var(--terminal-dark) !important; color: var(--phosphor-green) !important;
+  border-bottom: 1px solid var(--metal-silver) !important; font-weight: 600 !important;
+}
+.rv4-panel-title, .rv4-page-title { color: var(--phosphor-green) !important; font-weight: 600 !important; }
+.rv4-page-title-sub, .v4-section-divider { color: var(--phosphor-dim) !important; }
+
+/* ── 13. Router shell + sidebar ────────────────────────────────────── */
+.rv4-shell { background: var(--terminal-black) !important; }
+.rv4-sidebar, .rv4-mobile-drawer { background: var(--terminal-dark) !important; border-right: 1px solid var(--metal-silver) !important; }
+.rv4-sidebar-logo { border-bottom: 1px solid var(--metal-silver) !important; }
+.rv4-sidebar-brand { color: var(--phosphor-green) !important; font-weight: 600 !important; }
+.rv4-sidebar-brand em { color: var(--accent) !important; font-style: normal !important; }
+.rv4-sidebar-section { border-bottom: 1px solid var(--metal-silver) !important; }
+.rv4-sidebar-section-label { color: var(--phosphor-dim) !important; }
+.rv4-nav-item {
+  color: var(--phosphor-green) !important; border-left: 3px solid transparent !important;
+  border-radius: 0 8px 8px 0 !important; margin-right: 8px !important;
+}
+.rv4-nav-item:hover { background: var(--terminal-black) !important; border-left-color: var(--metal-silver) !important; color: var(--phosphor-green) !important; }
+.rv4-nav-item.active { background: var(--accent-bg) !important; border-left-color: var(--accent) !important; color: var(--accent) !important; font-weight: 600 !important; }
+.rv4-sidebar-footer { border-top: 1px solid var(--metal-silver) !important; }
+.rv4-sidebar-signout { border: 1px solid var(--metal-silver) !important; border-radius: 8px !important; color: var(--phosphor-dim) !important; background: var(--terminal-dark) !important; }
+.rv4-sidebar-signout:hover { border-color: var(--phosphor-dim) !important; color: var(--phosphor-green) !important; }
+
+/* ── 14. Router content: banners, activity, actions, stats ─────────── */
+.rv4-body, .rv4-content { background: var(--terminal-black) !important; }
+.rv4-success-banner, .rv4-info-banner.green { background: var(--good-bg) !important; border: 1px solid var(--good) !important; color: var(--good) !important; border-radius: 10px !important; }
+.rv4-error-banner { background: var(--bad-bg) !important; border: 1px solid var(--bad) !important; color: var(--bad) !important; border-radius: 10px !important; }
+.rv4-info-banner { background: var(--accent-bg) !important; border: 1px solid var(--accent) !important; color: var(--accent) !important; border-radius: 10px !important; }
+.rv4-activity-item { border-bottom: 1px solid var(--metal-silver) !important; }
+.rv4-activity-item:hover { background: var(--terminal-black) !important; }
+.rv4-action-btn { background: var(--terminal-dark) !important; border: 1px solid var(--metal-silver) !important; border-radius: 10px !important; }
+.rv4-action-btn:hover { border-color: var(--accent) !important; background: var(--accent-bg) !important; }
+.rv4-stat-bar { background: var(--metal-silver) !important; border-radius: 10px !important; overflow: hidden !important; }
+.rv4-stat-cell { background: var(--terminal-dark) !important; }
+.rv4-stat-value { color: var(--phosphor-green) !important; font-weight: 600 !important; }
+.rv4-stat-value.amber { color: var(--warn) !important; }
+.rv4-stat-value.blue { color: var(--accent) !important; }
+.rv4-empty-title { color: var(--phosphor-green) !important; }
+.rv4-empty-text { color: var(--phosphor-dim) !important; }
+
+/* ── 15. Tables / leaderboard rows ─────────────────────────────────── */
+table { border-color: var(--metal-silver) !important; }
+th { color: var(--phosphor-dim) !important; font-weight: 600 !important; border-bottom: 1px solid var(--metal-silver) !important; }
+td { border-bottom: 1px solid var(--metal-silver) !important; }
+tr:hover td { background: var(--terminal-black) !important; }
+[class*="leaderboard-row"], [class*="model-row"] { border-bottom: 1px solid var(--metal-silver) !important; }
+[class*="leaderboard-row"]:hover, [class*="model-row"]:hover { background: var(--terminal-black) !important; }
+
+/* ── 16. Footer ────────────────────────────────────────────────────── */
+.v4-footer, .rv4-footer { background: var(--terminal-dark) !important; border-top: 1px solid var(--metal-silver) !important; color: var(--phosphor-dim) !important; }
+.v4-footer a, .rv4-footer a { color: var(--accent) !important; }
+.v4-footer a:hover, .rv4-footer a:hover { text-decoration: underline !important; }
+
+/* ── 17. Mobile nav (bottom bar) ───────────────────────────────────── */
+.v4-mobile-nav { background: var(--terminal-dark) !important; border-top: 1px solid var(--metal-silver) !important; box-shadow: 0 -1px 3px rgba(60, 64, 67, 0.08) !important; }
+.rv4-mobile-menu-btn { background: var(--accent) !important; color: #fff !important; border: none !important; border-radius: 999px !important; box-shadow: 0 2px 6px rgba(60, 64, 67, 0.25) !important; }
+
+/* ── 18. Links + generic accents ───────────────────────────────────── */
+a { color: var(--accent); }
+a:hover { color: var(--accent-ink); }
+
+/* ── 19. Scrollbars + focus ────────────────────────────────────────── */
+* { scrollbar-width: thin; scrollbar-color: var(--metal-silver) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--metal-silver); border-radius: 999px; border: 2px solid var(--terminal-black); }
+*::-webkit-scrollbar-track { background: transparent; }
+:focus-visible { outline: 2px solid var(--accent) !important; outline-offset: 2px; }
+
+/* ── 20. Dark-theme fine tuning ────────────────────────────────────── */
+[data-theme="dark"] .crt-monitor,
+[data-theme="dark"] .control-panel,
+[data-theme="dark"] .rv4-panel { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important; }
+[data-theme="dark"] .v4-nav-btn.pro-btn,
+[data-theme="dark"] .rv4-mobile-menu-btn { color: #202124 !important; }
+[data-theme="dark"] .vintage-btn--active,
+[data-theme="dark"] .v4-ctrl-btn.active,
+[data-theme="dark"] .rv4-ctrl-btn.active { color: #202124 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   POLISH LAYER — density, hierarchy, and the leaderboard table
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Section / panel headers: calmer, more breathing room ──────────── */
+.v4-panel-header, .rv4-panel-header {
+  padding: 13px 16px !important;
+  font-size: 12px !important;
+  letter-spacing: 0.4px !important;
+  min-height: 44px;
+}
+.v4-controls { padding: 10px 16px !important; gap: 10px !important; }
+.v4-section-divider { padding: 8px 16px !important; font-size: 10px !important; letter-spacing: 0.6px !important; }
+
+/* ── KPI stat bar: bigger numbers, more room ───────────────────────── */
+.v4-stat-cell { padding: 14px 12px !important; }
+.v4-stat-value { font-size: 26px !important; letter-spacing: -0.5px; line-height: 1.1 !important; }
+.v4-stat-label { font-size: 10px !important; letter-spacing: 0.6px !important; margin-bottom: 4px !important; }
+.v4-stat-detail { font-size: 10px !important; margin-top: 3px !important; }
+
+/* ── Stupid-meter row ──────────────────────────────────────────────── */
+.v4-meter-track { height: 12px !important; }
+.v4-meter-value { font-size: 32px !important; letter-spacing: -1px; }
+
+/* ── Leaderboard: clean GA-style table (no vertical gridlines) ─────── */
+.v4-lb-header { background: var(--terminal-dark) !important; border-bottom: 1px solid var(--metal-silver) !important; }
+.v4-lb-header > div {
+  border-right: none !important;
+  color: var(--phosphor-dim) !important;
+  font-size: 11px !important; font-weight: 600 !important;
+  letter-spacing: 0.3px !important; padding: 11px 8px !important;
+}
+.v4-lb-row { min-height: 58px !important; border-bottom: 1px solid var(--metal-silver) !important; }
+.v4-lb-row:hover { background: var(--terminal-black) !important; }
+.v4-lb-row.highlight { background: transparent !important; box-shadow: inset 3px 0 0 var(--bad); }
+.v4-lb-row.highlight:hover { background: var(--terminal-black) !important; }
+.v4-lb-row > div { border-right: none !important; padding: 10px 8px !important; font-size: 13px !important; }
+
+.v4-lb-rank { font-weight: 600 !important; font-size: 13px !important; color: var(--phosphor-dim); font-variant-numeric: tabular-nums; }
+.v4-lb-rank.top {
+  color: var(--accent); background: var(--accent-bg);
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* keep the model cell a horizontal row (override the base column layout) */
+.v4-lb-row > div:nth-child(2) {
+  flex-direction: row !important; align-items: center !important;
+  justify-content: flex-start !important;
+}
+.v4-lb-model { display: flex !important; flex-direction: row !important; align-items: center; gap: 11px; min-width: 0; }
+.v4-lb-logo {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px;
+  background: #ffffff; border: 1px solid var(--metal-silver);
+  display: inline-flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.v4-lb-logo img, .v4-lb-logo svg { width: 18px; height: 18px; }
+.v4-lb-model-name {
+  font-weight: 600; font-size: 13.5px; color: var(--phosphor-green);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 6px;
+}
+.v4-lb-model-prov { font-size: 11px; color: var(--phosphor-dim); text-transform: capitalize; margin-top: 2px; }
+.v4-lb-score { font-size: 18px !important; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+
+/* Model tags (RSN / ALERT / NEW) */
+.v4-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 5px; letter-spacing: 0.3px; line-height: 1.3; flex-shrink: 0; }
+.v4-tag-blue { background: var(--accent-bg); color: var(--accent); }
+.v4-tag-red { background: var(--bad-bg); color: var(--bad); }
+.v4-tag-green { background: var(--good-bg); color: var(--good); }
+
+/* Regime pills */
+.regime-badge {
+  border-radius: 999px !important; padding: 3px 9px !important;
+  font-size: 10px !important; font-weight: 600 !important;
+  border: 1px solid transparent !important; letter-spacing: 0.2px;
+}
+.regime-badge.regime-st { background: var(--good-bg) !important; color: var(--good) !important; }
+.regime-badge.regime-vo { background: var(--warn-bg) !important; color: var(--warn) !important; }
+.regime-badge.regime-de { background: var(--bad-bg) !important; color: var(--bad) !important; }
+
+/* ── Provider trust dots -> use brand tint chips (keep subtle) ──────── */
+.v4-prov-dot { box-shadow: none !important; border-radius: 50% !important; }
+
+/* ── Intelligence / recommendation cards: breathing room ───────────── */
+.v4-reco-section { padding: 12px 14px !important; }
+
+/* ── Generic: soften any leftover heavy 2px borders on cards ───────── */
+.crt-monitor, .rv4-panel, .control-panel { border-width: 1px !important; }
+
+/* ── Model detail page: meter + KPI cells ──────────────────────────── */
+.md-meter-track { background: var(--metal-silver) !important; border-radius: 999px !important; }
+.md-meter-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-ink)) !important;
+  box-shadow: none !important; border-radius: 999px !important;
+}
+.md-meter-fill::after { display: none !important; }
+.md-meter-value { font-weight: 700 !important; }
+.md-stat-cell::before { display: none !important; }        /* drop glowing accent lines */
+.md-stat-value { font-weight: 600 !important; }
+.md-stat-label, .md-stat-detail { color: var(--phosphor-dim) !important; }
+
+/* ── Mobile leaderboard: one clean row, score always visible ───────── */
+@media (max-width: 599px) {
+  .v4-lb-row { flex-wrap: nowrap !important; padding: 12px 14px !important; min-height: 60px !important; }
+  .v4-lb-row > div { padding: 0 !important; }
+  .v4-lb-row > div:nth-child(1) { width: 22px !important; margin-right: 6px; justify-content: center; flex-shrink: 0; }
+  .v4-lb-row > div:nth-child(2) { flex: 1 1 0 !important; min-width: 0 !important; overflow: hidden !important; }
+  .v4-lb-row > div:nth-child(3) { padding-left: 12px !important; flex-shrink: 0 !important; flex-grow: 0 !important; }
+  .v4-lb-score { font-size: 19px !important; }
+  .v4-lb-logo { width: 34px; height: 34px; }
+  .v4-lb-logo img, .v4-lb-logo svg { width: 20px; height: 20px; }
+  .v4-lb-model-name { font-size: 14px; }
+  .v4-lb-model-prov { font-size: 11.5px; }
+  .v4-lb-model { gap: 12px; }
+  /* show the trend arrow next to score */
+  .v4-lb-row > div:nth-child(4) { display: flex !important; margin-left: 8px; flex-shrink: 0; }
+}
+
+/* ── Mobile KPI cards: clean 2×2 grid (show 4 key stats) ───────────── */
+@media (max-width: 599px) {
+  .v4-stat-bar { grid-template-columns: 1fr 1fr !important; gap: 1px !important; }
+  .v4-stat-bar .v4-stat-cell:nth-child(-n+4) { display: flex !important; flex-direction: column; justify-content: center; }
+  .v4-stat-bar .v4-stat-cell:nth-child(n+5) { display: none !important; }
+  .v4-stat-cell { padding: 13px 10px !important; }
+  .v4-stat-value { font-size: 23px !important; }
+}
+
+/* ── Mobile bottom nav: uniform button font + full-width theme button ─ */
+.v4-mobile-nav .vintage-btn {
+  font-size: 9px !important;
+  padding: 8px 4px !important;
+  letter-spacing: 0.3px !important;
+  font-weight: 600 !important;
+}
+.v4-mobile-nav > div:last-child { flex: 1 1 0 !important; }
+.v4-mobile-nav > div:last-child > div { display: block !important; width: 100% !important; }
+.v4-mobile-nav > div:last-child button { width: 100% !important; min-height: 42px; }
+
+/* ── Mobile controls: compact dropdown pills (Period / Sort / View) ──── */
+.v4-controls-mobile { display: none; }
+@media (max-width: 599px) {
+  /* hide the desktop segmented controls, show the dropdown row */
+  .v4-controls > .v4-ctrl-label,
+  .v4-controls > .v4-ctrl-group,
+  .v4-controls > .v4-ctrl-sep,
+  .v4-controls > .v4-ctrl-right { display: none !important; }
+  .v4-controls {
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    padding: 10px 12px !important;
+    gap: 0 !important;
+  }
+  .v4-controls-mobile { display: flex !important; width: 100%; gap: 8px; }
+  .v4-mc-item { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .v4-mc-label {
+    font-size: 9px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--phosphor-dim); padding-left: 3px;
+  }
+  .v4-mc-select { position: relative; display: block; }
+  .v4-mc-select select {
+    width: 100%;
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background: var(--terminal-dark); color: var(--phosphor-green);
+    border: 1px solid var(--metal-silver); border-radius: 8px;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+    line-height: 1.2; padding: 0 24px 0 10px; height: 36px;
+    cursor: pointer; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .v4-mc-select select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .v4-mc-chev {
+    position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--phosphor-dim); font-size: 11px; line-height: 1;
+  }
+}

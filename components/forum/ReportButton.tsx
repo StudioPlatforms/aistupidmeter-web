@@ -84,7 +84,7 @@ export default function ReportButton({ postId, topicId, onReport }: ReportButton
         >
           <div
             style={{
-              background: 'var(--terminal-dark, #0d0d0d)',
+              background: 'var(--terminal-dark, #ffffff)',
               border: '1px solid rgba(192,192,192,0.3)',
               borderRadius: '3px',
               padding: '20px',
@@ -135,7 +135,7 @@ export default function ReportButton({ postId, topicId, onReport }: ReportButton
                     style={{
                       width: '100%',
                       padding: '8px 10px',
-                      background: 'var(--terminal-black, #0a0a0a)',
+                      background: 'var(--terminal-black, #f6f8fc)',
                       border: '1px solid rgba(192,192,192,0.3)',
                       borderRadius: '2px',
                       color: 'var(--phosphor-green)',
@@ -173,7 +173,7 @@ export default function ReportButton({ postId, topicId, onReport }: ReportButton
                     style={{
                       width: '100%',
                       padding: '8px 10px',
-                      background: 'var(--terminal-black, #0a0a0a)',
+                      background: 'var(--terminal-black, #f6f8fc)',
                       border: '1px solid rgba(192,192,192,0.3)',
                       borderRadius: '2px',
                       color: 'var(--phosphor-green)',
@@ -207,7 +207,7 @@ export default function ReportButton({ postId, topicId, onReport }: ReportButton
                     onClick={handleSubmit}
                     disabled={submitting}
                     style={{
-                      background: 'var(--red-alert, #ff2d00)',
+                      background: 'var(--red-alert, #d93025)',
                       border: 'none',
                       color: '#fff',
                       fontFamily: 'var(--font-mono)',

@@ -22,8 +22,8 @@ export default function SharePage() {
       justifyContent: 'center',
       height: '100vh',
       fontFamily: 'monospace',
-      background: '#0a0a0a',
-      color: '#00ff41'
+      background: '#f6f8fc',
+      color: '#1a73e8'
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '24px', marginBottom: '16px' }}>

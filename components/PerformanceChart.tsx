@@ -44,7 +44,7 @@ export default function PerformanceChart({
   xAxisAngle = -45,
   xAxisInterval = 'preserveStartEnd',
   yAxisLabel = 'SCORE',
-  lineColor = '#00ff41',
+  lineColor = '#1a73e8',
   chartType = 'historical'
 }: PerformanceChartProps) {
   
@@ -56,13 +56,13 @@ export default function PerformanceChart({
     
     return (
       <div style={{
-        background: 'rgba(0, 0, 0, 0.95)',
-        border: '2px solid #00ff41',
-        borderRadius: '4px',
-        padding: '12px',
-        boxShadow: '0 4px 12px rgba(0, 255, 65, 0.3)'
+        background: 'var(--terminal-dark)',
+        border: '1px solid var(--metal-silver)',
+        borderRadius: '10px',
+        padding: '10px 12px',
+        boxShadow: '0 4px 14px rgba(60, 64, 67, 0.18)'
       }}>
-        <div className="terminal-text--green" style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '8px' }}>
+        <div style={{ fontSize: '0.9em', fontWeight: 700, marginBottom: '8px', color: 'var(--phosphor-green)' }}>
           {label}
         </div>
         
@@ -130,7 +130,7 @@ export default function PerformanceChart({
           data={data}
           margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0, 255, 65, 0.1)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(26, 115, 232, 0.1)" />
           <XAxis
             dataKey="name"
             stroke={lineColor}
@@ -169,7 +169,7 @@ export default function PerformanceChart({
                 type="monotone"
                 dataKey="max"
                 stroke="none"
-                fill="rgba(0, 255, 65, 0.15)"
+                fill="rgba(26, 115, 232, 0.15)"
                 name="Max Score"
                 connectNulls={true}
               />
@@ -177,7 +177,7 @@ export default function PerformanceChart({
                 type="monotone"
                 dataKey="min"
                 stroke="none"
-                fill="rgba(0, 0, 0, 0.3)"
+                fill="rgba(148, 163, 184, 0.14)"
                 name="Min Score"
                 connectNulls={true}
               />
@@ -191,7 +191,7 @@ export default function PerformanceChart({
             stroke={lineColor}
             strokeWidth={2}
             dot={{ fill: lineColor, r: 4 }}
-            activeDot={{ r: 6, stroke: lineColor, strokeWidth: 2, fill: '#000' }}
+            activeDot={{ r: 6, stroke: lineColor, strokeWidth: 2, fill: '#fff' }}
             name={chartType === 'hour-analysis' ? 'Average Score' : 'Score'}
             connectNulls={true}
           />

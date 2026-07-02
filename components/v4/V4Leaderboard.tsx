@@ -1,6 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import ProviderLogo from '../ProviderLogo';
+
+const PROVIDER_KEYS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'] as const;
+type ProviderKey = typeof PROVIDER_KEYS[number];
+
+const normalizeProvider = (provider: string): ProviderKey => {
+  const p = (provider || '').toLowerCase().replace('x.ai', 'xai');
+  return (PROVIDER_KEYS.includes(p as ProviderKey) ? p : 'openai') as ProviderKey;
+};
+
+const providerColor: Record<ProviderKey, string> = {
+  openai: '#10a37f', anthropic: '#d97757', xai: '#111111',
+  google: '#4285f4', glm: '#e91e63', deepseek: '#4d6bfe', kimi: '#ff6b35',
+};
 
 interface V4LeaderboardProps {
   modelScores: any[];
@@ -12,17 +26,14 @@ interface V4LeaderboardProps {
   driftIncidents: any[];
 }
 
-const scoreColorClass = (score: number) =>
-  score >= 80 ? 'score-hi' : score >= 60 ? 'score-mi' : 'score-lo';
-
 const scoreColor = (score: number) =>
-  score >= 80 ? 'var(--phosphor-green)' : score >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)';
+  score >= 70 ? 'var(--good)' : score >= 50 ? 'var(--warn)' : 'var(--bad)';
 
 const trendIcon = (trend: string) =>
   trend === 'up' ? '▲' : trend === 'down' ? '▼' : '→';
 
 const trendColor = (trend: string) =>
-  trend === 'up' ? 'var(--phosphor-green)' : trend === 'down' ? 'var(--red-alert)' : 'var(--phosphor-dim)';
+  trend === 'up' ? 'var(--good)' : trend === 'down' ? 'var(--bad)' : 'var(--phosphor-dim)';
 
 const regimeMap: Record<string, { label: string; cls: string }> = {
   excellent: { label: 'STBL', cls: 'regime-st' },
@@ -113,20 +124,29 @@ function MiniSparkline({ history, modelId, modelHistoryData }: { history: any[];
     return null;
   }).filter((v: any): v is number => v !== null);
 
-  if (scores.length === 0) return <span style={{ color: 'var(--phosphor-dim)', fontSize: '9px' }}>—</span>;
+  if (scores.length < 2) return <span style={{ color: 'var(--phosphor-dim)', fontSize: '11px' }}>—</span>;
 
+  const w = 76, h = 24, pad = 3;
   const max = Math.max(...scores);
   const min = Math.min(...scores);
   const range = max - min || 1;
+  const pts = scores.map((v, i) => {
+    const x = pad + (i / (scores.length - 1)) * (w - 2 * pad);
+    const y = h - pad - ((v - min) / range) * (h - 2 * pad);
+    return [x, y] as const;
+  });
+  const line = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${pad},${h - pad} ${line} ${(w - pad)},${h - pad}`;
+  const delta = scores[scores.length - 1] - scores[0];
+  const color = delta > 1 ? 'var(--good)' : delta < -1 ? 'var(--bad)' : 'var(--accent)';
+  const last = pts[pts.length - 1];
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1px', height: '20px' }}>
-      {scores.map((v, i) => {
-        const h = Math.max(2, ((v - min) / range) * 18 + 2);
-        const c = v >= 80 ? 'var(--phosphor-green)' : v >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)';
-        return <div key={i} style={{ width: '3px', height: `${h}px`, background: c, boxShadow: `0 0 2px ${c}` }}></div>;
-      })}
-    </div>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', overflow: 'visible' }}>
+      <polygon points={area} fill={color} opacity={0.10} />
+      <polyline points={line} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r={2} fill={color} />
+    </svg>
   );
 }
 
@@ -201,40 +221,26 @@ export default function V4Leaderboard({
           >
             {/* Rank */}
             <div style={{ textAlign: 'center' }}>
-              <span style={{
-                fontWeight: 'bold', fontSize: '13px',
-                ...(rank <= 3 ? { color: 'var(--phosphor-green)', textShadow: '0 0 3px var(--phosphor-green)' } : { color: 'var(--phosphor-dim)' }),
-              }}>
-                #{rank}
-              </span>
+              <span className={`v4-lb-rank ${rank <= 3 ? 'top' : ''}`}>{rank}</span>
             </div>
 
             {/* Model Name + Provider */}
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, overflow: 'hidden' }}>
-              <div style={{
-                fontWeight: 'bold', fontSize: '12px', color: 'var(--phosphor-green)',
-                textShadow: '0 0 2px var(--phosphor-green)',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                display: 'flex', alignItems: 'center', gap: '3px',
-              }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(model.displayName || model.name).toUpperCase()}
-                </span>
-                <span className="v4-lb-model-badges" style={{ display: 'inline-flex', gap: '2px', flexShrink: 0 }}>
-                  {usesReasoning && (
-                    <span style={{ background: '#00BFFF', color: 'var(--terminal-black)', fontSize: '7px', padding: '1px 3px', fontWeight: 'bold', lineHeight: '1.2' }}>RSN</span>
-                  )}
-                  {hasIncident && (
-                    <span style={{ background: 'var(--red-alert)', color: 'white', fontSize: '7px', padding: '1px 3px', fontWeight: 'bold', lineHeight: '1.2' }}>ALERT</span>
-                  )}
-                  {model.isNew && (
-                    <span style={{ background: 'var(--phosphor-green)', color: 'var(--terminal-black)', fontSize: '7px', padding: '1px 3px', fontWeight: 'bold', lineHeight: '1.2' }}>NEW</span>
-                  )}
-                </span>
-              </div>
-              <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '1px' }}>
-                <span className={`v4-prov-dot ${providerDotClass(model.provider)}`} style={{ width: '4px', height: '4px', display: 'inline-block' }}></span>
-                {model.provider?.toUpperCase()}
+            <div className="v4-lb-model">
+              <span className="v4-lb-logo">
+                <ProviderLogo provider={normalizeProvider(model.provider)} size={18} />
+              </span>
+              <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                <div className="v4-lb-model-name">
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {model.displayName || model.name}
+                  </span>
+                  <span className="v4-lb-model-badges">
+                    {usesReasoning && <span className="v4-tag v4-tag-blue">RSN</span>}
+                    {hasIncident && <span className="v4-tag v4-tag-red">ALERT</span>}
+                    {model.isNew && <span className="v4-tag v4-tag-green">NEW</span>}
+                  </span>
+                </div>
+                <div className="v4-lb-model-prov">{model.provider}</div>
               </div>
             </div>
 
@@ -243,13 +249,7 @@ export default function V4Leaderboard({
               {isUnavailable ? (
                 <span style={{ color: 'var(--phosphor-dim)', fontSize: '12px' }}>N/A</span>
               ) : (
-                <span style={{
-                  fontSize: '16px', fontWeight: 'bold',
-                  color: scoreColor(score!),
-                  textShadow: `0 0 5px ${scoreColor(score!)}`,
-                }}>
-                  {score}
-                </span>
+                <span className="v4-lb-score" style={{ color: scoreColor(score!) }}>{score}</span>
               )}
             </div>
 

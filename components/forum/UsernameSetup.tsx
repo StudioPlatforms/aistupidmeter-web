@@ -145,7 +145,7 @@ export default function UsernameSetup({ onComplete }: UsernameSetupProps) {
           <div
             style={{
               fontSize: '11px',
-              color: 'var(--red-alert, #ff2d00)',
+              color: 'var(--red-alert, #d93025)',
               marginBottom: '8px',
             }}
           >
@@ -159,10 +159,10 @@ export default function UsernameSetup({ onComplete }: UsernameSetupProps) {
           style={{
             width: '100%',
             padding: '12px',
-            background: available ? 'var(--phosphor-green, #00ff41)' : 'rgba(192,192,192,0.2)',
+            background: available ? 'var(--phosphor-green, #1a73e8)' : 'rgba(192,192,192,0.2)',
             border: 'none',
             borderRadius: '2px',
-            color: available ? 'var(--terminal-black, #0a0a0a)' : 'var(--phosphor-dim)',
+            color: available ? 'var(--terminal-black, #f6f8fc)' : 'var(--phosphor-dim)',
             fontFamily: 'var(--font-mono)',
             fontSize: '12px',
             fontWeight: 'bold',
@@ -170,7 +170,7 @@ export default function UsernameSetup({ onComplete }: UsernameSetupProps) {
             letterSpacing: '1px',
             cursor: available ? 'pointer' : 'not-allowed',
             transition: 'all 0.15s',
-            boxShadow: available ? '0 0 12px rgba(0,255,65,0.3)' : 'none',
+            boxShadow: available ? '0 0 12px rgba(26, 115, 232,0.3)' : 'none',
             marginBottom: '12px',
           }}
         >

@@ -160,7 +160,7 @@ export default function ForumProfilePage() {
                         onClick={() => router.push(`/router/forum/topic/${t.id}`)}
                         onMouseEnter={(e) =>
                           ((e.target as HTMLElement).style.background =
-                            'rgba(0,255,65,0.06)')
+                            'rgba(26, 115, 232,0.06)')
                         }
                         onMouseLeave={(e) =>
                           ((e.target as HTMLElement).style.background = 'transparent')
@@ -221,7 +221,7 @@ export default function ForumProfilePage() {
                         onClick={() => router.push(`/router/forum/topic/${p.topic_id}`)}
                         onMouseEnter={(e) =>
                           ((e.target as HTMLElement).style.background =
-                            'rgba(0,255,65,0.06)')
+                            'rgba(26, 115, 232,0.06)')
                         }
                         onMouseLeave={(e) =>
                           ((e.target as HTMLElement).style.background = 'transparent')
@@ -230,7 +230,7 @@ export default function ForumProfilePage() {
                         <div
                           style={{
                             fontSize: '11px',
-                            color: 'var(--metal-silver)',
+                            color: 'var(--phosphor-dim)',
                             marginBottom: '4px',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',

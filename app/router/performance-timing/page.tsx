@@ -404,7 +404,7 @@ export default function PerformanceTimingPage() {
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 20px',
-          background: 'rgba(0,0,0,0.3)',
+          background: 'rgba(0,0,0,0.04)',
           borderBottom: '1px solid rgba(192, 192, 192, 0.15)',
           gap: '12px',
           flexWrap: 'wrap',
@@ -480,7 +480,7 @@ export default function PerformanceTimingPage() {
                     <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
                       ✅ BEST HOURS TO USE THIS MODEL
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 6px rgba(0,255,65,0.4)', marginBottom: '6px', letterSpacing: '1px' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 6px rgba(26, 115, 232,0.4)', marginBottom: '6px', letterSpacing: '1px' }}>
                       {hourRec.bestHours}
                     </div>
                     <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
@@ -507,7 +507,7 @@ export default function PerformanceTimingPage() {
 
                 {/* Recommendation text */}
                 <div style={{ padding: '12px 18px', borderTop: '1px solid rgba(192,192,192,0.15)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--metal-silver)', lineHeight: '1.6' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.6' }}>
                     {hourRec.variance > 10 ? (
                       <>
                         <strong style={{ color: 'var(--amber-warning)' }}>⚡ Significant time-of-day impact.</strong>{' '}
@@ -620,7 +620,7 @@ export default function PerformanceTimingPage() {
                   showMinMax={false}
                   xAxisInterval="preserveStartEnd"
                   yAxisLabel="SCORE"
-                  lineColor="#00ff41"
+                  lineColor="#1a73e8"
                 />
               )}
             </div>

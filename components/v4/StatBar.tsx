@@ -65,7 +65,7 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <div className={`v4-stat-cell ${recoveringCount > 0 ? 'color-blue' : 'color-green'}`}>
         <div className="v4-stat-label">RECOVERING</div>
-        <div className="v4-stat-value" style={{ color: recoveringCount > 0 ? '#00BFFF' : 'var(--phosphor-green)' }}>{recoveringCount}</div>
+        <div className="v4-stat-value" style={{ color: recoveringCount > 0 ? '#1a73e8' : 'var(--phosphor-green)' }}>{recoveringCount}</div>
         <div className="v4-stat-detail">{recoveringCount > 0 ? 'improving' : 'none'}</div>
       </div>
 

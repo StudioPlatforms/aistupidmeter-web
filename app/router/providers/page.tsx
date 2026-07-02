@@ -158,8 +158,8 @@ export default function RouterProvidersPage() {
                     const key = getProviderKey(prov.id);
                     return (
                       <div key={prov.id} className={`rv4-provider-card${connected ? ' connected' : ''}`}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '6px', background: 'rgba(0,0,0,0.4)', border: `1px solid ${connected ? 'rgba(0,255,65,0.3)' : 'rgba(192,192,192,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                          <ProviderLogo provider={prov.id} size={24} className="terminal-text--green" />
+                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#ffffff', border: `1px solid ${connected ? 'var(--accent)' : 'var(--metal-silver)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                          <ProviderLogo provider={prov.id} size={22} />
                         </div>
                         <div className="rv4-provider-card-name">{prov.name}</div>
                         {connected && <span className="rv4-badge green" style={{ fontSize: '8px' }}>✓ CONNECTED</span>}

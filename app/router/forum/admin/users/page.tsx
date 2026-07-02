@@ -275,7 +275,7 @@ export default function ForumAdminUsers() {
             style={{
               flex: '1 1 250px',
               padding: '8px 10px',
-              background: 'var(--terminal-black, #0a0a0a)',
+              background: 'var(--terminal-black, #f6f8fc)',
               border: '1px solid rgba(192,192,192,0.3)',
               borderRadius: '2px',
               color: 'var(--phosphor-green)',
@@ -292,7 +292,7 @@ export default function ForumAdminUsers() {
             onChange={(e) => handleRoleFilterChange(e.target.value)}
             style={{
               padding: '8px 10px',
-              background: 'var(--terminal-black, #0a0a0a)',
+              background: 'var(--terminal-black, #f6f8fc)',
               border: '1px solid rgba(192,192,192,0.3)',
               borderRadius: '2px',
               color: 'var(--phosphor-green)',
@@ -350,8 +350,8 @@ export default function ForumAdminUsers() {
                             width: '28px',
                             height: '28px',
                             borderRadius: '50%',
-                            background: isBanned ? 'rgba(255,45,0,0.15)' : 'rgba(0,255,65,0.1)',
-                            border: `1px solid ${isBanned ? 'rgba(255,45,0,0.4)' : 'rgba(0,255,65,0.3)'}`,
+                            background: isBanned ? 'rgba(255,45,0,0.15)' : 'rgba(26, 115, 232,0.1)',
+                            border: `1px solid ${isBanned ? 'rgba(255,45,0,0.4)' : 'rgba(26, 115, 232,0.3)'}`,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -437,7 +437,7 @@ export default function ForumAdminUsers() {
                                 right: 0,
                                 top: '100%',
                                 marginTop: '4px',
-                                background: 'var(--terminal-dark, #0d0d0d)',
+                                background: 'var(--terminal-dark, #ffffff)',
                                 border: '1px solid rgba(192,192,192,0.3)',
                                 borderRadius: '3px',
                                 minWidth: '160px',
@@ -461,7 +461,7 @@ export default function ForumAdminUsers() {
                                   textAlign: 'left',
                                   cursor: 'pointer',
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,255,65,0.05)')}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(26, 115, 232,0.05)')}
                                 onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                               >
                                 🔧 Change Role
@@ -504,7 +504,7 @@ export default function ForumAdminUsers() {
                                     textAlign: 'left',
                                     cursor: 'pointer',
                                   }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,255,65,0.05)')}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(26, 115, 232,0.05)')}
                                   onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                                 >
                                   ✅ Unban User
@@ -529,7 +529,7 @@ export default function ForumAdminUsers() {
                                     textAlign: 'left',
                                     cursor: 'pointer',
                                   }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,255,65,0.05)')}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(26, 115, 232,0.05)')}
                                   onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                                 >
                                   👤 View Profile
@@ -577,7 +577,7 @@ export default function ForumAdminUsers() {
               </button>
             </div>
             <div className="rv4-modal-body">
-              <div style={{ marginBottom: '12px', padding: '8px', background: 'rgba(0,255,65,0.04)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px' }}>
+              <div style={{ marginBottom: '12px', padding: '8px', background: 'rgba(26, 115, 232,0.04)', border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '2px' }}>
                 <span style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}>User: </span>
                 <strong style={{ color: 'var(--phosphor-green)' }}>
                   {roleModal.forum_username || roleModal.name || roleModal.email || `User #${roleModal.id}`}
@@ -597,7 +597,7 @@ export default function ForumAdminUsers() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',
@@ -666,7 +666,7 @@ export default function ForumAdminUsers() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',
@@ -689,7 +689,7 @@ export default function ForumAdminUsers() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',
@@ -717,7 +717,7 @@ export default function ForumAdminUsers() {
                     style={{
                       width: '100%',
                       padding: '8px 10px',
-                      background: 'var(--terminal-black, #0a0a0a)',
+                      background: 'var(--terminal-black, #f6f8fc)',
                       border: '1px solid rgba(192,192,192,0.3)',
                       borderRadius: '2px',
                       color: 'var(--phosphor-green)',
@@ -769,7 +769,7 @@ export default function ForumAdminUsers() {
                 </strong>?
               </p>
               {unbanConfirm.ban_reason && (
-                <div style={{ marginBottom: '12px', padding: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.1)', borderRadius: '2px' }}>
+                <div style={{ marginBottom: '12px', padding: '8px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.1)', borderRadius: '2px' }}>
                   <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textTransform: 'uppercase' }}>Original ban reason:</span>
                   <div style={{ fontSize: '11px', color: 'var(--amber-warning)', marginTop: '4px' }}>{unbanConfirm.ban_reason}</div>
                 </div>

@@ -142,7 +142,7 @@ export default function ForumAdminReports() {
       case 'dismissed':
         return { text: 'DISMISSED', color: 'var(--phosphor-dim)', bg: 'rgba(128,128,128,0.08)', border: 'rgba(128,128,128,0.3)' };
       case 'actioned':
-        return { text: 'ACTIONED', color: 'var(--phosphor-green)', bg: 'rgba(0,255,65,0.1)', border: 'rgba(0,255,65,0.4)' };
+        return { text: 'ACTIONED', color: 'var(--phosphor-green)', bg: 'rgba(26, 115, 232,0.1)', border: 'rgba(26, 115, 232,0.4)' };
       default:
         return { text: reportStatus.toUpperCase(), color: 'var(--phosphor-dim)', bg: 'transparent', border: 'rgba(128,128,128,0.3)' };
     }
@@ -279,7 +279,7 @@ export default function ForumAdminReports() {
                       <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Details:
                       </span>
-                      <div style={{ marginTop: '4px', padding: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.1)', borderRadius: '2px', fontSize: '11px', color: 'var(--phosphor-dim)' }}>
+                      <div style={{ marginTop: '4px', padding: '8px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.1)', borderRadius: '2px', fontSize: '11px', color: 'var(--phosphor-dim)' }}>
                         {report.details}
                       </div>
                     </div>
@@ -291,7 +291,7 @@ export default function ForumAdminReports() {
                       <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Reported Content:
                       </span>
-                      <div style={{ marginTop: '4px', padding: '8px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,176,0,0.15)', borderRadius: '2px', fontSize: '11px', color: 'var(--phosphor-dim)' }}>
+                      <div style={{ marginTop: '4px', padding: '8px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(255,176,0,0.15)', borderRadius: '2px', fontSize: '11px', color: 'var(--phosphor-dim)' }}>
                         {report.topic_title && (
                           <div style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: report.post_content ? '4px' : 0 }}>
                             📌 {report.topic_title}
@@ -400,7 +400,7 @@ export default function ForumAdminReports() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',
@@ -423,7 +423,7 @@ export default function ForumAdminReports() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',

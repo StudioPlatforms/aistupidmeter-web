@@ -153,7 +153,7 @@ function NewTopicContent() {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: 'var(--terminal-black, #0a0a0a)',
+                background: 'var(--terminal-black, #f6f8fc)',
                 border: '1px solid rgba(192,192,192,0.3)',
                 borderRadius: '2px',
                 color: 'var(--phosphor-green)',
@@ -197,7 +197,7 @@ function NewTopicContent() {
               style={{
                 width: '100%',
                 padding: '10px 12px',
-                background: 'var(--terminal-black, #0a0a0a)',
+                background: 'var(--terminal-black, #f6f8fc)',
                 border: '1px solid rgba(192,192,192,0.3)',
                 borderRadius: '2px',
                 color: 'var(--phosphor-green)',

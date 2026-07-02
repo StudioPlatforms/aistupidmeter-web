@@ -55,10 +55,10 @@ const bgFill = (pct: number, category: string): string => {
   if (pct < 60) return 'rgba(255, 45, 0, 0.08)';
   if (pct < 80) return 'rgba(255, 176, 0, 0.08)';
   switch (category) {
-    case 'speed': return 'rgba(0, 255, 65, 0.08)';
+    case 'speed': return 'rgba(26, 115, 232, 0.08)';
     case 'reasoning': return 'rgba(138, 43, 226, 0.08)';
     case 'tooling': return 'rgba(255, 140, 0, 0.08)';
-    default: return 'rgba(0, 255, 65, 0.08)';
+    default: return 'rgba(26, 115, 232, 0.08)';
   }
 };
 
@@ -66,7 +66,7 @@ const radarColor = (category: string): string => {
   switch (category) {
     case 'reasoning': return '#8a2be2';
     case 'tooling': return '#ff8c00';
-    default: return '#00ff41';
+    default: return '#1a73e8';
   }
 };
 
@@ -86,13 +86,15 @@ const RadarTooltip = ({ active, payload }: any) => {
   const { subject, value } = payload[0].payload;
   return (
     <div style={{
-      background: 'rgba(0,0,0,0.95)',
-      border: '1px solid #00ff41',
+      background: 'var(--terminal-dark)',
+      border: '1px solid var(--metal-silver)',
+      borderRadius: '10px',
       padding: '8px 12px',
       fontSize: '11px',
       fontFamily: 'var(--font-mono)',
+      boxShadow: '0 4px 14px rgba(60,64,67,0.18)',
     }}>
-      <div style={{ color: '#00ff41', fontWeight: 'bold', marginBottom: '3px' }}>{subject}</div>
+      <div style={{ color: '#1a73e8', fontWeight: 'bold', marginBottom: '3px' }}>{subject}</div>
       <div style={{ color: pctColor(value) }}>{value.toFixed(1)}% — {tierLabel(value)}</div>
     </div>
   );
@@ -227,7 +229,7 @@ function RadarView({ metrics, category }: { metrics: MetricDef[]; category: stri
               color: 'var(--phosphor-dim)',
               padding: '3px 8px',
               border: '1px solid rgba(192, 192, 192, 0.1)',
-              background: 'rgba(0,0,0,0.2)',
+              background: 'rgba(0,0,0,0.04)',
             }}>
               <span style={{ color: pctColor(pct), fontWeight: 'bold' }}>{pct.toFixed(0)}%</span>
               <span>{m.icon} {m.label}</span>

@@ -217,7 +217,7 @@ export default function AdminPage() {
           </div>
           
           <div className="vintage-grid">
-            <div className="terminal-text" style={{ textAlign: 'center', padding: '12px', border: '1px solid rgba(0, 255, 65, 0.3)', borderRadius: '4px' }}>
+            <div className="terminal-text" style={{ textAlign: 'center', padding: '12px', border: '1px solid rgba(26, 115, 232, 0.3)', borderRadius: '4px' }}>
               <div className="terminal-text--dim" style={{ fontSize: '0.85em', marginBottom: '4px' }}>TOTAL USERS</div>
               <div className="terminal-text--green" style={{ fontSize: '2em', fontWeight: 'bold' }}>{userStats.total}</div>
             </div>

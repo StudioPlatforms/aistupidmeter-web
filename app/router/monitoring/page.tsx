@@ -282,7 +282,7 @@ function MonitoringPageContent() {
           {tab === 'activity' && (
             <>
               {/* Key summary cards */}
-              <div style={{ display: 'flex', gap: '1px', marginBottom: '14px', background: 'rgba(0,255,65,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ display: 'flex', gap: '1px', marginBottom: '14px', background: 'rgba(26, 115, 232,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
                 {keys.slice(0, 4).map(k => (
                   <div
                     key={k.id}

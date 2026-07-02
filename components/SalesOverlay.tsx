@@ -44,8 +44,8 @@ export default function SalesOverlay() {
               { step: '04', title: 'SAVE 50-70%', desc: 'Get better results while paying less — no manual switching needed' },
             ].map((s, i) => (
               <div key={i} style={{
-                padding: '12px', background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(0,255,65,0.15)', borderRadius: '3px',
+                padding: '12px', background: 'rgba(0,0,0,0.04)',
+                border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '3px',
               }}>
                 <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', letterSpacing: '0.8px', marginBottom: '6px', fontFamily: 'var(--font-mono)' }}>STEP {s.step}</div>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{s.title}</div>

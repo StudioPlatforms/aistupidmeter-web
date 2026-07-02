@@ -87,8 +87,8 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         style={{
           maxWidth: '600px',
           width: '100%',
-          background: 'linear-gradient(135deg, #1a1a1a, #0a0a0a)',
-          border: '3px solid #00BFFF',
+          background: 'linear-gradient(135deg, #1a1a1a, #f6f8fc)',
+          border: '3px solid #1a73e8',
           padding: 'var(--space-lg)',
           boxShadow: '0 0 30px rgba(0, 191, 255, 0.5)',
           animation: 'slideUp 0.3s ease'
@@ -105,7 +105,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
           <div className="terminal-text" style={{ 
             fontSize: '1.8em', 
             fontWeight: 'bold',
-            color: '#00BFFF',
+            color: '#1a73e8',
             marginBottom: '8px',
             textShadow: '0 0 10px rgba(0, 191, 255, 0.5)'
           }}>
@@ -143,7 +143,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
                 alignItems: 'center',
                 gap: '12px'
               }}>
-                <span style={{ color: '#00BFFF', fontSize: '1.2em' }}>✓</span>
+                <span style={{ color: '#1a73e8', fontSize: '1.2em' }}>✓</span>
                 <span className="terminal-text" style={{ fontSize: '0.95em' }}>{benefit}</span>
               </li>
             ))}
@@ -155,8 +155,8 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
           textAlign: 'center',
           marginBottom: 'var(--space-lg)',
           padding: 'var(--space-md)',
-          background: 'rgba(0, 255, 65, 0.05)',
-          border: '1px solid rgba(0, 255, 65, 0.2)',
+          background: 'rgba(26, 115, 232, 0.05)',
+          border: '1px solid rgba(26, 115, 232, 0.2)',
           borderRadius: '6px'
         }}>
           <div className="terminal-text--amber" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
@@ -188,10 +188,10 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
               width: '100%',
               fontSize: '1.1em',
               padding: '16px',
-              background: '#00BFFF',
+              background: '#1a73e8',
               color: '#000',
               fontWeight: 'bold',
-              border: '2px solid #00BFFF',
+              border: '2px solid #1a73e8',
               boxShadow: '0 0 15px rgba(0, 191, 255, 0.5)'
             }}
           >

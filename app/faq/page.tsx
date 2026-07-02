@@ -149,21 +149,21 @@ const faqs: FAQItem[] = [
 const categories = Array.from(new Set(faqs.map(f => f.category)));
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'General': 'var(--phosphor-green, #00ff41)',
-  'Methodology': '#00bfff',
+  'General': 'var(--phosphor-green, #1a73e8)',
+  'Methodology': '#1a73e8',
   'Technical': '#8a2be2',
   'Comparisons': 'var(--amber-warning, #ffb000)',
-  'Trust & Independence': 'var(--phosphor-green, #00ff41)',
-  'Using the Platform': '#00bfff',
+  'Trust & Independence': 'var(--phosphor-green, #1a73e8)',
+  'Using the Platform': '#1a73e8',
   'Limitations & Future': 'var(--amber-warning, #ffb000)',
 };
 
 export default function FAQPage() {
   const pageStyle: React.CSSProperties = {
-    background: 'var(--terminal-black, #0a0a0a)',
+    background: 'var(--terminal-black, #f6f8fc)',
     minHeight: '100vh',
     fontFamily: 'var(--font-mono, "Courier New", monospace)',
-    color: 'var(--metal-silver, #c0c0c0)',
+    color: 'var(--phosphor-dim)',
   };
   const containerStyle: React.CSSProperties = {
     maxWidth: '900px',
@@ -175,17 +175,17 @@ export default function FAQPage() {
     <SubpageLayout>
       <div style={pageStyle}>
         <div style={containerStyle}>
-          <div style={{ fontSize: 'clamp(20px, 3.5vw, 28px)', fontWeight: 'bold', color: 'var(--phosphor-green, #00ff41)', letterSpacing: '2px', textShadow: '0 0 8px rgba(0,255,65,0.4)', marginBottom: '8px' }}>
+          <div style={{ fontSize: 'clamp(20px, 3.5vw, 28px)', fontWeight: 'bold', color: 'var(--phosphor-green, #1a73e8)', letterSpacing: '2px', textShadow: '0 0 8px rgba(26, 115, 232,0.4)', marginBottom: '8px' }}>
             FREQUENTLY ASKED QUESTIONS<span className="blinking-cursor"></span>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #4a7a4a)', marginBottom: '24px', letterSpacing: '0.3px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #5f6368)', marginBottom: '24px', letterSpacing: '0.3px' }}>
             Everything you need to know about AI model benchmarking, performance testing, and our methodology.
           </div>
 
           {/* Category navigation */}
           <div style={{
             display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '12px 14px',
-            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.15)',
+            background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.15)',
             borderRadius: '3px', marginBottom: '24px',
           }}>
             <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontWeight: 'bold', letterSpacing: '0.8px', textTransform: 'uppercase', alignSelf: 'center', marginRight: '4px' }}>
@@ -198,8 +198,8 @@ export default function FAQPage() {
                 style={{
                   fontSize: '10px',
                   padding: '4px 10px',
-                  background: 'rgba(0,0,0,0.4)',
-                  border: `1px solid ${CATEGORY_COLORS[cat] || 'rgba(0,255,65,0.25)'}44`,
+                  background: 'rgba(0,0,0,0.04)',
+                  border: `1px solid ${CATEGORY_COLORS[cat] || 'rgba(26, 115, 232,0.25)'}44`,
                   color: CATEGORY_COLORS[cat] || 'var(--phosphor-green)',
                   textDecoration: 'none',
                   borderRadius: '2px',
@@ -245,7 +245,7 @@ export default function FAQPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {categoryFaqs.map((faq, index) => (
                     <div key={index} style={{
-                      background: 'rgba(0,0,0,0.3)',
+                      background: 'rgba(0,0,0,0.04)',
                       border: '1px solid rgba(192,192,192,0.12)',
                       borderLeft: `3px solid ${color}66`,
                       borderRadius: '3px',
@@ -260,7 +260,7 @@ export default function FAQPage() {
                           fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px',
                         }}>Q:</span>
                         <span style={{
-                          fontSize: '11px', fontWeight: 'bold', color: 'var(--metal-silver, #c0c0c0)',
+                          fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-dim)',
                           lineHeight: '1.4',
                         }}>
                           {faq.question}
@@ -286,14 +286,14 @@ export default function FAQPage() {
 
           {/* Still have questions */}
           <div style={{
-            background: 'rgba(0,255,65,0.04)',
-            border: '2px solid rgba(0,255,65,0.3)',
+            background: 'rgba(26, 115, 232,0.04)',
+            border: '2px solid rgba(26, 115, 232,0.3)',
             borderRadius: '3px',
             padding: '20px',
             marginTop: '12px',
             marginBottom: '20px',
           }}>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1.5px', marginBottom: '10px', textShadow: '0 0 6px rgba(0,255,65,0.4)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1.5px', marginBottom: '10px', textShadow: '0 0 6px rgba(26, 115, 232,0.4)' }}>
               STILL HAVE QUESTIONS?
             </div>
             <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', marginBottom: '14px' }}>
@@ -307,14 +307,14 @@ export default function FAQPage() {
               ].map((item, i) => (
                 item.internal
                   ? <Link key={i} href={item.href} style={{
-                      background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px',
+                      background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '2px',
                       padding: '12px', display: 'block', textDecoration: 'none',
                     }}>
                       <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{item.title} &rarr;</div>
                       <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{item.desc}</div>
                     </Link>
                   : <a key={i} href={item.href} target="_blank" rel="noopener noreferrer" style={{
-                      background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '2px',
+                      background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '2px',
                       padding: '12px', display: 'block', textDecoration: 'none',
                     }}>
                       <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '4px' }}>{item.title} &rarr;</div>
@@ -326,7 +326,7 @@ export default function FAQPage() {
 
           {/* Explore more */}
           <div style={{
-            background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.12)',
+            background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)',
             borderRadius: '3px', padding: '14px 16px', marginBottom: '20px',
           }}>
             <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
@@ -346,9 +346,9 @@ export default function FAQPage() {
                       fontSize: '10px', fontWeight: 'bold',
                       color: 'var(--phosphor-green)', textDecoration: 'none',
                       padding: '5px 10px',
-                      border: '1px solid rgba(0,255,65,0.2)',
+                      border: '1px solid rgba(26, 115, 232,0.2)',
                       borderRadius: '2px',
-                      background: 'rgba(0,0,0,0.3)',
+                      background: 'rgba(0,0,0,0.04)',
                       letterSpacing: '0.4px',
                     }}>
                       {item.label} &rarr;
@@ -357,9 +357,9 @@ export default function FAQPage() {
                       fontSize: '10px', fontWeight: 'bold',
                       color: 'var(--phosphor-green)', textDecoration: 'none',
                       padding: '5px 10px',
-                      border: '1px solid rgba(0,255,65,0.2)',
+                      border: '1px solid rgba(26, 115, 232,0.2)',
                       borderRadius: '2px',
-                      background: 'rgba(0,0,0,0.3)',
+                      background: 'rgba(0,0,0,0.04)',
                       letterSpacing: '0.4px',
                     }}>
                       {item.label} &rarr;

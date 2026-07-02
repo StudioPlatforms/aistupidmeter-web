@@ -23,10 +23,10 @@ export default function FAQItem({
 
   const getCategoryColor = (cat: string) => {
     switch (cat.toLowerCase()) {
-      case 'methodology': return '#00ff41';
+      case 'methodology': return '#1a73e8';
       case 'technical': return '#ffb000';
-      case 'privacy': return '#ff2d00';
-      case 'general': return '#00bfff';
+      case 'privacy': return '#d93025';
+      case 'general': return '#1a73e8';
       default: return '#ffffff';
     }
   };
@@ -46,8 +46,8 @@ export default function FAQItem({
       className="faq-item"
       style={{
         animationDelay: `${delay}ms`,
-        border: '1px solid rgba(0, 255, 65, 0.3)',
-        backgroundColor: isOpen ? 'rgba(0, 255, 65, 0.08)' : 'rgba(0, 255, 65, 0.03)',
+        border: '1px solid rgba(26, 115, 232, 0.3)',
+        backgroundColor: isOpen ? 'rgba(26, 115, 232, 0.08)' : 'rgba(26, 115, 232, 0.03)',
         borderRadius: '6px',
         marginBottom: '12px',
         overflow: 'hidden',
@@ -60,14 +60,14 @@ export default function FAQItem({
       onClick={() => setIsOpen(!isOpen)}
       onMouseEnter={(e) => {
         if (!isOpen) {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 255, 65, 0.06)';
+          e.currentTarget.style.backgroundColor = 'rgba(26, 115, 232, 0.06)';
           e.currentTarget.style.borderColor = 'var(--phosphor-green)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isOpen) {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 255, 65, 0.03)';
-          e.currentTarget.style.borderColor = 'rgba(0, 255, 65, 0.3)';
+          e.currentTarget.style.backgroundColor = 'rgba(26, 115, 232, 0.03)';
+          e.currentTarget.style.borderColor = 'rgba(26, 115, 232, 0.3)';
         }
       }}
     >
@@ -167,7 +167,7 @@ export default function FAQItem({
           maxHeight: isOpen ? '1000px' : '0',
           overflow: 'hidden',
           transition: 'max-height 0.4s ease',
-          borderTop: isOpen ? '1px solid rgba(0, 255, 65, 0.2)' : 'none'
+          borderTop: isOpen ? '1px solid rgba(26, 115, 232, 0.2)' : 'none'
         }}
       >
         <div 
@@ -175,12 +175,12 @@ export default function FAQItem({
             padding: '16px 20px',
             fontSize: '0.95em',
             lineHeight: '1.6',
-            backgroundColor: 'rgba(0, 0, 0, 0.2)'
+            backgroundColor: 'rgba(0,0,0,0.04)'
           }}
           className="terminal-text--dim"
           dangerouslySetInnerHTML={{ 
             __html: answer.replace(/\*\*(.*?)\*\*/g, '<strong class="terminal-text--green">$1</strong>')
-                          .replace(/`(.*?)`/g, '<code style="background: rgba(0,255,65,0.1); padding: 2px 4px; border-radius: 2px; font-family: var(--font-mono);">$1</code>')
+                          .replace(/`(.*?)`/g, '<code style="background: rgba(26, 115, 232,0.1); padding: 2px 4px; border-radius: 2px; font-family: var(--font-mono);">$1</code>')
           }}
         />
       </div>
@@ -194,7 +194,7 @@ export default function FAQItem({
         }
         
         .faq-item:hover {
-          box-shadow: 0 4px 15px rgba(0, 255, 65, 0.2);
+          box-shadow: 0 4px 15px rgba(26, 115, 232, 0.2);
         }
       `}</style>
     </div>

@@ -20,7 +20,7 @@
 /* Regime-specific coloring */
 .model-card.drift-stable {
   border-color: var(--phosphor-green);
-  background: rgba(0, 255, 65, 0.02);
+  background: rgba(26, 115, 232, 0.02);
 }
 
 .model-card.drift-volatile {
@@ -35,7 +35,7 @@
 }
 
 .model-card.drift-recovering {
-  border-color: #00BFFF;
+  border-color: #1a73e8;
   background: rgba(0, 191, 255, 0.02);
 }
 
@@ -70,7 +70,7 @@
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+  border-bottom: 1px solid rgba(26, 115, 232, 0.1);
 }
 
 .model-info {
@@ -109,7 +109,7 @@
 }
 
 .status-badge.regime-stable {
-  background: rgba(0, 255, 65, 0.15);
+  background: rgba(26, 115, 232, 0.15);
   color: var(--phosphor-green);
   border: 1px solid var(--phosphor-green);
 }
@@ -128,8 +128,8 @@
 
 .status-badge.regime-recovering {
   background: rgba(0, 191, 255, 0.15);
-  color: #00BFFF;
-  border: 1px solid #00BFFF;
+  color: #1a73e8;
+  border: 1px solid #1a73e8;
 }
 
 /* Drift status indicators */
@@ -144,7 +144,7 @@
 }
 
 .alert-indicator.alert-normal {
-  background: rgba(0, 255, 65, 0.1);
+  background: rgba(26, 115, 232, 0.1);
   color: var(--phosphor-green);
 }
 
@@ -220,10 +220,10 @@
 
 .metric-bar {
   height: 6px;
-  background: rgba(0, 255, 65, 0.1);
+  background: rgba(26, 115, 232, 0.1);
   border-radius: 3px;
   overflow: hidden;
-  border: 1px solid rgba(0, 255, 65, 0.2);
+  border: 1px solid rgba(26, 115, 232, 0.2);
 }
 
 .bar-fill {
@@ -351,7 +351,7 @@
 }
 
 .since-launch-badge.since-launch--up {
-  background: rgba(0, 255, 65, 0.08);
+  background: rgba(26, 115, 232, 0.08);
   border: 1px solid var(--phosphor-green);
   color: var(--phosphor-green);
 }
@@ -381,8 +381,8 @@
 .axes-breakdown {
   margin: 16px 0;
   padding: 12px;
-  background: rgba(0, 255, 65, 0.02);
-  border: 1px solid rgba(0, 255, 65, 0.1);
+  background: rgba(26, 115, 232, 0.02);
+  border: 1px solid rgba(26, 115, 232, 0.1);
   border-radius: 4px;
 }
 
@@ -400,7 +400,7 @@
   gap: 12px;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(0, 255, 65, 0.05);
+  border-bottom: 1px solid rgba(26, 115, 232, 0.05);
 }
 
 .axis-row:last-child {
@@ -429,10 +429,10 @@
 .axis-bar {
   flex: 1;
   height: 8px;
-  background: rgba(0, 255, 65, 0.1);
+  background: rgba(26, 115, 232, 0.1);
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid rgba(0, 255, 65, 0.15);
+  border: 1px solid rgba(26, 115, 232, 0.15);
 }
 
 .axis-value {
@@ -463,8 +463,8 @@
 .drift-summary {
   margin: 12px 0;
   padding: 12px;
-  background: rgba(0, 255, 65, 0.02);
-  border: 1px solid rgba(0, 255, 65, 0.1);
+  background: rgba(26, 115, 232, 0.02);
+  border: 1px solid rgba(26, 115, 232, 0.1);
   border-radius: 4px;
 }
 
@@ -588,7 +588,7 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 12px;
-  background: rgba(0, 255, 65, 0.05);
+  background: rgba(26, 115, 232, 0.05);
   border: 1px dashed var(--phosphor-green);
   border-radius: 4px;
   cursor: pointer;
@@ -630,12 +630,12 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   opacity: 0.7;
-  border-bottom: 2px solid rgba(0, 255, 65, 0.2);
+  border-bottom: 2px solid rgba(26, 115, 232, 0.2);
 }
 
 .heatmap-table tbody td {
   padding: 10px 8px;
-  border-bottom: 1px solid rgba(0, 255, 65, 0.05);
+  border-bottom: 1px solid rgba(26, 115, 232, 0.05);
 }
 
 .heatmap-table tbody td.model-name {
@@ -699,21 +699,21 @@
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(0, 255, 65, 0.2);
+  background: rgba(26, 115, 232, 0.2);
 }
 
 .timeline-event {
   position: relative;
   padding: 12px;
-  background: rgba(0, 255, 65, 0.02);
-  border: 1px solid rgba(0, 255, 65, 0.1);
+  background: rgba(26, 115, 232, 0.02);
+  border: 1px solid rgba(26, 115, 232, 0.1);
   border-radius: 4px;
   transition: all 0.2s ease;
 }
 
 .timeline-event:hover {
-  background: rgba(0, 255, 65, 0.05);
-  border-color: rgba(0, 255, 65, 0.3);
+  background: rgba(26, 115, 232, 0.05);
+  border-color: rgba(26, 115, 232, 0.3);
   transform: translateX(4px);
 }
 
@@ -778,7 +778,7 @@
 }
 
 .event-type.type-improvement {
-  background: rgba(0, 255, 65, 0.15);
+  background: rgba(26, 115, 232, 0.15);
   color: var(--phosphor-green);
 }
 

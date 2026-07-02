@@ -61,8 +61,8 @@ export default function DriftTestPage() {
         {driftStatus && (
           <div style={{
             padding: '16px',
-            background: 'rgba(0, 255, 65, 0.05)',
-            border: '1px solid rgba(0, 255, 65, 0.2)',
+            background: 'rgba(26, 115, 232, 0.05)',
+            border: '1px solid rgba(26, 115, 232, 0.2)',
             borderRadius: '4px',
             marginBottom: '24px'
           }}>
@@ -92,7 +92,7 @@ export default function DriftTestPage() {
               </div>
               <div>
                 <div style={{ fontSize: '0.75em', opacity: 0.6 }}>Recovering</div>
-                <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#00BFFF' }}>
+                <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#1a73e8' }}>
                   {driftStatus.recovering || 0}
                 </div>
               </div>
@@ -158,8 +158,8 @@ export default function DriftTestPage() {
       <div style={{
         marginTop: '48px',
         padding: '20px',
-        background: 'rgba(0, 255, 65, 0.03)',
-        border: '1px solid rgba(0, 255, 65, 0.15)',
+        background: 'rgba(26, 115, 232, 0.03)',
+        border: '1px solid rgba(26, 115, 232, 0.15)',
         borderRadius: '4px'
       }}>
         <h3 style={{ margin: '0 0 12px 0' }}>✅ Test Results</h3>

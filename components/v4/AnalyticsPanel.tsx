@@ -78,10 +78,10 @@ const modeConfig: Record<string, {
 };
 
 const scoreColor = (v: number) =>
-  v >= 80 ? 'var(--phosphor-green)' : v >= 65 ? 'var(--amber-warning)' : 'var(--red-alert)';
+  v >= 80 ? 'var(--good)' : v >= 65 ? 'var(--warn)' : 'var(--bad)';
 
 const scoreBg = (v: number) =>
-  v >= 80 ? 'rgba(0,255,65,.04)' : v >= 65 ? 'rgba(255,176,0,.04)' : 'rgba(255,45,0,.04)';
+  v >= 80 ? 'var(--good-bg)' : v >= 65 ? 'var(--warn-bg)' : 'var(--bad-bg)';
 
 // OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
 const getModelPricing = (name: string, provider: string): { input: number; output: number } => {
@@ -174,7 +174,7 @@ export default function AnalyticsPanel({
   const top3 = sorted.slice(0, 3);
   const bottom3 = sorted.slice(-3).reverse();
   const radarModels = [...top3, ...bottom3];
-  const radarColors = ['#00ff41', '#00BFFF', '#a855f7', '#ffb000', '#c0c0c0', '#ff2d00'];
+  const radarColors = ['#1a73e8', '#12b5cb', '#7c4dff', '#f9ab00', '#9aa0a6', '#d93025'];
 
   // Price-performance
   const priceData = available.map(m => {
@@ -202,7 +202,7 @@ export default function AnalyticsPanel({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0', gap: '10px' }}>
             <div style={{
               width: '32px', height: '32px',
-              border: '2px solid rgba(0, 255, 65, 0.1)',
+              border: '2px solid rgba(26, 115, 232, 0.1)',
               borderTop: '2px solid var(--phosphor-green)',
               borderRadius: '50%',
               animation: 'v4-analytics-spin 1s linear infinite'
@@ -238,7 +238,7 @@ export default function AnalyticsPanel({
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '10px' }}>
           <div style={{
             width: '32px', height: '32px',
-            border: '2px solid rgba(0, 255, 65, 0.1)',
+            border: '2px solid rgba(26, 115, 232, 0.1)',
             borderTop: '2px solid var(--phosphor-green)',
             borderRadius: '50%',
             animation: 'v4-analytics-spin 1s linear infinite'
@@ -444,7 +444,7 @@ function RadarChart({
       const p = polarToXY(a, r);
       return `${p.x},${p.y}`;
     }).join(' ');
-    return <polygon key={pct} points={points} fill="none" stroke="rgba(192,192,192,.08)" strokeWidth="0.5" />;
+    return <polygon key={pct} points={points} fill="none" stroke="var(--metal-silver)" strokeWidth="1" strokeOpacity="0.7" />;
   });
 
   // Axis lines and labels
@@ -455,7 +455,7 @@ function RadarChart({
     const isHighlighted = highlightIndices.includes(i);
     return (
       <g key={i}>
-        <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke={isHighlighted ? 'rgba(0,255,65,.15)' : 'rgba(192,192,192,.05)'} strokeWidth={isHighlighted ? '1' : '0.5'} />
+        <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke={isHighlighted ? 'var(--accent)' : 'var(--metal-silver)'} strokeOpacity={isHighlighted ? '0.5' : '0.6'} strokeWidth={isHighlighted ? '1' : '0.6'} />
         <text
           x={label.x} y={label.y}
           textAnchor="middle" dominantBaseline="middle"
@@ -482,13 +482,13 @@ function RadarChart({
     });
 
     const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
-    const color = colors[mi] || '#00ff41';
+    const color = colors[mi] || '#1a73e8';
 
     return (
       <g key={model.id || mi}>
-        <polygon points={pointsStr} fill={color} fillOpacity="0.04" stroke={color} strokeWidth="1.2" strokeOpacity="0.6" />
+        <polygon points={pointsStr} fill={color} fillOpacity="0.07" stroke={color} strokeWidth="1.75" strokeOpacity="0.95" strokeLinejoin="round" />
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="1.5" fill={color} opacity="0.6" />
+          <circle key={i} cx={p.x} cy={p.y} r="1.6" fill={color} />
         ))}
       </g>
     );

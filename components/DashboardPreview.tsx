@@ -49,7 +49,7 @@ export default function DashboardPreview() {
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           borderRadius: '3px', gap: '6px',
-          border: '1px dashed rgba(0,255,65,0.3)',
+          border: '1px dashed rgba(26, 115, 232,0.3)',
         }}>
           <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1px', fontFamily: 'var(--font-mono)' }}>[ACTIVATE TO TRACK]</div>
           <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Real-time metrics with Pro</div>
@@ -126,8 +126,8 @@ export default function DashboardPreview() {
               { step: '04', title: 'SAVE 50-70%', desc: 'Get better results while paying less — no manual switching needed' },
             ].map((step, i) => (
               <div key={i} style={{
-                padding: '12px', background: 'rgba(0,0,0,0.3)',
-                border: '1px solid rgba(0,255,65,0.15)', borderRadius: '3px',
+                padding: '12px', background: 'rgba(0,0,0,0.04)',
+                border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '3px',
                 position: 'relative',
               }}>
                 <div style={{

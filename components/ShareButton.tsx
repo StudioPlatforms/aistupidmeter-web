@@ -161,8 +161,8 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
               <div
                 style={{
                   padding: '12px',
-                  backgroundColor: 'rgba(0, 255, 65, 0.05)',
-                  border: '1px solid rgba(0, 255, 65, 0.2)',
+                  backgroundColor: 'rgba(26, 115, 232, 0.05)',
+                  border: '1px solid rgba(26, 115, 232, 0.2)',
                   borderRadius: '4px',
                   marginBottom: '20px',
                   fontSize: '0.85em',

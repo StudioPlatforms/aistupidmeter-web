@@ -92,7 +92,7 @@ export default function ModelDetailQuickStats({
       </div>
       <div className="md-info-row">
         <span className="md-info-label">Avg Latency</span>
-        <span className="md-info-value" style={{ color: '#00BFFF' }}>
+        <span className="md-info-value" style={{ color: '#1a73e8' }}>
           {Math.round(averageLatency || 0)}ms
         </span>
       </div>
@@ -106,8 +106,8 @@ export default function ModelDetailQuickStats({
       <div style={{
         marginTop: '10px',
         padding: '8px',
-        background: 'rgba(0, 255, 65, 0.03)',
-        border: '1px solid rgba(0, 255, 65, 0.12)',
+        background: 'rgba(26, 115, 232, 0.03)',
+        border: '1px solid rgba(26, 115, 232, 0.12)',
         borderRadius: '3px',
         fontSize: '9px',
         color: 'var(--phosphor-dim)',

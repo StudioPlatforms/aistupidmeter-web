@@ -116,7 +116,7 @@
 .md-stat-cell.color-green::before { background: var(--phosphor-green); box-shadow: 0 0 4px var(--phosphor-green); }
 .md-stat-cell.color-amber::before { background: var(--amber-warning); box-shadow: 0 0 4px var(--amber-warning); }
 .md-stat-cell.color-red::before { background: var(--red-alert); box-shadow: 0 0 4px var(--red-alert); }
-.md-stat-cell.color-blue::before { background: #00BFFF; box-shadow: 0 0 4px #00BFFF; }
+.md-stat-cell.color-blue::before { background: #1a73e8; box-shadow: 0 0 4px #1a73e8; }
 .md-stat-label {
   font-size: 8px;
   text-transform: uppercase;
@@ -184,8 +184,8 @@
   cursor: pointer;
 }
 .md-ctrl-btn.pro-locked:hover {
-  color: #00BFFF;
-  text-shadow: 0 0 2px #00BFFF;
+  color: #1a73e8;
+  text-shadow: 0 0 2px #1a73e8;
 }
 .md-ctrl-btn .lock-icon {
   font-size: 8px;
@@ -286,7 +286,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0,0,0,0.04);
   border-radius: 4px;
 }
 .md-chart-empty-inner {
@@ -381,7 +381,7 @@
 .md-metric-card {
   padding: 12px;
   border: 1px solid rgba(192, 192, 192, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0,0,0,0.04);
   position: relative;
   overflow: hidden;
   transition: border-color 0.2s;
@@ -443,7 +443,7 @@
 .md-metric-bar-track {
   width: 100%;
   height: 6px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0,0,0,0.04);
   border-radius: 3px;
   overflow: hidden;
   margin-top: 6px;
@@ -525,7 +525,7 @@
 }
 .md-mobile-nav-btn:hover {
   border-color: var(--phosphor-green);
-  background: rgba(0, 255, 65, 0.05);
+  background: rgba(26, 115, 232, 0.05);
 }
 .md-mobile-nav-btn.active {
   background: var(--phosphor-green);
@@ -533,8 +533,8 @@
   border-color: var(--phosphor-green);
 }
 .md-mobile-nav-btn.pro {
-  color: #00BFFF;
-  border-color: #00BFFF;
+  color: #1a73e8;
+  border-color: #1a73e8;
 }
 .md-mobile-nav-btn.pro:hover {
   background: rgba(0, 191, 255, 0.1);
@@ -607,8 +607,8 @@
 .md-loading-attempt {
   font-size: 10px;
   padding: 6px 10px;
-  background: rgba(0, 255, 65, 0.05);
-  border: 1px solid rgba(0, 255, 65, 0.2);
+  background: rgba(26, 115, 232, 0.05);
+  border: 1px solid rgba(26, 115, 232, 0.2);
   border-radius: 3px;
   margin-top: 12px;
 }

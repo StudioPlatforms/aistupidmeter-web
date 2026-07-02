@@ -321,7 +321,7 @@ export default function ForumAdminCategories() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',
@@ -345,7 +345,7 @@ export default function ForumAdminCategories() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-dim)',
@@ -369,7 +369,7 @@ export default function ForumAdminCategories() {
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    background: 'var(--terminal-black, #0a0a0a)',
+                    background: 'var(--terminal-black, #f6f8fc)',
                     border: '1px solid rgba(192,192,192,0.3)',
                     borderRadius: '2px',
                     color: 'var(--phosphor-green)',
@@ -395,7 +395,7 @@ export default function ForumAdminCategories() {
                     style={{
                       width: '100%',
                       padding: '8px 10px',
-                      background: 'var(--terminal-black, #0a0a0a)',
+                      background: 'var(--terminal-black, #f6f8fc)',
                       border: '1px solid rgba(192,192,192,0.3)',
                       borderRadius: '2px',
                       color: 'var(--phosphor-green)',
@@ -416,7 +416,7 @@ export default function ForumAdminCategories() {
                     style={{
                       width: '100%',
                       padding: '8px 10px',
-                      background: 'var(--terminal-black, #0a0a0a)',
+                      background: 'var(--terminal-black, #f6f8fc)',
                       border: '1px solid rgba(192,192,192,0.3)',
                       borderRadius: '2px',
                       color: 'var(--phosphor-green)',

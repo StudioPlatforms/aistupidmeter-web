@@ -211,17 +211,17 @@ export default function ForumAdminDashboard() {
             </div>
             <div className="rv4-panel-body">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
+                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
                   <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Your Role</div>
                   <div style={{ fontSize: '12px', color: 'var(--phosphor-green)', fontWeight: 'bold', textTransform: 'uppercase' }}>{role}</div>
                 </div>
-                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
+                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
                   <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Posts per Topic</div>
                   <div style={{ fontSize: '12px', color: 'var(--phosphor-green)', fontWeight: 'bold' }}>
                     {stats.totalTopics > 0 ? (stats.totalPosts / stats.totalTopics).toFixed(1) : '0'}
                   </div>
                 </div>
-                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
+                <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.12)', borderRadius: '3px' }}>
                   <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Report Status</div>
                   <div style={{ fontSize: '12px', color: stats.pendingReports > 0 ? 'var(--amber-warning)' : 'var(--phosphor-green)', fontWeight: 'bold' }}>
                     {stats.pendingReports > 0 ? `${stats.pendingReports} PENDING` : 'ALL CLEAR'}

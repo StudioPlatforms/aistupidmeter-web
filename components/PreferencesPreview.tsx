@@ -95,9 +95,9 @@ export default function PreferencesPreview() {
           <div className="rv4-panel-body">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', opacity: 0.6 }}>
               {['Max Cost Per 1K Tokens', 'Max Latency', 'Require Tool Calling', 'Require Streaming'].map((c, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '2px' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', background: 'rgba(0,0,0,0.04)', borderRadius: '2px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{c}</span>
-                  <div style={{ width: '40px', height: '16px', background: 'rgba(0,255,65,0.2)', borderRadius: '8px' }} />
+                  <div style={{ width: '40px', height: '16px', background: 'rgba(26, 115, 232,0.2)', borderRadius: '8px' }} />
                 </div>
               ))}
             </div>

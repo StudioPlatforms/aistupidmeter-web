@@ -239,7 +239,7 @@ export default function ModelIntelligencePage() {
             </div>
 
             {selectedModels.length > 0 && (
-              <div style={{ padding: '10px', background: 'rgba(0,255,65,0.06)', border: '1px solid rgba(0,255,65,0.2)', borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ padding: '10px', background: 'rgba(26, 115, 232,0.06)', border: '1px solid rgba(26, 115, 232,0.2)', borderRadius: '3px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '11px', color: 'var(--phosphor-green)' }}>
                   {selectedModels.length} model{selectedModels.length > 1 ? 's' : ''} selected for comparison
                 </span>
@@ -503,7 +503,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
     return { ...p, estimatedCost, valueScore };
   };
 
-  const LINE_COLORS = ['var(--phosphor-green)', '#00bfff', '#ff8c00', '#8a2be2'];
+  const LINE_COLORS = ['var(--phosphor-green)', '#1a73e8', '#ff8c00', '#8a2be2'];
 
   return (
     <div className="rv4-modal-backdrop" onClick={onClose}>
@@ -534,7 +534,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
         </div>
 
         {/* Period selection */}
-        <div style={{ display: 'flex', gap: '6px', padding: '10px 18px', alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid rgba(0,255,65,0.1)' }}>
+        <div style={{ display: 'flex', gap: '6px', padding: '10px 18px', alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid rgba(26, 115, 232,0.1)' }}>
           <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontFamily: 'var(--font-mono)' }}>TIME PERIOD:</span>
           {(['24h', '7d', '1m'] as const).map(period => (
             <button key={period} className={`rv4-ctrl-btn${selectedPeriod === period ? ' active' : ''}`} onClick={() => setSelectedPeriod(period)} style={{ fontSize: '10px' }}>
@@ -575,11 +575,11 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                             <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', marginTop: '2px' }}>SCORE ({selectedPeriod.toUpperCase()})</div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '12px', fontSize: '11px' }}>
-                            <div style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,0,0,0.3)', borderRadius: '2px' }}>
+                            <div style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,0,0,0.04)', borderRadius: '2px' }}>
                               <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>Rank</div>
                               <div style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>#{model.rank}</div>
                             </div>
-                            <div style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,0,0,0.3)', borderRadius: '2px' }}>
+                            <div style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,0,0,0.04)', borderRadius: '2px' }}>
                               <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>Trend</div>
                               <div style={{ color: getTrendColor(model.trend), fontWeight: 'bold' }}>{getTrendLabel(model.trend)}</div>
                             </div>
@@ -604,7 +604,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                             { label: 'AVERAGE', value: `${avgScore.toFixed(1)} pts`, sub: `${modelsData.length} models` },
                             { label: 'SPREAD', value: `${((highest.currentScore as number) - (lowest.currentScore as number)).toFixed(1)} pts`, sub: 'Difference' },
                           ].map((ins, i) => (
-                            <div key={i} style={{ padding: '10px', background: 'rgba(0,0,0,0.3)', borderRadius: '2px', border: '1px solid rgba(0,255,65,0.1)' }}>
+                            <div key={i} style={{ padding: '10px', background: 'rgba(0,0,0,0.04)', borderRadius: '2px', border: '1px solid rgba(26, 115, 232,0.1)' }}>
                               <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '4px' }}>{ins.label}</div>
                               <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{ins.value}</div>
                               <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', marginTop: '2px' }}>{ins.sub}</div>
@@ -653,9 +653,9 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                       if (!active || !payload || payload.length === 0) return null;
                       return (
                         <div style={{
-                          background: 'rgba(0,0,0,0.95)', border: '1px solid rgba(0,255,65,0.3)',
-                          borderRadius: '3px', padding: '10px 12px', fontSize: '11px',
-                          fontFamily: 'var(--font-mono)',
+                          background: 'var(--terminal-dark)', border: '1px solid var(--metal-silver)',
+                          borderRadius: '10px', padding: '10px 12px', fontSize: '11px',
+                          fontFamily: 'var(--font-mono)', boxShadow: '0 4px 14px rgba(60,64,67,0.18)',
                         }}>
                           <div style={{ color: 'var(--phosphor-dim)', marginBottom: '6px', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                             POINT {label}
@@ -664,7 +664,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                             <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: p.color, boxShadow: `0 0 4px ${p.color}` }} />
                               <span style={{ color: p.color, fontWeight: 'bold' }}>{p.name}:</span>
-                              <span style={{ color: 'var(--metal-silver)' }}>{typeof p.value === 'number' ? p.value.toFixed(1) : 'N/A'}</span>
+                              <span style={{ color: 'var(--phosphor-dim)' }}>{typeof p.value === 'number' ? p.value.toFixed(1) : 'N/A'}</span>
                             </div>
                           ))}
                         </div>
@@ -672,7 +672,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                     };
 
                     return (
-                      <div style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '3px', padding: '14px' }}>
+                      <div style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '3px', padding: '14px' }}>
                         {/* Per-model stats summary */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '8px', marginBottom: '16px' }}>
                           {allModelsData.map((md) => {
@@ -681,7 +681,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                             const min = Math.min(...md.displayScores);
                             return (
                               <div key={md.model.id} style={{
-                                padding: '10px 12px', background: 'rgba(0,0,0,0.4)',
+                                padding: '10px 12px', background: 'rgba(0,0,0,0.04)',
                                 borderRadius: '3px', borderLeft: `3px solid ${md.color}`,
                                 borderTop: `1px solid ${md.color}33`,
                               }}>
@@ -711,7 +711,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                         <div style={{ height: '340px' }}>
                           <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,255,65,0.08)" vertical={false} />
+                              <CartesianGrid strokeDasharray="3 3" stroke="rgba(26, 115, 232,0.08)" vertical={false} />
                               <XAxis
                                 dataKey="index"
                                 tick={{ fill: 'var(--phosphor-dim)', fontSize: 9, fontFamily: 'var(--font-mono)' }}
@@ -803,9 +803,9 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                       if (!active || !payload || payload.length === 0) return null;
                       return (
                         <div style={{
-                          background: 'rgba(0,0,0,0.95)', border: '1px solid rgba(0,255,65,0.3)',
-                          borderRadius: '3px', padding: '10px 12px', fontSize: '11px',
-                          fontFamily: 'var(--font-mono)',
+                          background: 'var(--terminal-dark)', border: '1px solid var(--metal-silver)',
+                          borderRadius: '10px', padding: '10px 12px', fontSize: '11px',
+                          fontFamily: 'var(--font-mono)', boxShadow: '0 4px 14px rgba(60,64,67,0.18)',
                         }}>
                           <div style={{ color: 'var(--phosphor-dim)', marginBottom: '6px', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                             {payload[0]?.payload?.axis}
@@ -817,7 +817,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                               <div key={p.dataKey} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, boxShadow: `0 0 4px ${color}` }} />
                                 <span style={{ color, fontWeight: 'bold' }}>{modelData?.displayName || modelData?.name}:</span>
-                                <span style={{ color: 'var(--metal-silver)' }}>{p.value}%</span>
+                                <span style={{ color: 'var(--phosphor-dim)' }}>{p.value}%</span>
                               </div>
                             );
                           })}
@@ -833,7 +833,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                         <div style={{ height: '420px' }}>
                           <ResponsiveContainer width="100%" height="100%">
                             <RadarChart data={radarData} margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
-                              <PolarGrid stroke="rgba(0,255,65,0.12)" />
+                              <PolarGrid stroke="rgba(26, 115, 232,0.12)" />
                               <PolarAngleAxis
                                 dataKey="axis"
                                 tick={{ fill: 'var(--phosphor-dim)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
@@ -955,7 +955,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                         ];
                       }
                       return (
-                        <div key={model.id} style={{ padding: '14px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0,255,65,0.15)', borderRadius: '3px' }}>
+                        <div key={model.id} style={{ padding: '14px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.15)', borderRadius: '3px' }}>
                           <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '12px', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                             {model.displayName || model.name}
                           </div>
@@ -991,7 +991,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                     {modelsData.map((model) => {
                       const pricing = getModelPricing(model);
                       return (
-                        <div key={model.id} style={{ padding: '14px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,176,0,0.2)', borderRadius: '3px' }}>
+                        <div key={model.id} style={{ padding: '14px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(255,176,0,0.2)', borderRadius: '3px' }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '12px', alignItems: 'center' }}>
                             <div>
                               <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '2px' }}>{model.displayName || model.name}</div>
@@ -1002,10 +1002,10 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                                 { label: 'Score', value: typeof model.currentScore === 'number' ? model.currentScore.toFixed(1) : 'N/A', color: 'var(--phosphor-green)' },
                                 { label: 'Input/1M', value: `$${pricing.input}`, color: 'var(--amber-warning)' },
                                 { label: 'Output/1M', value: `$${pricing.output}`, color: 'var(--amber-warning)' },
-                                { label: 'Est. Cost', value: `$${pricing.estimatedCost.toFixed(2)}`, color: 'var(--metal-silver)' },
+                                { label: 'Est. Cost', value: `$${pricing.estimatedCost.toFixed(2)}`, color: 'var(--phosphor-dim)' },
                                 { label: 'Value pts/$', value: pricing.valueScore, color: 'var(--phosphor-green)' },
                               ].map((item, i) => (
-                                <div key={i} style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,0,0,0.3)', borderRadius: '2px' }}>
+                                <div key={i} style={{ textAlign: 'center', padding: '6px', background: 'rgba(0,0,0,0.04)', borderRadius: '2px' }}>
                                   <div style={{ fontSize: '8px', color: 'var(--phosphor-dim)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{item.label}</div>
                                   <div style={{ fontSize: '13px', fontWeight: 'bold', color: item.color }}>{item.value}</div>
                                 </div>

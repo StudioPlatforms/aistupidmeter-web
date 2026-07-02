@@ -18,7 +18,7 @@ function generateFallbackImage(type: string) {
           alignItems: 'center',
           justifyContent: 'center',
           fontFamily: 'monospace',
-          color: '#00FF41',
+          color: '#1a73e8',
           padding: '60px'
         }}
       >
@@ -109,13 +109,13 @@ export async function GET(request: NextRequest) {
               display: 'flex',
               flexDirection: 'column',
               fontFamily: 'monospace',
-              color: '#00FF41',
+              color: '#1a73e8',
               padding: '40px 50px'
             }}
           >
             {/* Top Section: Best Models */}
             <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 30 }}>
-              <div style={{ fontSize: 32, marginBottom: 15, color: '#00FF41', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 32, marginBottom: 15, color: '#1a73e8', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span>✅</span>
                 <span>RECOMMENDED MODELS</span>
               </div>
@@ -128,20 +128,20 @@ export async function GET(request: NextRequest) {
                     justifyContent: 'space-between',
                     marginBottom: 8,
                     padding: '8px 16px',
-                    background: 'rgba(0, 255, 65, 0.08)',
-                    border: '1px solid #00FF41',
+                    background: 'rgba(26, 115, 232, 0.08)',
+                    border: '1px solid #1a73e8',
                     borderRadius: 6
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ fontSize: 28, color: index === 0 ? '#FFD700' : '#00FF41' }}>
+                    <div style={{ fontSize: 28, color: index === 0 ? '#FFD700' : '#1a73e8' }}>
                       {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                     </div>
-                    <div style={{ fontSize: 20, color: '#00FF41' }}>
+                    <div style={{ fontSize: 20, color: '#1a73e8' }}>
                       {model.name}
                     </div>
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 'bold', color: '#00FF41' }}>
+                  <div style={{ fontSize: 26, fontWeight: 'bold', color: '#1a73e8' }}>
                     {model.currentScore}
                   </div>
                 </div>
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 
             {/* Bottom Section: Models to Avoid */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: 32, marginBottom: 15, color: '#FF2D00', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ fontSize: 32, marginBottom: 15, color: '#d93025', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span>⚠️</span>
                 <span>AVOID THESE MODELS</span>
               </div>
@@ -164,19 +164,19 @@ export async function GET(request: NextRequest) {
                     marginBottom: 8,
                     padding: '8px 16px',
                     background: 'rgba(255, 45, 0, 0.08)',
-                    border: '1px solid #FF2D00',
+                    border: '1px solid #d93025',
                     borderRadius: 6
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ fontSize: 24, color: '#FF2D00' }}>
+                    <div style={{ fontSize: 24, color: '#d93025' }}>
                       ❌
                     </div>
                     <div style={{ fontSize: 20, color: '#FFB000' }}>
                       {model.name}
                     </div>
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 'bold', color: '#FF2D00' }}>
+                  <div style={{ fontSize: 26, fontWeight: 'bold', color: '#d93025' }}>
                     {model.currentScore}
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
     if (type === 'index') {
       const score = globalIndex?.current?.globalScore || 50;
       const status = score >= 70 ? 'PERFORMING WELL' : score >= 50 ? 'BELOW AVERAGE' : 'CONCERNING LEVELS';
-      const color = score >= 70 ? '#00FF41' : score >= 50 ? '#FFB000' : '#FF2D00';
+      const color = score >= 70 ? '#1a73e8' : score >= 50 ? '#FFB000' : '#d93025';
       
       // Get degradations and recommendations
       const topDegradations = degradations?.slice(0, 3) || [];
@@ -210,7 +210,7 @@ export async function GET(request: NextRequest) {
               display: 'flex',
               flexDirection: 'column',
               fontFamily: 'monospace',
-              color: '#00FF41',
+              color: '#1a73e8',
               padding: '40px 50px'
             }}
           >
@@ -253,7 +253,7 @@ export async function GET(request: NextRequest) {
                     <div style={{ fontSize: 18, color: '#FFB000' }}>
                       {deg.modelName}
                     </div>
-                    <div style={{ fontSize: 20, fontWeight: 'bold', color: '#FF2D00' }}>
+                    <div style={{ fontSize: 20, fontWeight: 'bold', color: '#d93025' }}>
                       -{deg.change}
                     </div>
                   </div>
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: 28, marginBottom: 12, color: '#00FF41', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ fontSize: 28, marginBottom: 12, color: '#1a73e8', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span>🏆</span>
                   <span>TOP PERFORMERS</span>
                 </div>
@@ -274,15 +274,15 @@ export async function GET(request: NextRequest) {
                       justifyContent: 'space-between',
                       marginBottom: 8,
                       padding: '8px 16px',
-                      background: 'rgba(0, 255, 65, 0.08)',
-                      border: '1px solid #00FF41',
+                      background: 'rgba(26, 115, 232, 0.08)',
+                      border: '1px solid #1a73e8',
                       borderRadius: 6
                     }}
                   >
-                    <div style={{ fontSize: 18, color: '#00FF41' }}>
+                    <div style={{ fontSize: 18, color: '#1a73e8' }}>
                       {model.name}
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 'bold', color: '#00FF41' }}>
+                    <div style={{ fontSize: 22, fontWeight: 'bold', color: '#1a73e8' }}>
                       {model.currentScore}
                     </div>
                   </div>
@@ -309,11 +309,11 @@ export async function GET(request: NextRequest) {
             display: 'flex',
             flexDirection: 'column',
             fontFamily: 'monospace',
-            color: '#00FF41',
+            color: '#1a73e8',
             padding: '40px 50px'
           }}
         >
-          <div style={{ fontSize: 32, marginBottom: 30, color: '#00FF41' }}>
+          <div style={{ fontSize: 32, marginBottom: 30, color: '#1a73e8' }}>
             📊 AI MODEL INTELLIGENCE REPORT
           </div>
           {topModels.map((model: any, index: number) => (
@@ -325,20 +325,20 @@ export async function GET(request: NextRequest) {
                 justifyContent: 'space-between',
                 marginBottom: 12,
                 padding: '10px 18px',
-                background: 'rgba(0, 255, 65, 0.08)',
-                border: '1px solid #00FF41',
+                background: 'rgba(26, 115, 232, 0.08)',
+                border: '1px solid #1a73e8',
                 borderRadius: 6
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                <div style={{ fontSize: 28, color: index === 0 ? '#FFD700' : '#00FF41' }}>
+                <div style={{ fontSize: 28, color: index === 0 ? '#FFD700' : '#1a73e8' }}>
                   {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                 </div>
-                <div style={{ fontSize: 22, color: '#00FF41' }}>
+                <div style={{ fontSize: 22, color: '#1a73e8' }}>
                   {model.name}
                 </div>
               </div>
-              <div style={{ fontSize: 28, fontWeight: 'bold', color: '#00FF41' }}>
+              <div style={{ fontSize: 28, fontWeight: 'bold', color: '#1a73e8' }}>
                 {model.currentScore}
               </div>
             </div>

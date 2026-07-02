@@ -66,9 +66,9 @@ export default function IntelligencePreview() {
       {/* Sticky upgrade banner */}
       <div className="rv4-upgrade-sticky" style={{ borderColor: 'rgba(0,191,255,0.4)', background: 'rgba(0,191,255,0.06)' }}>
         <div className="rv4-upgrade-sticky-msg">
-          <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#00bfff', fontWeight: 'bold' }}>[LOCKED]</span>
+          <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#1a73e8', fontWeight: 'bold' }}>[LOCKED]</span>
           <div>
-            <div className="rv4-upgrade-sticky-title" style={{ color: '#00bfff' }}>PREVIEW MODE — Intelligence Features Locked</div>
+            <div className="rv4-upgrade-sticky-title" style={{ color: '#1a73e8' }}>PREVIEW MODE — Intelligence Features Locked</div>
             <div className="rv4-upgrade-sticky-sub">Unlock model comparison, downloads, and advanced analytics with Pro</div>
           </div>
         </div>
@@ -167,7 +167,7 @@ export default function IntelligencePreview() {
           </div>
           <div style={{ filter: 'blur(3px)', padding: '14px', pointerEvents: 'none', userSelect: 'none' }}>
             <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>COMPARISON TOOL</div>
-            <div style={{ height: '120px', background: 'rgba(0,255,65,0.05)', borderRadius: '3px', border: '1px solid rgba(0,255,65,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ height: '120px', background: 'rgba(26, 115, 232,0.05)', borderRadius: '3px', border: '1px solid rgba(26, 115, 232,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Demo Chart</span>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function IntelligencePreview() {
             <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>FILTERS AND CONTROLS</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {['Category', 'Provider', 'Sort By', 'Time Period'].map((f, i) => (
-                <div key={i} style={{ padding: '8px 10px', background: 'rgba(0,255,65,0.05)', borderRadius: '2px', fontSize: '10px', color: 'var(--phosphor-dim)' }}>{f}</div>
+                <div key={i} style={{ padding: '8px 10px', background: 'rgba(26, 115, 232,0.05)', borderRadius: '2px', fontSize: '10px', color: 'var(--phosphor-dim)' }}>{f}</div>
               ))}
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function IntelligencePreview() {
               { title: 'HISTORICAL TRENDS', desc: 'View 30-day performance trends and identify degradation patterns' },
             ].map((b, i) => (
               <div key={i} className="rv4-upgrade-benefit" style={{ borderColor: 'rgba(0,191,255,0.2)', background: 'rgba(0,191,255,0.04)' }}>
-                <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: '#00bfff' }}>→</div>
+                <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: '#1a73e8' }}>→</div>
                 <div className="rv4-upgrade-benefit-title">{b.title}</div>
                 <div className="rv4-upgrade-benefit-desc">{b.desc}</div>
               </div>
@@ -217,7 +217,7 @@ export default function IntelligencePreview() {
             background: 'rgba(0,191,255,0.06)', border: '2px solid rgba(0,191,255,0.3)',
             borderRadius: '3px', padding: '16px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#00bfff', marginBottom: '4px' }}>$4.99/month</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8', marginBottom: '4px' }}>$4.99/month</div>
             <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • No Credit Card • Cancel Anytime</div>
             <button onClick={handleStartTrial} className="rv4-upgrade-cta">
               UNLOCK INTELLIGENCE NOW →

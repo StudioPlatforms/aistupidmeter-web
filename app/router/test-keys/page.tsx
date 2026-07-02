@@ -559,7 +559,7 @@ export default function TestKeysPage() {
             <div className="section-card" style={{
               maxWidth: '500px',
               width: '100%',
-              background: 'linear-gradient(135deg, #1a1a1a, #0a0a0a)',
+              background: 'linear-gradient(135deg, #1a1a1a, #f6f8fc)',
               border: '2px solid var(--phosphor-green)'
             }}>
               <div className="terminal-text">
@@ -624,7 +624,7 @@ export default function TestKeysPage() {
               </span>
             </div>
             <div style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'rgba(0,0,0,0.04)',
               padding: '12px',
               borderRadius: '4px',
               maxHeight: '300px',
@@ -659,7 +659,7 @@ export default function TestKeysPage() {
             {result.success ? (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-                  <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(0, 255, 65, 0.1)', borderRadius: '6px' }}>
+                  <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(26, 115, 232, 0.1)', borderRadius: '6px' }}>
                     <div className="terminal-text--green" style={{ fontSize: '2em', fontWeight: 'bold' }}>
                       {testType === 'chat' ? '✅' : result.performance?.displayScore || 'N/A'}
                     </div>
@@ -668,7 +668,7 @@ export default function TestKeysPage() {
                     </div>
                   </div>
                   
-                  <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(0, 255, 65, 0.05)', borderRadius: '6px' }}>
+                  <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(26, 115, 232, 0.05)', borderRadius: '6px' }}>
                     <div className="terminal-text" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
                       {result.latency || result.metrics?.avgLatency || 'N/A'}ms
                     </div>
@@ -678,7 +678,7 @@ export default function TestKeysPage() {
                   </div>
 
                   {testType === 'benchmark' && result.metrics && (
-                    <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(0, 255, 65, 0.05)', borderRadius: '6px' }}>
+                    <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(26, 115, 232, 0.05)', borderRadius: '6px' }}>
                       <div className="terminal-text" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
                         {result.metrics.tasksCompleted}
                       </div>
@@ -721,7 +721,7 @@ export default function TestKeysPage() {
                                 {numericValue.toFixed(0)}%
                               </span>
                             </div>
-                            <div style={{ width: '100%', height: '8px', background: 'rgba(0, 0, 0, 0.3)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: '100%', height: '8px', background: 'rgba(0,0,0,0.04)', borderRadius: '4px', overflow: 'hidden' }}>
                               <div style={{ 
                                 width: `${numericValue}%`, 
                                 height: '100%', 
@@ -745,7 +745,7 @@ export default function TestKeysPage() {
                       💬 MODEL RESPONSE
                     </div>
                     <div style={{
-                      backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                      backgroundColor: 'rgba(0,0,0,0.04)',
                       padding: '12px',
                       borderRadius: '4px',
                       fontFamily: 'var(--font-mono)',

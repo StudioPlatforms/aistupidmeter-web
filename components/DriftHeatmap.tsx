@@ -85,7 +85,7 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
           <div style={{
             width: '40px',
             height: '40px',
-            border: '3px solid rgba(0, 255, 65, 0.1)',
+            border: '3px solid rgba(26, 115, 232, 0.1)',
             borderTop: '3px solid var(--phosphor-green)',
             borderRadius: '50%',
             animation: 'drift-spinner-spin 1s linear infinite'
@@ -186,9 +186,9 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
         <div style={{ 
           marginTop: '16px', 
           padding: '12px', 
-          background: 'rgba(0, 255, 65, 0.05)', 
+          background: 'rgba(26, 115, 232, 0.05)', 
           borderRadius: '4px',
-          border: '1px solid rgba(0, 255, 65, 0.2)'
+          border: '1px solid rgba(26, 115, 232, 0.2)'
         }}>
           <h4 style={{ margin: '0 0 8px 0', fontSize: '0.9em' }}>
             {formatDimensionName(selectedDimension)} Breakdown
@@ -201,7 +201,7 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
                   display: 'flex', 
                   justifyContent: 'space-between',
                   padding: '4px 0',
-                  borderBottom: '1px solid rgba(0, 255, 65, 0.05)'
+                  borderBottom: '1px solid rgba(26, 115, 232, 0.05)'
                 }}>
                   <span>{model.modelName}</span>
                   <span style={{ fontFamily: 'var(--font-mono)' }}>

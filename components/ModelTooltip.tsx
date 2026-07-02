@@ -159,7 +159,7 @@ const ModelTooltip: React.FC<ModelTooltipProps> = ({ model, sortBy, children }) 
             padding: '12px',
             minWidth: '320px',
             maxWidth: '400px',
-            boxShadow: '0 4px 12px rgba(0, 255, 65, 0.3)',
+            boxShadow: '0 4px 12px rgba(26, 115, 232, 0.3)',
             fontSize: '0.75em',
             lineHeight: '1.3',
             marginTop: '8px',
@@ -192,7 +192,7 @@ const ModelTooltip: React.FC<ModelTooltipProps> = ({ model, sortBy, children }) 
                   justifyContent: 'space-between', 
                   alignItems: 'center',
                   padding: '2px 0',
-                  borderBottom: index < tooltipContent.metrics.length - 1 ? '1px solid rgba(0, 255, 65, 0.1)' : 'none'
+                  borderBottom: index < tooltipContent.metrics.length - 1 ? '1px solid rgba(26, 115, 232, 0.1)' : 'none'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                     <span style={{ fontSize: '0.9em' }}>{metric.icon}</span>

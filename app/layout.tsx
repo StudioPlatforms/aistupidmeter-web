@@ -2,11 +2,10 @@ import type { Metadata } from 'next'
 import Script from 'next/script'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
-import HalloweenAnimations from '../components/HalloweenAnimations'
-import ChristmasAnimations from '../components/ChristmasAnimations'
 import '../styles/vintage.css'
 import '../styles/drift-cards.css'
 import '../styles/v4-layout.css'
+import '../styles/clean-theme.css'
 
 export const metadata: Metadata = {
   title: {
@@ -193,8 +192,8 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#00ff41" />
-        <meta name="color-scheme" content="dark" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="color-scheme" content="light" />
         
         
         {/* Optimized Google Analytics with afterInteractive strategy */}
@@ -419,7 +418,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <link rel="shortcut icon" href="/favicon.png" />
         <meta name="msapplication-TileImage" content="/smlogo.png" />
-        <meta name="msapplication-TileColor" content="#00ff41" />
+        <meta name="msapplication-TileColor" content="#1a73e8" />
         
         {/* Preload critical resources */}
         <link rel="preload" href="/styles/vintage.css" as="style" />
@@ -427,8 +426,6 @@ export default function RootLayout({
       <body>
         <Providers>
           <VisitorTracker />
-          <HalloweenAnimations />
-          <ChristmasAnimations />
           {children}
         </Providers>
       </body>

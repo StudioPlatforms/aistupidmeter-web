@@ -29,7 +29,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
           } : {}),
         }}
       >
-        DASHBOARD
+        HOME
       </button>
       <button
         onClick={() => onViewChange('about')}
@@ -72,8 +72,8 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
           fontSize: '9px',
           padding: '8px 4px',
           borderRadius: '4px',
-          borderColor: '#00BFFF',
-          color: '#00BFFF',
+          borderColor: '#1a73e8',
+          color: '#1a73e8',
         }}
       >
         PRO

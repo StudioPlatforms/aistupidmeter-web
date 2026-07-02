@@ -20,22 +20,22 @@ export const metadata: Metadata = {
 
 export default function ComparePage() {
   return (
-    <div style={{ background: 'var(--terminal-black, #0a0a0a)', minHeight: '100vh', fontFamily: 'var(--font-mono, "Courier New", monospace)' }}>
+    <div style={{ background: 'var(--terminal-black, #f6f8fc)', minHeight: '100vh', fontFamily: 'var(--font-mono, "Courier New", monospace)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 20px' }}>
 
         {/* Back link */}
         <div style={{ marginBottom: '24px' }}>
-          <Link href="/" style={{ fontSize: '11px', color: 'var(--phosphor-dim, #4a7a4a)', textDecoration: 'none', letterSpacing: '0.5px', fontFamily: 'var(--font-mono)' }}>
+          <Link href="/" style={{ fontSize: '11px', color: 'var(--phosphor-dim, #5f6368)', textDecoration: 'none', letterSpacing: '0.5px', fontFamily: 'var(--font-mono)' }}>
             ← BACK TO LIVE RANKINGS
           </Link>
         </div>
 
         {/* Header */}
         <div style={{ marginBottom: '32px', borderBottom: '2px solid rgba(192,192,192,0.3)', paddingBottom: '24px' }}>
-          <h1 style={{ fontSize: 'clamp(18px, 3vw, 26px)', fontWeight: 'bold', color: 'var(--phosphor-green, #00ff41)', letterSpacing: '2px', marginBottom: '8px', textShadow: '0 0 6px rgba(0,255,65,0.4)' }}>
+          <h1 style={{ fontSize: 'clamp(18px, 3vw, 26px)', fontWeight: 'bold', color: 'var(--phosphor-green, #1a73e8)', letterSpacing: '2px', marginBottom: '8px', textShadow: '0 0 6px rgba(26, 115, 232,0.4)' }}>
             CLAUDE vs GPT vs GEMINI<span className="blinking-cursor"></span>
           </h1>
-          <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #4a7a4a)', letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #5f6368)', letterSpacing: '0.5px' }}>
             Real-time AI model comparison with comprehensive benchmark results
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function ComparePage() {
               { rank: '03', label: 'Most Reliable', model: 'GPT-5', detail: 'shows the most consistent performance across all test categories' },
               { rank: '04', label: 'Best Value', model: 'Claude Sonnet 4', detail: 'offers excellent performance-to-cost ratio' },
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 14px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0,255,65,0.12)', borderLeft: '3px solid rgba(0,255,65,0.4)', borderRadius: '2px', alignItems: 'flex-start' }}>
+              <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 14px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.12)', borderLeft: '3px solid rgba(26, 115, 232,0.4)', borderRadius: '2px', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px' }}>{item.rank}</span>
                 <div>
                   <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}: </span>
@@ -105,8 +105,8 @@ export default function ComparePage() {
                 ]
               },
             ].map((section, i) => (
-              <div key={i} style={{ padding: '16px', border: '1px solid rgba(0,255,65,0.2)', borderRadius: '3px', background: 'rgba(0,0,0,0.2)' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1px', marginBottom: '12px', borderBottom: '1px solid rgba(0,255,65,0.15)', paddingBottom: '8px' }}>
+              <div key={i} style={{ padding: '16px', border: '1px solid rgba(26, 115, 232,0.2)', borderRadius: '3px', background: 'rgba(0,0,0,0.04)' }}>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1px', marginBottom: '12px', borderBottom: '1px solid rgba(26, 115, 232,0.15)', paddingBottom: '8px' }}>
                   {section.provider}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -115,7 +115,7 @@ export default function ComparePage() {
                       {'model' in item ? (
                         <><strong style={{ color: 'var(--phosphor-green)' }}>{item.model}:</strong> {item.desc}</>
                       ) : (
-                        <><strong style={{ color: 'var(--metal-silver, #c0c0c0)' }}>{item.label}:</strong> {item.value}</>
+                        <><strong style={{ color: 'var(--phosphor-dim)' }}>{item.label}:</strong> {item.value}</>
                       )}
                     </div>
                   ))}
@@ -139,11 +139,11 @@ export default function ComparePage() {
               { medal: '#2', category: 'Production Reliability', winner: 'GPT-5', detail: 'offers the most consistent and reliable performance' },
               { medal: '#3', category: 'Speed and Efficiency', winner: 'Gemini 2.5 Flash', detail: 'provides fastest response times for rapid prototyping' },
             ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 14px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0,255,65,0.12)', borderRadius: '2px', alignItems: 'center' }}>
+              <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 14px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.12)', borderRadius: '2px', alignItems: 'center' }}>
                 <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', fontFamily: 'var(--font-mono)', minWidth: '24px' }}>{item.medal}</span>
                 <div>
                   <strong style={{ color: 'var(--phosphor-green)', fontSize: '11px' }}>{item.category}:</strong>
-                  <span style={{ color: 'var(--metal-silver)', fontSize: '11px' }}> {item.winner}</span>
+                  <span style={{ color: 'var(--phosphor-dim)', fontSize: '11px' }}> {item.winner}</span>
                   <span style={{ color: 'var(--phosphor-dim)', fontSize: '11px' }}> — {item.detail}</span>
                 </div>
               </div>
@@ -168,7 +168,7 @@ export default function ComparePage() {
               { metric: 'Refusal Handling', desc: 'Appropriate task acceptance vs over-cautious rejections' },
               { metric: 'Recovery', desc: 'Error recovery and debugging capabilities' },
             ].map((item, i) => (
-              <div key={i} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(0,255,65,0.1)', borderRadius: '2px' }}>
+              <div key={i} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.1)', borderRadius: '2px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{item.metric}</div>
                 <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{item.desc}</div>
               </div>
@@ -212,8 +212,8 @@ export default function ComparePage() {
         </section>
 
         {/* CTA */}
-        <section style={{ padding: '24px', border: '2px solid rgba(0,255,65,0.3)', borderRadius: '3px', background: 'rgba(0,255,65,0.04)', textAlign: 'center' }}>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1.5px', marginBottom: '10px', textShadow: '0 0 6px rgba(0,255,65,0.3)' }}>
+        <section style={{ padding: '24px', border: '2px solid rgba(26, 115, 232,0.3)', borderRadius: '3px', background: 'rgba(26, 115, 232,0.04)', textAlign: 'center' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '1.5px', marginBottom: '10px', textShadow: '0 0 6px rgba(26, 115, 232,0.3)' }}>
             SEE LIVE RESULTS
           </div>
           <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', marginBottom: '20px', lineHeight: '1.6' }}>
@@ -222,7 +222,7 @@ export default function ComparePage() {
           <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link href="/" style={{
               display: 'inline-block', padding: '10px 22px',
-              border: '1px solid var(--phosphor-green, #00ff41)', color: 'var(--phosphor-green, #00ff41)',
+              border: '1px solid var(--phosphor-green, #1a73e8)', color: 'var(--phosphor-green, #1a73e8)',
               background: 'transparent', borderRadius: '2px',
               fontSize: '11px', fontWeight: 'bold', textDecoration: 'none',
               fontFamily: 'var(--font-mono)', letterSpacing: '0.8px',
@@ -232,7 +232,7 @@ export default function ComparePage() {
             </Link>
             <Link href="/about" style={{
               display: 'inline-block', padding: '10px 22px',
-              border: '1px solid rgba(192,192,192,0.4)', color: 'var(--metal-silver, #c0c0c0)',
+              border: '1px solid rgba(192,192,192,0.4)', color: 'var(--phosphor-dim)',
               background: 'transparent', borderRadius: '2px',
               fontSize: '11px', fontWeight: 'bold', textDecoration: 'none',
               fontFamily: 'var(--font-mono)', letterSpacing: '0.8px',

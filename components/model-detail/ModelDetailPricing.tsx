@@ -96,8 +96,8 @@ export default function ModelDetailPricing({ modelName, provider, currentScore }
       <div style={{
         marginTop: '10px',
         padding: '8px',
-        background: 'rgba(0, 255, 65, 0.03)',
-        border: '1px solid rgba(0, 255, 65, 0.15)',
+        background: 'rgba(26, 115, 232, 0.03)',
+        border: '1px solid rgba(26, 115, 232, 0.15)',
         borderRadius: '3px',
         fontSize: '9px',
         color: 'var(--phosphor-dim)',

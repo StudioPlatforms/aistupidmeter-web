@@ -54,7 +54,7 @@ export default function ModelDetailStatBar({
 
       <div className="md-stat-cell color-blue">
         <div className="md-stat-label">LATENCY</div>
-        <div className="md-stat-value" style={{ color: '#00BFFF' }}>
+        <div className="md-stat-value" style={{ color: '#1a73e8' }}>
           {averageLatency ? `${Math.round(averageLatency)}` : '—'}
         </div>
         <div className="md-stat-detail">avg ms</div>

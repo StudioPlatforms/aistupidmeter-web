@@ -98,7 +98,7 @@ export default function SubscriptionPage() {
 
   const getStatusBadge = () => {
     if (isTrial) return { text: 'PRO TRIAL', color: 'var(--amber-warning)', bg: 'rgba(255,176,0,0.1)', border: 'rgba(255,176,0,0.4)' };
-    if (isPro) return { text: 'PRO ACTIVE', color: 'var(--phosphor-green)', bg: 'rgba(0,255,65,0.1)', border: 'rgba(0,255,65,0.4)' };
+    if (isPro) return { text: 'PRO ACTIVE', color: 'var(--phosphor-green)', bg: 'rgba(26, 115, 232,0.1)', border: 'rgba(26, 115, 232,0.4)' };
     return { text: 'FREE PLAN', color: 'var(--phosphor-dim)', bg: 'rgba(128,128,128,0.1)', border: 'rgba(128,128,128,0.3)' };
   };
 
@@ -155,7 +155,7 @@ export default function SubscriptionPage() {
             )}
 
             {isPro && subscription.currentPeriodEnd && (
-              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px', marginBottom: '14px' }}>
+              <div style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px', marginBottom: '14px' }}>
                 <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Next Billing Date</div>
                 <div style={{ fontSize: '12px', color: 'var(--phosphor-green)', fontWeight: 'bold' }}>
                   {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
@@ -194,7 +194,7 @@ export default function SubscriptionPage() {
             <div className="rv4-panel-body">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 {/* API Calls */}
-                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
+                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>API CALLS</span>
                     <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>{usage.apiCalls.used.toLocaleString()} / {usage.apiCalls.limit ? usage.apiCalls.limit.toLocaleString() : '∞'}</span>
@@ -209,7 +209,7 @@ export default function SubscriptionPage() {
                 </div>
 
                 {/* API Keys */}
-                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
+                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>API KEYS</span>
                     <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>{usage.apiKeys.used} / {usage.apiKeys.limit || '∞'}</span>
@@ -224,13 +224,13 @@ export default function SubscriptionPage() {
                 </div>
 
                 {/* Data Retention */}
-                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
+                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '6px' }}>DATA RETENTION</div>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{usage.dataRetention}</div>
                 </div>
 
                 {/* Analytics History */}
-                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
+                <div style={{ padding: '12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(192,192,192,0.15)', borderRadius: '3px' }}>
                   <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '6px' }}>ANALYTICS HISTORY</div>
                   <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{usage.analyticsHistory}</div>
                 </div>

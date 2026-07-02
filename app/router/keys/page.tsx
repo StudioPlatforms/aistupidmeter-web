@@ -162,7 +162,7 @@ export default function RouterKeysPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       gap: '12px', padding: '12px 14px',
                       background: key.revoked ? 'rgba(255,45,0,0.03)' : 'rgba(0,0,0,0.2)',
-                      borderLeft: key.revoked ? '3px solid rgba(255,45,0,0.3)' : '3px solid rgba(0,255,65,0.2)',
+                      borderLeft: key.revoked ? '3px solid rgba(255,45,0,0.3)' : '3px solid rgba(26, 115, 232,0.2)',
                       flexWrap: 'wrap',
                     }}>
                       <div style={{ flex: 1, minWidth: 0 }}>

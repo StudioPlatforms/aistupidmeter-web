@@ -19,10 +19,10 @@ export const metadata: Metadata = {
 
 const styles = {
   page: {
-    background: 'var(--terminal-black, #0a0a0a)',
+    background: 'var(--terminal-black, #f6f8fc)',
     minHeight: '100vh',
     fontFamily: 'var(--font-mono, "Courier New", monospace)',
-    color: 'var(--metal-silver, #c0c0c0)',
+    color: 'var(--phosphor-dim)',
   } as React.CSSProperties,
   container: {
     maxWidth: '900px',
@@ -32,28 +32,28 @@ const styles = {
   pageTitle: {
     fontSize: 'clamp(20px, 3.5vw, 28px)',
     fontWeight: 'bold',
-    color: 'var(--phosphor-green, #00ff41)',
+    color: 'var(--phosphor-green, #1a73e8)',
     letterSpacing: '2px',
-    textShadow: '0 0 8px rgba(0,255,65,0.4)',
+    textShadow: '0 0 8px rgba(26, 115, 232,0.4)',
     marginBottom: '8px',
   } as React.CSSProperties,
   pageSub: {
     fontSize: '12px',
-    color: 'var(--phosphor-dim, #4a7a4a)',
+    color: 'var(--phosphor-dim, #5f6368)',
     marginBottom: '28px',
     letterSpacing: '0.3px',
     lineHeight: '1.5',
   } as React.CSSProperties,
   heroPanel: {
-    background: 'rgba(0,255,65,0.05)',
-    border: '1px solid rgba(0,255,65,0.25)',
-    borderLeft: '3px solid var(--phosphor-green, #00ff41)',
+    background: 'rgba(26, 115, 232,0.05)',
+    border: '1px solid rgba(26, 115, 232,0.25)',
+    borderLeft: '3px solid var(--phosphor-green, #1a73e8)',
     borderRadius: '3px',
     padding: '16px 20px',
     marginBottom: '24px',
     fontSize: '12px',
     lineHeight: '1.7',
-    color: 'var(--metal-silver)',
+    color: 'var(--phosphor-dim)',
   } as React.CSSProperties,
   sectionTitle: {
     fontSize: '11px',
@@ -68,7 +68,7 @@ const styles = {
     gap: '8px',
   } as React.CSSProperties,
   panel: {
-    background: 'rgba(0,0,0,0.3)',
+    background: 'rgba(0,0,0,0.04)',
     border: '1px solid rgba(192,192,192,0.15)',
     borderRadius: '3px',
     padding: '14px 16px',
@@ -104,8 +104,8 @@ const styles = {
     alignItems: 'flex-start',
     gap: '10px',
     padding: '10px 12px',
-    background: 'rgba(0,0,0,0.2)',
-    border: '1px solid rgba(0,255,65,0.1)',
+    background: 'rgba(0,0,0,0.04)',
+    border: '1px solid rgba(26, 115, 232,0.1)',
     borderRadius: '2px',
     marginBottom: '6px',
   } as React.CSSProperties,
@@ -126,8 +126,8 @@ const styles = {
     margin: '24px 0',
   } as React.CSSProperties,
   ctaPanel: {
-    background: 'rgba(0,255,65,0.04)',
-    border: '2px solid rgba(0,255,65,0.3)',
+    background: 'rgba(26, 115, 232,0.04)',
+    border: '2px solid rgba(26, 115, 232,0.3)',
     borderRadius: '3px',
     padding: '20px',
     marginTop: '24px',
@@ -139,7 +139,7 @@ const styles = {
     color: 'var(--phosphor-green)',
     letterSpacing: '1.5px',
     marginBottom: '10px',
-    textShadow: '0 0 6px rgba(0,255,65,0.4)',
+    textShadow: '0 0 6px rgba(26, 115, 232,0.4)',
   } as React.CSSProperties,
   ctaGrid: {
     display: 'grid',
@@ -148,8 +148,8 @@ const styles = {
     marginTop: '14px',
   } as React.CSSProperties,
   ctaCard: {
-    background: 'rgba(0,0,0,0.4)',
-    border: '1px solid rgba(0,255,65,0.15)',
+    background: 'rgba(0,0,0,0.04)',
+    border: '1px solid rgba(26, 115, 232,0.15)',
     borderRadius: '2px',
     padding: '12px',
     textDecoration: 'none',
@@ -196,7 +196,7 @@ export default function AboutPage() {
               But no one was systematically tracking these changes.
             </div>
             <div style={{ ...styles.text, marginTop: '10px' }}>
-              <strong style={{ color: 'var(--metal-silver)' }}>AI Stupid Level was born from frustration.</strong> We built this platform because:
+              <strong style={{ color: 'var(--phosphor-dim)' }}>AI Stupid Level was born from frustration.</strong> We built this platform because:
             </div>
             {[
               ['AI vendors don\'t disclose model changes', 'Silent updates, capability reductions, and performance shifts happen without warning'],
@@ -270,7 +270,7 @@ export default function AboutPage() {
             <div key={i} style={styles.checkItem}>
               <span style={styles.check}>&rarr;</span>
               <div>
-                <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--metal-silver)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>
+                <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-dim)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>
                 <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{desc}</div>
               </div>
             </div>
@@ -285,7 +285,7 @@ export default function AboutPage() {
                 ['Sponsorships', 'Non-vendor companies supporting open source AI infrastructure'],
                 ['Research Grants', 'Grants for AI evaluation and transparency projects'],
               ].map(([title, desc], i) => (
-                <div key={i} style={{ padding: '10px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(0,255,65,0.1)', borderRadius: '2px' }}>
+                <div key={i} style={{ padding: '10px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.1)', borderRadius: '2px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>
                   <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{desc}</div>
                 </div>
@@ -357,7 +357,7 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
-          <div style={{ ...styles.panel, textAlign: 'center', background: 'rgba(0,255,65,0.04)', border: '1px solid rgba(0,255,65,0.2)', marginTop: '4px' }}>
+          <div style={{ ...styles.panel, textAlign: 'center', background: 'rgba(26, 115, 232,0.04)', border: '1px solid rgba(26, 115, 232,0.2)', marginTop: '4px' }}>
             <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '8px', letterSpacing: '0.5px' }}>
               INTERESTED IN ENTERPRISE DATA ACCESS?
             </div>
@@ -403,7 +403,7 @@ export default function AboutPage() {
                 <div style={styles.panelTitle}>{item.title}</div>
                 <div style={{ ...styles.text, marginBottom: '8px' }}>{item.desc}</div>
                 {item.code && (
-                  <code style={{ fontSize: '10px', color: 'var(--phosphor-green)', background: 'rgba(0,255,65,0.08)', padding: '2px 6px', borderRadius: '2px' }}>{item.code}</code>
+                  <code style={{ fontSize: '10px', color: 'var(--phosphor-green)', background: 'rgba(26, 115, 232,0.08)', padding: '2px 6px', borderRadius: '2px' }}>{item.code}</code>
                 )}
                 {item.links?.map((l, j) => (
                   <a key={j} href={l.url} target="_blank" rel="noopener noreferrer" style={{ ...styles.link, display: 'block', fontSize: '10px', marginTop: '4px' }}>{l.label}</a>
