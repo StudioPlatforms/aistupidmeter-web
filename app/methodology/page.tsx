@@ -17,9 +17,11 @@ export const metadata: Metadata = {
     'Confidence intervals AI testing',
     'Objective AI measurement'
   ],
+  alternates: { canonical: '/methodology' },
   openGraph: {
     title: 'AI Benchmarking Methodology | How We Test AI Models',
     description: 'Rigorous, statistically-sound approach to AI benchmarking with 9-axis scoring, confidence intervals, and drift detection.',
+    url: 'https://aistupidlevel.info/methodology',
     type: 'article',
   }
 };

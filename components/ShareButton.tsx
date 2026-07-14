@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { RetroIcons } from '../lib/retro-icons';
+import { slugifyModelName } from '../lib/model-slug';
 import PixelIcon from './PixelIcon';
 
 interface ShareButtonProps {
@@ -67,11 +68,15 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
     const baseUrl = 'https://aistupidlevel.info';
     switch (type) {
       case 'alert':
-        return data?.model ? `${baseUrl}/models/${data.model.id}` : baseUrl;
+        return data?.model
+          ? `${baseUrl}/models/${data.model.name ? slugifyModelName(data.model.name) : data.model.id}`
+          : baseUrl;
       case 'index':
         return `${baseUrl}#stupidity-index`;
       case 'winner':
-        return data?.topModel ? `${baseUrl}/models/${data.topModel.id}` : baseUrl;
+        return data?.topModel
+          ? `${baseUrl}/models/${data.topModel.name ? slugifyModelName(data.topModel.name) : data.topModel.id}`
+          : baseUrl;
       default:
         return baseUrl;
     }

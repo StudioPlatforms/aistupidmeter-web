@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { slugifyModelName } from '../lib/model-slug';
 
 interface Model {
   id: string;
@@ -133,7 +134,7 @@ export default function IntelligencePreview() {
                   <div className="rv4-intel-card-rank">#{model.rank}</div>
                   <div className="rv4-intel-card-actions">
                     <a
-                      href={`/models/${model.id}`}
+                      href={`/models/${slugifyModelName(model.name) || model.id}`}
                       className="rv4-ctrl-btn"
                       style={{ fontSize: '10px', flex: 1, textAlign: 'center', textDecoration: 'none' }}
                     >

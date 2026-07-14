@@ -10,9 +10,11 @@ export const metadata: Metadata = {
     'AI bias detection data', 'Enterprise AI benchmarking', 'AI model monitoring team',
     'Open source AI benchmarking', 'Transparent AI evaluation', 'AI performance monitoring company',
   ],
+  alternates: { canonical: '/about' },
   openGraph: {
     title: 'About AI Stupid Level | Independent AI Benchmarking',
     description: 'Independent watchdog platform for AI model performance. 100% transparent, open source, no vendor affiliations.',
+    url: 'https://aistupidlevel.info/about',
     type: 'website',
   }
 };

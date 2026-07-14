@@ -10,9 +10,11 @@ export const metadata: Metadata = {
     'AI drift detection explained', 'LLM benchmarking questions', 'AI performance testing FAQ',
     'How AI benchmarks work'
   ],
+  alternates: { canonical: '/faq' },
   openGraph: {
     title: 'Frequently Asked Questions | AI Benchmarking',
     description: 'Common questions about AI model benchmarking, performance testing, and drift detection answered.',
+    url: 'https://aistupidlevel.info/faq',
     type: 'website',
   }
 };

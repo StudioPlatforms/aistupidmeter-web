@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import ProviderLogo from '../ProviderLogo';
+import { slugifyModelName } from '../../lib/model-slug';
 
 const PROVIDER_KEYS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'] as const;
 type ProviderKey = typeof PROVIDER_KEYS[number];
@@ -204,6 +205,9 @@ export default function V4Leaderboard({
         const isHighlight = model.status === 'critical' || model.trend === 'down';
         const regime = regimeMap[model.status] || regimeMap.good;
 
+        // SEO-friendly slug for crawlable model links (falls back to id).
+        const modelHref = `/models/${slugifyModelName(model.name) || model.id}`;
+
         // Check for reasoning badge
         const usesReasoning = model.usesReasoningEffort;
 
@@ -217,7 +221,7 @@ export default function V4Leaderboard({
           <div
             key={model.id}
             className={`v4-lb-row ${isHighlight ? 'highlight' : ''}`}
-            onClick={() => router.push(`/models/${model.id}`)}
+            onClick={() => router.push(modelHref)}
           >
             {/* Rank */}
             <div style={{ textAlign: 'center' }}>
@@ -231,9 +235,13 @@ export default function V4Leaderboard({
               </span>
               <div style={{ minWidth: 0, overflow: 'hidden' }}>
                 <div className="v4-lb-model-name">
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <a
+                    href={modelHref}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); router.push(modelHref); }}
+                    style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: 'inherit', textDecoration: 'none' }}
+                  >
                     {model.displayName || model.name}
-                  </span>
+                  </a>
                   <span className="v4-lb-model-badges">
                     {usesReasoning && <span className="v4-tag v4-tag-blue">RSN</span>}
                     {hasIncident && <span className="v4-tag v4-tag-red">ALERT</span>}

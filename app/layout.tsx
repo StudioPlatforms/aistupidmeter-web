@@ -175,9 +175,10 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  verification: {
-    google: 'your-google-verification-code',
-  },
+  // NOTE: add your real Search Console token here (or verify via DNS/GA).
+  // A placeholder value emits an invalid verification meta tag, so it is omitted
+  // until a real code is available.
+  // verification: { google: 'REAL_CODE_HERE' },
   category: 'technology',
   classification: 'AI Tools',
   referrer: 'origin-when-cross-origin',
