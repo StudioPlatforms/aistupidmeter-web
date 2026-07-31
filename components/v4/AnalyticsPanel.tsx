@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { getModelPricing } from '../../lib/model-pricing';
 
 interface AnalyticsPanelProps {
   modelScores: any[];
@@ -84,47 +85,8 @@ const scoreBg = (v: number) =>
   v >= 80 ? 'var(--good-bg)' : v >= 65 ? 'var(--warn-bg)' : 'var(--bad-bg)';
 
 // OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
-const getModelPricing = (name: string, provider: string): { input: number; output: number } => {
-  const n = name.toLowerCase();
-  const p = provider.toLowerCase();
-  if (p === 'openai') {
-    if (n.includes('gpt-5') && n.includes('turbo')) return { input: 10, output: 30 };
-    if (n.includes('gpt-5') && n.includes('mini')) return { input: 0.25, output: 2 };
-    if (n.includes('gpt-5.2') || n.includes('gpt-5-2')) return { input: 1.75, output: 14 };
-    if (n.includes('gpt-5')) return { input: 1.25, output: 10 };
-    if (n.includes('o3-pro')) return { input: 60, output: 240 };
-    if (n.includes('o3-mini')) return { input: 3.5, output: 14 };
-    if (n.includes('o3')) return { input: 15, output: 60 };
-    if (n.includes('gpt-4o') && n.includes('mini')) return { input: 0.15, output: 0.6 };
-    if (n.includes('gpt-4o')) return { input: 2.5, output: 10 };
-    return { input: 3, output: 9 };
-  }
-  if (p === 'anthropic') {
-    // Note: Opus 4.1 legacy $15/$75; Opus 4.5/4.6 current $5/$25
-    if (n.includes('opus-4-1') || n.includes('opus-4.1')) return { input: 15, output: 75 };
-    if (n.includes('opus')) return { input: 5, output: 25 };
-    if (n.includes('sonnet')) return { input: 3, output: 15 };
-    if (n.includes('haiku')) return { input: 0.25, output: 1.25 };
-    return { input: 3, output: 15 };
-  }
-  if (p === 'xai' || p === 'x.ai') {
-    if (n.includes('grok-code-fast')) return { input: 0.20, output: 1.50 };
-    return { input: 3, output: 15 };
-  }
-  if (p === 'google') {
-    if (n.includes('gemini-3') && n.includes('pro')) return { input: 2, output: 12 };
-    if (n.includes('2.5-pro')) return { input: 1.25, output: 10 };
-    if (n.includes('flash-lite')) return { input: 0.1, output: 0.4 };
-    if (n.includes('2.5-flash')) return { input: 0.3, output: 2.5 };
-    if (n.includes('1.5-pro')) return { input: 1.25, output: 5 };
-    if (n.includes('1.5-flash')) return { input: 0.075, output: 0.3 };
-    return { input: 1, output: 3 };
-  }
-  if (p === 'deepseek') return { input: 0.28, output: 0.42 };
-  if (p === 'glm') return { input: 0.60, output: 2.20 };
-  if (p === 'kimi') return { input: 0.60, output: 2.50 };
-  return { input: 2, output: 6 };
-};
+// Pricing comes from the shared table in lib/model-pricing.ts so this panel
+// cannot disagree with the leaderboard or the model detail page.
 
 // Average axes across all history entries for the selected period
 function getAveragedAxes(history: any[]): Record<string, number> {

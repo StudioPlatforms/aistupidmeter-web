@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import ProviderLogo from '../ProviderLogo';
 import { slugifyModelName } from '../../lib/model-slug';
+import { getModelPricing } from '../../lib/model-pricing';
 
 const PROVIDER_KEYS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'] as const;
 type ProviderKey = typeof PROVIDER_KEYS[number];
@@ -52,47 +53,15 @@ const providerDotClass = (provider: string): string => {
   return map[provider?.toLowerCase()] || 'openai';
 };
 
-// OFFICIAL VERIFIED pricing (Feb 17, 2026) - Display format
-const getModelPricing = (name: string, provider: string): string => {
-  const n = name.toLowerCase();
-  const p = provider.toLowerCase();
-  if (p === 'openai') {
-    if (n.includes('gpt-5') && n.includes('turbo')) return '$10/$30';
-    if (n.includes('gpt-5') && n.includes('mini')) return '$0.25/$2';
-    if (n.includes('gpt-5.2') || n.includes('gpt-5-2')) return '$1.75/$14';
-    if (n.includes('gpt-5')) return '$1.25/$10';
-    if (n.includes('o3-pro')) return '$60/$240';
-    if (n.includes('o3-mini')) return '$3.5/$14';
-    if (n.includes('o3')) return '$15/$60';
-    if (n.includes('gpt-4o') && n.includes('mini')) return '$0.15/$0.6';
-    if (n.includes('gpt-4o')) return '$2.5/$10';
-    return '$3/$9';
-  }
-  if (p === 'anthropic') {
-    // Note: Opus 4.1 legacy $15/$75; Opus 4.5/4.6 current $5/$25
-    if (n.includes('opus-4-1') || n.includes('opus-4.1')) return '$15/$75';
-    if (n.includes('opus')) return '$5/$25';
-    if (n.includes('sonnet')) return '$3/$15';
-    if (n.includes('haiku')) return '$0.25/$1.25';
-    return '$3/$15';
-  }
-  if (p === 'xai' || p === 'x.ai') {
-    if (n.includes('grok-code-fast')) return '$0.20/$1.50';
-    return '$3/$15';
-  }
-  if (p === 'google') {
-    if (n.includes('gemini-3') && n.includes('pro')) return '$2/$12';
-    if (n.includes('2.5-pro')) return '$1.25/$10';
-    if (n.includes('flash-lite')) return '$0.1/$0.4';
-    if (n.includes('2.5-flash')) return '$0.3/$2.5';
-    if (n.includes('1.5-pro')) return '$1.25/$5';
-    if (n.includes('1.5-flash')) return '$0.075/$0.3';
-    return '$1/$3';
-  }
-  if (p === 'deepseek') return '$0.28/$0.42';
-  if (p === 'glm') return '$0.60/$2.20';
-  if (p === 'kimi') return '$0.60/$2.50';
-  return '$2/$6';
+// Formats the shared pricing table (lib/model-pricing.ts) for the $/1M column.
+// This used to be a sixth independent copy of the price list and was the one
+// actually rendered on ?sortBy=price, so it is what users saw: Fable 5 fell
+// through to $3/$15, every GPT-5.x to $1.25/$10, and Gemini 3.1 Flash Lite
+// matched the 2.5-era 'flash-lite' rule at $0.1/$0.4.
+const fmt = (n: number): string => `$${Number(n.toFixed(4))}`;
+const getModelPricingLabel = (name: string, provider: string): string => {
+  const p = getModelPricing(name, provider);
+  return `${fmt(p.input)}/${fmt(p.output)}`;
 };
 
 function formatTimeAgo(date: Date | string): string {
@@ -283,7 +252,7 @@ export default function V4Leaderboard({
             {/* Price */}
             <div style={{ textAlign: 'center', fontSize: '10px' }} className="v4-col-price">
               <span style={{ color: 'var(--phosphor-dim)' }}>
-                {getModelPricing(model.name, model.provider)}
+                {getModelPricingLabel(model.name, model.provider)}
               </span>
             </div>
 

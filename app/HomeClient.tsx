@@ -14,6 +14,7 @@ import ShareButton from '../components/ShareButton';
 // PHASE 3: Drift detection components
 import DriftAwareModelCard from '../components/DriftAwareModelCard';
 import DriftHeatmap from '../components/DriftHeatmap';
+import { getModelPricing } from '../lib/model-pricing';
 // V4 layout components
 import {
   TopBar,
@@ -1638,81 +1639,11 @@ export default function Dashboard() {
   };
 
   // OFFICIAL VERIFIED pricing (Feb 17, 2026 08:20:12 UTC) - USD per 1M tokens
-  const getModelPricing = (modelName: string, provider: string): { input: number; output: number } => {
-    const name = modelName.toLowerCase();
-    const prov = provider.toLowerCase();
-    
-  if (prov === 'openai') {
-    // GPT-5 series
-    if (name.includes('gpt-5') && name.includes('turbo')) return { input: 10, output: 30 };
-    if (name.includes('gpt-5') && name.includes('nano')) return { input: 0.05, output: 0.40 };
-    if (name.includes('gpt-5') && name.includes('mini')) return { input: 0.25, output: 2.00 };
-    if (name.includes('gpt-5.2') || name.includes('gpt-5-2')) return { input: 1.75, output: 14.00 };
-    if (name.includes('gpt-5') && name.includes('codex')) return { input: 1.25, output: 10.00 };
-    if (name.includes('gpt-5')) return { input: 1.25, output: 10.00 };
-    // O3 series
-    if (name.includes('o3-pro')) return { input: 60, output: 240 };
-    if (name.includes('o3-mini')) return { input: 3.5, output: 14 };
-    if (name.includes('o3')) return { input: 15, output: 60 };
-    // GPT-4 series
-    if (name.includes('gpt-4o') && name.includes('mini')) return { input: 0.15, output: 0.6 };
-    if (name.includes('gpt-4o')) return { input: 2.50, output: 10.00 };
-    return { input: 3, output: 9 }; // Default OpenAI
-  }
-    
-    if (prov === 'anthropic') {
-      // Claude 4 series - Official Anthropic pricing (verified Feb 17, 2026)
-      // Note: Opus 4.1 legacy $15/$75; Opus 4.5/4.6 current $5/$25
-      if (name.includes('opus-4-1') || name.includes('opus-4.1')) return { input: 15, output: 75 }; // Legacy
-      if (name.includes('opus-4.5') || name.includes('opus-4-5')) return { input: 5, output: 25 };
-      if (name.includes('opus-4.6') || name.includes('opus-4-6')) return { input: 5, output: 25 };
-      if (name.includes('opus-4')) return { input: 5, output: 25 }; // Current Opus
-      if (name.includes('sonnet-4.5') || name.includes('sonnet-4-5')) return { input: 3, output: 15 };
-      if (name.includes('sonnet-4') || name.includes('3-7-sonnet')) return { input: 3, output: 15 };
-      if (name.includes('haiku-4')) return { input: 0.25, output: 1.25 };
-      if (name.includes('3-5-sonnet')) return { input: 3, output: 15 };
-      if (name.includes('3-5-haiku')) return { input: 0.25, output: 1.25 };
-      return { input: 3, output: 15 }; // Default Anthropic
-    }
-    
-    if (prov === 'xai' || prov === 'x.ai') {
-      // xAI / Grok - Official pricing (verified Feb 17, 2026)
-      if (name.includes('grok-3') && name.includes('mini')) return { input: 0.30, output: 0.50 };
-      if (name.includes('grok-3')) return { input: 3, output: 15 };
-      if (name.includes('grok-4-0709')) return { input: 3, output: 15 };
-      if (name.includes('grok-4-latest')) return { input: 3, output: 15 };
-      if (name.includes('grok-code-fast')) return { input: 0.20, output: 1.50 };
-      if (name.includes('grok-4')) return { input: 3, output: 15 };
-      return { input: 3, output: 15 }; // Default xAI
-    }
-    
-    if (prov === 'google') {
-      // Google Gemini - Official pricing (verified Feb 17, 2026)
-      if (name.includes('gemini-3') && name.includes('pro')) return { input: 2, output: 12 };
-      // Gemini 2.5 series
-      if (name.includes('2.5-pro')) return { input: 1.25, output: 10.00 };
-      if (name.includes('2.5-flash-lite')) return { input: 0.10, output: 0.40 };
-      if (name.includes('2.5-flash')) return { input: 0.30, output: 2.50 };
-      // Gemini 1.5 series
-      if (name.includes('1.5-pro')) return { input: 1.25, output: 5 };
-      if (name.includes('1.5-flash')) return { input: 0.075, output: 0.3 };
-      return { input: 1, output: 3 }; // Default Google
-    }
-    
-    if (prov === 'deepseek') {
-      return { input: 0.28, output: 0.42 }; // DeepSeek - cache miss pricing
-    }
-    
-    if (prov === 'glm') {
-      return { input: 0.60, output: 2.20 }; // Zhipu AI GLM-4
-    }
-    
-    if (prov === 'kimi') {
-      return { input: 0.60, output: 2.50 }; // Moonshot AI Kimi K2
-    }
-    
-    return { input: 2, output: 6 }; // Default fallback
-  };
+  // Model pricing moved to lib/model-pricing.ts, shared with the model detail
+  // page and mirroring apps/api/src/lib/model-pricing.ts. The copy that used to
+  // live here was the most stale of the five that existed: it had no GPT-5.5/5.6,
+  // no Opus 5 / Sonnet 5 / Fable 5 and no Gemini 3.1 Flash Lite, so those models
+  // silently fell through to generic per-vendor defaults on the price view.
 
   // State for ticker content with fun messages - use useRef to avoid re-renders
   const [tickerContent, setTickerContent] = useState<string[]>([

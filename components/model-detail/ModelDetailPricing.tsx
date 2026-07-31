@@ -1,56 +1,8 @@
 'use client';
 
-// OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
-const getModelPricing = (name: string, provider: string): { input: number; output: number } => {
-  const n = name.toLowerCase();
-  const p = provider.toLowerCase();
-  if (p === 'openai') {
-    if (n.includes('gpt-5') && n.includes('turbo')) return { input: 10, output: 30 };
-    if (n.includes('gpt-5') && n.includes('nano')) return { input: 0.05, output: 0.40 };
-    if (n.includes('gpt-5') && n.includes('mini')) return { input: 0.25, output: 2.0 };
-    if (n.includes('gpt-5.2') || n.includes('gpt-5-2')) return { input: 1.75, output: 14.0 };
-    if (n.includes('gpt-5') && n.includes('codex')) return { input: 1.25, output: 10.0 };
-    if (n.includes('gpt-5')) return { input: 1.25, output: 10.0 };
-    if (n.includes('o3-pro')) return { input: 60, output: 240 };
-    if (n.includes('o3-mini')) return { input: 3.5, output: 14 };
-    if (n.includes('o3')) return { input: 15, output: 60 };
-    if (n.includes('gpt-4o') && n.includes('mini')) return { input: 0.15, output: 0.6 };
-    if (n.includes('gpt-4o')) return { input: 2.5, output: 10 };
-    return { input: 3, output: 9 };
-  }
-  if (p === 'anthropic') {
-    if (n.includes('opus-4-1') || n.includes('opus-4.1')) return { input: 15, output: 75 };
-    if (n.includes('opus-4.5') || n.includes('opus-4-5')) return { input: 5, output: 25 };
-    if (n.includes('opus-4.6') || n.includes('opus-4-6')) return { input: 5, output: 25 };
-    if (n.includes('opus-4')) return { input: 5, output: 25 };
-    if (n.includes('sonnet-4.5') || n.includes('sonnet-4-5')) return { input: 3, output: 15 };
-    if (n.includes('sonnet-4') || n.includes('3-7-sonnet')) return { input: 3, output: 15 };
-    if (n.includes('haiku-4')) return { input: 0.25, output: 1.25 };
-    if (n.includes('3-5-sonnet')) return { input: 3, output: 15 };
-    if (n.includes('3-5-haiku')) return { input: 0.25, output: 1.25 };
-    return { input: 3, output: 15 };
-  }
-  if (p === 'xai' || p === 'x.ai') {
-    if (n.includes('grok-code-fast')) return { input: 0.20, output: 1.50 };
-    if (n.includes('grok-4')) return { input: 3, output: 15 };
-    if (n.includes('grok-3') && n.includes('mini')) return { input: 0.30, output: 0.50 };
-    if (n.includes('grok-3')) return { input: 3, output: 15 };
-    return { input: 3, output: 15 };
-  }
-  if (p === 'google') {
-    if (n.includes('gemini-3') && n.includes('pro')) return { input: 2, output: 12 };
-    if (n.includes('2.5-pro')) return { input: 1.25, output: 10 };
-    if (n.includes('2.5-flash-lite')) return { input: 0.10, output: 0.40 };
-    if (n.includes('2.5-flash')) return { input: 0.30, output: 2.50 };
-    if (n.includes('1.5-pro')) return { input: 1.25, output: 5 };
-    if (n.includes('1.5-flash')) return { input: 0.075, output: 0.3 };
-    return { input: 1, output: 3 };
-  }
-  if (p === 'deepseek') return { input: 0.28, output: 0.42 };
-  if (p === 'glm') return { input: 0.60, output: 2.20 };
-  if (p === 'kimi') return { input: 0.60, output: 2.50 };
-  return { input: 2, output: 6 };
-};
+// Pricing comes from lib/model-pricing.ts, shared with the leaderboard price
+// view so the two can never quote different numbers for the same model.
+import { getModelPricing } from '../../lib/model-pricing';
 
 interface ModelDetailPricingProps {
   modelName: string;

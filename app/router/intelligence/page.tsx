@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
+import { getModelPricing as sharedModelPricing } from '../../../lib/model-pricing';
 
 // Module-level helpers shared by both components
 const getTrendLabel = (trend: string) => trend === 'up' ? '▲' : trend === 'down' ? '▼' : '→';
@@ -464,44 +465,15 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
   const lowest = validScores.length > 0 ? validScores.reduce((min, m) => (m.currentScore as number) < (min.currentScore as number) ? m : min) : null;
   const avgScore = validScores.length > 0 ? validScores.reduce((sum, m) => sum + (m.currentScore as number), 0) / validScores.length : 0;
 
+  // Rates come from the shared table in lib/model-pricing.ts; the blended cost
+  // and value score are derived here, same formula as the leaderboard.
   const getModelPricing = (model: any) => {
-    const name = model.name.toLowerCase();
-    const prov = model.provider.toLowerCase();
-    let p = { input: 0, output: 0 };
-    if (prov === 'openai') {
-      if (name.includes('gpt-5') && name.includes('turbo')) p = { input: 10, output: 30 };
-      else if (name.includes('gpt-5-nano')) p = { input: 0.05, output: 0.40 };
-      else if (name.includes('gpt-5-mini')) p = { input: 0.25, output: 2.0 };
-      else if (name.includes('gpt-5')) p = { input: 1.25, output: 10.0 };
-      else if (name.includes('o3-pro')) p = { input: 60, output: 240 };
-      else if (name.includes('o3-mini')) p = { input: 3.5, output: 14 };
-      else if (name.includes('o3')) p = { input: 15, output: 60 };
-      else if (name.includes('gpt-4o') && name.includes('mini')) p = { input: 0.15, output: 0.6 };
-      else if (name.includes('gpt-4o')) p = { input: 2.5, output: 10 };
-      else p = { input: 5, output: 15 };
-    } else if (prov === 'anthropic') {
-      if (name.includes('opus-4-1') || name.includes('opus-4.1')) p = { input: 15, output: 75 };
-      else if (name.includes('opus-4')) p = { input: 5, output: 25 };
-      else if (name.includes('sonnet-4')) p = { input: 3, output: 15 };
-      else if (name.includes('haiku-4')) p = { input: 0.25, output: 1.25 };
-      else p = { input: 3, output: 15 };
-    } else if (prov === 'xai' || prov === 'x.ai') {
-      if (name.includes('grok-code-fast')) p = { input: 0.20, output: 1.50 };
-      else p = { input: 3, output: 15 };
-    } else if (prov === 'google') {
-      if (name.includes('2.5-pro')) p = { input: 1.25, output: 10 };
-      else if (name.includes('2.5-flash-lite')) p = { input: 0.10, output: 0.40 };
-      else if (name.includes('2.5-flash')) p = { input: 0.30, output: 2.50 };
-      else p = { input: 2, output: 6 };
-    } else if (prov === 'deepseek') p = { input: 0.28, output: 0.42 };
-    else if (prov === 'glm') p = { input: 0.60, output: 2.20 };
-    else if (prov === 'kimi') p = { input: 0.60, output: 2.50 };
-    else p = { input: 3, output: 10 };
-
+    const p = sharedModelPricing(model.name, model.provider);
     const estimatedCost = (p.input * 0.4) + (p.output * 0.6);
     const valueScore = model.currentScore > 0 ? (model.currentScore / estimatedCost).toFixed(1) : '0.0';
     return { ...p, estimatedCost, valueScore };
   };
+
 
   const LINE_COLORS = ['var(--phosphor-green)', '#1a73e8', '#ff8c00', '#8a2be2'];
 
