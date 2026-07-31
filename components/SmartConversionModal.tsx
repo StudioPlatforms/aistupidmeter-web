@@ -110,210 +110,54 @@ export default function SmartConversionModal({ isOpen, onClose, context = 'defau
   const content = getContent();
 
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000,
-        padding: '20px',
-        animation: 'fadeIn 0.3s ease-out'
-      }}
+    <div
+      className="pro-modal"
       onClick={handleClose}
     >
-      <div 
-        className="crt-monitor"
-        style={{
-          maxWidth: '600px',
-          width: '100%',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          padding: window.innerWidth < 768 ? '20px' : '32px',
-          backgroundColor: 'var(--terminal-black)',
-          border: '3px solid var(--phosphor-green)',
-          borderRadius: '8px',
-          boxShadow: '0 0 30px var(--phosphor-green)',
-          animation: 'slideUp 0.3s ease-out',
-          position: 'relative'
-        }}
+      <div
+        className="pro-modal-card"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
-        <button
-          onClick={handleClose}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'none',
-            border: 'none',
-            color: 'var(--phosphor-green)',
-            fontSize: '1.5em',
-            cursor: 'pointer',
-            padding: '4px 8px',
-            opacity: 0.7,
-            transition: 'opacity 0.2s'
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.opacity = '1')}
-          onMouseOut={(e) => (e.currentTarget.style.opacity = '0.7')}
-        >
-          ×
-        </button>
+        <button className="pro-modal-close" onClick={handleClose} aria-label="Close">×</button>
 
-        <div className="terminal-text">
-          {/* Icon & Title */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <div style={{ fontSize: '3em', marginBottom: '12px' }}>
-              {content.icon}
-            </div>
-            <h2 style={{ 
-              fontSize: window.innerWidth < 768 ? '1.3em' : '1.6em',
-              marginBottom: '8px',
-              color: 'var(--phosphor-green)',
-              textShadow: '0 0 10px var(--phosphor-green)'
-            }}>
-              {content.title}
-            </h2>
-            <p className="terminal-text--dim" style={{ 
-              fontSize: window.innerWidth < 768 ? '0.9em' : '1em'
-            }}>
-              {content.subtitle}
-            </p>
+        {/* Badge with icon */}
+        <span className="pro-modal-badge">{content.icon} PRO</span>
+
+        {/* Title & subtitle */}
+        <div className="pro-modal-title">{content.title}</div>
+        <div className="pro-modal-sub">{content.subtitle}</div>
+
+        {/* Benefits */}
+        <ul className="pro-modal-features">
+          {content.benefits.map((benefit, index) => (
+            <li key={index}>
+              <span className="pro-modal-check">✓</span>
+              <span>{benefit}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Pricing */}
+        <div className="pro-modal-pricebox">
+          <div className="pro-modal-price">
+            <s>$49.99</s>
+            <b>$4.99</b>
+            <span>/month</span>
           </div>
+          <div className="pro-modal-priceline">7-day free trial · cancel anytime</div>
+        </div>
 
-          {/* Benefits */}
-          <div style={{ 
-            marginBottom: '24px',
-            padding: '20px',
-            backgroundColor: 'rgba(26, 115, 232, 0.05)',
-            border: '1px solid rgba(26, 115, 232, 0.2)',
-            borderRadius: '6px'
-          }}>
-            {content.benefits.map((benefit, index) => (
-              <div 
-                key={index}
-                style={{ 
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '12px',
-                  marginBottom: index < content.benefits.length - 1 ? '12px' : '0',
-                  fontSize: window.innerWidth < 768 ? '0.9em' : '1em'
-                }}
-              >
-                <span className="terminal-text--green" style={{ fontSize: '1.2em', flexShrink: 0 }}>
-                  ✓
-                </span>
-                <span className="terminal-text">
-                  {benefit}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Pricing */}
-          <div style={{ 
-            textAlign: 'center',
-            marginBottom: '24px',
-            padding: '16px',
-            backgroundColor: 'rgba(255, 165, 0, 0.08)',
-            border: '2px solid var(--amber-warning)',
-            borderRadius: '6px'
-          }}>
-            <div className="terminal-text--dim" style={{ 
-              fontSize: '0.9em',
-              textDecoration: 'line-through',
-              marginBottom: '4px'
-            }}>
-              $49.99/month
-            </div>
-            <div style={{ 
-              fontSize: window.innerWidth < 768 ? '2em' : '2.5em',
-              fontWeight: 'bold',
-              color: 'var(--amber-warning)',
-              textShadow: '0 0 10px var(--amber-warning)',
-              lineHeight: '1',
-              marginBottom: '8px'
-            }}>
-              $4.99<span style={{ fontSize: '0.4em' }}>/mo</span>
-            </div>
-            <div className="terminal-text--green" style={{ 
-              fontSize: '1em',
-              fontWeight: 'bold',
-              marginBottom: '4px'
-            }}>
-              🎉 7-Day Free Trial
-            </div>
-            <div className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-              No credit card • Cancel anytime
-            </div>
-          </div>
-
-          {/* CTA Button */}
-          <button
-            onClick={handleStartTrial}
-            className="vintage-btn vintage-btn--active"
-            style={{
-              width: '100%',
-              padding: '16px 32px',
-              fontSize: window.innerWidth < 768 ? '1em' : '1.1em',
-              fontWeight: 'bold',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              background: 'linear-gradient(135deg, var(--phosphor-green), var(--phosphor-dim))',
-              border: '2px solid var(--phosphor-green)',
-              color: 'var(--terminal-black)',
-              boxShadow: '0 0 20px rgba(26, 115, 232, 0.4)',
-              marginBottom: '16px'
-            }}
-          >
+        {/* Actions */}
+        <div className="pro-modal-actions">
+          <button className="pro-modal-btn primary" onClick={handleStartTrial}>
             {content.cta} →
           </button>
-
-          {/* Footer */}
-          <div style={{ textAlign: 'center' }}>
-            <button
-              onClick={handleClose}
-              className="terminal-text--dim"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '0.85em',
-                textDecoration: 'underline',
-                padding: '8px'
-              }}
-            >
-              Maybe later
-            </button>
-          </div>
+          <button className="pro-modal-btn ghost" onClick={handleClose}>
+            Maybe later
+          </button>
         </div>
       </div>
-
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(30px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `
-      }} />
     </div>
   );
 }

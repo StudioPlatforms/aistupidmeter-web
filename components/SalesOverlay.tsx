@@ -7,6 +7,7 @@ export default function SalesOverlay() {
 
   return (
     <div className="rv4-body">
+      <div className="rv4-upgrade-container">
       {/* Hero */}
       <div className="rv4-upgrade-hero">
         <div className="rv4-upgrade-hero-title">STOP OVERPAYING FOR AI<span className="blinking-cursor"></span></div>
@@ -161,6 +162,7 @@ export default function SalesOverlay() {
       <div className="rv4-footer">
         Powered by AI Stupid Meter • Real-time intelligence from 16+ models • <a href="/">View Live Rankings</a>
       </div>
+      </div>{/* /rv4-upgrade-container */}
     </div>
   );
 }

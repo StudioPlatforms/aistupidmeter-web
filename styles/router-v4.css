@@ -975,22 +975,35 @@
   justify-content: center;
   z-index: 10;
   border-radius: 3px;
-  gap: 10px;
+  gap: 8px;
+  padding: 12px;
 }
-.rv4-pro-lock-icon { font-size: 28px; }
+.rv4-pro-lock-icon { font-size: 24px; }
 .rv4-pro-lock-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   color: var(--phosphor-green);
   text-align: center;
   letter-spacing: 0.5px;
 }
 .rv4-pro-lock-text {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--phosphor-dim);
   text-align: center;
-  max-width: 320px;
-  line-height: 1.5;
+  max-width: 280px;
+  line-height: 1.4;
+}
+
+/* ── Upgrade page container: keep content compact on wide screens ── */
+.rv4-upgrade-container {
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 680px) {
+  .rv4-upgrade-container {
+    max-width: 100%;
+  }
 }
 
 /* ═══ UPGRADE CTA BANNERS ═══ */
@@ -1001,37 +1014,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 8px 12px;
   border: 1px solid var(--amber-warning, #ffb000);
   background: rgba(255, 176, 0, 0.08);
   border-radius: 3px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 .rv4-upgrade-sticky-msg {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 .rv4-upgrade-sticky-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: bold;
   color: var(--amber-warning);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 .rv4-upgrade-sticky-sub {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--phosphor-dim);
   margin-top: 1px;
+}
+@media (max-width: 480px) {
+  .rv4-upgrade-sticky {
+    padding: 6px 10px;
+    gap: 6px;
+  }
+  .rv4-upgrade-sticky-title { font-size: 10px; }
+  .rv4-upgrade-sticky-sub { font-size: 9px; }
 }
 
 .rv4-upgrade-hero {
   background: linear-gradient(135deg, rgba(26, 115, 232, 0.06), rgba(0, 0, 0, 0.2));
   border: 2px solid var(--phosphor-green);
   border-radius: 4px;
-  padding: 24px 20px;
-  margin-bottom: 16px;
+  padding: 20px 16px;
+  margin-bottom: 14px;
   text-align: center;
   position: relative;
   overflow: hidden;
@@ -1055,21 +1077,21 @@
 }
 
 .rv4-upgrade-hero-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   color: var(--phosphor-green);
   text-shadow: 0 0 8px rgba(26, 115, 232, 0.5);
-  letter-spacing: 2px;
-  margin-bottom: 6px;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
 }
 .rv4-upgrade-hero-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--amber-warning);
-  margin-bottom: 16px;
-  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+  letter-spacing: 0.4px;
 }
 .rv4-upgrade-price {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: bold;
   color: var(--amber-warning);
   text-shadow: 0 0 10px rgba(255, 176, 0, 0.5);
@@ -1081,71 +1103,93 @@
   color: var(--phosphor-dim);
 }
 .rv4-upgrade-price-original {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--phosphor-dim);
   text-decoration: line-through;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .rv4-upgrade-trial-badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
   color: var(--phosphor-green);
   border: 1px solid rgba(26, 115, 232, 0.4);
-  padding: 3px 12px;
-  margin-bottom: 12px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
+}
+
+/* Responsive: smaller screens get even more compact hero */
+@media (max-width: 820px) {
+  .rv4-upgrade-hero {
+    padding: 16px 12px;
+    border-width: 1.5px;
+    margin-bottom: 12px;
+  }
+  .rv4-upgrade-hero-title { font-size: 15px; letter-spacing: 1px; }
+  .rv4-upgrade-hero-sub { font-size: 10px; margin-bottom: 10px; }
+  .rv4-upgrade-price { font-size: 24px; }
+  .rv4-upgrade-price-original { font-size: 10px; }
+  .rv4-upgrade-trial-badge { font-size: 9px; padding: 2px 8px; }
+}
+@media (max-width: 480px) {
+  .rv4-upgrade-hero {
+    padding: 14px 10px;
+  }
+  .rv4-upgrade-hero-title { font-size: 14px; }
+  .rv4-upgrade-hero-sub { font-size: 9.5px; }
+  .rv4-upgrade-price { font-size: 22px; }
 }
 
 .rv4-upgrade-benefits {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
 }
 .rv4-upgrade-benefit {
   background: rgba(0,0,0,0.04);
   border: 1px solid rgba(26, 115, 232, 0.15);
   border-radius: 3px;
-  padding: 12px;
+  padding: 10px;
   text-align: center;
 }
-.rv4-upgrade-benefit-icon { font-size: 20px; margin-bottom: 6px; }
+.rv4-upgrade-benefit-icon { font-size: 16px; margin-bottom: 4px; }
 .rv4-upgrade-benefit-title {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: bold;
   color: var(--phosphor-green);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.3px;
 }
 .rv4-upgrade-benefit-desc {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--phosphor-dim);
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .rv4-upgrade-cta {
   display: block;
   width: 100%;
-  max-width: 360px;
+  max-width: 320px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 12px 20px;
   background: var(--phosphor-green);
   border: none;
   color: var(--terminal-black);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: bold;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 0 20px rgba(26, 115, 232, 0.4);
+  box-shadow: 0 0 16px rgba(26, 115, 232, 0.35);
   text-decoration: none;
 }
 .rv4-upgrade-cta:hover {
-  box-shadow: 0 0 30px rgba(26, 115, 232, 0.6);
+  box-shadow: 0 0 24px rgba(26, 115, 232, 0.5);
   transform: translateY(-1px);
 }
 .rv4-upgrade-cta:active {
@@ -1161,9 +1205,38 @@
   background: rgba(26, 115, 232, 0.1);
 }
 .rv4-upgrade-fine-print {
-  font-size: 10px;
+  font-size: 9.5px;
   color: var(--phosphor-dim);
-  margin-top: 8px;
+  margin-top: 6px;
+}
+
+/* Responsive: smaller screens */
+@media (max-width: 820px) {
+  .rv4-upgrade-benefits {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 6px;
+  }
+  .rv4-upgrade-benefit { padding: 8px; }
+  .rv4-upgrade-benefit-icon { font-size: 14px; }
+  .rv4-upgrade-benefit-title { font-size: 10px; }
+  .rv4-upgrade-benefit-desc { font-size: 9px; }
+  .rv4-upgrade-cta {
+    max-width: 280px;
+    padding: 10px 16px;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+  }
+}
+@media (max-width: 480px) {
+  .rv4-upgrade-benefits {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .rv4-upgrade-cta {
+    max-width: 100%;
+    font-size: 10.5px;
+    padding: 10px 14px;
+  }
 }
 
 .rv4-pain-points {

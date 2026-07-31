@@ -399,12 +399,36 @@ a:hover { color: var(--accent-ink); }
 
 /* ── Mobile controls: compact dropdown pills (Period / Sort / View) ──── */
 .v4-controls-mobile { display: none; }
+/* Desktop ad banner image in controls bar */
+.v4-ctrl-ad {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  transform: translateX(30%);
+}
+.v4-ctrl-ad img {
+  height: 28px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+/* Mobile ad banner above stupid meter */
+.v4-mobile-ad {
+  display: none;
+}
+.v4-mobile-ad img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform: translateX(10%);
+}
 @media (max-width: 599px) {
   /* hide the desktop segmented controls, show the dropdown row */
   .v4-controls > .v4-ctrl-label,
   .v4-controls > .v4-ctrl-group,
   .v4-controls > .v4-ctrl-sep,
-  .v4-controls > .v4-ctrl-right { display: none !important; }
+  .v4-controls > .v4-ctrl-right,
+  .v4-controls > .v4-ctrl-ad { display: none !important; }
   .v4-controls {
     flex-wrap: nowrap !important;
     overflow: visible !important;
@@ -412,6 +436,7 @@ a:hover { color: var(--accent-ink); }
     gap: 0 !important;
   }
   .v4-controls-mobile { display: flex !important; width: 100%; gap: 8px; }
+  .v4-mobile-ad { display: block !important; }
   .v4-mc-item { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .v4-mc-label {
     font-size: 9px; font-weight: 600; text-transform: uppercase;
@@ -451,55 +476,55 @@ a:hover { color: var(--accent-ink); }
 }
 .pro-modal-card {
   position: relative;
-  width: 100%; max-width: 430px;
+  width: 100%; max-width: 400px;
   background: var(--terminal-dark);
   border: 1px solid var(--metal-silver);
-  border-radius: 16px;
-  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.28);
-  padding: 26px 24px 22px;
-  max-height: 92vh; overflow-y: auto;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.22);
+  padding: 22px 20px 18px;
+  max-height: 88vh; overflow-y: auto;
   animation: proModalRise .22s cubic-bezier(.2,.7,.2,1);
 }
 .pro-modal-close {
-  position: absolute; top: 12px; right: 12px;
-  width: 30px; height: 30px; border-radius: 8px;
+  position: absolute; top: 10px; right: 10px;
+  width: 28px; height: 28px; border-radius: 7px;
   border: none; background: transparent; color: var(--phosphor-dim);
-  font-size: 18px; line-height: 1; cursor: pointer;
+  font-size: 16px; line-height: 1; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .pro-modal-close:hover { background: var(--terminal-black); color: var(--phosphor-green); }
 .pro-modal-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 10.5px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
   color: var(--accent); background: var(--accent-bg);
-  padding: 4px 10px; border-radius: 999px;
+  padding: 3px 8px; border-radius: 999px;
 }
 .pro-modal-title {
-  font-family: var(--font-display); font-weight: 600; font-size: 20px; line-height: 1.25;
-  color: var(--phosphor-green); margin: 14px 0 6px; letter-spacing: -0.2px;
+  font-family: var(--font-display); font-weight: 600; font-size: 18px; line-height: 1.25;
+  color: var(--phosphor-green); margin: 10px 0 4px; letter-spacing: -0.1px;
 }
-.pro-modal-sub { font-size: 13.5px; line-height: 1.5; color: var(--phosphor-dim); }
-.pro-modal-features { list-style: none; margin: 18px 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
-.pro-modal-features li { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.45; color: var(--phosphor-green); }
+.pro-modal-sub { font-size: 12.5px; line-height: 1.45; color: var(--phosphor-dim); }
+.pro-modal-features { list-style: none; margin: 14px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pro-modal-features li { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; line-height: 1.4; color: var(--phosphor-green); }
 .pro-modal-check {
-  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
+  flex-shrink: 0; width: 16px; height: 16px; border-radius: 50%;
   background: var(--accent-bg); color: var(--accent);
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 700; margin-top: 1px;
+  font-size: 9px; font-weight: 700; margin-top: 1px;
 }
 .pro-modal-pricebox {
-  text-align: center; padding: 14px; border-radius: 12px;
+  text-align: center; padding: 12px; border-radius: 10px;
   background: var(--terminal-black); border: 1px solid var(--metal-silver);
 }
-.pro-modal-price { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
-.pro-modal-price b { font-family: var(--font-display); font-weight: 700; font-size: 26px; color: var(--phosphor-green); letter-spacing: -0.5px; }
-.pro-modal-price span { font-size: 14px; color: var(--phosphor-dim); }
-.pro-modal-price s { font-size: 14px; color: var(--phosphor-dim); }
-.pro-modal-priceline { font-size: 12px; color: var(--phosphor-dim); margin-top: 5px; }
-.pro-modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.pro-modal-price { display: flex; align-items: baseline; justify-content: center; gap: 6px; }
+.pro-modal-price b { font-family: var(--font-display); font-weight: 700; font-size: 22px; color: var(--phosphor-green); letter-spacing: -0.3px; }
+.pro-modal-price span { font-size: 12.5px; color: var(--phosphor-dim); }
+.pro-modal-price s { font-size: 12.5px; color: var(--phosphor-dim); }
+.pro-modal-priceline { font-size: 11px; color: var(--phosphor-dim); margin-top: 4px; }
+.pro-modal-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
 .pro-modal-btn {
-  width: 100%; padding: 12px 16px; border-radius: 10px;
-  font-family: var(--font-mono); font-weight: 600; font-size: 14px;
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  font-family: var(--font-mono); font-weight: 600; font-size: 13px;
   cursor: pointer; border: 1px solid transparent; transition: background .15s, border-color .15s, color .15s;
 }
 .pro-modal-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -507,14 +532,39 @@ a:hover { color: var(--accent-ink); }
 .pro-modal-btn.ghost { background: transparent; color: var(--phosphor-dim); border-color: var(--metal-silver); font-weight: 500; }
 .pro-modal-btn.ghost:hover { background: var(--terminal-black); color: var(--phosphor-green); }
 
-@media (max-width: 599px) {
-  .pro-modal { padding: 0; align-items: flex-end; }
+/* Medium-small screens (e.g. 14" laptops at lower scaling, tablets landscape) */
+@media (max-width: 820px) and (min-width: 600px) {
   .pro-modal-card {
-    max-width: 100%; border-radius: 18px 18px 0 0;
-    padding: 20px 18px calc(18px + env(safe-area-inset-bottom));
+    max-width: 360px;
+    padding: 18px 16px 14px;
+  }
+  .pro-modal-title { font-size: 16px; }
+  .pro-modal-sub, .pro-modal-features li { font-size: 11.5px; }
+  .pro-modal-price b { font-size: 20px; }
+}
+
+@media (max-width: 599px) {
+  .pro-modal { padding: 8px; align-items: center; }
+  .pro-modal-card {
+    max-width: 100%; width: calc(100% - 16px);
+    border-radius: 14px;
+    padding: 18px 16px calc(14px + env(safe-area-inset-bottom));
     animation: proModalRise .24s cubic-bezier(.2,.7,.2,1);
   }
-  .pro-modal-title { font-size: 18px; }
-  .pro-modal-sub, .pro-modal-features li { font-size: 13px; }
+  .pro-modal-title { font-size: 16px; }
+  .pro-modal-sub, .pro-modal-features li { font-size: 11.5px; }
+  .pro-modal-features { gap: 6px; margin: 10px 0; }
+  .pro-modal-price b { font-size: 20px; }
+  .pro-modal-btn { padding: 10px 14px; font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .pro-modal-card {
+    padding: 14px 12px 12px;
+    border-radius: 12px;
+  }
+  .pro-modal-title { font-size: 15px; margin: 8px 0 3px; }
+  .pro-modal-sub, .pro-modal-features li { font-size: 11px; }
+  .pro-modal-price b { font-size: 18px; }
+  .pro-modal-btn { padding: 9px 12px; font-size: 11.5px; }
 }
 [data-theme="dark"] .pro-modal { background: rgba(0, 0, 0, 0.6); }

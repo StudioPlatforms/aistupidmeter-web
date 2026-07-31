@@ -21,6 +21,7 @@ import ModelDetailChart from '../../../components/model-detail/ModelDetailChart'
 import ModelDetailQuickStats from '../../../components/model-detail/ModelDetailQuickStats';
 import ModelDetailPricing from '../../../components/model-detail/ModelDetailPricing';
 import ModelDetailMatrix from '../../../components/model-detail/ModelDetailMatrix';
+import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum';
 
 // Shared components
 import ProFeatureModal from '../../../components/ProFeatureModal';
@@ -168,7 +169,7 @@ export default function ModelDetailClient({
 
   // Pro modal
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum'>('historical-data');
 
   // Visitor counts (same as main page TopBar)
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
@@ -505,6 +506,13 @@ export default function ModelDetailClient({
         selectedPeriod={selectedPeriod}
         selectedScoringMode={selectedScoringMode}
         onSwitchPeriod={setSelectedPeriod}
+      />
+
+      {/* Page-Hinkley CUSUM drift curve (Pro) */}
+      <ModelDetailCusum
+        modelId={modelId}
+        hasProAccess={hasProAccess}
+        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
       />
 
       {/* Two-column: Quick Stats + Pricing */}

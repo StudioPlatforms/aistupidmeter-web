@@ -2703,8 +2703,8 @@ export default function Dashboard() {
             zIndex: 1000
           }}>
             <div className="crt-monitor" style={{
-              maxWidth: '500px',
-              width: '90%',
+              maxWidth: '420px',
+              width: '92%',
               padding: '24px',
               backgroundColor: 'var(--terminal-black)',
               border: '2px solid var(--phosphor-green)'
@@ -3880,6 +3880,13 @@ export default function Dashboard() {
           {/* Provider Health Strip */}
           <ProviderStrip modelScores={modelScores} />
 
+          {/* Mobile ad banner - above stupid meter */}
+          <div className="v4-mobile-ad">
+            <a href="https://luckylarry.fun/login" target="_blank" rel="noopener noreferrer">
+              <img src="/LuckyLarry_Add.png" alt="Lucky Larry" />
+            </a>
+          </div>
+
           {/* Stupid Meter */}
           <MeterBar
             globalIndex={globalIndex}
@@ -4803,36 +4810,13 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Welcome Popup - Two-Step Process - Mobile Responsive */}
+      {/* Welcome Popup - Two-Step Process - Responsive */}
       {showWelcomePopup && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '10px' // Add padding to prevent edge touching on mobile
-        }}>
-          <div className="crt-monitor" style={{
-            maxWidth: window.innerWidth < 768 ? '500px' : '700px', // Wider on desktop
-            width: '95%',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: window.innerWidth < 768 ? '16px' : '32px',
-            backgroundColor: 'var(--terminal-black)',
-            border: window.innerWidth < 768 ? '2px solid var(--phosphor-green)' : '3px solid var(--phosphor-green)',
-            borderRadius: '6px',
-            boxShadow: '0 0 20px var(--phosphor-green)'
-          }}>
-            <div className="terminal-text">
+        <div className="pro-modal">
+          <div className="pro-modal-card" style={{ maxWidth: '440px' }}>
               {welcomeStep === 'updates' && (
                 <>
-                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.5em', marginBottom: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.15em', marginBottom: '10px', textAlign: 'center', fontWeight: 600 }}>
                     <span className="terminal-text--green">🔬 WELCOME TO AI STUPID METER</span>
                     <span className="blinking-cursor"></span>
                   </div>
@@ -4891,7 +4875,7 @@ export default function Dashboard() {
 
               {welcomeStep === 'privacy' && (
                 <>
-                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.4em', marginBottom: '16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.15em', marginBottom: '12px', textAlign: 'center', fontWeight: 600 }}>
                     <span className="terminal-text--amber">🍪 PRIVACY NOTICE</span>
                     <span className="blinking-cursor"></span>
                   </div>
@@ -4976,7 +4960,7 @@ export default function Dashboard() {
 
               {welcomeStep === 'completed' && (
                 <>
-                  <div style={{ fontSize: window.innerWidth < 768 ? '1.1em' : '1.4em', marginBottom: '16px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.15em', marginBottom: '12px', textAlign: 'center', fontWeight: 600 }}>
                     <span className="terminal-text--green">✅ ALL SET!</span>
                     <span className="blinking-cursor"></span>
                   </div>
@@ -5001,7 +4985,6 @@ export default function Dashboard() {
                   </div>
                 </>
               )}
-            </div>
           </div>
         </div>
       )}

@@ -64,6 +64,7 @@ export default function IntelligencePreview() {
 
   return (
     <div className="rv4-body">
+      <div className="rv4-upgrade-container">
       {/* Sticky upgrade banner */}
       <div className="rv4-upgrade-sticky" style={{ borderColor: 'rgba(0,191,255,0.4)', background: 'rgba(0,191,255,0.06)' }}>
         <div className="rv4-upgrade-sticky-msg">
@@ -230,6 +231,7 @@ export default function IntelligencePreview() {
       <div className="rv4-footer">
         Data sourced from AI Stupid Meter • Real-time benchmarks • <a href="/">View Main Site</a>
       </div>
+      </div>{/* /rv4-upgrade-container */}
     </div>
   );
 }

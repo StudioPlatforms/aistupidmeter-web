@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
@@ -34,6 +34,16 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         'Deep-reasoning benchmark suite',
         'Tool-calling reliability metrics',
         'Coding, speed and cost-efficiency views',
+      ],
+    },
+    'drift-cusum': {
+      title: 'Unlock drift detection',
+      description: 'See the full Page-Hinkley CUSUM curve behind every drift alert — the running evidence that a model has quietly changed.',
+      benefits: [
+        'Historical CUSUM curve for every tracked model',
+        'Change-points marked on the exact day they were detected',
+        'The alert threshold plotted alongside the statistic',
+        'Read a degradation building before it trips an alert',
       ],
     },
     'api-monitoring': {

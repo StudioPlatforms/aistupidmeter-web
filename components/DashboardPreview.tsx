@@ -7,6 +7,7 @@ export default function DashboardPreview() {
 
   return (
     <div className="rv4-body">
+      <div className="rv4-upgrade-container">
       {/* Sticky upgrade banner */}
       <div className="rv4-upgrade-sticky">
         <div className="rv4-upgrade-sticky-msg">
@@ -206,6 +207,7 @@ export default function DashboardPreview() {
       <div className="rv4-footer">
         Powered by AI Stupid Meter • Real-time intelligence from 16+ models • <a href="/">View Live Rankings</a>
       </div>
+      </div>{/* /rv4-upgrade-container */}
     </div>
   );
 }

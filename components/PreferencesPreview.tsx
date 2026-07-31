@@ -18,6 +18,7 @@ export default function PreferencesPreview() {
 
   return (
     <div className="rv4-body">
+      <div className="rv4-upgrade-container">
       {/* Sticky upgrade banner */}
       <div className="rv4-upgrade-sticky" style={{ borderColor: 'rgba(255,140,0,0.5)', background: 'rgba(255,140,0,0.06)' }}>
         <div className="rv4-upgrade-sticky-msg">
@@ -166,6 +167,7 @@ export default function PreferencesPreview() {
       <div className="rv4-footer">
         Powered by AI Stupid Meter • Real-time benchmarks • <a href="/">View Live Rankings</a>
       </div>
+      </div>{/* /rv4-upgrade-container */}
     </div>
   );
 }

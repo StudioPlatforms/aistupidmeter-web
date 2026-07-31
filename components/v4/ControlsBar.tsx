@@ -88,6 +88,14 @@ export default function ControlsBar({
         ))}
       </div>
 
+      {/* LuckyLarry ad image - desktop only */}
+      <a href="https://luckylarry.fun/login" target="_blank" rel="noopener noreferrer" className="v4-ctrl-ad">
+        <img
+          src="/LuckyLarry_Add.png"
+          alt="Lucky Larry"
+        />
+      </a>
+
       <div className="v4-ctrl-right">
         <div style={{ display: 'flex', gap: '1px' }}>
           <button
