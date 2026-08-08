@@ -8,17 +8,33 @@ import ProviderLogo from '@/components/ProviderLogo';
 import { apiClient } from '@/lib/api-client';
 import type { ProviderKey } from '@/lib/api-client';
 
-type Provider = 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
+type Provider = 'openai' | 'anthropic' | 'google' | 'glm' | 'deepseek' | 'kimi';
 
+/**
+ * Providers the router can actually route to.
+ *
+ * `models` must name models that are currently in the benchmark lineup
+ * (models.show_in_rankings = 1) — the router can only select from those, so
+ * advertising anything else sends users off to buy a key we will never use.
+ * Last reconciled against the live lineup 2026-08-08.
+ *
+ * xAI was removed on 2026-08-08: none of its models are benchmarked any more,
+ * so a Grok key could never be selected. Existing xAI keys are still shown
+ * below under "retired" so they can be deleted.
+ */
 const PROVIDERS = [
-  { id: 'openai' as Provider, name: 'OpenAI', desc: 'GPT-4o, GPT-5, o1, o3 models', keyFormat: 'sk-proj-...', docsUrl: 'platform.openai.com/api-keys', dot: '#10a37f' },
-  { id: 'anthropic' as Provider, name: 'Anthropic', desc: 'Claude Sonnet 4, Opus 4, Haiku 4', keyFormat: 'sk-ant-...', docsUrl: 'console.anthropic.com/settings/keys', dot: '#d97706' },
-  { id: 'xai' as Provider, name: 'xAI', desc: 'Grok 4, Grok 2, Grok Code Fast', keyFormat: 'xai-...', docsUrl: 'console.x.ai/api-keys', dot: '#000000' },
-  { id: 'google' as Provider, name: 'Google', desc: 'Gemini 2.5 Pro/Flash/Flash-Lite', keyFormat: 'AIza...', docsUrl: 'console.cloud.google.com/apis/credentials', dot: '#4285f4' },
-  { id: 'glm' as Provider, name: 'GLM', desc: 'GLM-4.6 — 128K context Chinese model', keyFormat: 'API key varies', docsUrl: 'open.bigmodel.cn/pricing', dot: '#6366f1' },
-  { id: 'deepseek' as Provider, name: 'DeepSeek', desc: 'DeepSeek R1, V3 — Reasoning & MoE', keyFormat: 'API key varies', docsUrl: 'api-docs.deepseek.com', dot: '#0ea5e9' },
-  { id: 'kimi' as Provider, name: 'Kimi', desc: 'Moonshot K2 — 1T parameter MoE', keyFormat: 'API key varies', docsUrl: 'platform.moonshot.ai/docs', dot: '#8b5cf6' },
+  { id: 'openai' as Provider, name: 'OpenAI', desc: 'GPT-5.6 Sol / Terra / Luna, GPT-5.5, GPT-5.4, GPT-5.3-Codex', keyFormat: 'sk-proj-...', docsUrl: 'platform.openai.com/api-keys' },
+  { id: 'anthropic' as Provider, name: 'Anthropic', desc: 'Claude Opus 5, Sonnet 5, Fable 5, Opus 4.8 / 4.7 / 4.6', keyFormat: 'sk-ant-...', docsUrl: 'console.anthropic.com/settings/keys' },
+  { id: 'google' as Provider, name: 'Google', desc: 'Gemini 3.1 Pro, Gemini 3.1 Flash-Lite', keyFormat: 'AIza...', docsUrl: 'aistudio.google.com/apikey' },
+  { id: 'deepseek' as Provider, name: 'DeepSeek', desc: 'DeepSeek V4-Pro, V4-Flash — MoE reasoning', keyFormat: 'sk-...', docsUrl: 'platform.deepseek.com/api_keys' },
+  { id: 'kimi' as Provider, name: 'Kimi', desc: 'Kimi K3, Kimi K2.7-Code — Moonshot AI', keyFormat: 'sk-...', docsUrl: 'platform.moonshot.ai/console/api-keys' },
+  { id: 'glm' as Provider, name: 'GLM', desc: 'GLM-5.2 — Z.ai, 128K context', keyFormat: 'API key varies', docsUrl: 'z.ai/manage-apikey/apikey-list' },
 ];
+
+/** Providers we used to support. Keys stay visible so users can remove them. */
+const RETIRED_PROVIDERS: Record<string, string> = {
+  xai: 'No Grok models are in the benchmark lineup, so the router cannot select one. This key is not being used — you can safely remove it.',
+};
 
 export default function RouterProvidersPage() {
   const { data: session, status } = useSession();
@@ -100,7 +116,9 @@ export default function RouterProvidersPage() {
   const hasProvider = (id: Provider) => providerKeys.some(k => k.provider === id);
   const getProviderKey = (id: Provider) => providerKeys.find(k => k.provider === id);
   const selectedProviderInfo = PROVIDERS.find(p => p.id === selectedProvider);
-  const connectedCount = providerKeys.length;
+  const supportedIds = new Set<string>(PROVIDERS.map(p => p.id));
+  const retiredKeys = providerKeys.filter(k => !supportedIds.has(k.provider));
+  const connectedCount = providerKeys.filter(k => supportedIds.has(k.provider)).length;
 
   return (
     <RouterLayout>
@@ -134,8 +152,10 @@ export default function RouterProvidersPage() {
             <div className="rv4-info-banner-content">
               <div className="rv4-info-banner-title">HOW PROVIDER KEYS WORK</div>
               <div className="rv4-info-banner-text">
-                Add your API keys from different providers. The router will automatically select the best-performing
-                model from your available providers for each request. Your keys are encrypted with AES-256-GCM.
+                Add your API keys from different providers. For each request the router picks the best model from the
+                providers you have connected, using the live benchmark scores on this site — so it can only route to
+                models that are currently being benchmarked. Connect more providers to give it more to choose from.
+                Your keys are encrypted with AES-256-GCM and are used only to call the provider on your behalf.
               </div>
             </div>
           </div>
@@ -191,6 +211,32 @@ export default function RouterProvidersPage() {
               )}
             </div>
           </div>
+
+          {/* Keys for providers we no longer route to */}
+          {retiredKeys.length > 0 && (
+            <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+              <div className="rv4-panel-header">
+                <span className="rv4-panel-title">RETIRED PROVIDERS</span>
+              </div>
+              <div className="rv4-panel-body">
+                {retiredKeys.map((key) => (
+                  <div key={key.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '220px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', marginBottom: '2px' }}>
+                        {key.provider}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: 1.5 }}>
+                        {RETIRED_PROVIDERS[key.provider] ?? 'This provider is no longer part of the routing pool.'}
+                      </div>
+                    </div>
+                    <button onClick={() => handleDeleteKey(key.id)} className="rv4-ctrl-btn danger" style={{ fontSize: '10px' }}>
+                      REMOVE
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Benefits */}
           <div className="rv4-cols-3">

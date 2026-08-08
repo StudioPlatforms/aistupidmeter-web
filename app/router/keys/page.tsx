@@ -281,6 +281,10 @@ export default function RouterKeysPage() {
                   <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--phosphor-green)', marginBottom: '8px', letterSpacing: '0.5px' }}>
                     🖥️ IDE EXTENSIONS
                   </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.5 }}>
+                    For agentic tools that drive a lot of tool calls (Cline, Roo Code, Aider), <code style={{ fontFamily: 'var(--font-mono)' }}>auto-tooling</code> routes
+                    on the tool-use benchmark and is usually the better choice than <code style={{ fontFamily: 'var(--font-mono)' }}>auto-coding</code>.
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '10px' }}>
                     <ToolCard
                       name="Roo Code"
@@ -387,11 +391,12 @@ export default function RouterKeysPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '6px' }}>
                     {[
                       { id: 'auto', desc: 'Uses your saved preference' },
-                      { id: 'auto-coding', desc: 'Best for code generation' },
-                      { id: 'auto-reasoning', desc: 'Best for complex reasoning' },
-                      { id: 'auto-creative', desc: 'Best for creative writing' },
+                      { id: 'auto-coding', desc: 'Best on the code benchmark' },
+                      { id: 'auto-reasoning', desc: 'Best on the reasoning benchmark' },
+                      { id: 'auto-tooling', desc: 'Best on the tool-use benchmark' },
+                      { id: 'auto-creative', desc: 'Best combined score' },
                       { id: 'auto-cheapest', desc: 'Lowest cost per token' },
-                      { id: 'auto-fastest', desc: 'Lowest latency' },
+                      { id: 'auto-fastest', desc: 'Lowest measured latency' },
                     ].map(m => (
                       <div key={m.id} style={{
                         background: 'var(--bg-tertiary)', borderRadius: '3px', padding: '8px 10px',
@@ -403,7 +408,8 @@ export default function RouterKeysPage() {
                     ))}
                   </div>
                   <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
-                    You can also pin specific models (e.g., <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-4-7</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-5.5</code>) — the full list is in your tool's model dropdown.
+                    You can also pin a specific model (e.g. <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-5</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-5.6-sol</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gemini-3.1-pro-preview</code>) to bypass routing entirely.
+                    Call <code style={{ fontFamily: 'var(--font-mono)' }}>GET /v1/models</code> — or open your tool's model dropdown — for the current list.
                   </div>
                 </div>
 

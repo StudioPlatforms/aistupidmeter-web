@@ -7,18 +7,31 @@ import PreferencesPreview from '@/components/PreferencesPreview';
 import { apiClient } from '@/lib/api-client';
 import type { UserPreferences } from '@/lib/api-client';
 
-type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_creative' | 'cheapest' | 'fastest';
+type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest';
 
+/**
+ * Each strategy ranks on a different benchmark suite. `basis` says which one,
+ * because the difference between them is the whole point of choosing.
+ */
 const ROUTING_STRATEGIES = [
-  { id: 'best_overall' as RoutingStrategy, name: 'BEST OVERALL', desc: 'Automatically selects the model with the lowest stupid score across all categories', recommended: true },
-  { id: 'best_coding' as RoutingStrategy, name: 'BEST FOR CODING', desc: 'Optimized for code generation, debugging, and programming tasks', recommended: false },
-  { id: 'best_reasoning' as RoutingStrategy, name: 'BEST FOR REASONING', desc: 'Optimized for complex reasoning, problem-solving, and analysis', recommended: false },
-  { id: 'best_creative' as RoutingStrategy, name: 'BEST FOR CREATIVE', desc: 'Optimized for creative writing, content generation, and storytelling', recommended: false },
-  { id: 'cheapest' as RoutingStrategy, name: 'MOST COST-EFFECTIVE', desc: 'Always selects the cheapest available model', recommended: false },
-  { id: 'fastest' as RoutingStrategy, name: 'FASTEST RESPONSE', desc: 'Prioritizes models with the lowest latency', recommended: false },
+  { id: 'best_overall' as RoutingStrategy, name: 'BEST OVERALL', desc: 'Highest combined score across all three benchmark suites', basis: 'Combined score — code 50%, reasoning 25%, tool use 25%', recommended: true },
+  { id: 'best_coding' as RoutingStrategy, name: 'BEST FOR CODING', desc: 'Best at writing correct, well-structured code to spec', basis: 'Hourly 7-axis code benchmark', recommended: false },
+  { id: 'best_reasoning' as RoutingStrategy, name: 'BEST FOR REASONING', desc: 'Best at multi-step problems, planning and long-context analysis', basis: 'Deep reasoning benchmark', recommended: false },
+  { id: 'best_tooling' as RoutingStrategy, name: 'BEST FOR TOOL USE', desc: 'Best at picking the right tool with the right arguments and recovering from errors — use this for agents and coding assistants', basis: 'Tooling benchmark', recommended: false },
+  { id: 'best_creative' as RoutingStrategy, name: 'BEST FOR CREATIVE', desc: 'General-purpose quality for open-ended writing. There is no creative-writing benchmark on this site, so this ranks on the same combined score as Best Overall', basis: 'Combined score (no dedicated creative benchmark)', recommended: false },
+  { id: 'cheapest' as RoutingStrategy, name: 'MOST COST-EFFECTIVE', desc: 'Lowest list price per token among your connected providers', basis: 'Published provider pricing', recommended: false },
+  { id: 'fastest' as RoutingStrategy, name: 'FASTEST RESPONSE', desc: 'Lowest average response time, measured over the last 7 days of benchmark runs', basis: 'Benchmark latency', recommended: false },
 ];
 
-const PROVIDERS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'];
+const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
+
+/** A model currently in the routing pool, as returned by /router/analytics/available-models. */
+interface RoutableModel {
+  name: string;
+  provider: string;
+  rank: number;
+  score: number;
+}
 
 export default function RouterPreferencesPage() {
   const { data: session, status } = useSession();
@@ -29,12 +42,15 @@ export default function RouterPreferencesPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [checking, setChecking] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [routableModels, setRoutableModels] = useState<RoutableModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       apiClient.setUserId(session.user.id);
       checkSubscription();
       fetchPreferences();
+      fetchRoutableModels();
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
       setLoading(false);
@@ -68,6 +84,24 @@ export default function RouterPreferencesPage() {
       setError(err instanceof Error ? err.message : 'Failed to load preferences');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRoutableModels = async () => {
+    try {
+      setModelsLoading(true);
+      const response = await apiClient.getAvailableModels();
+      // Best model first, and only entries that carry a usable model name.
+      setRoutableModels(
+        (response.models || [])
+          .filter((m: RoutableModel) => Boolean(m.name))
+          .sort((a: RoutableModel, b: RoutableModel) => a.rank - b.rank)
+      );
+    } catch {
+      // Non-fatal: the rest of the page still works without the exclusion list.
+      setRoutableModels([]);
+    } finally {
+      setModelsLoading(false);
     }
   };
 
@@ -106,6 +140,16 @@ export default function RouterPreferencesPage() {
       excludedProviders: preferences.excludedProviders.includes(provider)
         ? preferences.excludedProviders.filter(p => p !== provider)
         : [...preferences.excludedProviders, provider],
+    });
+  };
+
+  const toggleModel = (model: string) => {
+    if (!preferences) return;
+    setPreferences({
+      ...preferences,
+      excludedModels: preferences.excludedModels.includes(model)
+        ? preferences.excludedModels.filter(m => m !== model)
+        : [...preferences.excludedModels, model],
     });
   };
 
@@ -217,6 +261,9 @@ export default function RouterPreferencesPage() {
                     )}
                   </div>
                   <div className="rv4-strategy-card-desc">{strategy.desc}</div>
+                  <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '6px', fontStyle: 'italic' }}>
+                    Ranks on: {strategy.basis}
+                  </div>
                 </div>
               ))}
             </div>
@@ -353,6 +400,55 @@ export default function RouterPreferencesPage() {
           </div>
         </div>
 
+        {/* Excluded models — the backend has always honoured excludedModels,
+            but there was no way to set it from this page. */}
+        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">EXCLUDED MODELS</span>
+            <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
+              {preferences.excludedModels.length} excluded
+            </span>
+          </div>
+          <div className="rv4-panel-body">
+            {modelsLoading ? (
+              <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>LOADING MODELS…</div>
+            ) : routableModels.length === 0 ? (
+              <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
+                No ranked models available yet. Once benchmarks have run you can exclude individual models here.
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                  {routableModels.map((model) => {
+                    const excluded = preferences.excludedModels.includes(model.name);
+                    const providerExcluded = preferences.excludedProviders.includes(model.provider);
+                    return (
+                      <button
+                        key={model.name}
+                        onClick={() => toggleModel(model.name)}
+                        className="rv4-ctrl-btn"
+                        title={`${model.provider} · score ${Math.round(model.score)}`}
+                        style={{
+                          borderColor: excluded ? 'var(--red-alert)' : 'rgba(192,192,192,0.25)',
+                          color: excluded ? 'var(--red-alert)' : 'var(--phosphor-dim)',
+                          background: excluded ? 'rgba(255,45,0,0.08)' : 'transparent',
+                          opacity: providerExcluded && !excluded ? 0.4 : 1,
+                          fontFamily: 'var(--font-mono)',
+                        }}
+                      >
+                        {excluded ? '✗ ' : ''}{model.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
+                  Click a model to remove it from routing. Models greyed out are already covered by an excluded provider.
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Fallback */}
         <div className="rv4-panel" style={{ marginBottom: '14px' }}>
           <div className="rv4-panel-header">
@@ -386,9 +482,10 @@ export default function RouterPreferencesPage() {
           <div className="rv4-info-banner-content">
             <div className="rv4-info-banner-title">REAL-TIME INTELLIGENCE</div>
             <div className="rv4-info-banner-text">
-              Your router uses live benchmark data from AI Stupid Meter. Every 4 hours, 16+ models are tested
-              across 7 performance axes. Based on your strategy and constraints, the router automatically picks
-              the best model for each request.
+              Your router ranks models on the same live benchmark scores shown on the leaderboard, refreshed at
+              least every 4 hours across three suites: a 7-axis code benchmark, a deep reasoning benchmark, and a
+              tool-use benchmark. Each strategy above ranks on a different one. Rankings are cached for 5 minutes,
+              so a preference change takes effect on your next request.
             </div>
           </div>
         </div>

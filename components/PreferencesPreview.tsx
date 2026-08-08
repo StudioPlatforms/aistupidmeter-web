@@ -1,15 +1,18 @@
 'use client';
 
+// Keep in step with app/router/preferences/page.tsx — this is the blurred
+// preview of that page shown to users without a subscription.
 const ROUTING_STRATEGIES = [
-  { id: 'best_overall', name: 'BEST OVERALL', desc: 'Best general-purpose model across all categories', recommended: true },
-  { id: 'best_coding', name: 'BEST FOR CODING', desc: 'Optimized for code generation, debugging, and programming', recommended: false },
-  { id: 'best_reasoning', name: 'BEST FOR REASONING', desc: 'Optimized for complex reasoning, problem-solving, and analysis', recommended: false },
-  { id: 'best_creative', name: 'BEST FOR CREATIVE', desc: 'Optimized for creative writing, content generation, and storytelling', recommended: false },
-  { id: 'cheapest', name: 'MOST COST-EFFECTIVE', desc: 'Always selects the cheapest available model', recommended: false },
-  { id: 'fastest', name: 'FASTEST RESPONSE', desc: 'Prioritizes models with the lowest latency', recommended: false },
+  { id: 'best_overall', name: 'BEST OVERALL', desc: 'Highest combined score across all three benchmark suites', recommended: true },
+  { id: 'best_coding', name: 'BEST FOR CODING', desc: 'Best at writing correct, well-structured code to spec', recommended: false },
+  { id: 'best_reasoning', name: 'BEST FOR REASONING', desc: 'Best at multi-step problems, planning and long-context analysis', recommended: false },
+  { id: 'best_tooling', name: 'BEST FOR TOOL USE', desc: 'Best at tool selection and argument accuracy — for agents and coding assistants', recommended: false },
+  { id: 'best_creative', name: 'BEST FOR CREATIVE', desc: 'General-purpose quality for open-ended writing', recommended: false },
+  { id: 'cheapest', name: 'MOST COST-EFFECTIVE', desc: 'Lowest list price per token among your connected providers', recommended: false },
+  { id: 'fastest', name: 'FASTEST RESPONSE', desc: 'Lowest measured average response time', recommended: false },
 ];
 
-const PROVIDERS = ['openai', 'anthropic', 'xai', 'google', 'glm', 'deepseek', 'kimi'];
+const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
 
 export default function PreferencesPreview() {
   const handleStartTrial = () => {
@@ -55,7 +58,7 @@ export default function PreferencesPreview() {
       <div className="rv4-panel" style={{ position: 'relative', overflow: 'hidden', marginBottom: '14px', minHeight: '220px' }}>
         <div className="rv4-pro-lock-overlay">
           <div className="rv4-pro-lock-title">UNLOCK ROUTING STRATEGIES</div>
-          <div className="rv4-pro-lock-text">Choose from 6 intelligent routing strategies tailored to your needs</div>
+          <div className="rv4-pro-lock-text">Choose from 7 routing strategies, each ranked on a different live benchmark</div>
           <button onClick={handleStartTrial} className="rv4-ctrl-btn primary" style={{ marginTop: '6px' }}>
             START FREE TRIAL →
           </button>
@@ -142,7 +145,7 @@ export default function PreferencesPreview() {
               { title: 'PERFECT FOR YOUR USE CASE', desc: 'Choose routing strategies optimized for coding, reasoning, creative work, or cost' },
               { title: 'CONTROL YOUR COSTS', desc: 'Set maximum cost limits and always stay within your budget' },
               { title: 'OPTIMIZE FOR SPEED', desc: 'Set latency thresholds for time-critical applications' },
-              { title: 'PROVIDER FLEXIBILITY', desc: 'Exclude providers you don\'t want and focus on your favorites' },
+              { title: 'PROVIDER FLEXIBILITY', desc: 'Exclude any provider or individual model you don\'t want routed to' },
             ].map((b, i) => (
               <div key={i} className="rv4-upgrade-benefit" style={{ borderColor: 'rgba(255,140,0,0.2)', background: 'rgba(255,140,0,0.03)' }}>
                 <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--amber-warning)' }}>→</div>

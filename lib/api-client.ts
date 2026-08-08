@@ -20,14 +20,17 @@ export interface UniversalKey {
 
 export interface ProviderKey {
   id: number;
-  provider: 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
+  // 'xai' is retired — no Grok models are benchmarked, so the router cannot
+  // select one. Existing keys still come back from the API so they can be
+  // removed, hence the widened type.
+  provider: 'openai' | 'anthropic' | 'google' | 'glm' | 'deepseek' | 'kimi' | (string & {});
   isActive: boolean;
   createdAt: string;
   lastValidated: string | null;
 }
 
 export interface UserPreferences {
-  routingStrategy: 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_creative' | 'cheapest' | 'fastest';
+  routingStrategy: 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest';
   fallbackEnabled: boolean;
   maxCostPer1kTokens: number | null;
   maxLatencyMs: number | null;
@@ -468,12 +471,22 @@ class ApiClient {
   /**
    * Get available models
    */
+  /**
+   * Models currently in the routing pool, ranked best first.
+   * `name` is the model id used to pin a model on /v1/chat/completions and the
+   * value stored in the excludedModels preference.
+   */
   async getAvailableModels(): Promise<{
     models: Array<{
-      model: string;
+      modelId: number;
+      name: string;
       provider: string;
       rank: number;
-      category: string;
+      score: number;
+      costPer1k: number | null;
+      avgLatency: number | null;
+      supportsToolCalling: boolean;
+      supportsStreaming: boolean;
     }>;
   }> {
     return this.request('/api/router/analytics/available-models');

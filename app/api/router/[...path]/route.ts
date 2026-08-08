@@ -4,13 +4,24 @@ import { auth } from '@/auth';
 // Use internal backend URL for server-side requests
 const API_URL = process.env.API_INTERNAL_URL || 'http://localhost:4000';
 
+/**
+ * This route is the ONLY authenticated way into the /router/* API.
+ *
+ * The user id is taken from the NextAuth session here, server-side, and vouched
+ * for to the API with ROUTER_INTERNAL_TOKEN. The API refuses any x-user-id that
+ * does not arrive with that token, so a browser cannot claim to be another user.
+ *
+ * nginx must NOT have an /api/router/ location — if it proxies straight to
+ * port 4000 it bypasses this route, and the API sees a browser-supplied
+ * x-user-id with no token and rejects it.
+ */
 async function proxyRequest(
   request: NextRequest,
   path: string[],
   method: string
 ) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json(
       { error: 'Unauthorized', message: 'User authentication required' },
@@ -18,19 +29,29 @@ async function proxyRequest(
     );
   }
 
+  const internalToken = process.env.ROUTER_INTERNAL_TOKEN;
+  if (!internalToken) {
+    console.error('[API Proxy] ROUTER_INTERNAL_TOKEN is not set');
+    return NextResponse.json(
+      { error: 'Service misconfigured', message: 'Router API is unavailable' },
+      { status: 503 }
+    );
+  }
+
   try {
     const url = new URL(request.url);
     const backendUrl = `${API_URL}/router/${path.join('/')}${url.search}`;
-    
+
     console.log('[API Proxy] Request:', {
       method,
       backendUrl,
       userId: session.user.id,
       path: path.join('/')
     });
-    
+
     const headers: Record<string, string> = {
       'x-user-id': session.user.id,
+      'x-internal-token': internalToken,
     };
 
     let body: string | undefined;
@@ -54,19 +75,21 @@ async function proxyRequest(
       contentType: response.headers.get('content-type')
     });
 
-    // Check if response is JSON
     const contentType = response.headers.get('content-type');
+
+    // Pass non-JSON bodies straight through — the CSV activity export at
+    // /router/monitoring/export/activity is one, and turning it into a 502 here
+    // would break the download.
     if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text();
-      console.error('[API Proxy] Non-JSON response:', text.substring(0, 500));
-      return NextResponse.json(
-        { 
-          error: 'Backend Error', 
-          message: 'Backend returned non-JSON response',
-          details: `Status: ${response.status}, Content-Type: ${contentType}`
-        },
-        { status: 502 }
-      );
+      const passthroughHeaders = new Headers();
+      if (contentType) passthroughHeaders.set('content-type', contentType);
+      const disposition = response.headers.get('content-disposition');
+      if (disposition) passthroughHeaders.set('content-disposition', disposition);
+
+      return new NextResponse(await response.arrayBuffer(), {
+        status: response.status,
+        headers: passthroughHeaders,
+      });
     }
 
     const data = await response.json();
