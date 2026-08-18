@@ -126,6 +126,8 @@ export default async function HomePage() {
           language models on coding, reasoning, tool-calling and speed, and detects performance
           drift over time. Below is the live model index.
         </p>
+
+        <h2>Live AI model leaderboard</h2>
         <nav aria-label="All benchmarked AI models">
           <ul>
             {ranked.map((m) => (
@@ -139,6 +141,35 @@ export default async function HomePage() {
             ))}
           </ul>
         </nav>
+
+        {/* The homepage shipped ~200 words and no <h2> at all. These sections
+            give crawlers the site's actual topic structure and a followable
+            path into the drift-detection and methodology pages. */}
+        <h2>AI drift detection: is your model getting worse?</h2>
+        <p>
+          AI providers update the model behind a stable API name without notice, so a model that
+          scored well at launch may behave differently today. We benchmark continuously and apply
+          CUSUM change-point detection to separate a genuine sustained decline from ordinary
+          run-to-run noise. Read{' '}
+          <a href="/ai-drift-detection">how AI drift detection and model degradation tracking works</a>.
+        </p>
+
+        <h2>How we benchmark AI models</h2>
+        <p>
+          Every model runs the same three suites: a 7-axis code benchmark scored by executing the
+          generated code, a deep reasoning benchmark covering multi-step problem solving and
+          long-context retention, and a tool-calling benchmark measuring tool selection and argument
+          accuracy. Scores are published with confidence intervals. See the{' '}
+          <a href="/methodology">full benchmarking methodology</a>.
+        </p>
+
+        <h2>Compare AI models</h2>
+        <p>
+          Put current models from OpenAI, Anthropic, Google, DeepSeek, Moonshot AI and Zhipu AI side
+          by side on coding, reasoning, tool use, price and measured latency with the{' '}
+          <a href="/compare">AI model comparison tool</a>, or read the{' '}
+          <a href="/faq">AI benchmarking FAQ</a>.
+        </p>
       </div>
 
       <HomeClient />

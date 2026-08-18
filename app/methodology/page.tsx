@@ -44,7 +44,7 @@ const styles = {
     color: 'var(--phosphor-green, #1a73e8)',
     letterSpacing: '2px',
     textShadow: '0 0 8px rgba(26, 115, 232,0.4)',
-    marginBottom: '8px',
+    margin: '0 0 8px',
     textAlign: 'center' as const,
   } as React.CSSProperties,
   pageSub: {
@@ -61,8 +61,7 @@ const styles = {
     color: 'var(--amber-warning, #ffb000)',
     textTransform: 'uppercase' as const,
     letterSpacing: '1.5px',
-    marginBottom: '12px',
-    marginTop: '24px',
+    margin: '24px 0 12px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -168,9 +167,9 @@ export default function MethodologyPage() {
       <div style={styles.page}>
         <div style={styles.container}>
           {/* Header */}
-          <div style={styles.pageTitle}>
-            HOW WE TEST AI MODELS<span className="blinking-cursor"></span>
-          </div>
+          <h1 style={styles.pageTitle}>
+            AI Benchmarking Methodology — How We Test AI Models &amp; Detect Drift<span className="blinking-cursor"></span>
+          </h1>
           <div style={styles.pageSub}>
             Complete Technical Methodology — Statistically Rigorous, Execution-Based, Continuous Monitoring
           </div>
@@ -195,9 +194,9 @@ export default function MethodologyPage() {
           </div>
 
           {/* Section 1: Benchmark Suites */}
-          <div id="suites" style={styles.sectionTitle}>
+          <h2 id="suites" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[1]</span> THE 4 BENCHMARK SUITES
-          </div>
+          </h2>
           <div style={styles.grid2}>
             <div style={styles.suiteCard('rgba(26, 115, 232,0.3)', 'rgba(26, 115, 232,0.05)')}>
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>HOURLY SUITE</div>
@@ -254,9 +253,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Section 2: Scoring System */}
-          <div id="scoring" style={styles.sectionTitle}>
+          <h2 id="scoring" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[2]</span> 9-AXIS SCORING METHODOLOGY
-          </div>
+          </h2>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
             Each task is evaluated across 9 dimensions. Weights optimized for production relevance:
           </div>
@@ -293,9 +292,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Section 3: Statistical Analysis */}
-          <div id="statistical" style={styles.sectionTitle}>
+          <h2 id="statistical" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[3]</span> STATISTICAL RIGOR (95% CONFIDENCE INTERVALS)
-          </div>
+          </h2>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
             Unlike benchmarks showing single measurements, we provide confidence intervals to quantify uncertainty.
           </div>
@@ -338,9 +337,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Section 4: Drift Detection */}
-          <div id="drift" style={styles.sectionTitle}>
+          <h2 id="drift" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[4]</span> DRIFT DETECTION (CUSUM ALGORITHM)
-          </div>
+          </h2>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
             Detects <strong style={{ color: 'var(--amber-warning)' }}>sustained</strong> performance changes, not daily noise.
           </div>
@@ -377,9 +376,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Section 5: Enhanced Testing */}
-          <div id="enhancements" style={styles.sectionTitle}>
+          <h2 id="enhancements" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[5]</span> ENHANCED TESTING (NEW IN 2026)
-          </div>
+          </h2>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
             Zero-cost enhancements that extract 10x more value from existing tests:
           </div>
@@ -433,9 +432,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Section 6: Validation */}
-          <div id="validation" style={styles.sectionTitle}>
+          <h2 id="validation" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[6]</span> VALIDATION AND TRANSPARENCY
-          </div>
+          </h2>
 
           <div style={styles.grid4}>
             {[
@@ -482,9 +481,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Current Models */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> CURRENT MODELS TESTED (21 ACTIVE)
-          </div>
+          </h2>
           <div style={{ ...styles.panel, marginBottom: '12px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '6px', fontSize: '10px' }}>
               {[
@@ -516,9 +515,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* Why This Matters */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> WHY THIS METHODOLOGY MATTERS
-          </div>
+          </h2>
           <div style={styles.grid2}>
             <div style={styles.panel}>
               <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--red-alert, #d93025)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
@@ -559,9 +558,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* API Access */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> PUBLIC API ACCESS
-          </div>
+          </h2>
 
           {[
             { endpoint: 'GET /api/dashboard', desc: 'Current rankings with confidence intervals', rate: '300 requests/minute' },
@@ -601,9 +600,9 @@ export default function MethodologyPage() {
           <hr style={styles.divider} />
 
           {/* vs Other Benchmarks */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> VS. OTHER BENCHMARKS
-          </div>
+          </h2>
           <div style={styles.grid4}>
             {[
               { name: 'vs. HumanEval', them: 'Single-shot, pass/fail', us: '5 trials, nuanced scoring, CI' },

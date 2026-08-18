@@ -177,9 +177,11 @@ export default function FAQPage() {
     <SubpageLayout>
       <div style={pageStyle}>
         <div style={containerStyle}>
-          <div style={{ fontSize: 'clamp(20px, 3.5vw, 28px)', fontWeight: 'bold', color: 'var(--phosphor-green, #1a73e8)', letterSpacing: '2px', textShadow: '0 0 8px rgba(26, 115, 232,0.4)', marginBottom: '8px' }}>
-            FREQUENTLY ASKED QUESTIONS<span className="blinking-cursor"></span>
-          </div>
+          {/* Semantic <h1>: this was a styled <div>, so the page shipped with no
+              heading at all for crawlers. margin:0 keeps the original look. */}
+          <h1 style={{ fontSize: 'clamp(20px, 3.5vw, 28px)', fontWeight: 'bold', color: 'var(--phosphor-green, #1a73e8)', letterSpacing: '2px', textShadow: '0 0 8px rgba(26, 115, 232,0.4)', margin: '0 0 8px' }}>
+            AI Benchmarking FAQ — Drift Detection, Model Degradation &amp; Scoring<span className="blinking-cursor"></span>
+          </h1>
           <div style={{ fontSize: '12px', color: 'var(--phosphor-dim, #5f6368)', marginBottom: '24px', letterSpacing: '0.3px' }}>
             Everything you need to know about AI model benchmarking, performance testing, and our methodology.
           </div>
@@ -227,21 +229,20 @@ export default function FAQPage() {
                 style={{ marginBottom: '28px' }}
               >
                 {/* Category header */}
-                <div style={{
+                {/* Category heading as a real <h2> so crawlers can see the
+                    page's topic structure. */}
+                <h2 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
-                  paddingBottom: '10px', marginBottom: '12px',
+                  paddingBottom: '10px', margin: '0 0 12px',
                   borderBottom: `2px solid ${color}33`,
+                  fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase',
+                  letterSpacing: '1.5px', color,
                 }}>
-                  <span style={{ fontSize: '11px', fontWeight: 'bold', fontFamily: 'var(--font-mono)', color }}>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>
                     [&rarr;]
                   </span>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase',
-                    letterSpacing: '1.5px', color,
-                  }}>
-                    {category}
-                  </span>
-                </div>
+                  {category}
+                </h2>
 
                 {/* FAQ items */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -261,12 +262,14 @@ export default function FAQPage() {
                           fontSize: '10px', fontWeight: 'bold', color,
                           fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px',
                         }}>Q:</span>
-                        <span style={{
+                        {/* Each question is an <h3>. Google reads FAQ headings
+                            directly and they back the FAQPage structured data. */}
+                        <h3 style={{
                           fontSize: '11px', fontWeight: 'bold', color: 'var(--phosphor-dim)',
-                          lineHeight: '1.4',
+                          lineHeight: '1.4', margin: 0,
                         }}>
                           {faq.question}
-                        </span>
+                        </h3>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                         <span style={{

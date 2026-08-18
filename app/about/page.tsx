@@ -37,7 +37,7 @@ const styles = {
     color: 'var(--phosphor-green, #1a73e8)',
     letterSpacing: '2px',
     textShadow: '0 0 8px rgba(26, 115, 232,0.4)',
-    marginBottom: '8px',
+    margin: '0 0 8px',
   } as React.CSSProperties,
   pageSub: {
     fontSize: '12px',
@@ -63,8 +63,7 @@ const styles = {
     color: 'var(--amber-warning, #ffb000)',
     textTransform: 'uppercase' as const,
     letterSpacing: '1.5px',
-    marginBottom: '12px',
-    marginTop: '24px',
+    margin: '24px 0 12px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -177,7 +176,7 @@ export default function AboutPage() {
     <SubpageLayout>
       <div style={styles.page}>
         <div style={styles.container}>
-          <div style={styles.pageTitle}>ABOUT AI STUPID LEVEL<span className="blinking-cursor"></span></div>
+          <h1 style={styles.pageTitle}>About AI Stupid Level — Independent AI Model Performance Monitoring<span className="blinking-cursor"></span></h1>
           <div style={styles.pageSub}>Independent watchdog platform for AI model performance monitoring</div>
 
           {/* Hero statement */}
@@ -188,9 +187,9 @@ export default function AboutPage() {
           </div>
 
           {/* Mission */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> OUR MISSION
-          </div>
+          </h2>
           <div style={styles.panel}>
             <div style={styles.text}>
               In early 2024, developers noticed something troubling: AI models they relied on seemed to be performing
@@ -219,9 +218,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Team */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> OUR TEAM
-          </div>
+          </h2>
           <div style={styles.panel}>
             <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '3px' }}>The Architect</div>
             <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>Lead Researcher and Platform Engineer</div>
@@ -259,9 +258,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Independence guarantee */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> FUNDING AND INDEPENDENCE
-          </div>
+          </h2>
           {[
             ['100% Independent Funding', 'Supported through community donations, sponsorships, and grant funding. No revenue from AI vendors.'],
             ['No Vendor Relationships', 'Zero financial relationships with OpenAI, Anthropic, Google, xAI, or any AI model provider.'],
@@ -298,9 +297,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Methodology validation */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> METHODOLOGY VALIDATION
-          </div>
+          </h2>
           <div style={styles.grid2}>
             {[
               ['Open Source Since 2024', 'Community code reviews, public issue tracking, full transparency in implementation'],
@@ -318,9 +317,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Enterprise data */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> ENTERPRISE DATA LICENSING
-          </div>
+          </h2>
           <div style={{ ...styles.text, ...styles.panel, marginBottom: '12px' }}>
             Beyond our free public platform, we offer <strong style={{ color: 'var(--phosphor-green)' }}>premium enterprise datasets</strong> that
             provide deeper insights into AI model behavior, safety vulnerabilities, and performance patterns.
@@ -391,9 +390,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Open Source */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> OPEN SOURCE AND TRANSPARENCY
-          </div>
+          </h2>
           <div style={styles.grid2}>
             {[
               { title: 'Full Source Code', desc: 'Every line of code is public on GitHub. Audit our methodology, suggest improvements, or run locally.', links: [{ label: 'Frontend (Web) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-web' }, { label: 'Backend (API) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-api' }] },
@@ -420,9 +419,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Values */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> OUR VALUES
-          </div>
+          </h2>
           <div style={styles.grid2}>
             {[
               ['Scientific Rigor', 'We use proper statistical methods, confidence intervals, and peer-reviewed algorithms. No hand-waving, no marketing fluff — just math.'],
@@ -440,9 +439,9 @@ export default function AboutPage() {
           <hr style={styles.divider} />
 
           {/* Contact */}
-          <div style={styles.sectionTitle}>
+          <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> CONTACT AND SOCIAL
-          </div>
+          </h2>
           <div style={styles.grid2}>
             <div style={styles.panel}>
               <div style={styles.panelTitle}>For General Inquiries</div>

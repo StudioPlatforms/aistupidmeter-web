@@ -15,6 +15,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: baseUrl, lastModified: currentDate, changeFrequency: 'hourly', priority: 1.0 },
     { url: `${baseUrl}/compare`, lastModified: currentDate, changeFrequency: 'daily', priority: 0.9 },
+    // Topic landing page for the drift-detection / model-degradation queries.
+    { url: `${baseUrl}/ai-drift-detection`, lastModified: currentDate, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${baseUrl}/methodology`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/about`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/faq`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.8 },

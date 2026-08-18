@@ -9,10 +9,12 @@ import '../styles/clean-theme.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'AI Benchmark & Smart Router 2026 | AI Performance Tests, Model Rankings & API Monitoring',
+    default: 'AI Benchmarks & Drift Detection 2026 | Live AI Model Rankings & Degradation Tracking',
     template: '%s | AI Stupid Meter — Benchmarks & Smart Router'
   },
-  description: 'The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models (GPT-5, Claude Opus 4, Grok 4, Gemini 3), run real-time benchmarks, route requests through the smartest model automatically, and monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider.',
+  // Leads with drift detection / degradation: it is the platform's actual
+  // differentiator and the query cluster the site was invisible for.
+  description: 'Independent AI benchmarking with continuous drift detection — find out when an AI model silently degrades. We track GPT-5, Claude Opus 5, Gemini 3, DeepSeek V4, Kimi and GLM with live performance scores, CUSUM drift alerts and historical charts. Plus a smart API router that sends every request to the best-performing model, with usage monitoring and budget controls behind one API key.',
   keywords: [
     // Core Benchmark Keywords
     'AI benchmark',
@@ -59,6 +61,34 @@ export const metadata: Metadata = {
     'API cost optimization AI',
     'AI token usage tracking',
     
+    // AI Drift Detection & Model Degradation
+    // NOTE: Google has ignored the keywords meta tag since 2009 — these exist
+    // for the minor signal other engines still take, and as a checklist of the
+    // terms the page titles, H1/H2s and body copy are actually written around.
+    // The page that targets this cluster is /ai-drift-detection.
+    'AI drift detection',
+    'AI model drift',
+    'LLM drift detection',
+    'AI degradation',
+    'AI model degradation',
+    'AI performance degradation',
+    'AI performance decline',
+    'detect AI model regression',
+    'LLM regression testing',
+    'model drift monitoring',
+    'AI quality monitoring',
+    'CUSUM drift detection',
+    'change point detection LLM',
+    'silent model updates',
+    'is ChatGPT getting worse',
+    'is Claude getting worse',
+    'why is my AI model getting dumber',
+    'AI model nerfed',
+    'AI model quality drop',
+    'LLM performance tracking over time',
+    'AI model consistency monitoring',
+    'monitor AI model changes',
+
     // Long-Tail Keywords
     'Which AI model is best for coding',
     'Claude vs GPT vs Gemini comparison 2026',
@@ -165,7 +195,9 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-    nocache: true,
+    // `nocache` was set here, which asks Google not to serve a cached copy of
+    // the page. It buys nothing for a site that wants maximum indexation and
+    // only removes a fallback surface, so it is deliberately not set.
     googleBot: {
       index: true,
       follow: true,
@@ -175,10 +207,22 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  // NOTE: add your real Search Console token here (or verify via DNS/GA).
-  // A placeholder value emits an invalid verification meta tag, so it is omitted
-  // until a real code is available.
-  // verification: { google: 'REAL_CODE_HERE' },
+  // Search Console verification. Set GOOGLE_SITE_VERIFICATION (and optionally
+  // BING_SITE_VERIFICATION) in the web app's environment to the value the
+  // console gives you; the meta tag is only emitted when a real code exists, so
+  // an unset var never ships an invalid tag.
+  ...(process.env.GOOGLE_SITE_VERIFICATION || process.env.BING_SITE_VERIFICATION
+    ? {
+        verification: {
+          ...(process.env.GOOGLE_SITE_VERIFICATION
+            ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+            : {}),
+          ...(process.env.BING_SITE_VERIFICATION
+            ? { other: { 'msvalidate.01': process.env.BING_SITE_VERIFICATION } }
+            : {}),
+        },
+      }
+    : {}),
   category: 'technology',
   classification: 'AI Tools',
   referrer: 'origin-when-cross-origin',
@@ -339,52 +383,13 @@ export default function RootLayout({
                   },
                   "temporalCoverage": "2025-01-06/..",
                   "measurementTechnique": "Automated code generation benchmarks with Python sandbox execution, tool calling tests, deep reasoning evaluation"
-                },
-                {
-                  "@type": "FAQPage",
-                  "mainEntity": [
-                    {
-                      "@type": "Question",
-                      "name": "What is AI Stupid Meter?",
-                      "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "AI Stupid Meter is the world's first AI intelligence degradation detection system. We continuously benchmark 20+ AI models across 7 providers using automated coding challenges, deep reasoning tasks, and tool-calling evaluations. Our CUSUM + Page-Hinkley algorithms detect performance regressions within hours."
-                      }
-                    },
-                    {
-                      "@type": "Question",
-                      "name": "What is the AI Smart Router?",
-                      "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "The AI Smart Router is an intelligent API gateway that automatically routes your AI requests to the best-performing model based on live benchmark data. It provides one universal API key for all providers (OpenAI, Anthropic, xAI, Google, DeepSeek, GLM, Kimi), with 5 routing strategies including auto-best, best-coding, best-reasoning, best-creative, and cheapest."
-                      }
-                    },
-                    {
-                      "@type": "Question",
-                      "name": "What is AI API Monitoring?",
-                      "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "AI API Monitoring tracks every request made through your API keys with per-key usage logging, cost breakdowns by model, prompt auditing with automatic secret scrubbing, budget controls with hard and soft limits, and efficiency metrics. All prompts are automatically scrubbed for secrets and encrypted at rest with AES-256."
-                      }
-                    },
-                    {
-                      "@type": "Question",
-                      "name": "Which AI models does the platform support?",
-                      "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "We benchmark and route through 20+ models including GPT-5, GPT-4o, O3, O3-Mini from OpenAI; Claude Opus 4, Claude Sonnet 4 from Anthropic; Grok 4 from xAI; Gemini 2.5 Pro, Gemini 2.5 Flash from Google; DeepSeek V4; Kimi K2; and GLM models from Zhipu AI."
-                      }
-                    },
-                    {
-                      "@type": "Question",
-                      "name": "How much does it cost?",
-                      "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "The AI benchmarks, rankings, and degradation alerts are completely free. The AI Router PRO plan with smart routing, API monitoring, prompt auditing, and budget controls costs $4.99/month with a 7-day free trial. You bring your own provider API keys — we don't mark up token costs."
-                      }
-                    }
-                  ]
                 }
+                // NOTE: a site-wide FAQPage node used to sit here, so every page —
+                // /compare, /about, every /models/* page — claimed FAQ markup for
+                // Q&As that were not visible on it. Google requires FAQ structured
+                // data to match content actually shown on the page, and it also
+                // duplicated the FAQPage that /faq emits for itself. Pages that
+                // genuinely show FAQs (/faq, /ai-drift-detection) declare their own.
               ]
             })
           }}

@@ -42,9 +42,9 @@ export default function ComparePage() {
 
         {/* Performance Leaders */}
         <section style={{ marginBottom: '32px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning, #ffb000)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning, #ffb000)', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> CURRENT PERFORMANCE LEADERS (2026)
-          </div>
+          </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '14px' }}>
             Based on continuous 4-hourly benchmarking cycles, here are the current top performers:
           </p>
@@ -69,9 +69,9 @@ export default function ComparePage() {
 
         {/* Comparison Matrix */}
         <section style={{ marginBottom: '32px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> DETAILED COMPARISON MATRIX
-          </div>
+          </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '16px' }}>
             Our 7-axis scoring methodology provides comprehensive insights into each model's strengths:
           </p>
@@ -127,9 +127,9 @@ export default function ComparePage() {
 
         {/* Best for Coding */}
         <section style={{ marginBottom: '32px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> WHICH AI MODEL IS BEST FOR CODING?
-          </div>
+          </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '14px' }}>
             Based on comprehensive coding benchmarks, here are our recommendations by use case:
           </p>
@@ -153,9 +153,9 @@ export default function ComparePage() {
 
         {/* Real-time Benchmark Results */}
         <section style={{ marginBottom: '32px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> REAL-TIME BENCHMARK RESULTS
-          </div>
+          </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '14px' }}>
             Our AI benchmark tool continuously monitors all models with hourly test cycles. Key metrics include:
           </p>
@@ -178,9 +178,9 @@ export default function ComparePage() {
 
         {/* Methodology */}
         <section style={{ marginBottom: '32px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h2 style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning)', textTransform: 'uppercase', letterSpacing: '1.5px', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> METHODOLOGY AND TRANSPARENCY
-          </div>
+          </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '12px' }}>
             Our AI model comparison uses identical test conditions for fair evaluation:
           </p>

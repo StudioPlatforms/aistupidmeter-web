@@ -3266,6 +3266,20 @@ export default function Dashboard() {
               >
                 VIEW METHODOLOGY →
               </a>
+              {/* Visible internal link into the drift-detection topic page —
+                  a page nothing links to is a page crawlers rarely reach. */}
+              <a
+                href="/ai-drift-detection"
+                className="vintage-btn"
+                style={{
+                  padding: '12px 32px',
+                  fontSize: '1.1em',
+                  textDecoration: 'none',
+                  display: 'inline-block'
+                }}
+              >
+                DRIFT DETECTION →
+              </a>
             </div>
           </div>
         </div>
