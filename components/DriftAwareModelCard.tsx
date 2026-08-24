@@ -31,8 +31,15 @@ interface DriftSignature {
       trend: 'up' | 'down' | 'stable';
       changeMagnitude: number;
       status: 'STABLE' | 'VOLATILE' | 'DEGRADED';
+      // 0 = the API had no observation; `value` is then a neutral placeholder.
+      sampleSize?: number;
     };
   };
+  // 'synthetic' = modelled series shown while live benchmarking is paused.
+  dataSource?: 'measured' | 'synthetic';
+  // Provenance of the axis breakdown, which can be modelled even when the score
+  // series is measured (only the hourly suite scores these axes).
+  axesSource?: 'measured' | 'synthetic' | 'none';
   primaryIssue?: string;
   recommendation?: string;
 }
@@ -137,7 +144,10 @@ export default function DriftAwareModelCard({ model, compact = true, showDriftIn
         <>
           {/* Mini Metrics (Collapsed View - Top 3 axes) */}
           <div className="mini-metrics">
-            {Object.entries(drift.axes).slice(0, 3).map(([key, axis]: [string, any]) => (
+            {Object.entries(drift.axes)
+              .filter(([, axis]: [string, any]) => axis?.sampleSize === undefined || axis.sampleSize > 0)
+              .slice(0, 3)
+              .map(([key, axis]: [string, any]) => (
               <div key={key} className="mini-metric">
                 <span className="metric-name">{formatAxisName(key)}</span>
                 <div className="metric-bar">
@@ -154,6 +164,13 @@ export default function DriftAwareModelCard({ model, compact = true, showDriftIn
               </div>
             ))}
           </div>
+
+          {/* Provenance: modelled series must never read as a measurement. */}
+          {drift.dataSource === 'synthetic' && (
+            <div className="last-change terminal-text--dim" title="No live benchmark runs in the last 28 days — this signature is derived from modelled scores and never raises an alert.">
+              ⓘ Modelled data — live benchmarking paused
+            </div>
+          )}
 
           {/* Last Change Indicator */}
           {drift.hoursSinceChange !== undefined && (
@@ -218,28 +235,40 @@ export default function DriftAwareModelCard({ model, compact = true, showDriftIn
           {/* Dimensional Breakdown */}
           <div className="axes-breakdown">
             <h4>Performance Dimensions</h4>
-            {Object.entries(drift.axes).map(([key, axis]: [string, any]) => (
-              <div key={key} className={`axis-row status-${axis.status.toLowerCase()}`}>
+            {drift.axesSource === 'synthetic' && (
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginBottom: '6px' }}>
+                ⓘ Modelled — no live benchmark runs scored these dimensions in the last 28 days.
+              </div>
+            )}
+            {Object.entries(drift.axes).map(([key, axis]: [string, any]) => {
+              // sampleSize 0 means nothing was measured — `value` is a neutral
+              // placeholder, so draw no bar and say so instead of a fake reading.
+              const measured = axis?.sampleSize === undefined || axis.sampleSize > 0;
+              return (
+              <div key={key} className={`axis-row status-${measured ? axis.status.toLowerCase() : 'unknown'}`}>
                 <div className="axis-label">
                   {formatAxisName(key)}
-                  {axis.status === 'DEGRADED' && <span className="degraded-indicator">⚠️</span>}
+                  {measured && axis.status === 'DEGRADED' && <span className="degraded-indicator">⚠️</span>}
                 </div>
                 <div className="axis-bar-container">
                   <div className="axis-bar">
-                    <div 
-                      className={`bar-fill status-${axis.status.toLowerCase()}`}
-                      style={{ width: `${axis.value * 100}%` }}
-                    />
+                    {measured && (
+                      <div 
+                        className={`bar-fill status-${axis.status.toLowerCase()}`}
+                        style={{ width: `${axis.value * 100}%` }}
+                      />
+                    )}
                   </div>
-                  <span className="axis-value">{Math.round(axis.value * 100)}</span>
-                  {axis.trend !== 'stable' && (
+                  <span className="axis-value">{measured ? Math.round(axis.value * 100) : '—'}</span>
+                  {measured && axis.trend !== 'stable' && (
                     <span className={`trend-indicator trend-${axis.trend}`}>
                       {axis.trend === 'up' ? '▲' : '▼'}
                     </span>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Alert Panel (if issues exist) */}

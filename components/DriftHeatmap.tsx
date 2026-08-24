@@ -18,8 +18,16 @@ interface DriftStatus {
     [key: string]: {
       status: 'STABLE' | 'VOLATILE' | 'DEGRADED';
       value: number;
+      // 0 means the API had no observation for this axis. `value` is then a
+      // neutral placeholder and must not be rendered as a measured percentage.
+      sampleSize?: number;
     };
   };
+  // 'synthetic' = modelled series shown while live benchmarking is paused.
+  dataSource?: 'measured' | 'synthetic' | 'unknown';
+  // Provenance of the axis breakdown, which can be modelled even when the score
+  // series is measured (only the hourly suite scores these axes).
+  axesSource?: 'measured' | 'synthetic' | 'none';
 }
 
 interface HeatmapProps {
@@ -40,7 +48,7 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
   useEffect(() => {
     // Use single batch endpoint instead of N individual requests
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-    const modelIds = new Set(models.slice(0, 12).map(m => m.id));
+    const modelIds = new Set(models.map(m => m.id));
     
     fetch(`${apiUrl}/api/drift/batch`)
       .then(res => res.json())
@@ -57,7 +65,9 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
                 provider: model?.provider || '',
                 regime: item.data.regime || 'STABLE',
                 driftStatus: item.data.driftStatus || 'NORMAL',
-                axes: item.data.axes || {}
+                axes: item.data.axes || {},
+                dataSource: item.data.dataSource,
+                axesSource: item.data.axesSource
               });
             }
           }
@@ -143,6 +153,23 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
               <tr key={modelData.modelId}>
                 <td className="model-name">
                   {modelData.modelName}
+                  {modelData.dataSource === 'synthetic' && (
+                    <span
+                      title="Live benchmarking is paused for this model — drift is derived from modelled scores and does not raise alerts."
+                      style={{
+                        marginLeft: '6px',
+                        fontSize: '0.65em',
+                        fontWeight: 'normal',
+                        padding: '1px 5px',
+                        borderRadius: '3px',
+                        border: '1px solid var(--border, rgba(128,128,128,0.35))',
+                        opacity: 0.7,
+                        verticalAlign: 'middle'
+                      }}
+                    >
+                      modelled
+                    </span>
+                  )}
                   <div style={{ fontSize: '0.75em', opacity: 0.6, fontWeight: 'normal' }}>
                     {modelData.provider}
                   </div>
@@ -154,14 +181,16 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
                 </td>
                 {dimensions.map(dim => {
                   const axis = modelData.axes[dim];
-                  const status = axis?.status || 'STABLE';
-                  const value = axis?.value || 0;
-                  
+                  const measured = hasReading(axis);
+                  const status = measured ? axis.status : 'UNKNOWN';
+
                   return (
                     <td 
                       key={dim}
                       className={`heat-cell status-${status.toLowerCase()}`}
-                      title={`${formatDimensionName(dim)}: ${Math.round(value * 100)}% (${status})`}
+                      title={measured
+                        ? `${formatDimensionName(dim)}: ${formatAxisValue(axis)} (${status})`
+                        : `${formatDimensionName(dim)}: no measurement`}
                       onClick={() => setSelectedDimension(dim === selectedDimension ? null : dim)}
                       style={{ cursor: 'pointer' }}
                     >
@@ -180,6 +209,7 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
         <span>🟡 VOLATILE</span>
         <span>🔴 DEGRADED</span>
         <span>🔄 RECOVERING</span>
+        <span>⚪ NO DATA</span>
       </div>
 
       {selectedDimension && (
@@ -194,8 +224,17 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
             {formatDimensionName(selectedDimension)} Breakdown
           </h4>
           <div style={{ fontSize: '0.85em' }}>
-            {driftData.map(model => {
+            {[...driftData]
+              // Worst first — a breakdown is read to find the outliers, and
+              // unmeasured models sort last so they never look like a low score.
+              .sort((a, b) => {
+                const av = hasReading(a.axes[selectedDimension]) ? a.axes[selectedDimension].value : Infinity;
+                const bv = hasReading(b.axes[selectedDimension]) ? b.axes[selectedDimension].value : Infinity;
+                return av - bv;
+              })
+              .map(model => {
               const axis = model.axes[selectedDimension];
+              const measured = hasReading(axis);
               return (
                 <div key={model.modelId} style={{ 
                   display: 'flex', 
@@ -203,16 +242,27 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
                   padding: '4px 0',
                   borderBottom: '1px solid rgba(26, 115, 232, 0.05)'
                 }}>
-                  <span>{model.modelName}</span>
+                  <span>
+                    {model.modelName}
+                    {model.axesSource === 'synthetic' && (
+                      <span
+                        title="Derived from modelled scores — no live benchmark runs for this dimension."
+                        style={{ marginLeft: '6px', fontSize: '0.8em', opacity: 0.55 }}
+                      >
+                        (modelled)
+                      </span>
+                    )}
+                  </span>
                   <span style={{ fontFamily: 'var(--font-mono)' }}>
-                    {Math.round((axis?.value || 0) * 100)}% 
+                    {measured ? formatAxisValue(axis) : 'no data'}
                     <span style={{ 
                       marginLeft: '8px',
-                      color: axis?.status === 'DEGRADED' ? 'var(--red-alert)' : 
-                             axis?.status === 'VOLATILE' ? 'var(--amber-warning)' : 
+                      color: !measured ? 'var(--phosphor-dim)' :
+                             axis.status === 'DEGRADED' ? 'var(--red-alert)' : 
+                             axis.status === 'VOLATILE' ? 'var(--amber-warning)' : 
                              'var(--phosphor-green)'
                     }}>
-                      {getStatusEmoji(axis?.status || 'STABLE')}
+                      {getStatusEmoji(measured ? axis.status : 'UNKNOWN')}
                     </span>
                   </span>
                 </div>
@@ -240,4 +290,20 @@ function getStatusEmoji(status: string): string {
     'RECOVERING': '🔄'
   };
   return emojis[status] || '⚪';
+}
+
+/**
+ * True only when the API actually measured this axis. An axis the backend could
+ * not populate arrives either missing entirely or with sampleSize 0 and a neutral
+ * 0.5 placeholder — rendering either as a percentage claims a reading nobody took,
+ * which is what made the breakdown read as a wall of confident 0% / 🟢.
+ */
+function hasReading(axis?: { value: number; sampleSize?: number }): axis is { value: number; sampleSize?: number; status: any } {
+  if (!axis || typeof axis.value !== 'number') return false;
+  // sampleSize is absent on responses from an older API build; treat those as measured.
+  return axis.sampleSize === undefined || axis.sampleSize > 0;
+}
+
+function formatAxisValue(axis: { value: number; sampleSize?: number }): string {
+  return `${Math.round(axis.value * 100)}%`;
 }
