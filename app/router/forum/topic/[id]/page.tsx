@@ -248,7 +248,10 @@ export default function TopicDetailPage() {
   };
 
   return (
-    <ForumLayout title={topic?.title || 'TOPIC'}>
+    <ForumLayout
+      title={topic?.title || 'TOPIC'}
+      mobileTitle={topic?.category_name || 'TOPIC'}
+    >
       <ForumBreadcrumbs
         items={[
           ...(topic?.category_name
@@ -276,29 +279,32 @@ export default function TopicDetailPage() {
 
       {!loading && !error && topic && (
         <>
-          {/* Topic header info */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              marginBottom: '12px',
-              flexWrap: 'wrap',
-              fontSize: '10px',
-              color: 'var(--phosphor-dim)',
-            }}
-          >
-            {topic.is_pinned ? (
-              <span className="rv4-forum-pin-badge">📌 Pinned</span>
+          {/* Topic header: full title (wraps, never truncated) with the author
+              and metadata beneath it. The sticky header and breadcrumb both
+              truncate, so this is where the complete title is readable. */}
+          <div className="rv4-forum-topic-head">
+            {topic.is_pinned || topic.is_locked ? (
+              <div className="rv4-forum-topic-head-badges">
+                {topic.is_pinned ? (
+                  <span className="rv4-forum-pin-badge">📌 Pinned</span>
+                ) : null}
+                {topic.is_locked ? (
+                  <span className="rv4-forum-category-locked">🔒 Locked</span>
+                ) : null}
+              </div>
             ) : null}
-            {topic.is_locked ? (
-              <span className="rv4-forum-category-locked">🔒 Locked</span>
-            ) : null}
-            <span>by {topic.author_username || 'Unknown'}</span>
-            <span>·</span>
-            <span>{formatDate(topic.created_at)}</span>
-            <span>·</span>
-            <span>👁 {topic.view_count ?? 0} views</span>
+
+            <h1 className="rv4-forum-topic-heading">{topic.title}</h1>
+
+            <div className="rv4-forum-topic-byline">
+              <span className="rv4-forum-topic-byline-author">
+                {topic.author_username || 'Unknown'}
+              </span>
+              <span className="rv4-forum-topic-byline-sep">·</span>
+              <span>{formatDate(topic.created_at)}</span>
+              <span className="rv4-forum-topic-byline-sep">·</span>
+              <span>👁 {topic.view_count ?? 0} views</span>
+            </div>
           </div>
 
           {/* Moderation bar for mods, or delete-only for topic author */}

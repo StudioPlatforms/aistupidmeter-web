@@ -10,9 +10,16 @@ interface ForumLayoutProps {
   children: React.ReactNode;
   title?: string;
   subtitle?: string;
+  /**
+   * Optional short label shown in the sticky header on mobile instead of
+   * `title`. Used where `title` is long user content (e.g. a topic title)
+   * that would otherwise be truncated to an unreadable stub — the full text
+   * is shown in the page body instead.
+   */
+  mobileTitle?: string;
 }
 
-export default function ForumLayout({ children, title = 'FORUM', subtitle }: ForumLayoutProps) {
+export default function ForumLayout({ children, title = 'FORUM', subtitle, mobileTitle }: ForumLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -61,7 +68,14 @@ export default function ForumLayout({ children, title = 'FORUM', subtitle }: For
         <div className="rv4-page-header-left">
           <div>
             <div className="rv4-page-title">
-              {title}
+              {mobileTitle ? (
+                <>
+                  <span className="rv4-page-title-wide">{title}</span>
+                  <span className="rv4-page-title-narrow">{mobileTitle}</span>
+                </>
+              ) : (
+                title
+              )}
               <span className="blinking-cursor"></span>
             </div>
             {subtitle && (
@@ -71,7 +85,7 @@ export default function ForumLayout({ children, title = 'FORUM', subtitle }: For
         </div>
       </div>
 
-      <div className="rv4-body">
+      <div className="rv4-body rv4-forum-body">
         {children}
       </div>
     </RouterLayout>

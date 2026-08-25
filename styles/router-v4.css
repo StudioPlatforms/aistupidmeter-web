@@ -187,6 +187,9 @@
 /* ═══ MAIN CONTENT AREA ═══ */
 .rv4-content {
   flex: 1;
+  /* Flex items default to min-width:auto, which lets wide content (long titles,
+     tables) push this wider than the viewport and scroll the whole page. */
+  min-width: 0;
   margin-left: 240px;
   min-height: 100vh;
   transition: margin-left 0.3s ease;
@@ -218,6 +221,11 @@
   min-width: 0;
   flex: 1;
 }
+/* The wrapper around the title/subtitle is itself a flex item — without this it
+   refuses to shrink and a long title pushes the header past the viewport. */
+.rv4-page-header-left > div {
+  min-width: 0;
+}
 .rv4-page-title {
   font-size: 14px;
   font-weight: bold;
@@ -227,9 +235,11 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  /* Block, not flex: text-overflow:ellipsis has no effect on a flex container,
+     so long titles (e.g. forum topic titles) never truncated. The trailing
+     cursor span flows inline after the text. */
+  display: block;
+  min-width: 0;
 }
 .rv4-page-title-sub {
   font-size: 10px;
@@ -1647,6 +1657,13 @@
   }
   .rv4-body {
     padding: 12px 14px;
+    /* Clear the fixed mobile menu button (occupies the bottom ~72px) so page
+       content is never stuck underneath it. */
+    padding-bottom: 88px;
+  }
+  /* Tighter header so the (truncated) title gets as much room as possible */
+  .rv4-page-header {
+    padding: 10px 14px;
   }
   .rv4-mobile-menu-btn {
     display: flex;
