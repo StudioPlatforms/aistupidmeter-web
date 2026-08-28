@@ -3825,12 +3825,16 @@ export default function Dashboard() {
           {/* Provider Health Strip */}
           <ProviderStrip modelScores={modelScores} />
 
-          {/* Mobile ad banner - above stupid meter */}
+          {/* Mobile ad banner - above stupid meter.
+              Temporarily disabled; uncomment to bring the banner back.
+              The .v4-mobile-ad styles and /LuckyLarry_Add.png are kept in place. */}
+          {/*
           <div className="v4-mobile-ad">
             <a href="https://luckylarry.fun/login" target="_blank" rel="noopener noreferrer">
               <img src="/LuckyLarry_Add.png" alt="Lucky Larry" />
             </a>
           </div>
+          */}
 
           {/* Stupid Meter */}
           <MeterBar
