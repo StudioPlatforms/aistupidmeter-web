@@ -35,7 +35,23 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
     <div className="v4-topbar">
       <div className="v4-topbar-left">
         <div className="v4-logo" onClick={() => onViewChange('dashboard')} style={{ cursor: 'pointer' }}>
-          STUPID<em>METER</em><span className="blinking-cursor"></span>
+          {/* Two files rather than one recoloured by CSS: the mark's "L" is
+              navy and vanishes on the dark theme's surface. Only one is ever
+              displayed, so screen readers announce the name once. */}
+          <img
+            className="v4-logo-img v4-logo-img--light"
+            src="/asl-mark.png"
+            width={754}
+            height={160}
+            alt="ASL — AI Stupid Level"
+          />
+          <img
+            className="v4-logo-img v4-logo-img--dark"
+            src="/asl-mark-dark.png"
+            width={754}
+            height={160}
+            alt="ASL — AI Stupid Level"
+          />
         </div>
         <div className="v4-nav">
           <button

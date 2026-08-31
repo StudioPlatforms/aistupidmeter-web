@@ -39,6 +39,24 @@
   text-shadow: 0 0 4px var(--red-alert);
 }
 
+/* Logo mark. Heights match the line box the STUPIDMETER text filled at each
+   breakpoint (24 / 21 / 19.5 / 18px), so swapping it in cannot change the
+   header height. width:auto keeps the 4.71:1 artwork undistorted. */
+.v4-logo-img {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+.v4-logo-img--dark {
+  display: none;
+}
+[data-theme='dark'] .v4-logo-img--light {
+  display: none;
+}
+[data-theme='dark'] .v4-logo-img--dark {
+  display: block;
+}
+
 .v4-nav {
   display: flex;
   gap: 2px;
@@ -922,6 +940,7 @@
 
   .v4-topbar { height: 38px; padding: 0 10px; }
   .v4-logo { font-size: 14px; }
+  .v4-logo-img { height: 19px; }
   .v4-topbar-right { gap: 6px; font-size: 10px; }
   .v4-topbar-right .visitors-count { display: none; }
   /* Hide theme button from header on mobile — it's in MobileNav */
@@ -963,7 +982,10 @@
   .v4-dc-meta { font-size: 9px; gap: 6px; }
   .v4-dc-meta span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
-  .v4-footer { flex-direction: column; height: auto; padding: 6px 10px; gap: 4px; text-align: center; }
+  /* Bottom padding reserves space for the floating share button
+     (fixed, bottom:80px, 50x44) so it floats over empty space instead of
+     clipping the last footer link. */
+  .v4-footer { flex-direction: column; height: auto; padding: 6px 10px 92px; gap: 4px; text-align: center; }
   .v4-footer-center { justify-content: center; flex-wrap: wrap; gap: 8px; }
 }
 
@@ -974,6 +996,7 @@
 
   .v4-topbar { height: 36px; }
   .v4-logo { font-size: 13px; letter-spacing: 1px; }
+  .v4-logo-img { height: 18px; }
 
   .v4-prov-chip { font-size: 9px; padding: 3px 6px; }
 
@@ -993,6 +1016,7 @@
   .v4-stat-bar .v4-stat-cell:nth-child(n+3) { display: none; }
   .v4-stat-value { font-size: 16px; }
   .v4-logo { font-size: 12px; }
+  .v4-logo-img { height: 16px; }
   .v4-quick-info-grid { grid-template-columns: 1fr; }
   .v4-meter-bar { flex-wrap: wrap; }
   .v4-meter-trend { display: none; }

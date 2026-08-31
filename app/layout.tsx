@@ -419,11 +419,13 @@ export default function RootLayout({
         <meta name="revisit-after" content="1 day" />
         
         {/* Favicon and app icons */}
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="shortcut icon" href="/favicon.png" />
-        <meta name="msapplication-TileImage" content="/smlogo.png" />
+        {/* ?v= busts the year-long nginx cache on these files. Bump it whenever
+            the icon artwork changes, or returning visitors keep the old one. */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=2" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png?v=2" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2" />
+        <link rel="shortcut icon" href="/favicon.png?v=2" />
+        <meta name="msapplication-TileImage" content="/apple-touch-icon.png?v=2" />
         <meta name="msapplication-TileColor" content="#1a73e8" />
         
         {/* Preload critical resources */}
