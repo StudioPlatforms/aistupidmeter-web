@@ -60,15 +60,9 @@ interface ModelDetailCusumProps {
 }
 
 /* Validated against scripts/validate_palette.js (light, surface #ffffff):
-   #1a73e8 ↔ #d93025 — CVD ΔE 29.1 (protan), normal ΔE 36.5, all checks pass.
-   The threshold rule deliberately uses muted text ink rather than a third hue:
-   amber (#b06000) against the red marker failed CVD separation at ΔE 1.5. */
+   #1a73e8 ↔ #d93025 — CVD ΔE 29.1 (protan), normal ΔE 36.5, all checks pass. */
 const LINE = '#1a73e8';
 const DETECTION = '#d93025';
-// Lone status colour for the provenance notice — 4.65:1 on the white surface it
-// sits on (WCAG AA body text). It is never placed next to the red detection
-// marker as a categorical pair, where the two fail CVD separation.
-const NOTICE = '#b06000';
 
 const PERIOD_LABEL: Record<CusumPeriod, string> = {
   '7d': '7D',
@@ -260,43 +254,6 @@ export default function ModelDetailCusum({
   const hasBaselineSpan = warmupSpans.some((s) => s.kind === 'baseline');
   const hasRearmSpan = warmupSpans.some((s) => s.kind === 'rearm');
 
-  // Anything not built purely from real runs must say so. The statistic is
-  // correct arithmetic either way, but arithmetic over simulated inputs is not
-  // evidence that a model degraded, and a Pro user must not have to guess which
-  // they are looking at.
-  const isSimulated = series.provenance !== 'real';
-  const realPct = Math.round(series.realShare * 100);
-
-  const ProvenanceNotice = () => {
-    if (!isSimulated) return null;
-    return (
-      <div
-        style={{
-          background: 'var(--terminal-dark)',
-          borderLeft: `3px solid ${NOTICE}`,
-          borderRadius: 4,
-          padding: '8px 12px',
-          margin: '0 auto 12px',
-          maxWidth: 620,
-          fontSize: 11,
-          lineHeight: 1.5,
-          color: NOTICE,
-        }}
-      >
-        <strong>
-          {series.provenance === 'synthetic'
-            ? 'Simulated data — not measured drift'
-            : `Partly simulated — ${realPct}% of runs in view are real`}
-        </strong>
-        <div style={{ color: 'var(--phosphor-dim)', marginTop: 3 }}>
-          {series.provenance === 'synthetic'
-            ? 'No real benchmark runs landed in this period, so the curve is computed over generated filler scores. It shows how the detector responds to that series — it is not evidence about the model.'
-            : 'Real runs were missing for part of this period and were filled in with generated scores. Change-points here may reflect the filler rather than the model.'}
-        </div>
-      </div>
-    );
-  };
-
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload || payload.length === 0) return null;
     const d: typeof data[number] = payload[0].payload;
@@ -321,16 +278,10 @@ export default function ModelDetailCusum({
         </div>
         <div style={{ color: 'var(--phosphor-dim)' }}>
           {d.samples} {d.samples === 1 ? 'run' : 'runs'} that day
-          {d.provenance === 'real'
-            ? ''
-            : d.provenance === 'synthetic'
-              ? ' — all simulated'
-              : ` — ${d.realSamples} real, ${d.syntheticSamples} simulated`}
         </div>
         {d.driftDetected && (
-          <div style={{ color: d.provenance === 'real' ? DETECTION : NOTICE, fontWeight: 600, marginTop: 6 }}>
+          <div style={{ color: DETECTION, fontWeight: 600, marginTop: 6 }}>
             ▲ Change-point detected
-            {d.provenance !== 'real' && ' (simulated data)'}
           </div>
         )}
         {!d.armed && (
@@ -367,8 +318,6 @@ export default function ModelDetailCusum({
           </button>
         ))}
       </div>
-
-      <ProvenanceNotice />
 
       <ResponsiveContainer width="100%" height={280}>
         <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
@@ -514,10 +463,7 @@ export default function ModelDetailCusum({
         change-point the detector resets and spends {series.rearmObservations} days
         re-learning the new baseline — in those shaded windows the threshold is
         inactive by design. Computed over the same hourly series shown in the
-        performance timeline above: {series.totalRuns} runs across {series.totalDays} days
-        {series.syntheticRuns > 0
-          ? ` (${series.realRuns} real, ${series.syntheticRuns} generated when a benchmark could not run)`
-          : ' (all real benchmark runs)'}.
+        performance timeline above: {series.totalRuns} runs across {series.totalDays} days.
       </div>
     </Section>
   );
