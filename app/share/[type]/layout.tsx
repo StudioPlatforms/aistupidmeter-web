@@ -49,14 +49,24 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     console.error('Failed to fetch data for meta:', error);
   }
 
+  // The title used to say "AI Model Rankings" for every type, so an /share/alert
+  // link promised a degradation and titled itself a leaderboard. Match the card.
+  const TITLES: Record<string, string> = {
+    rankings: 'Live AI model leaderboard — independently scored',
+    index: 'Global AI performance index — live benchmark scores',
+    alert: 'AI model performance degradation detected',
+    winner: 'The top-scoring AI model right now',
+  };
+  const title = TITLES[type] || TITLES.rankings;
+
   return {
     metadataBase: new URL(baseUrl),
-    title: 'AI Model Rankings - Live Performance Scores | AI Stupid Level',
+    title: `${title} | AI Stupid Level`,
     description,
     openGraph: {
       type: 'website',
       url: `${baseUrl}/share/${encodeURIComponent(type)}`,
-      title: 'AI Model Rankings - Live Performance Scores',
+      title,
       description,
       siteName: 'AI Stupid Level',
       images: [
@@ -64,13 +74,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: 'AI Model Rankings - Live Performance Scores'
+          alt: title
         }
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'AI Model Rankings - Live Performance Scores',
+      title,
       description,
       images: [ogImageUrl],
       creator: '@AIStupidlevel',
