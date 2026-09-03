@@ -68,7 +68,7 @@ export async function GET(
   }
 
   // Server-to-server: go straight to the API, bypassing the public proxy.
-  const apiBase = process.env.API_INTERNAL_URL || 'http://localhost:4000';
+  const apiBase = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
   try {
     const upstream = await fetch(

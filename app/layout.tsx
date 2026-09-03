@@ -169,18 +169,20 @@ export const metadata: Metadata = {
     title: 'AI Benchmark & Smart Router 2026 | Compare GPT-5, Claude Opus 4, Grok 4, Gemini 3',
     description: 'The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models, route requests through the smartest model, monitor API usage, audit prompts, and control budgets. One API key for all providers.',
     siteName: 'AI Stupid Meter — Benchmarks, Smart Router & API Monitoring',
+    // One image, the dynamic one. There used to be a second entry pointing at
+    // /stupidmetermeta.png as a "fallback", but no crawler ever reached it:
+    // X reads twitter:image, and Telegram/Slack/LinkedIn/Discord/Facebook all
+    // take the FIRST og:image. It was also mis-declared — the tags said
+    // 1200x630 while the file on disk is 1536x1024 and 2.3MB, so anything that
+    // did fall back would have got a 3:2 image cropped into a 1.91:1 box.
+    // The real fallback lives inside /api/og, which always renders a valid
+    // branded card even when the API is unreachable.
     images: [
       {
         url: 'https://aistupidlevel.info/api/og?type=rankings',
         width: 1200,
         height: 630,
         alt: 'AI Model Rankings - Live Performance Scores & Smart Router'
-      },
-      {
-        url: '/stupidmetermeta.png',
-        width: 1200,
-        height: 630,
-        alt: 'AI Benchmark Tool - Compare AI Models, Smart Router & API Monitoring Dashboard'
       }
     ],
   },

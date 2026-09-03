@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 const SITE = 'https://aistupidlevel.info';
 // Server-side calls must hit the backend directly (browser uses the nginx proxy).
-const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://localhost:4000';
+const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 const YEAR = 2026;
 
 const VENDOR_LABELS: Record<string, string> = {

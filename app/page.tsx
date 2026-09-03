@@ -11,7 +11,7 @@ import HomeClient from './HomeClient';
 export const dynamic = 'force-dynamic';
 
 const SITE = 'https://aistupidlevel.info';
-const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://localhost:4000';
+const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 const YEAR = 2026;
 
 export const metadata: Metadata = {

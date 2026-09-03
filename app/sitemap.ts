@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { slugifyModelName } from '../lib/model-slug';
 
 // Server-side calls hit the backend directly; browser traffic uses the nginx proxy.
-const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://localhost:4000';
+const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://aistupidlevel.info';

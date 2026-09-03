@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
 // Use internal backend URL for server-side requests
-const API_URL = process.env.API_INTERNAL_URL || 'http://localhost:4000';
+const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
 /**
  * This route is the ONLY authenticated way into the /router/* API.
