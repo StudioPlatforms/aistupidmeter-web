@@ -21,6 +21,15 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
     ? Number(summary.avgCIWidth).toFixed(1)
     : '—';
 
+  // Before any scores have loaded these are 0, and printing a literal 0 reads
+  // as "this site tracks nothing" rather than "not loaded yet". Match the
+  // em-dash the other metrics above already use, and keep the prose honest by
+  // dropping the counts entirely instead of claiming "0+ AI models across 0
+  // providers".
+  const hasCounts = totalModels > 0 && providers > 0;
+  const modelsLabel = totalModels > 0 ? String(totalModels) : '—';
+  const providersLabel = providers > 0 ? String(providers) : '—';
+
   return (
     <div className="v4-below-lb">
       <div className="v4-info-grid">
@@ -43,11 +52,11 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Models Tracked</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{totalModels}</span>
+            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{modelsLabel}</span>
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Providers Monitored</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{providers}</span>
+            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{providersLabel}</span>
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Detection Method</span>
@@ -93,8 +102,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
           &gt; WHAT IS STUPID METER?
         </div>
         <div style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
-          The world&apos;s first AI intelligence degradation detection system. We continuously benchmark {totalModels}+ AI models
-          across {providers} providers using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
+          The world&apos;s first AI intelligence degradation detection system. We continuously benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
           Our CUSUM + Page-Hinkley change-point detection algorithms identify performance regressions within hours, not days.
         </div>
         <div style={{ fontWeight: 'bold', color: 'var(--phosphor-green)', marginTop: '10px', marginBottom: '6px', textShadow: '0 0 2px var(--phosphor-green)' }}>

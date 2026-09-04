@@ -137,24 +137,24 @@ export default function V4Leaderboard({
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.85)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          zIndex: 10,
-        }}>
-          <div style={{ fontSize: '2em', marginBottom: '12px', animation: 'spin 1s linear infinite' }}>⚡</div>
-          <div className="terminal-text--green" style={{ fontSize: '1em', marginBottom: '6px' }}>
-            UPDATING RANKINGS
-          </div>
-          <div className="vintage-loading"></div>
-        </div>
-      )}
+      {/*
+        Loading treatment.
+
+        This was an absolutely-positioned rgba(0,0,0,.85) panel with a spinning
+        ⚡, "UPDATING RANKINGS" in caps, and a .vintage-loading bar — all
+        terminal-theme leftovers sitting on a light UI. Worse, it sized itself
+        to a container that collapsed to just the header row while the rows
+        were cleared, so it rendered as a black stripe with its own text
+        overflowing above it.
+
+        Now: the rows stay mounted and simply dim, and a thin indeterminate bar
+        rides the top edge of the table. Nothing is covered, nothing collapses,
+        and there is no dark panel on a light page.
+      */}
+      {isLoading && <div className="v4-lb-loading-bar" role="progressbar" aria-label="Updating rankings" />}
 
       {/* Table Header */}
-      <div className="v4-lb-header">
+      <div className={`v4-lb-header${isLoading ? ' v4-lb-dimmed' : ''}`}>
         <div style={{ textAlign: 'center' }}>RK</div>
         <div style={{ textAlign: 'left', paddingLeft: '10px' }}>MODEL</div>
         <div style={{ textAlign: 'center' }}>SCORE</div>
@@ -189,7 +189,7 @@ export default function V4Leaderboard({
         return (
           <div
             key={model.id}
-            className={`v4-lb-row ${isHighlight ? 'highlight' : ''}`}
+            className={`v4-lb-row ${isHighlight ? 'highlight' : ''}${isLoading ? ' v4-lb-dimmed' : ''}`}
             onClick={() => router.push(modelHref)}
           >
             {/* Rank */}

@@ -568,3 +568,51 @@ a:hover { color: var(--accent-ink); }
   .pro-modal-btn { padding: 9px 12px; font-size: 11.5px; }
 }
 [data-theme="dark"] .pro-modal { background: rgba(0, 0, 0, 0.6); }
+
+/* ── Leaderboard loading state ─────────────────────────────────────────
+   Replaces the old rgba(0,0,0,.85) overlay with its spinning emoji and
+   "UPDATING RANKINGS" caps. That panel sized itself to a container that
+   collapsed while the rows were cleared, so it rendered as a black stripe
+   with text spilling out above it — on a light page.
+
+   The rows now stay mounted and dim; a thin indeterminate bar rides the top
+   edge of the table. Nothing is covered and nothing collapses. */
+.v4-lb-loading-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  z-index: 5;
+  overflow: hidden;
+  background: var(--metal-silver);
+  border-radius: 2px;
+}
+.v4-lb-loading-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 30%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: v4LbIndeterminate 1.15s ease-in-out infinite;
+}
+@keyframes v4LbIndeterminate {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(440%); }
+}
+.v4-lb-dimmed {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+/* clean-theme kills animation globally under reduced motion with !important,
+   which would freeze the bar mid-track. Show a static filled bar instead so
+   the loading state is still legible. */
+@media (prefers-reduced-motion: reduce) {
+  .v4-lb-loading-bar::after {
+    animation: none !important;
+    width: 100% !important;
+    transform: none !important;
+    background: var(--accent) !important;
+    opacity: 0.5;
+  }
+}

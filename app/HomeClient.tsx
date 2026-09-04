@@ -1497,13 +1497,26 @@ export default function Dashboard() {
       console.log(`⚡ User changed to ${leaderboardPeriod}/${leaderboardSortBy}, trying cache...`);
       
       initialDataLoaded.current = false;
-      
-      // Clear old history so the batch useEffect doesn't skip on stale data
-      setModelHistoryData(new Map());
+
+      // Deliberately NOT clearing modelScores/modelHistoryData here.
+      //
+      // This used to do `setModelScores([])` + `setModelHistoryData(new Map())`,
+      // which emptied the array every widget on the page derives from. For the
+      // ~200ms of a switch the whole dashboard read as a dead site: StatBar
+      // showed STABLE 0 / VOLATILE 0 / DEGRADED 0 / MODELS 0 / PROVIDERS 0,
+      // BelowLeaderboard showed "Models Tracked 0", and the intro copy claimed
+      // "We continuously benchmark 0+ AI models across 0 providers". The table
+      // also collapsed to a bare header, which shrank the loading overlay to a
+      // ~40px strip and left its text spilling out above — the black stripe.
+      //
+      // Keeping the previous rows mounted means the numbers stay truthful, the
+      // layout does not jump, and loading is communicated by dimming the table
+      // instead of destroying it. The batch-history effect still re-runs
+      // because it keys on leaderboardPeriod/leaderboardSortBy, not on the
+      // array being emptied.
       setLoadingLeaderboard(true);
       setHistoryLoading(true);
-      setModelScores([]);
-      
+
       // fetchDashboardDataCached now checks the client-side Map cache first
       // If it has valid data there, it will restore scores + history + analytics instantly
       // skipHistory: the leaderboard is what the user is waiting on, and it
