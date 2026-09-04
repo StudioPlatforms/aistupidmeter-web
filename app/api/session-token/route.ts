@@ -25,10 +25,27 @@ const ALLOWED_HOSTS = new Set([
   '127.0.0.1:3000',
 ]);
 
+/**
+ * Normalise a host before comparing it.
+ *
+ * `new URL('https://aistupidlevel.info./').host` keeps the trailing dot — that
+ * is the fully-qualified DNS form, and it is a legitimate way to reach this
+ * site, but it does not match the bare name in ALLOWED_HOSTS. Real visitors
+ * arriving that way were being refused a token and then failing the coverage
+ * check they had no way to pass. Observed in production: 3 such 403s on
+ * /api/session-token from genuine Safari and Chrome referers.
+ *
+ * Case is normalised for the same reason — hostnames are case-insensitive, but
+ * a Set lookup is not.
+ */
+function normaliseHost(host: string): string {
+  return host.toLowerCase().replace(/\.$/, '');
+}
+
 function hostAllowed(header: string | null): boolean | null {
   if (!header) return null; // absent — the caller decides what that means
   try {
-    return ALLOWED_HOSTS.has(new URL(header).host);
+    return ALLOWED_HOSTS.has(normaliseHost(new URL(header).host));
   } catch {
     return false;
   }
