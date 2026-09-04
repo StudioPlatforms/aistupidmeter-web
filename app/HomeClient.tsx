@@ -850,7 +850,20 @@ export default function Dashboard() {
 
   // Fetch all dashboard data from cached endpoints - INSTANT loading!
   // Now returns ALL data including historyMap for charts/radar/heatmap in a single request.
-  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false): Promise<{ success: boolean; data?: any }> => {
+  /**
+   * `skipHistory` asks the API to leave historyMap out of the response.
+   *
+   * historyMap is 96-99% of that payload — 774KB of 830KB on `latest`, and
+   * 3.42MB of 3.46MB on `1m` — while the leaderboard only needs modelScores
+   * (~9KB). Bundling it meant every period/sort switch left the table blank
+   * until a multi-megabyte download finished. With it skipped the response is
+   * ~33KB regardless of period, the table paints immediately, and the existing
+   * batch-history effect below fills the charts in separately (8-160ms).
+   *
+   * The client cache only sets historyLoadedFromCache when historyMap is
+   * non-empty, so a history-less cache entry still lets the batch effect run.
+   */
+  const fetchDashboardDataCached = async (period: 'latest' | '24h' | '7d' | '1m' = leaderboardPeriod, sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price' = leaderboardSortBy, analyticsP: 'latest' | '24h' | '7d' | '1m' = analyticsPeriod, forceRefresh: boolean = false, skipHistory: boolean = false): Promise<{ success: boolean; data?: any }> => {
     // CRITICAL FIX: Convert 'speed' to '7axis' for API compatibility
     const sortByParam = sortBy === 'speed' ? '7axis' : sortBy;
     console.log(`⚡ Fetching cached dashboard data: ${period}/${sortByParam}/${analyticsP}`);
@@ -906,7 +919,7 @@ export default function Dashboard() {
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-      const cacheUrl = `${apiUrl}/dashboard/cached?period=${period}&sortBy=${sortByParam}&analyticsPeriod=${analyticsP}`;
+      const cacheUrl = `${apiUrl}/dashboard/cached?period=${period}&sortBy=${sortByParam}&analyticsPeriod=${analyticsP}${skipHistory ? '&includeHistory=false' : ''}`;
       console.log(`🚀 Trying cache URL: ${cacheUrl}`);
       const response = await fetch(cacheUrl);
       const result = await response.json();
@@ -1493,7 +1506,10 @@ export default function Dashboard() {
       
       // fetchDashboardDataCached now checks the client-side Map cache first
       // If it has valid data there, it will restore scores + history + analytics instantly
-      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod)
+      // skipHistory: the leaderboard is what the user is waiting on, and it
+      // needs none of the multi-megabyte historyMap. Charts follow via the
+      // batch-history effect a moment later.
+      fetchDashboardDataCached(leaderboardPeriod, leaderboardSortBy, analyticsPeriod, false, true)
         .then((res) => {
           if (!res?.success) {
             console.log('🔄 Cache miss on control change, using fallback...');

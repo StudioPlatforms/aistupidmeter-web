@@ -23,6 +23,22 @@ const nextConfig = {
   },
   // Ensure server-only modules stay server-side
   serverComponentsExternalPackages: ['better-sqlite3', 'bcryptjs'],
+
+  compiler: {
+    // Strip console output from production builds.
+    //
+    // The app carries ~205 console calls, 83 of them in HomeClient alone, and
+    // they were all shipping to real users' browsers — every period switch
+    // dumped a wall of "⚡ User changed to…", "🚀 CLIENT CACHE HIT…",
+    // "🚫 Degraded models to exclude…" into the console. Fine while debugging,
+    // unprofessional for anyone who opens devtools on the live site.
+    //
+    // Done at build time rather than by deleting the call sites so local `next
+    // dev` keeps every log. error and warn are kept deliberately: genuine
+    // failures should still be visible in production.
+    removeConsole:
+      process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
 };
 
 module.exports = nextConfig;
