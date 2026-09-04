@@ -197,6 +197,25 @@ export interface EfficiencyMetrics {
   topCategories: Array<{ category: string; percentage: string }>;
 }
 
+export interface DataApiKey {
+  id: number;
+  name: string | null;
+  keyPrefix: string;
+  tier: string;
+  appUrl: string | null;
+  createdAt: string | null;
+  lastUsedAt: string | null;
+  usedToday: number;
+  dailyLimit: number;
+  totalRequests: number;
+}
+
+export interface DataApiTier {
+  daily: number;
+  perMinute: number;
+  label: string;
+}
+
 // ============================================================================
 // API Client Class
 // ============================================================================
@@ -307,6 +326,38 @@ class ApiClient {
     return this.request(`/api/router/keys/${keyId}`, {
       method: 'DELETE',
     });
+  }
+
+  // ==========================================================================
+  // Public Data API Keys (asl_*)
+  // ==========================================================================
+
+  /**
+   * List the caller's Data API keys. These gate /api/v1/* — the read-only
+   * benchmark API — and are separate from the aism_ router keys above, which
+   * can spend money through connected provider accounts.
+   */
+  async getDataKeys(): Promise<{ keys: DataApiKey[]; tiers: Record<string, DataApiTier> }> {
+    return this.request('/api/router/data-keys');
+  }
+
+  async createDataKey(name: string, appUrl?: string): Promise<{
+    key: string;
+    id: number;
+    name: string;
+    keyPrefix: string;
+    tier: string;
+    limits: DataApiTier;
+    message: string;
+  }> {
+    return this.request('/api/router/data-keys', {
+      method: 'POST',
+      body: JSON.stringify({ name, appUrl }),
+    });
+  }
+
+  async revokeDataKey(keyId: number): Promise<{ success: boolean; message: string }> {
+    return this.request(`/api/router/data-keys/${keyId}`, { method: 'DELETE' });
   }
 
   // ==========================================================================

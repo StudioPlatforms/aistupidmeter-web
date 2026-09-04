@@ -82,8 +82,8 @@ export default function RouterKeysPage() {
           <div className="rv4-page-header-left">
             <span style={{ fontSize: '18px' }}>🔑</span>
             <div>
-              <div className="rv4-page-title">UNIVERSAL API KEYS<span className="blinking-cursor"></span></div>
-              <div className="rv4-page-title-sub">Manage keys for accessing the AI Router from any application</div>
+              <div className="rv4-page-title">SMART ROUTER API KEYS<span className="blinking-cursor"></span></div>
+              <div className="rv4-page-title-sub">One key that routes your prompts to whichever model is performing best right now</div>
             </div>
           </div>
           <div className="rv4-page-header-right">
@@ -106,11 +106,30 @@ export default function RouterKeysPage() {
           <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
             <span className="rv4-info-banner-icon">ℹ</span>
             <div className="rv4-info-banner-content">
-              <div className="rv4-info-banner-title">ABOUT UNIVERSAL API KEYS</div>
+              <div className="rv4-info-banner-title">THIS IS WHERE YOU GET YOUR SMART ROUTER KEY</div>
               <div className="rv4-info-banner-text">
-                Universal API keys allow you to access the AI Router from any application.
-                Use these keys in place of provider-specific keys to automatically route requests
-                to the best-performing model based on real-time benchmarks.
+                An <strong>SR key</strong> (<code style={{ fontFamily: 'var(--font-mono)' }}>aism_…</code>) is
+                what you put in Cursor, Cline, Aider or your own code in place of an OpenAI or
+                Anthropic key. Every request you send through it gets routed to whichever model is
+                scoring best on live benchmarks right now, billed through the provider keys you
+                connect under <a href="/router/providers" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>PROVIDERS</a>.
+              </div>
+            </div>
+          </div>
+
+          {/* The two key types get confused constantly — say which is which here,
+              on the page people land on first, rather than in a doc nobody opens. */}
+          <div className="rv4-info-banner blue" style={{ marginBottom: '14px' }}>
+            <span className="rv4-info-banner-icon">↔</span>
+            <div className="rv4-info-banner-content">
+              <div className="rv4-info-banner-title">LOOKING FOR THE OTHER KIND OF KEY?</div>
+              <div className="rv4-info-banner-text">
+                SR keys <strong>run inference</strong> and can spend money. If you just want to{' '}
+                <strong>read benchmark data</strong> — rankings, drift, degradation alerts — that is a
+                separate, free, read-only{' '}
+                <a href="/router/data-keys" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Data API key</a>{' '}
+                (<code style={{ fontFamily: 'var(--font-mono)' }}>asl_live_…</code>). Deliberately
+                separate, so a leaked read key can never touch your provider accounts.
               </div>
             </div>
           </div>
@@ -138,7 +157,7 @@ export default function RouterKeysPage() {
           {/* Keys list */}
           <div className="rv4-panel" style={{ marginBottom: '14px' }}>
             <div className="rv4-panel-header">
-              <span className="rv4-panel-title">🔑 YOUR API KEYS ({loading ? '...' : `${activeKeysCount} ACTIVE`})</span>
+              <span className="rv4-panel-title">🔑 YOUR SR API KEYS ({loading ? '...' : `${activeKeysCount} ACTIVE`})</span>
             </div>
             <div className="rv4-panel-body" style={{ padding: 0 }}>
               {loading ? (
@@ -149,8 +168,8 @@ export default function RouterKeysPage() {
               ) : keys.length === 0 ? (
                 <div className="rv4-empty" style={{ padding: '40px' }}>
                   <div className="rv4-empty-icon">🔑</div>
-                  <div className="rv4-empty-title">No API Keys</div>
-                  <div className="rv4-empty-text">Create your first universal API key to get started with the AI Router.</div>
+                  <div className="rv4-empty-title">No Smart Router Keys</div>
+                  <div className="rv4-empty-text">Create your first SR key to start routing prompts to the best-performing model.</div>
                   <button onClick={() => setShowCreateModal(true)} className="rv4-ctrl-btn primary" style={{ marginTop: '10px' }}>
                     + CREATE FIRST KEY
                   </button>
@@ -436,7 +455,7 @@ export default function RouterKeysPage() {
           <div className="rv4-modal-backdrop" onClick={() => { if (!creating) { setShowCreateModal(false); setNewKeyName(''); setCreatedKey(null); } }}>
             <div className="rv4-modal" onClick={(e) => e.stopPropagation()}>
               <div className="rv4-modal-header">
-                <span className="rv4-modal-title">🔑 CREATE NEW API KEY</span>
+                <span className="rv4-modal-title">🔑 CREATE NEW SR API KEY</span>
                 <button className="rv4-modal-close" onClick={() => { if (!creating) { setShowCreateModal(false); setNewKeyName(''); setCreatedKey(null); } }}>✕ CLOSE</button>
               </div>
               <div className="rv4-modal-body">

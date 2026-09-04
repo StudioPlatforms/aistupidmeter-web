@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   keywords: [
     'Claude vs GPT vs Gemini', 'Claude vs GPT comparison', 'GPT vs Gemini comparison',
     'Claude vs Gemini comparison', 'AI model comparison 2026', 'best AI model for coding',
-    'Claude Opus 4 vs GPT-5', 'Gemini 2.5 vs Claude', 'AI performance comparison',
+    'Claude Opus 5 vs GPT-5.6', 'Gemini 3.1 vs Claude', 'AI performance comparison',
     'LLM comparison chart', 'AI benchmark comparison', 'which AI is better', 'AI model rankings 2026'
   ],
   openGraph: {
@@ -46,20 +46,23 @@ export default function ComparePage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> CURRENT PERFORMANCE LEADERS (2026)
           </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '14px' }}>
-            Based on continuous 4-hourly benchmarking cycles, here are the current top performers:
+            Benchmarks re-run every 4 hours and the order genuinely changes, so we do not freeze a
+            winner into this page &mdash; a hardcoded list here would be wrong within weeks. Each
+            category below links to the live sort, which is the authoritative answer:
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[
-              { rank: '01', label: 'Best for Coding', model: 'Claude Opus 4', detail: 'consistently leads in code generation and debugging tasks' },
-              { rank: '02', label: 'Fastest Response', model: 'Gemini 2.5 Flash', detail: 'provides the quickest API response times' },
-              { rank: '03', label: 'Most Reliable', model: 'GPT-5', detail: 'shows the most consistent performance across all test categories' },
-              { rank: '04', label: 'Best Value', model: 'Claude Sonnet 4', detail: 'offers excellent performance-to-cost ratio' },
+              { rank: '01', label: 'Best for Coding', model: 'View live', href: '/?sortBy=coding', detail: 'ranked by the executed-code benchmark: correctness, complexity, debugging' },
+              { rank: '02', label: 'Best for Reasoning', model: 'View live', href: '/?sortBy=reasoning', detail: 'ranked by the multi-turn deep-reasoning suite' },
+              { rank: '03', label: 'Fastest Response', model: 'View live', href: '/?sortBy=speed', detail: 'ranked by measured end-to-end API latency' },
+              { rank: '04', label: 'Best Value', model: 'View live', href: '/?sortBy=price', detail: 'ranked by score against list price per token' },
+              { rank: '05', label: 'Best at Tool Calling', model: 'View live', href: '/?sortBy=tooling', detail: 'ranked by the Docker-sandbox agent suite' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 14px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.12)', borderLeft: '3px solid rgba(26, 115, 232,0.4)', borderRadius: '2px', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontFamily: 'var(--font-mono)', flexShrink: 0, marginTop: '1px' }}>{item.rank}</span>
                 <div>
                   <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{item.label}: </span>
-                  <strong style={{ color: 'var(--phosphor-green)', fontSize: '11px' }}>{item.model}</strong>
+                  <Link href={item.href} style={{ color: 'var(--phosphor-green)', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none' }}>{item.model} →</Link>
                   <span style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}> — {item.detail}</span>
                 </div>
               </div>
@@ -73,35 +76,59 @@ export default function ComparePage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> DETAILED COMPARISON MATRIX
           </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '16px' }}>
-            Our 7-axis scoring methodology provides comprehensive insights into each model's strengths:
+            Our 9-axis scoring methodology provides comprehensive insights into each model's strengths:
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
             {[
               {
                 provider: 'ANTHROPIC CLAUDE',
                 items: [
-                  { model: 'Claude Opus 4', desc: 'Premium model excelling in complex reasoning and code generation' },
-                  { model: 'Claude Sonnet 4', desc: 'Balanced performance with excellent cost efficiency' },
-                  { label: 'Strengths', value: 'Superior code quality, excellent debugging capabilities, strong refusal handling' },
-                  { label: 'Best for', value: 'Software development, code review, complex problem solving' },
+                  { model: 'Opus', desc: 'The heavyweight line — strongest on complex reasoning and code architecture' },
+                  { model: 'Sonnet / Fable', desc: 'Faster, cheaper lines that stay close to Opus on ordinary coding work' },
+                  { label: 'Typically strong at', value: 'Code quality, debugging, tool calling' },
+                  { label: 'Models tracked', value: 'The largest family on our leaderboard' },
                 ]
               },
               {
                 provider: 'OPENAI GPT',
                 items: [
-                  { model: 'GPT-5', desc: 'Latest flagship model with enhanced reasoning capabilities' },
-                  { model: 'O3 and O3-Mini', desc: 'Specialized models for different use cases and budgets' },
-                  { label: 'Strengths', value: 'Consistent performance, broad knowledge base, reliable API' },
-                  { label: 'Best for', value: 'General-purpose tasks, consistent results, production environments' },
+                  { model: 'GPT-5.x', desc: 'The flagship line, several variants tuned differently' },
+                  { model: 'Codex', desc: 'Coding-specialised variant, frequently at or near the top of our combined ranking' },
+                  { label: 'Typically strong at', value: 'Correctness and reasoning consistency' },
+                  { label: 'Models tracked', value: 'Second-largest family on our leaderboard' },
                 ]
               },
               {
                 provider: 'GOOGLE GEMINI',
                 items: [
-                  { model: 'Gemini 2.5 Pro', desc: 'High-performance model with multimodal capabilities' },
-                  { model: 'Gemini 2.5 Flash', desc: 'Speed-optimized variant for rapid responses' },
-                  { label: 'Strengths', value: 'Fast response times, competitive pricing, Google integration' },
-                  { label: 'Best for', value: 'High-throughput applications, cost-sensitive projects, speed-critical tasks' },
+                  { model: 'Gemini Pro', desc: 'High-performance line with multimodal capabilities' },
+                  { model: 'Gemini Flash / Flash-Lite', desc: 'Speed-optimised variants for high-throughput work' },
+                  { label: 'Typically strong at', value: 'Latency and price-per-token' },
+                  { label: 'Best for', value: 'High-throughput and cost-sensitive workloads' },
+                ]
+              },
+              {
+                provider: 'DEEPSEEK',
+                items: [
+                  { model: 'V4 Pro / V4 Flash', desc: 'Open-weight-derived line that scores competitively on reasoning' },
+                  { label: 'Typically strong at', value: 'Reasoning score relative to cost' },
+                  { label: 'Best for', value: 'Analysis and reasoning work on a budget' },
+                ]
+              },
+              {
+                provider: 'MOONSHOT KIMI',
+                items: [
+                  { model: 'K3 / K2.x Code', desc: 'Long-context line with a coding-specialised variant' },
+                  { label: 'Typically strong at', value: 'Long-context retention and coding tasks' },
+                  { label: 'Best for', value: 'Large-codebase and long-document work' },
+                ]
+              },
+              {
+                provider: 'ZHIPU GLM',
+                items: [
+                  { model: 'GLM 5.x', desc: 'Competitively priced general-purpose line' },
+                  { label: 'Typically strong at', value: 'Cost efficiency' },
+                  { label: 'Best for', value: 'Volume workloads where price dominates' },
                 ]
               },
             ].map((section, i) => (
@@ -131,19 +158,19 @@ export default function ComparePage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[→]</span> WHICH AI MODEL IS BEST FOR CODING?
           </h2>
           <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.7', marginBottom: '14px' }}>
-            Based on comprehensive coding benchmarks, here are our recommendations by use case:
+            The honest answer is &ldquo;it depends, and it changed since you asked&rdquo;. What we can
+            tell you is how to read the data rather than which name to trust this month:
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[
-              { medal: '#1', category: 'Complex Software Development', winner: 'Claude Opus 4', detail: 'leads with superior code architecture and debugging' },
-              { medal: '#2', category: 'Production Reliability', winner: 'GPT-5', detail: 'offers the most consistent and reliable performance' },
-              { medal: '#3', category: 'Speed and Efficiency', winner: 'Gemini 2.5 Flash', detail: 'provides fastest response times for rapid prototyping' },
+              { medal: '#1', category: 'Check the confidence intervals first', detail: 'the top few models are usually separated by less than their error bars, which means the ranking order between them is not statistically meaningful' },
+              { medal: '#2', category: 'Sort by the axis you actually care about', detail: 'the coding, reasoning, speed, price and tool-calling sorts produce genuinely different orders' },
+              { medal: '#3', category: 'Watch the drift alerts, not just the score', detail: 'a model that is quietly degrading is a worse bet than one scoring slightly lower but holding steady' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 14px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.12)', borderRadius: '2px', alignItems: 'center' }}>
                 <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', fontFamily: 'var(--font-mono)', minWidth: '24px' }}>{item.medal}</span>
                 <div>
-                  <strong style={{ color: 'var(--phosphor-green)', fontSize: '11px' }}>{item.category}:</strong>
-                  <span style={{ color: 'var(--phosphor-dim)', fontSize: '11px' }}> {item.winner}</span>
+                  <strong style={{ color: 'var(--phosphor-green)', fontSize: '11px' }}>{item.category}</strong>
                   <span style={{ color: 'var(--phosphor-dim)', fontSize: '11px' }}> — {item.detail}</span>
                 </div>
               </div>
@@ -161,12 +188,12 @@ export default function ComparePage() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
             {[
-              { metric: 'Correctness', desc: 'Functional accuracy through 200+ automated unit tests' },
-              { metric: 'Code Quality', desc: 'Static analysis, complexity measurement, best practices' },
-              { metric: 'Efficiency', desc: 'API latency, token usage, algorithmic complexity' },
-              { metric: 'Stability', desc: 'Consistency across multiple test runs and conditions' },
-              { metric: 'Refusal Handling', desc: 'Appropriate task acceptance vs over-cautious rejections' },
-              { metric: 'Recovery', desc: 'Error recovery and debugging capabilities' },
+              { metric: 'Correctness (40%)', desc: 'Generated code is executed against 35 test cases across 10 tasks, 175 executions per model per cycle' },
+              { metric: 'Complexity (20%)', desc: 'Whether the model actually grasped the algorithmic problem' },
+              { metric: 'Code Quality (15%)', desc: 'Static analysis, structure, maintainability' },
+              { metric: 'Stability (10%)', desc: 'Consistency across the 5 trials of each task' },
+              { metric: 'Efficiency (5%)', desc: 'Algorithmic complexity of the solution produced' },
+              { metric: 'Edge Cases, Debugging, Format, Safety', desc: 'The remaining 10%: boundary handling, fixing broken code, output discipline, and avoiding dangerous operations' },
             ].map((item, i) => (
               <div key={i} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.1)', borderRadius: '2px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{item.metric}</div>
@@ -245,7 +272,7 @@ export default function ComparePage() {
 
         {/* Footer */}
         <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.15)', fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center' }}>
-          AI Stupid Meter • Continuous benchmarking since 2024 • <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none' }}>View Full Rankings</Link>
+          AI Stupid Meter • Continuous benchmarking since 2025 • <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none' }}>View Full Rankings</Link>
         </div>
 
       </div>

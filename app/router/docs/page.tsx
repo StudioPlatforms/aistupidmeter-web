@@ -53,8 +53,9 @@ export default function DocsPage() {
           <Heading>Introduction</Heading>
           <P>
             The AI Smart Router provides an OpenAI-compatible API that intelligently routes your requests to the best AI model
-            based on real-time benchmarks. Use a single <code className="doc-code">aism_</code> key to access models from 7 providers:
-            OpenAI, Anthropic, xAI (Grok), Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI).
+            based on real-time benchmarks. Use a single <code className="doc-code">aism_</code> key &mdash; your
+            <strong> SR (Smart Router) key</strong> &mdash; to access models from 6 providers:
+            OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI).
           </P>
           <Heading>Base URL</Heading>
           <CodeBlock id="base-url" code="https://aistupidlevel.info/v1" lang="text" onCopy={copyCode} copied={copiedCode} />
@@ -100,7 +101,7 @@ export default function DocsPage() {
               <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
               <tbody>
                 {[
-                  { n: 'model', t: 'string', r: true, d: '"auto-coding", "auto-reasoning", or a real model ID like "claude-opus-4-7"' },
+                  { n: 'model', t: 'string', r: true, d: '"auto-coding", "auto-reasoning", or a real model ID like "claude-opus-4-8"' },
                   { n: 'messages', t: 'array', r: true, d: 'Array of {role, content} message objects' },
                   { n: 'temperature', t: 'number', r: false, d: 'Sampling temperature (0-2). Default varies by provider.' },
                   { n: 'max_tokens', t: 'number', r: false, d: 'Max tokens to generate. For reasoning models use max_completion_tokens.' },
@@ -209,6 +210,9 @@ console.log(response.choices[0].message.content);`} />}
                   { id: 'auto-creative', cat: 'Creative', desc: 'Best for creative writing, brainstorming' },
                   { id: 'auto-cheapest', cat: 'Cost', desc: 'Lowest cost per token while maintaining quality' },
                   { id: 'auto-fastest', cat: 'Speed', desc: 'Lowest latency response time' },
+                  { id: 'auto-tooling', cat: 'Tool use', desc: 'Best at calling tools correctly \u2014 scored on our tool-calling suite' },
+                  { id: 'auto-agentic', cat: 'Tool use', desc: 'Alias for auto-tooling; "agentic" is what most tools call it' },
+                  { id: 'auto-best', cat: 'Overall', desc: 'Highest combined score regardless of category' },
                 ].map((s, i) => (
                   <tr key={i}>
                     <td className="td-mono" style={{ color: 'var(--phosphor-green)', fontWeight: 600 }}>{s.id}</td>

@@ -127,11 +127,11 @@ export const metadata: Metadata = {
     // Model-Specific Keywords
     'GPT-5 benchmark',
     'Claude Opus 4 benchmark',
-    'Grok 4 benchmark',
+    'Kimi K3 benchmark',
     'Gemini 3 benchmark',
     'DeepSeek V4 benchmark',
     'GPT-5 vs Claude Opus 4',
-    'Grok 4 vs Gemini 3',
+    'Kimi K3 vs Gemini 3.1',
     'O3 benchmark results',
     
     // Provider & Monitoring Keywords
@@ -139,7 +139,7 @@ export const metadata: Metadata = {
     'AI performance tracking',
     'OpenAI monitoring',
     'Claude performance',
-    'Grok tracking',
+    'DeepSeek tracking',
     'Gemini monitoring',
     'AI intelligence degradation',
     'AI model comparison',
@@ -166,7 +166,7 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://aistupidlevel.info',
-    title: 'AI Benchmark & Smart Router 2026 | Compare GPT-5, Claude Opus 4, Grok 4, Gemini 3',
+    title: 'AI Benchmark & Smart Router 2026 | Compare GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3',
     description: 'The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models, route requests through the smartest model, monitor API usage, audit prompts, and control budgets. One API key for all providers.',
     siteName: 'AI Stupid Meter — Benchmarks, Smart Router & API Monitoring',
     // One image, the dynamic one. There used to be a second entry pointing at
@@ -188,7 +188,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Benchmark & Smart Router 2026 — GPT-5 vs Claude vs Grok vs Gemini',
+    title: 'AI Benchmark & Smart Router 2026 — GPT-5.6 vs Claude Opus 5 vs Gemini 3.1',
     description: 'Compare 20+ AI models with live benchmarks. Smart AI Router routes to the best model automatically. Monitor API usage, audit prompts, control budgets. One API key for all providers.',
     creator: '@AIStupidlevel',
     site: '@AIStupidlevel',
@@ -293,7 +293,7 @@ export default function RootLayout({
                   "alternateName": ["AI Benchmarking Tool", "AI Smart Router", "AI API Gateway", "AI Performance Test", "AI Model Comparison Tool", "AI Prompt Monitor"],
                   "applicationCategory": ["DeveloperApplication", "ProductivityApplication", "BusinessApplication"],
                   "operatingSystem": "Web",
-                  "description": "The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models (GPT-5, Claude Opus 4, Grok 4, Gemini 3), route requests through the smartest model automatically, monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider.",
+                  "description": "AI benchmarking platform and intelligent API router. Compare 20+ AI models (GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3, DeepSeek V4, GLM 5.2), route requests through the smartest model automatically, monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider.",
                   "url": "https://aistupidlevel.info",
                   "sameAs": [
                     "https://github.com/StudioPlatforms/aistupidmeter-web",
@@ -330,12 +330,12 @@ export default function RootLayout({
                   "featureList": [
                     "AI benchmark testing and evaluation across 20+ models",
                     "Real-time AI model performance monitoring and degradation detection",
-                    "AI model leaderboard and rankings with 7-axis scoring",
-                    "Compare GPT-5 vs Claude Opus 4 vs Grok 4 vs Gemini 3 performance",
+                    "AI model leaderboard and rankings with 9-axis scoring",
+                    "Compare GPT-5.6 vs Claude Opus 5 vs Gemini 3.1 vs Kimi K3 performance",
                     "AI coding benchmark tests with Python sandbox execution",
                     "LLM performance evaluation with statistical confidence intervals",
                     "AI Smart Router — automatic model selection based on live benchmarks",
-                    "One universal API key for OpenAI, Anthropic, xAI, Google, DeepSeek, GLM, Kimi",
+                    "One universal API key for OpenAI, Anthropic, Google, DeepSeek, GLM, Kimi",
                     "OpenAI-compatible /v1/chat/completions endpoint",
                     "Native Anthropic Messages API passthrough (/v1/messages)",
                     "Embeddings API proxy (/v1/embeddings)",
@@ -376,7 +376,7 @@ export default function RootLayout({
                 {
                   "@type": "Dataset",
                   "name": "AI Model Performance Benchmark Results 2026",
-                  "description": "Comprehensive real-time benchmark results for 20+ leading AI models including GPT-5, Claude Opus 4, Grok 4, Gemini 3, DeepSeek V4, and more. Updated every 4 hours with 7-axis scoring and statistical confidence intervals.",
+                  "description": "Comprehensive real-time benchmark results for 20+ leading AI models including GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3, DeepSeek V4, and more. Updated every 4 hours with 9-axis scoring and statistical confidence intervals.",
                   "keywords": "AI benchmark results, AI model comparison data, LLM performance metrics, AI coding test results, AI smart router data",
                   "license": "https://creativecommons.org/licenses/by/4.0/",
                   "creator": {
@@ -399,13 +399,13 @@ export default function RootLayout({
         
         {/* Enhanced SEO meta tags for target keywords */}
         <meta name="ai-content-classification" content="ai-benchmarking-tool,ai-smart-router,ai-api-monitoring" />
-        <meta name="model-types" content="OpenAI,Anthropic,xAI,Google,DeepSeek,GLM,Kimi,GPT-5,O3,Claude-Opus-4,Grok-4,Gemini-3,DeepSeek-V4,Kimi-K2,GLM-5" />
+        <meta name="model-types" content="OpenAI,Anthropic,Google,DeepSeek,GLM,Kimi,GPT-5.6,GPT-5.3-Codex,Claude-Opus-5,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,DeepSeek-V4,Kimi-K3,GLM-5.2" />
         <meta name="functionality" content="ai-benchmark,performance-testing,model-comparison,ai-evaluation,smart-routing,api-gateway,prompt-auditing,api-monitoring,budget-control,cost-analytics" />
         <meta name="target-audience" content="developers,ai-researchers,software-engineers,data-scientists,devops,platform-engineers,ai-startups,enterprise-ai-teams" />
         <meta name="use-cases" content="ai-model-selection,performance-comparison,coding-ai-evaluation,llm-benchmarking,api-cost-optimization,prompt-safety-auditing,multi-provider-routing,ai-failover" />
         <meta name="benchmark-types" content="coding-benchmark,debugging-test,performance-evaluation,quality-assessment,tool-calling-test,reasoning-benchmark,deep-reasoning" />
-        <meta name="supported-models" content="GPT-5,GPT-4o,O3,O3-Mini,Claude-Opus-4,Claude-Sonnet-4,Claude-Haiku-4.5,Grok-4,Gemini-2.5-Pro,Gemini-2.5-Flash,Gemini-3.5-Flash,DeepSeek-V4,Kimi-K2,GLM-5" />
-        <meta name="comparison-features" content="Claude-vs-GPT,GPT-vs-Gemini,Grok-vs-Claude,AI-model-rankings,smart-routing-strategies,cost-per-token-comparison" />
+        <meta name="supported-models" content="GPT-5.6-Sol,GPT-5.6-Luna,GPT-5.6-Terra,GPT-5.5,GPT-5.4,GPT-5.3-Codex,Claude-Opus-5,Claude-Opus-4.8,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,Gemini-3.1-Flash-Lite,DeepSeek-V4-Pro,DeepSeek-V4-Flash,Kimi-K3,GLM-5.2" />
+        <meta name="comparison-features" content="Claude-vs-GPT,GPT-vs-Gemini,Kimi-vs-Claude,DeepSeek-vs-GPT,AI-model-rankings,smart-routing-strategies,cost-per-token-comparison" />
         <meta name="router-features" content="auto-best,best-coding,best-reasoning,best-creative,cheapest,direct-pin,openai-compatible,anthropic-passthrough,embeddings-proxy" />
         <meta name="monitoring-features" content="per-key-tracking,prompt-auditing,secret-scrubbing,budget-alerts,cost-trends,efficiency-metrics,request-logging,aes256-encryption" />
         <meta name="compatible-tools" content="Cursor,Windsurf,Aider,Continue.dev,Cline,Open-WebUI,LangChain,Vercel-AI-SDK,LiteLLM,LibreChat,BoltAI,TypingMind" />
@@ -414,7 +414,7 @@ export default function RootLayout({
         <meta name="subject" content="AI Benchmark Tool, AI Smart Router, AI API Monitoring, LLM Performance Testing, Prompt Auditing" />
         <meta name="abstract" content="The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models, route requests through the smartest model, monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider." />
         <meta name="topic" content="AI Benchmarking, AI Smart Routing, AI API Monitoring, Machine Learning Evaluation, LLM Performance Analysis, Prompt Safety Auditing" />
-        <meta name="summary" content="Compare 20+ AI models with live benchmarks. Smart AI Router routes to the best model automatically. Monitor API usage, audit prompts, control budgets. One API key for all providers including OpenAI, Anthropic, xAI, Google, DeepSeek, and more." />
+        <meta name="summary" content="Compare 20+ AI models with live benchmarks. Smart AI Router routes to the best model automatically. Monitor API usage, audit prompts, control budgets. One API key for all providers including OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM." />
         <meta name="coverage" content="Worldwide" />
         <meta name="distribution" content="Global" />
         <meta name="rating" content="General" />

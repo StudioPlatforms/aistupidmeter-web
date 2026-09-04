@@ -22,7 +22,7 @@ export default function DriftTestPage() {
       : 'http://localhost:4000';
       
     Promise.all([
-      fetch(`${apiUrl}/api/dashboard/scores?period=latest&sortBy=combined`).then(r => r.json()),
+      fetch(`${apiUrl}/dashboard/scores?period=latest&sortBy=combined`).then(r => r.json()),
       fetch(`${apiUrl}/api/drift/status`).then(r => r.json())
     ]).then(([scoresData, statusData]) => {
       if (scoresData.success) {

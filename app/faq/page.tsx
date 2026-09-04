@@ -44,12 +44,12 @@ const faqs: FAQItem[] = [
   {
     category: "General",
     question: "Is AI Stupid Level free to use?",
-    answer: "Yes! All benchmark data, historical trends, and analysis are completely free. We also provide a public API for developers who want to integrate our data into their own tools. The platform is supported by community donations and grants, not by AI vendors."
+    answer: "The website is free and always will be — every ranking, chart and drift alert on aistupidlevel.info costs nothing and needs no account. The Data API also has a free tier, though it now requires a key (see /api-docs) after the open version was being used to republish our rankings elsewhere. Paid API tiers and the optional Smart Router subscription help fund the benchmark bill; no AI vendor pays us anything."
   },
   {
     category: "Methodology",
     question: "How do you score AI models?",
-    answer: "We use a 7-axis scoring system: Correctness (35%), Spec Adherence (15%), Code Quality (15%), Efficiency (10%), Stability (10%), Refusal Rate (10%), and Recovery (5%). Each model runs coding tasks 5 times with different random seeds. We calculate the median score and provide 95% confidence intervals using t-distribution."
+    answer: "The main coding suite uses a 9-axis scoring system: Correctness (40%), Complexity (20%), Code Quality (15%), Stability (10%), Efficiency (5%), Edge Cases (3%), Debugging (3%), Format (2%), and Safety (2%). Each model runs every task 5 times. We take the median and provide 95% confidence intervals using the t-distribution. Other suites score differently: the deep-reasoning suite adds four axes on top of those nine (memory retention, hallucination rate, plan coherence, context window) for 13 total, and the tool-calling suite uses its own 7 axes (task completion, tool selection, parameter accuracy, efficiency, error handling, context awareness, safety compliance)."
   },
   {
     category: "Methodology",
@@ -64,7 +64,7 @@ const faqs: FAQItem[] = [
   {
     category: "Methodology",
     question: "What tasks do you use for benchmarking?",
-    answer: "We use real-world coding tasks in Python and TypeScript, covering algorithm implementation, debugging, code refactoring, optimization, and error recovery. Tasks are not publicly disclosed to prevent gaming. They represent practical problems developers face daily, not academic puzzles. You can verify tasks by running benchmarks with your own API keys."
+    answer: "The main suite is 10 Python tasks covering algorithms (palindrome check, primality, binary search, merge intervals, Dijkstra, word break, regex matching), data structures (LRU cache), debugging a broken sort, and optimising a naive Fibonacci. Every submission is executed, not pattern-matched \u2014 it either passes the tests or it does not. The tool-calling suite runs 10 further tasks in real Docker sandboxes, and the deep-reasoning suite runs 4 multi-turn scenarios. The tasks are in our public GitHub repo, so you can read exactly what we ask and reproduce it with your own keys via Test Your Keys. We rotate prompt envelopes between runs so a model cannot benefit from having memorised one exact phrasing."
   },
   {
     category: "Methodology",
@@ -84,7 +84,7 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "Do you have an API?",
-    answer: "Yes! Our API provides access to current rankings, historical data, confidence intervals, and drift alerts. Endpoints include: GET /api/dashboard (current scores), GET /api/dashboard?period=7d (historical trends), and GET /api/models/:id (detailed model data). All data is free to access."
+    answer: "Yes. The Public Data API at /api/v1 gives you current rankings, historical time-series, confidence intervals, degradation alerts and drift signatures. Endpoints include GET /api/v1/models (current scores), GET /api/v1/models/:id/history?period=7d (historical trends), and GET /api/v1/analytics/degradations (models currently degrading). It is free \u2014 create a key at /router/data-keys and send it as an Authorization header. Keys let us keep the API fast for everyone and stop the data being republished as someone else's leaderboard. Full reference at /api-docs."
   },
   {
     category: "Technical",
@@ -94,37 +94,37 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "How often do you update benchmarks?",
-    answer: "We run benchmarks continuously, with most models tested multiple times per week. High-priority models (GPT-5, Claude Opus 4, Gemini 2.5 Pro) are tested daily. Historical data is preserved so you can track performance over weeks, months, or years. Drift detection runs automatically on each new benchmark."
+    answer: "Continuously, and every tracked model gets the same treatment \u2014 there is no priority list. The main coding suite runs every 4 hours, a fast 2-task canary suite runs every hour for rapid drift detection, the deep-reasoning suite runs daily at 03:00 UTC and the tool-calling suite daily at 04:00 UTC. Drift detection runs on every new score. All history is preserved, going back to our first benchmark in August 2025."
   },
   {
     category: "Comparisons",
     question: "Which AI model is best for coding?",
-    answer: "It depends on your specific needs, but currently top performers include OpenAI's GPT-5 and o3, Anthropic's Claude Opus 4, and Google's Gemini 2.5 Pro. Check our live rankings for current scores with confidence intervals. Remember: \"best\" varies by task type — some models excel at algorithms while others are better at refactoring."
+    answer: "It changes often, which is rather the point of the site — so check the live rankings rather than trusting a number written into an FAQ. We track roughly two dozen models across 6 providers (OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM), and the top few are usually separated by a handful of points — often less than the confidence interval. Sort by Coding, Reasoning, Speed, Price or Tool-calling to see how the order changes by task type — \"best\" genuinely depends on which you mean."
   },
   {
     category: "Comparisons",
     question: "How does GPT compare to Claude?",
-    answer: "Both GPT-5 and Claude Opus 4 are top-tier models with different strengths. GPT-5 typically scores higher on correctness and algorithmic tasks, while Claude Opus 4 excels at code quality and following specifications. Check our /compare page for detailed head-to-head analysis with statistical significance tests."
+    answer: "Both families sit at the top and trade places regularly. Rather than quote a snapshot that will be out of date within weeks, use the /compare page — it puts any two models head to head with their confidence intervals, so you can see whether a gap is real or just noise. Overlapping intervals mean the difference is not statistically significant, however convincing the ranking order looks."
   },
   {
     category: "Comparisons",
     question: "Are smaller/cheaper models worth using?",
-    answer: "Depends on your use case. Models like GPT-4o-mini or Claude Sonnet 4 offer 80-90% of flagship performance at 1/10th the cost. For production applications with high volume, they're often the better economic choice. Our benchmarks show which capabilities you sacrifice for the cost savings."
+    answer: "Often, yes. Smaller models routinely land within a few points of flagship models on straightforward coding work, at a fraction of the cost per token. The Price sort on the leaderboard ranks score against list price so you can see the trade-off directly, and the per-axis breakdown on each model page shows exactly which capability you give up — usually complexity handling and edge cases before raw correctness."
   },
   {
     category: "Trust & Independence",
     question: "Do AI companies pay you to rank them higher?",
-    answer: "No. We have zero financial relationships with OpenAI, Anthropic, Google, xAI, or any AI model provider. We don't accept sponsorships from vendors, we don't earn affiliate commissions, and all benchmarks run on our own infrastructure with our own API keys. Our rankings are purely merit-based."
+    answer: "No. We have zero financial relationships with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu or any other model provider. We don't accept vendor sponsorships, we don't earn affiliate commissions, and every benchmark runs on our own infrastructure using API keys we pay for. Rankings are purely merit-based."
   },
   {
     category: "Trust & Independence",
     question: "How do you fund this platform?",
-    answer: "Through community donations, sponsorships from non-vendor companies, and research grants for AI evaluation projects. We explicitly refuse funding from AI model providers to maintain independence. All financial relationships are disclosed publicly."
+    answer: "Mostly out of pocket, offset by Pro subscriptions to the Smart Router, paid tiers of the Data API, and data licensing to non-vendor organisations. Community donations and sponsorships help. We explicitly refuse funding from AI model providers — that is the one line we will not cross, because the whole point of the site is that nobody scoring well has paid us."
   },
   {
     category: "Trust & Independence",
     question: "How can I trust your methodology?",
-    answer: "Trust through verification, not claims: (1) All code is open source on GitHub, (2) Complete methodology documentation is public, (3) \"Test Your Keys\" lets you reproduce results, (4) Statistical methods are peer-reviewed, (5) Community can audit everything. We want you to verify, not just trust."
+    answer: "Trust through verification, not claims: (1) All code is open source on GitHub, (2) Complete methodology documentation is public, (3) \"Test Your Keys\" lets you reproduce results, (4) The algorithms we use (Page-Hinkley change detection, t-distribution confidence intervals) are standard published methods, not something we invented, (5) every scoring weight and constant is a line you can read in the repo. To be clear about what this does not mean: the platform itself has not been through academic peer review. We would welcome it. Verify rather than trust us."
   },
   {
     category: "Using the Platform",
@@ -139,12 +139,12 @@ const faqs: FAQItem[] = [
   {
     category: "Limitations & Future",
     question: "What are the current limitations?",
-    answer: "Main limitations: (1) 5 trials may not capture extreme variance, (2) Coding-focused (not general capabilities), (3) English language only, (4) Limited task diversity (expanding), (5) Confidence intervals not yet shown in all UI elements. We're actively working on all of these."
+    answer: "Being straight about these: (1) the main suite is 10 Python tasks, so it measures coding ability, not general capability, and not other languages; (2) 5 trials catches ordinary variance but not rare tail behaviour; (3) everything is English-only; (4) scores measure the model as served through its public API, so a provider-side routing or quantisation change looks the same to us as a weights change — we can tell you performance moved, not always why; (5) the adversarial-safety, bias and prompt-robustness suites are running but their datasets are still young, so we do not draw conclusions from them yet — one day's result on any of the three is noise, and the methodology page shows their live row counts rather than our word for it."
   },
   {
     category: "Limitations & Future",
     question: "What features are coming next?",
-    answer: "Roadmap includes: (1) Adaptive sampling — more trials for uncertain cases, (2) Expanded task set with more languages, (3) Real-time error bars in charts, (4) Email/webhook drift alerts, (5) Statistical significance indicators between models, (6) Bayesian analysis for better uncertainty quantification, (7) Provider hub pages with vendor analysis."
+    answer: "In rough order: (1) expanding the task set beyond Python, (2) adaptive sampling — more trials when a result is uncertain, (3) email and webhook drift alerts, (4) error bars drawn directly on the charts, (5) statistical significance markers between adjacent models, (6) publishing the adversarial-safety, bias and robustness data once each dataset is large enough to mean something, (7) provider hub pages. No dates promised — this is a small operation and the benchmark bill is real."
   }
 ];
 
@@ -375,7 +375,7 @@ export default function FAQPage() {
 
           {/* Footer */}
           <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.12)' }}>
-            AI Stupid Level &bull; Independent benchmarking since 2024 &bull; <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none', fontWeight: 'bold' }}>View Rankings</Link>
+            AI Stupid Level &bull; Independent benchmarking since 2025 &bull; <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none', fontWeight: 'bold' }}>View Rankings</Link>
           </div>
         </div>
 

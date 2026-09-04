@@ -1898,20 +1898,24 @@ export default function Dashboard() {
           // Provider trends (consistent with actual provider performance) - FIXED: Use addUniqueContent
           const openaiModels = availableModels.filter((m: any) => m.provider === 'openai' && m.trend === 'down');
           const anthropicModels = availableModels.filter((m: any) => m.provider === 'anthropic' && m.trend === 'down');
-          const xaiModels = availableModels.filter((m: any) => m.provider === 'xai' && m.trend === 'down');
           const googleModels = availableModels.filter((m: any) => m.provider === 'google' && m.trend === 'down');
-          
+          // The three smaller providers share one line: each has only one or two
+          // models in the rankings, so a per-provider threshold of 2 could never fire.
+          const otherDown = availableModels.filter(
+            (m: any) => ['deepseek', 'kimi', 'glm'].includes(m.provider) && m.trend === 'down'
+          );
+
           if (openaiModels.length >= 2) {
             addUniqueContent(`🔴 OpenAI ALERT: Multiple models degrading simultaneously!`);
           }
           if (anthropicModels.length >= 2) {
             addUniqueContent(`🟠 Anthropic WARNING: Performance issues detected across models`);
           }
-          if (xaiModels.length >= 1) {
-            addUniqueContent(`🟡 xAI NOTICE: Grok models showing performance variations`);
-          }
           if (googleModels.length >= 2) {
             addUniqueContent(`🔵 Google ALERT: Gemini models experiencing issues`);
+          }
+          if (otherDown.length >= 2) {
+            addUniqueContent(`🟡 NOTICE: ${otherDown.length} models declining across DeepSeek/Kimi/GLM`);
           }
           
           // Critical count (consistent with Model Intelligence Center - under 60 is concerning) - FIXED: Use addUniqueContent
@@ -3574,7 +3578,7 @@ export default function Dashboard() {
             
             <FAQItem
               question="What is the AI Smart Router and how does it use your benchmark data?"
-              answer="Our **AI Smart Router** is an intelligent API gateway that automatically selects the best AI model for each request based on our real-time benchmark data. Instead of manually choosing between GPT, Claude, Grok, or Gemini, the router analyzes your request and picks the optimal model using live performance rankings updated every 4 hours. You can choose from **6 routing strategies**: Best Overall (recommended), Best for Coding, Best for Reasoning, Best for Creative, Most Cost-Effective, or Fastest Response. The router uses our 7-axis scoring system (correctness, code quality, efficiency, stability, etc.) to make intelligent decisions, helping you **save 50-70% on AI costs** while maintaining quality. It includes automatic failover, custom constraints (max cost, latency limits), and detailed analytics. Available as part of our Pro subscription at $4.99/month with a 7-day free trial."
+              answer="Our **AI Smart Router** is an intelligent API gateway that automatically selects the best AI model for each request based on our real-time benchmark data. Instead of manually choosing between GPT, Claude, Gemini, DeepSeek, Kimi or GLM, the router analyzes your request and picks the optimal model using live performance rankings updated every 4 hours. You can choose from **6 routing strategies**: Best Overall (recommended), Best for Coding, Best for Reasoning, Best for Creative, Most Cost-Effective, or Fastest Response. The router uses our 9-axis scoring system (correctness, complexity, code quality, stability, efficiency, edge cases, debugging, format, safety) to make intelligent decisions, helping you **save 50-70% on AI costs** while maintaining quality. It includes automatic failover, custom constraints (max cost, latency limits), and detailed analytics. Available as part of our Pro subscription at $4.99/month with a 7-day free trial."
               category="general"
               isPopular={true}
               delay={700}
@@ -4506,10 +4510,12 @@ export default function Dashboard() {
               </div>
               <div className="terminal-text--dim">
                 Stupid Meter is the world's first AI intelligence degradation detection system. 
-                We monitor <span className="terminal-text--green">OpenAI GPT models</span> (including GPT-5, O3, O3-Mini), 
-                <span className="terminal-text--green"> Anthropic Claude</span> (Opus 4, Sonnet 4), 
-                <span className="terminal-text--green"> xAI Grok 4</span>, and 
-                <span className="terminal-text--green"> Google Gemini 2.5</span> series in real-time.
+                We monitor <span className="terminal-text--green">OpenAI GPT models</span> (including the GPT-5.x line and Codex), 
+                <span className="terminal-text--green"> Anthropic Claude</span> (Opus, Sonnet and Fable), 
+                <span className="terminal-text--green"> Google Gemini</span>, 
+                <span className="terminal-text--green"> DeepSeek</span>, 
+                <span className="terminal-text--green"> Moonshot Kimi</span> and 
+                <span className="terminal-text--green"> Zhipu GLM</span> in real-time.
               </div>
             </div>
 
@@ -4518,10 +4524,10 @@ export default function Dashboard() {
                 » DETECTION METHODOLOGY
               </div>
               <div className="terminal-text--dim">
-                Our system uses a sophisticated <span className="terminal-text--green">7-axis scoring methodology</span> 
-                combined with mathematical drift detection algorithms to identify when AI companies 
-                reduce model capability to save costs. We track correctness, specification compliance, 
-                code quality, efficiency, stability, refusal rates, and recovery ability.
+                Our system uses a <span className="terminal-text--green">9-axis scoring methodology</span> 
+                combined with the Page-Hinkley change detector to identify when a model's capability 
+                shifts. We track correctness, task complexity, code quality, stability, efficiency, 
+                edge cases, debugging, output format, and safety.
               </div>
             </div>
 
@@ -4530,9 +4536,9 @@ export default function Dashboard() {
                 » REAL-TIME MONITORING
               </div>
               <div className="terminal-text--dim">
-                Monitor your favorite AI models including <span className="terminal-text--green">OpenAI GPT-5</span>, 
-                <span className="terminal-text--green"> Claude Opus 4</span>, <span className="terminal-text--green">Grok 4</span>, 
-                and <span className="terminal-text--green">Gemini 2.5 Pro</span>. Get instant alerts when performance 
+                Monitor your favorite AI models including <span className="terminal-text--green">OpenAI GPT-5.6</span>, 
+                <span className="terminal-text--green"> Claude Opus 5</span>, <span className="terminal-text--green">Kimi K3</span>, 
+                and <span className="terminal-text--green">Gemini 3.1 Pro</span>. Get instant alerts when performance 
                 drops and track historical trends with our continuous benchmarking system.
               </div>
             </div>

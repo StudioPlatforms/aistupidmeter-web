@@ -50,7 +50,8 @@ export default function RouterSidebar() {
     : [
         { label: '← BACK TO RANKINGS', href: '/' },
         { label: 'DASHBOARD', href: '/router' },
-        { label: 'API KEYS', href: '/router/keys' },
+        { label: 'SR API KEY', href: '/router/keys' },
+        { label: 'DATA API KEYS', href: '/router/data-keys' },
         { label: 'PROVIDERS', href: '/router/providers' },
         { label: 'PREFERENCES', href: '/router/preferences' },
         { label: 'ANALYTICS', href: '/router/analytics' },

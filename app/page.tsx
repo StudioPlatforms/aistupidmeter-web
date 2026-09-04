@@ -120,7 +120,7 @@ export default async function HomePage() {
           hydrates. Visually hidden so the live dashboard design is unchanged;
           the same content is presented visibly by the interactive leaderboard. */}
       <div style={srOnly}>
-        <h1>AI Model Benchmarks {YEAR} — Live Rankings for GPT, Claude, Gemini, Grok &amp; More</h1>
+        <h1>AI Model Benchmarks {YEAR} — Live Rankings for GPT, Claude, Gemini, Kimi &amp; More</h1>
         <p>
           AI Stupid Level is an independent, real-time benchmarking platform that scores large
           language models on coding, reasoning, tool-calling and speed, and detects performance
@@ -156,10 +156,10 @@ export default async function HomePage() {
 
         <h2>How we benchmark AI models</h2>
         <p>
-          Every model runs the same three suites: a 7-axis code benchmark scored by executing the
-          generated code, a deep reasoning benchmark covering multi-step problem solving and
-          long-context retention, and a tool-calling benchmark measuring tool selection and argument
-          accuracy. Scores are published with confidence intervals. See the{' '}
+          Every model runs the same suites: a 9-axis code benchmark scored by executing the
+          generated code, a 13-axis deep reasoning benchmark covering multi-step problem solving and
+          long-context retention, and a 7-axis tool-calling benchmark measuring tool selection and
+          argument accuracy. Scores are published with confidence intervals. See the{' '}
           <a href="/methodology">full benchmarking methodology</a>.
         </p>
 

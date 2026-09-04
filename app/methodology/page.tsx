@@ -161,7 +161,66 @@ const styles = {
   }) as React.CSSProperties,
 };
 
-export default function MethodologyPage() {
+/**
+ * Live status of the enhanced suites, read from the API at build/revalidate time.
+ *
+ * This section used to be a hand-written claim, which is exactly how the page
+ * ended up advertising three suites that were never switched on. Rendering from
+ * the row counts means the page cannot say a suite is collecting data unless
+ * rows exist.
+ */
+interface SuiteStat { total: number; last30Days: number; lastRun: string | null; enabled: boolean }
+interface EnhancedStatus {
+  adversarial: SuiteStat;
+  robustness: SuiteStat;
+  bias: SuiteStat;
+  scoredPromptVariation: boolean;
+}
+
+// Regenerate hourly. The page stays static — no per-request fetch.
+export const revalidate = 3600;
+
+async function getEnhancedStatus(): Promise<EnhancedStatus | null> {
+  // Absolute URL: a relative path has no origin server-side. Goes straight to
+  // the API on loopback, so nginx and its auth rules are not involved.
+  const base = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
+  try {
+    const res = await fetch(`${base}/dashboard/enhanced-suites`, {
+      next: { revalidate: 3600 },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data ?? null;
+  } catch {
+    // A failed fetch must not break the page. The renderer below treats null as
+    // "unknown" and says so rather than inventing a status.
+    return null;
+  }
+}
+
+function suiteStatusLine(stat: SuiteStat | undefined): { text: string; live: boolean } {
+  if (!stat) return { text: 'Status unavailable', live: false };
+  if (stat.total > 0) {
+    const when = stat.lastRun ? new Date(stat.lastRun).toISOString().slice(0, 10) : 'unknown';
+    return { text: `Live — ${stat.total.toLocaleString()} results recorded, latest ${when}`, live: true };
+  }
+  if (stat.enabled) return { text: 'Enabled, awaiting its first run', live: false };
+  return { text: 'Not running — 0 results recorded', live: false };
+}
+
+/** Renders one suite's live status, colour-coded on whether it has real data. */
+function SuiteStatus({ stat }: { stat?: SuiteStat }) {
+  const { text, live } = suiteStatusLine(stat);
+  return (
+    <span style={{ color: live ? 'var(--phosphor-green)' : 'var(--amber-warning)', fontWeight: 'bold' }}>
+      {text}
+    </span>
+  );
+}
+
+export default async function MethodologyPage() {
+  const status = await getEnhancedStatus();
   return (
     <SubpageLayout>
       <div style={styles.page}>
@@ -202,7 +261,7 @@ export default function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>HOURLY SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every 4 hours<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 147 coding challenges<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 10 Python challenges<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 5 per task<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Fast performance tracking
@@ -213,7 +272,7 @@ export default function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>DEEP REASONING</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Daily at 3 AM<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: Multi-turn dialogues<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 multi-turn scenarios<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 13-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Complex reasoning tests
               </div>
@@ -223,7 +282,7 @@ export default function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>TOOL CALLING</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Daily at 4 AM<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Execution</strong>: Real Docker sandboxes<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 10, in real Docker sandboxes<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 7-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Agent capability tests
               </div>
@@ -233,7 +292,7 @@ export default function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>CANARY SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every hour<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 12 fast tests<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 2 fast tests, 1 trial<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Rapid drift detection<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Response Time</strong>: &lt;5 minutes
               </div>
@@ -241,12 +300,14 @@ export default function MethodologyPage() {
           </div>
 
           <div style={styles.highlightPanel}>
-            <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>TOTAL ANNUAL OUTPUT</div>
+            <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>OUTPUT TO DATE</div>
             <div style={styles.text}>
-              &rarr; 500,000+ benchmark runs<br/>
-              &rarr; 2,500,000+ individual test executions<br/>
-              &rarr; 100,000+ tool-calling sessions<br/>
-              &rarr; 10,000+ drift incidents documented
+              Measured, not projected &mdash; counted from our database since the first
+              benchmark on 8 August 2025:<br/>
+              &rarr; 173,000+ scored benchmark runs<br/>
+              &rarr; 60,000+ tool-calling sessions<br/>
+              &rarr; 4,200+ deep-reasoning sessions<br/>
+              &rarr; 900+ drift incidents and change points recorded
             </div>
           </div>
 
@@ -338,28 +399,44 @@ export default function MethodologyPage() {
 
           {/* Section 4: Drift Detection */}
           <h2 id="drift" style={styles.sectionTitle}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>[4]</span> DRIFT DETECTION (CUSUM ALGORITHM)
+            <span style={{ fontFamily: 'var(--font-mono)' }}>[4]</span> DRIFT DETECTION (PAGE-HINKLEY TEST)
           </h2>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
             Detects <strong style={{ color: 'var(--amber-warning)' }}>sustained</strong> performance changes, not daily noise.
+            We use the <strong style={{ color: 'var(--amber-warning)' }}>Page-Hinkley test</strong>, a cumulative-sum
+            change detector. Our database column is still named <code>cusum</code> for historical reasons and
+            you will see that label in the API &mdash; it holds the Page-Hinkley statistic below.
           </div>
 
           <div style={{ ...styles.codeBlock, borderColor: 'rgba(255,45,0,0.2)', background: 'rgba(255,45,0,0.04)' }}>
-            <div style={{ color: 'var(--amber-warning)', fontWeight: 'bold', marginBottom: '8px', fontSize: '10px' }}>CUSUM ALGORITHM:</div>
+            <div style={{ color: 'var(--amber-warning)', fontWeight: 'bold', marginBottom: '8px', fontSize: '10px' }}>PAGE-HINKLEY TEST (DECREASE DETECTION):</div>
             <div style={{ color: 'var(--phosphor-dim)', fontSize: '10px', lineHeight: '1.8' }}>
-              For each new score:<br/>
-              1. Compare to baseline (historical average)<br/>
-              2. Calculate deviation: d = new_score - baseline<br/>
-              3. Update CUSUM: S = max(0, S + d - k)<br/>
-              4. If S &gt; threshold: ALERT (drift detected)<br/>
+              Scores are on a 0&ndash;1 scale where higher is better, so the statistic<br/>
+              accumulates when a score lands <em>below</em> the running mean:<br/>
+              <br/>
+              1. mean&#8348; = running mean of observations since the last reset<br/>
+              2. m&#8348; = m&#8348;&#8331;&#8321; + (mean&#8348; &minus; x&#8348; &minus; delta)<br/>
+              3. M&#8348; = min(m&#8321; &hellip; m&#8348;)<br/>
+              4. PH&#8348; = m&#8348; &minus; M&#8348;<br/>
+              5. If PH&#8348; &gt; lambda: ALERT, then reset the detector fully<br/>
               <br/>
               <span style={{ color: 'var(--phosphor-green)' }}>
-                Parameters:<br/>
-                &rarr; Baseline window: 12 runs<br/>
-                &rarr; Sensitivity (k): 0.005<br/>
-                &rarr; Threshold (lambda): 0.5<br/>
-                &rarr; False positive rate: &lt;2%
+                Parameters (lib/page-hinkley.ts):<br/>
+                &rarr; Tolerance (delta): 0.02<br/>
+                &rarr; Threshold (lambda): 0.30<br/>
+                &rarr; Cold start: 10 observations before it may fire<br/>
+                &rarr; Rolling baseline for alerting: 28 days
               </span>
+            </div>
+          </div>
+
+          <div style={styles.panel}>
+            <div style={styles.panelTitle}>WHY A FULL RESET AFTER AN ALERT</div>
+            <div style={styles.text}>
+              A partial reset that kept the old mean would keep firing on every subsequent
+              observation until the running mean caught up to the new level, producing a
+              sawtooth of duplicate alerts. Resetting completely lets the detector re-learn
+              the post-change level and stay quiet until the <em>next</em> real change.
             </div>
           </div>
 
@@ -377,10 +454,19 @@ export default function MethodologyPage() {
 
           {/* Section 5: Enhanced Testing */}
           <h2 id="enhancements" style={styles.sectionTitle}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>[5]</span> ENHANCED TESTING (NEW IN 2026)
+            <span style={{ fontFamily: 'var(--font-mono)' }}>[5]</span> ENHANCED TESTING
           </h2>
-          <div style={{ ...styles.text, marginBottom: '14px' }}>
-            Zero-cost enhancements that extract 10x more value from existing tests:
+          <div style={styles.warningPanel}>
+            <span style={{ fontSize: '11px', color: 'var(--amber-warning)' }}>
+              <strong>These statuses are read from the database, not written by hand.</strong>{' '}
+              Each suite below reports its own row count, refreshed hourly. If a suite says zero,
+              it has produced nothing &mdash; we would rather this page contradict us than flatter
+              us. None of this data feeds a leaderboard score; all three write to their own tables.
+            </span>
+          </div>
+          <div style={{ ...styles.text, margin: '14px 0' }}>
+            Run as separate sweeps so the scored trial series stays a clean capability
+            measurement:
           </div>
 
           <div style={styles.grid2}>
@@ -389,9 +475,10 @@ export default function MethodologyPage() {
                 ADVERSARIAL SAFETY
               </div>
               <div style={styles.text}>
-                18 attack types: jailbreak, injection, extraction<br/>
-                120,000+ tests/year<br/>
-                Vulnerability profiling
+                18 probes across 5 attack types: jailbreak,<br/>
+                injection, extraction, manipulation, harmful content.<br/>
+                One probe per model per 4-hour run, rotating.<br/>
+                <SuiteStatus stat={status?.adversarial} />
               </div>
             </div>
 
@@ -400,9 +487,10 @@ export default function MethodologyPage() {
                 PROMPT ROBUSTNESS
               </div>
               <div style={styles.text}>
-                11 variation types: paraphrase, restructure<br/>
-                180,000+ tests/year<br/>
-                Consistency measurement
+                11 variations: paraphrase, restructure, style change.<br/>
+                Nightly sweep: the same task reworded, scored by the same<br/>
+                runner, so a variant score is comparable to a real one.<br/>
+                <SuiteStatus stat={status?.robustness} />
               </div>
             </div>
 
@@ -411,9 +499,10 @@ export default function MethodologyPage() {
                 BIAS DETECTION
               </div>
               <div style={styles.text}>
-                18 demographic variants tested<br/>
-                60,000+ tests/year<br/>
-                EU AI Act compliance
+                19 variants across gender, ethnicity and age, plus a<br/>
+                neutral baseline. Nightly sweep takes one variant from<br/>
+                each category so the comparison is across categories.<br/>
+                <SuiteStatus stat={status?.bias} />
               </div>
             </div>
 
@@ -422,9 +511,10 @@ export default function MethodologyPage() {
                 VERSION TRACKING
               </div>
               <div style={styles.text}>
-                Extracts from response headers<br/>
-                Regression root cause analysis<br/>
-                Complete version genealogy
+                Benchmark-definition versioning is live: every score records the<br/>
+                exact config it ran under, so a methodology change cannot be<br/>
+                mistaken for a model change. Provider-side version extraction<br/>
+                <span style={{ color: 'var(--amber-warning)' }}>is not yet implemented</span>
               </div>
             </div>
           </div>
@@ -441,7 +531,7 @@ export default function MethodologyPage() {
               { title: 'OPEN SOURCE', desc: 'Full code on GitHub. Fully auditable methodology. Run locally to verify.' },
               { title: 'INDEPENDENT', desc: 'Zero vendor funding. No affiliate revenue. 100% unbiased.' },
               { title: 'VERIFIABLE', desc: '"Test Your Keys" feature. Reproduce our results. Compare independently.' },
-              { title: 'PEER REVIEWED', desc: 'Academic validation. Community audited. 100+ combined GitHub stars across frontend and backend.' },
+              { title: 'PUBLICLY AUDITABLE', desc: 'Scoring weights, tasks and drift constants all live in the public repo. Disagree with a weight? You can see it, and open an issue.' },
             ].map((item, i) => (
               <div key={i} style={{ ...styles.panel, background: 'rgba(26, 115, 232,0.04)', borderColor: 'rgba(26, 115, 232,0.2)' }}>
                 <div style={styles.panelTitle}>{item.title}</div>
@@ -562,10 +652,22 @@ export default function MethodologyPage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> PUBLIC API ACCESS
           </h2>
 
+          <div style={{ ...styles.panel, background: 'rgba(26, 115, 232,0.06)' }}>
+            <div style={styles.panelTitle}>A FREE KEY IS REQUIRED</div>
+            <div style={styles.text}>
+              The data API lives at <code style={{ color: 'var(--phosphor-green)' }}>/api/v1</code> and
+              authenticates with a bearer token. Creating a key takes about thirty seconds and costs
+              nothing &mdash;{' '}
+              <Link href="/router/data-keys" style={styles.link}>create one here</Link>, or read the{' '}
+              <Link href="/api-docs" style={styles.link}>full API reference</Link>.
+            </div>
+          </div>
+
           {[
-            { endpoint: 'GET /api/dashboard', desc: 'Current rankings with confidence intervals', rate: '300 requests/minute' },
-            { endpoint: 'GET /api/dashboard?period=7d', desc: 'Historical time-series data (7 days)', rate: '300 requests/minute' },
-            { endpoint: 'GET /api/models/:id', desc: 'Detailed model breakdown by task', rate: '180 requests/minute' },
+            { endpoint: 'GET /api/v1/models', desc: 'Current rankings with confidence intervals', rate: '1 request/minute free · 60 on Pro' },
+            { endpoint: 'GET /api/v1/models/:id/history?period=7d', desc: 'Historical time-series data (7 days)', rate: '1 request/minute free · 60 on Pro' },
+            { endpoint: 'GET /api/v1/models/:id', desc: 'Detailed model breakdown by task', rate: '1 request/minute free · 60 on Pro' },
+            { endpoint: 'GET /api/v1/analytics/degradations', desc: 'Models currently degrading, with magnitude', rate: '1 request/minute free · 60 on Pro' },
           ].map((api, i) => (
             <div key={i} style={{ ...styles.panel, background: 'rgba(26, 115, 232,0.03)' }}>
               <code style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold' }}>{api.endpoint}</code>
@@ -580,19 +682,22 @@ export default function MethodologyPage() {
             <div style={styles.panelTitle}>RATE LIMITING AND PROTECTION</div>
             <div style={styles.text}>
               All public APIs protected with automatic rate limiting:<br/>
-              &rarr; Prevents abuse and ensures fair access<br/>
-              &rarr; Per-IP tracking with sliding window<br/>
+              &rarr; Per-key quotas: 10 requests/day free, 10,000 on Pro<br/>
+              &rarr; X-RateLimit-Limit / -Remaining / -Reset on every response<br/>
               &rarr; Returns 429 status code when exceeded<br/>
-              &rarr; Retry-After header indicates wait time<br/>
-              &rarr; Internal/localhost requests excluded
+              &rarr; Daily quota resets at 00:00 UTC<br/>
+              &rarr; Higher tiers available for larger workloads
             </div>
           </div>
 
           <div style={styles.warningPanel}>
             <span style={{ fontSize: '11px', color: 'var(--amber-warning)' }}>
-              <strong>Enterprise API:</strong> Higher limits (10,000+ requests/day) available via licensed access &rarr;{' '}
+              <strong>Enterprise API:</strong> Volume beyond Pro and commercial redistribution are
+              arranged directly rather than bought &rarr;{' '}
+              <Link href="/api-docs#enterprise" style={styles.link}>Get in touch</Link>
+              {' '}&middot;{' '}
               <a href="https://studioplatforms.eu/products/aistupidlevel/data-licensing" target="_blank" rel="noopener noreferrer" style={styles.link}>
-                Learn More
+                Licensing
               </a>
             </span>
           </div>
@@ -634,7 +739,7 @@ export default function MethodologyPage() {
               EXPLORE THE RANKINGS
             </div>
             <div style={{ ...styles.text, marginBottom: '16px' }}>
-              See how 21 AI models perform across 500,000+ benchmark runs<br/>
+              See how the models actually perform, across 173,000+ scored benchmark runs<br/>
               Updated every 4 hours with statistical confidence intervals
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -685,7 +790,7 @@ export default function MethodologyPage() {
 
           {/* Footer */}
           <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center', marginTop: '32px', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.12)' }}>
-            AI Stupid Level &bull; Independent benchmarking since 2024 &bull; <Link href="/" style={styles.link}>View Rankings</Link>
+            AI Stupid Level &bull; Independent benchmarking since 2025 &bull; <Link href="/" style={styles.link}>View Rankings</Link>
           </div>
         </div>
 

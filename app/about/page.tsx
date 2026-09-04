@@ -197,7 +197,8 @@ export default function AboutPage() {
               But no one was systematically tracking these changes.
             </div>
             <div style={{ ...styles.text, marginTop: '10px' }}>
-              <strong style={{ color: 'var(--phosphor-dim)' }}>AI Stupid Level was born from frustration.</strong> We built this platform because:
+              <strong style={{ color: 'var(--phosphor-dim)' }}>AI Stupid Level was born from frustration.</strong> We
+              started benchmarking in August 2025 and have not stopped since. We built this platform because:
             </div>
             {[
               ['AI vendors don\'t disclose model changes', 'Silent updates, capability reductions, and performance shifts happen without warning'],
@@ -248,8 +249,9 @@ export default function AboutPage() {
           </div>
 
           <div style={{ ...styles.text, ...styles.panel }}>
-            Our methodology has been reviewed and validated by statisticians, ML researchers, and industry practitioners.
-            We welcome contributions from the community — check our GitHub:{' '}
+            The methodology is open to review by anyone who wants to check it — the scoring code, the tasks and the
+            drift constants are all public. Corrections and contributions are welcome; several scoring fixes have come
+            from people reading the repo. Check our GitHub:{' '}
             <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer" style={styles.link}>Web</a>
             {' '}&bull;{' '}
             <a href="https://github.com/StudioPlatforms/aistupidmeter-api" target="_blank" rel="noopener noreferrer" style={styles.link}>API</a>
@@ -262,8 +264,8 @@ export default function AboutPage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> FUNDING AND INDEPENDENCE
           </h2>
           {[
-            ['100% Independent Funding', 'Supported through community donations, sponsorships, and grant funding. No revenue from AI vendors.'],
-            ['No Vendor Relationships', 'Zero financial relationships with OpenAI, Anthropic, Google, xAI, or any AI model provider.'],
+            ['No Vendor Money', 'Funded by Pro subscriptions, paid API tiers, data licensing to non-vendor organisations, and out of pocket. Not a cent from any AI model provider.'],
+            ['No Vendor Relationships', 'Zero financial relationships with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu, or any AI model provider.'],
             ['No Affiliate Links', 'We don\'t earn commissions from API signups or referrals. All rankings are merit-based.'],
             ['Own Infrastructure', 'All benchmarks run on our servers using our API keys. No vendor influence whatsoever.'],
             ['Transparent Methodology', 'Complete source code, benchmark tasks, and scoring algorithms are publicly auditable.'],
@@ -281,10 +283,10 @@ export default function AboutPage() {
             <div style={styles.panelTitle}>HOW WE FUND OPERATIONS</div>
             <div style={styles.grid2}>
               {[
-                ['Enterprise Data Licensing', 'Premium datasets for security teams, compliance officers, and ML researchers'],
+                ['Pro Subscriptions', 'Smart Router access, drift analytics and the higher Data API tiers'],
+                ['Data Licensing', 'Historical benchmark data for teams that need it in bulk, licensed to non-vendors only'],
                 ['Community Support', 'Donations from developers who value independent AI monitoring'],
-                ['Sponsorships', 'Non-vendor companies supporting open source AI infrastructure'],
-                ['Research Grants', 'Grants for AI evaluation and transparency projects'],
+                ['Out of Pocket', 'The gap, which is most of it. Benchmarking every model every four hours is not cheap'],
               ].map(([title, desc], i) => (
                 <div key={i} style={{ padding: '10px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.1)', borderRadius: '2px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>
@@ -302,10 +304,10 @@ export default function AboutPage() {
           </h2>
           <div style={styles.grid2}>
             {[
-              ['Open Source Since 2024', 'Community code reviews, public issue tracking, full transparency in implementation'],
-              ['Peer Reviewed', 'Statistical methodology reviewed by academic researchers in ML evaluation'],
-              ['Community Validated', 'Referenced in technical blogs, Reddit discussions, and developer communities'],
-              ['User Verifiable', '"Test Your Keys" feature allows independent verification of all benchmarks'],
+              ['Open Source Since 2025', 'Community code reviews, public issue tracking, full transparency in implementation'],
+              ['Nothing Hidden', 'Scoring weights, the task list and the drift constants are all in the public repo. If you think a weight is wrong, you can point at the line.'],
+              ['Config-Versioned', 'Every score records the benchmark configuration it ran under, so a change we made is never mistaken for a change the model made'],
+              ['User Verifiable', '"Test Your Keys" runs the same tasks with your own API keys, so you can reproduce our numbers yourself'],
             ].map(([title, desc], i) => (
               <div key={i} style={styles.panel}>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>
@@ -321,30 +323,33 @@ export default function AboutPage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> ENTERPRISE DATA LICENSING
           </h2>
           <div style={{ ...styles.text, ...styles.panel, marginBottom: '12px' }}>
-            Beyond our free public platform, we offer <strong style={{ color: 'var(--phosphor-green)' }}>premium enterprise datasets</strong> that
-            provide deeper insights into AI model behavior, safety vulnerabilities, and performance patterns.
+            Beyond the free public platform, we license the <strong style={{ color: 'var(--phosphor-green)' }}>underlying
+            raw data</strong> in bulk to teams that need more than the API provides. Everything below is data we
+            actually hold today &mdash; we do not sell datasets we have not collected. Adversarial-safety and
+            bias testing are <Link href="/methodology" style={styles.link}>built but not yet running</Link>, so
+            they are deliberately not offered here.
           </div>
           <div style={styles.grid2}>
             {[
               {
-                title: 'Safety and Security Dataset',
-                desc: 'Comprehensive adversarial testing results including jailbreak attempts, prompt injection vulnerabilities, and safety bypass patterns.',
-                items: ['10,000+ adversarial test results/month', 'Vulnerability profiles by model and attack type', 'Compliance-ready security reports'],
+                title: 'Performance Time-Series',
+                desc: 'Every score we have ever recorded, per model, per axis, per suite, with the benchmark configuration each run used.',
+                items: ['173,000+ scored runs since August 2025', '9-axis breakdown, not just headline scores', 'Confidence intervals and per-trial variance'],
               },
               {
-                title: 'Bias and Fairness Dataset',
-                desc: 'Statistical analysis of performance variations across demographic groups, gender bias indicators, and EU AI Act compliance metrics.',
-                items: ['5,000+ demographic variant tests/month', 'Gender, ethnicity, and age bias analysis', 'EU AI Act compliance documentation'],
+                title: 'Drift and Regression Dataset',
+                desc: 'Detected change points, drift incidents and the Page-Hinkley statistic behind each one, correlated with provider announcements where we have them.',
+                items: ['900+ recorded incidents and change points', 'Per-model detector state and thresholds', 'Benchmark-config versioning, so methodology changes are separable from model changes'],
               },
               {
-                title: 'Robustness and Reliability Dataset',
-                desc: 'Prompt sensitivity analysis, consistency metrics, hallucination patterns, and behavioral stability measurements.',
-                items: ['15,000+ prompt variation tests/month', 'Hallucination detection and classification', 'Failure mode taxonomy and examples'],
+                title: 'Tool-Calling Sessions',
+                desc: 'Full agent transcripts from real Docker sandbox executions: which tools were chosen, with what parameters, and what happened.',
+                items: ['60,000+ recorded sessions', 'Per-tool selection and parameter accuracy', 'Execution traces and error recovery behaviour'],
               },
               {
-                title: 'Version and Regression Dataset',
-                desc: 'Model version tracking, performance regression root cause analysis, API update correlation, and historical genealogy.',
-                items: ['Complete version change timeline', 'Regression diagnostics and root causes', 'Automated incident detection and alerts'],
+                title: 'Deep Reasoning Sessions',
+                desc: 'Multi-turn dialogues scored on 13 axes including memory retention, plan coherence and hallucination rate.',
+                items: ['4,200+ multi-turn sessions', 'Turn-by-turn scoring', 'Raw outputs retained where retention policy allows'],
               },
             ].map((dataset, i) => (
               <div key={i} style={styles.panel}>
@@ -363,8 +368,10 @@ export default function AboutPage() {
               INTERESTED IN ENTERPRISE DATA ACCESS?
             </div>
             <div style={{ ...styles.text, marginBottom: '12px' }}>
-              Continuously updated datasets including historical data going back to platform launch.
-              Custom data packages, API access, and dedicated support available.
+              Continuously updated, with history back to our first benchmark on 8 August 2025.
+              Custom extracts, bulk exports and dedicated support available. If you need something we
+              do not currently collect, say so &mdash; we would rather tell you it does not exist yet
+              than sell you a promise.
             </div>
             <a
               href="https://studioplatforms.eu/products/aistupidlevel/data-licensing"
@@ -396,8 +403,8 @@ export default function AboutPage() {
           <div style={styles.grid2}>
             {[
               { title: 'Full Source Code', desc: 'Every line of code is public on GitHub. Audit our methodology, suggest improvements, or run locally.', links: [{ label: 'Frontend (Web) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-web' }, { label: 'Backend (API) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-api' }] },
-              { title: 'Public API', desc: 'All benchmark data accessible via API. Download historical scores, confidence intervals, and trends.', code: 'GET /api/dashboard' },
-              { title: 'Detailed Documentation', desc: 'Complete technical documentation of our 7-axis scoring, CUSUM drift detection, and statistical methods.', internalLink: { label: 'Read Methodology \u2192', href: '/methodology' } },
+              { title: 'Public API', desc: 'All benchmark data accessible via a free, keyed REST API. Rankings, historical scores, confidence intervals, degradation alerts and drift signatures.', code: 'GET /api/v1/models', internalLink: { label: 'API Docs \u2192', href: '/api-docs' } },
+              { title: 'Detailed Documentation', desc: 'Complete technical documentation of our 9-axis scoring, Page-Hinkley drift detection, and statistical methods.', internalLink: { label: 'Read Methodology \u2192', href: '/methodology' } },
               { title: 'Test Your Keys', desc: 'Run benchmarks with your own API keys to verify we\'re not making up numbers.', internalLink: { label: 'Test Now \u2192', href: '/router/test-keys' } },
             ].map((item, i) => (
               <div key={i} style={styles.panel}>
@@ -483,7 +490,7 @@ export default function AboutPage() {
 
           {/* Footer */}
           <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center', marginTop: '32px', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.12)' }}>
-            AI Stupid Level &bull; Independent benchmarking since 2024 &bull; <Link href="/" style={styles.link}>View Rankings</Link>
+            AI Stupid Level &bull; Independent benchmarking since 2025 &bull; <Link href="/" style={styles.link}>View Rankings</Link>
           </div>
         </div>
 
@@ -496,8 +503,8 @@ export default function AboutPage() {
               "name": "AI Stupid Level",
               "url": "https://aistupidlevel.info",
               "description": "Independent AI benchmarking platform",
-              "foundingDate": "2024",
-              "sameAs": ["https://twitter.com/AIStupidlevel", "https://github.com/StudioPlatforms"]
+              "foundingDate": "2025",
+              "sameAs": ["https://x.com/GOATGameDev", "https://github.com/StudioPlatforms", "https://www.reddit.com/r/aistupidlevel/"]
             })
           }}
         />
