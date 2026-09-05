@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import TourModal, { type TourStep } from './TourModal';
 
 export const ONBOARDING_STORAGE_KEY = 'stupidmeter-onboarding-seen';
 
@@ -14,13 +14,6 @@ export const ONBOARDING_STORAGE_KEY = 'stupidmeter-onboarding-seen';
  *
  * Shown once per browser. Skipping counts as seen: nobody should meet this twice.
  */
-
-interface Step {
-  eyebrow: string;
-  title: string;
-  body: string[];
-  icon: JSX.Element;
-}
 
 const ICON = {
   board: (
@@ -62,7 +55,7 @@ const ICON = {
   ),
 };
 
-const STEPS: Step[] = [
+const STEPS: TourStep[] = [
   {
     eyebrow: 'What this is',
     title: "Not a “which AI is best” chart",
@@ -125,115 +118,13 @@ interface OnboardingTourProps {
 }
 
 export default function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
-  const [step, setStep] = useState(0);
-  // Which way the next card should slide in from. Purely presentational.
-  const [direction, setDirection] = useState<'fwd' | 'back'>('fwd');
-
-  const goTo = useCallback((next: number) => {
-    setDirection((prev) => (next >= 0 ? (next > stepRef.current ? 'fwd' : 'back') : prev));
-    setStep(next);
-  }, []);
-  const stepRef = useRef(0);
-  useEffect(() => { stepRef.current = step; }, [step]);
-
-  const finish = useCallback(() => {
-    try {
-      localStorage.setItem(ONBOARDING_STORAGE_KEY, 'true');
-    } catch {
-      /* private mode — worst case they see it again */
-    }
-    onClose();
-  }, [onClose]);
-
-  // Reset to the first card whenever it is reopened.
-  useEffect(() => {
-    if (isOpen) { setStep(0); setDirection('fwd'); }
-  }, [isOpen]);
-
-  // Escape skips; arrows move between cards.
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') finish();
-      else if (e.key === 'ArrowRight') goTo(Math.min(stepRef.current + 1, STEPS.length - 1));
-      else if (e.key === 'ArrowLeft') goTo(Math.max(stepRef.current - 1, 0));
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, finish, goTo]);
-
-  // Don't let the page behind scroll while the card is up (matters most on phones).
-  useEffect(() => {
-    if (!isOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
-
   return (
-    <div className="pro-modal onb" onClick={finish}>
-      <div
-        className="pro-modal-card onb-card"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="onb-title"
-      >
-        <div className="onb-head" key={`head-${step}`}>
-          <span className="onb-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="20" height="20">{current.icon}</svg>
-          </span>
-          <span className="pro-modal-badge">{current.eyebrow}</span>
-        </div>
-
-        <div className={`onb-slide onb-slide--${direction}`} key={step}>
-          <div className="pro-modal-title onb-title" id="onb-title">{current.title}</div>
-          {current.body.map((paragraph, i) => (
-            <p className="pro-modal-sub onb-body" key={i}>{paragraph}</p>
-          ))}
-        </div>
-
-        <div className="onb-progress" role="tablist" aria-label="Tour progress">
-          {STEPS.map((s, i) => (
-            <button
-              key={i}
-              type="button"
-              role="tab"
-              aria-selected={i === step}
-              aria-label={`Step ${i + 1}: ${s.eyebrow}`}
-              className={`onb-dot${i === step ? ' is-active' : ''}${i < step ? ' is-done' : ''}`}
-              onClick={() => goTo(i)}
-            />
-          ))}
-        </div>
-
-        <div className="onb-actions">
-          <button type="button" className="pro-modal-btn ghost onb-skip" onClick={finish}>
-            {isLast ? 'Close' : 'Skip'}
-          </button>
-          <div className="onb-actions-right">
-            {step > 0 && (
-              <button type="button" className="pro-modal-btn ghost onb-back" onClick={() => goTo(step - 1)}>
-                Back
-              </button>
-            )}
-            <button
-              type="button"
-              className="pro-modal-btn primary onb-next"
-              onClick={() => (isLast ? finish() : goTo(step + 1))}
-            >
-              {isLast ? 'Start exploring' : 'Next'}
-            </button>
-          </div>
-        </div>
-
-        <div className="onb-count">{step + 1} of {STEPS.length}</div>
-      </div>
-    </div>
+    <TourModal
+      isOpen={isOpen}
+      onClose={onClose}
+      steps={STEPS}
+      storageKey={ONBOARDING_STORAGE_KEY}
+      finishLabel="Start exploring"
+    />
   );
 }

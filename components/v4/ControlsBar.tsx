@@ -10,6 +10,8 @@ interface ControlsBarProps {
   onSortByChange: (sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price') => void;
   onModeChange: (mode: 'leaderboard' | 'drift') => void;
   onShowProModal: (feature: 'historical-data' | 'performance-matrix') => void;
+  /** Draw attention to the drift tab until the visitor has opened it once. */
+  nudgeDrift?: boolean;
 }
 
 export default function ControlsBar({
@@ -22,6 +24,7 @@ export default function ControlsBar({
   onSortByChange,
   onModeChange,
   onShowProModal,
+  nudgeDrift = false,
 }: ControlsBarProps) {
   const periods: Array<{ key: 'latest' | '24h' | '7d' | '1m'; label: string; proOnly: boolean }> = [
     { key: 'latest', label: 'LATEST', proOnly: false },
@@ -109,7 +112,7 @@ export default function ControlsBar({
             LEADERBOARD
           </button>
           <button
-            className={`v4-mode-btn ${dashboardMode === 'drift' ? 'active' : ''}`}
+            className={`v4-mode-btn ${dashboardMode === 'drift' ? 'active' : ''}${nudgeDrift ? ' is-nudge' : ''}`}
             onClick={() => onModeChange('drift')}
           >
             DRIFT MONITOR

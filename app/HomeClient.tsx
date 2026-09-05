@@ -8,6 +8,10 @@ import StupidMeter from '../components/StupidMeter';
 import ProFeatureModal from '../components/ProFeatureModal';
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from '../components/OnboardingTour';
 import ConsentDialog, { CONSENT_STORAGE_KEY } from '../components/ConsentDialog';
+import DriftTour, { DRIFT_TOUR_STORAGE_KEY } from '../components/DriftTour';
+
+/** Set once the visitor has opened the drift view; stops the tab pulsing forever. */
+const DRIFT_SEEN_KEY = 'stupidmeter-drift-visited';
 import FeatureCard from '../components/FeatureCard';
 import FAQItem from '../components/FAQItem';
 import StatCounter from '../components/StatCounter';
@@ -241,6 +245,13 @@ export default function Dashboard() {
  // API Monitoring announcement popup state
  const [showMonitoringAnnouncement, setShowMonitoringAnnouncement] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showDriftTour, setShowDriftTour] = useState(false);
+  /**
+   * Nudge the Drift Monitor tab until it has been opened once. Deliberately not a
+   * permanent animation: this theme removed ambient motion everywhere, so the pulse
+   * has to earn its place by ending.
+   */
+  const [nudgeDrift, setNudgeDrift] = useState(false);
 
   // Smart caching system for leaderboard data (now includes historyMap for charts)
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
@@ -1637,6 +1648,40 @@ export default function Dashboard() {
    * `stupidmeter-welcome-seen` flag belonged to a popup that no longer exists, and is
    * still written so a returning visitor who answered under the old flow is not re-asked.
    */
+  /**
+   * First time someone opens the drift view, explain it. Waits for the dashboard data
+   * and for the other first-visit dialogs, so it never lands on top of consent or the
+   * main tour.
+   */
+  useEffect(() => {
+    try {
+      setNudgeDrift(localStorage.getItem(DRIFT_SEEN_KEY) !== 'true');
+    } catch {
+      setNudgeDrift(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (dashboardMode !== 'drift') return;
+    // Opening it once is the whole point of the nudge, so stop nudging.
+    setNudgeDrift(false);
+    try {
+      localStorage.setItem(DRIFT_SEEN_KEY, 'true');
+    } catch {
+      /* ignore */
+    }
+    if (loading || showConsent || showOnboarding || showDriftTour) return;
+    let seen = true;
+    try {
+      seen = localStorage.getItem(DRIFT_TOUR_STORAGE_KEY) === 'true';
+    } catch {
+      seen = true;
+    }
+    if (seen) return;
+    const t = setTimeout(() => setShowDriftTour(true), 600);
+    return () => clearTimeout(t);
+  }, [dashboardMode, loading, showConsent, showOnboarding, showDriftTour]);
+
   const handleConsentDecision = (accepted: boolean) => {
     try {
       localStorage.setItem(CONSENT_STORAGE_KEY, accepted ? 'accepted' : 'declined');
@@ -3862,6 +3907,7 @@ export default function Dashboard() {
           setProModalFeature(feature);
           setShowProModal(true);
         }}
+        nudgeDrift={nudgeDrift}
       />
 
       {/* V4 3-COLUMN LAYOUT */}
@@ -3913,23 +3959,50 @@ export default function Dashboard() {
 
           {/* Drift Monitor Mode */}
           {(dashboardMode as string) === 'drift' && (
-            <div style={{ padding: '12px' }}>
-              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 3px var(--phosphor-green)', marginBottom: '4px' }}>
-                  DRIFT DETECTION MONITOR
+            <div className="dmz">
+              {/* Plain title and plain English. The old heading was a glowing
+                  "DRIFT DETECTION MONITOR" over "Real-time regime classification with
+                  CUSUM change-point detection", which tells a non-specialist nothing
+                  about what the page is for. */}
+              <div className="dmz-head">
+                <div>
+                  <h2 className="dmz-title">Drift monitor</h2>
+                  <p className="dmz-sub">
+                    Every model is re-tested around the clock and compared against its own
+                    past, not against the other models. This is where a model that has
+                    quietly got worse shows up.
+                  </p>
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}>
-                  Real-time regime classification with CUSUM change-point detection
-                </div>
+                <button
+                  type="button"
+                  className="dmz-help"
+                  onClick={() => setShowDriftTour(true)}
+                >
+                  What am I looking at?
+                </button>
               </div>
-              <div className="v4-drift-grid">
-                {modelScores.filter(m => typeof m.currentScore === 'number').map((model: any) => (
-                  <DriftAwareModelCard key={model.id} model={model} compact={true} showDriftInfo={true} />
-                ))}
-              </div>
+
               {modelScores.length > 0 && (
                 <DriftHeatmap models={modelScores.filter(m => typeof m.currentScore === 'number')} />
               )}
+
+              {/* The per-model cards were 4,000px of near-identical "STABLE" panels above
+                  the fold, saying the same thing as the grid in a form you have to scroll
+                  through. They are still here for anyone who wants the per-model view,
+                  but they are opt-in now. */}
+              <details className="dmz-details">
+                <summary>
+                  Per-model cards
+                  <span className="dmz-details-hint">
+                    score, confidence range and change since launch for each model
+                  </span>
+                </summary>
+                <div className="v4-drift-grid">
+                  {modelScores.filter(m => typeof m.currentScore === 'number').map((model: any) => (
+                    <DriftAwareModelCard key={model.id} model={model} compact={true} showDriftInfo={true} />
+                  ))}
+                </div>
+              </details>
             </div>
           )}
           {/* MOBILE ANALYTICS: show right after leaderboard on mobile (hidden on desktop) */}
@@ -4825,6 +4898,10 @@ export default function Dashboard() {
 
       {/* 2. First-visit explainer: what this site actually measures */}
       <OnboardingTour isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
+
+      {/* Drift view has its own walkthrough - it answers a different question from the
+          leaderboard and is the easiest part of the site to misread. */}
+      <DriftTour isOpen={showDriftTour} onClose={() => setShowDriftTour(false)} />
 
       {/* Pro Feature Modal */}
       <ProFeatureModal

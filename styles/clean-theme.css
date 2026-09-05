@@ -721,3 +721,68 @@ a:hover { color: var(--accent-ink); }
 @media (prefers-reduced-motion: reduce) {
   .onb-slide--fwd, .onb-slide--back, .onb-head { animation: none !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DRIFT MONITOR SECTION (.dmz) — header + opt-in per-model cards
+   ═══════════════════════════════════════════════════════════════════ */
+.dmz { padding: 14px 12px 4px; }
+.dmz-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 16px;
+}
+.dmz-title {
+  margin: 0 0 4px; font-family: var(--font-display);
+  font-size: 19px; font-weight: 600; letter-spacing: -0.2px;
+  color: var(--phosphor-green);
+  text-shadow: none; /* the old heading glowed */
+}
+.dmz-sub { margin: 0; font-size: 13px; line-height: 1.5; color: var(--phosphor-dim); max-width: 68ch; }
+.dmz-help {
+  flex-shrink: 0; padding: 7px 13px; border-radius: 8px;
+  border: 1px solid var(--metal-silver); background: var(--terminal-dark);
+  color: var(--accent); font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.dmz-help:hover { background: var(--accent-bg); border-color: var(--accent); }
+
+.dmz-details { margin-top: 20px; border-top: 1px solid var(--metal-silver); padding-top: 14px; }
+.dmz-details > summary {
+  cursor: pointer; list-style: none; padding: 9px 12px; border-radius: 8px;
+  background: var(--terminal-black); border: 1px solid var(--metal-silver);
+  font-size: 13px; font-weight: 600; color: var(--phosphor-green);
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.dmz-details > summary::-webkit-details-marker { display: none; }
+.dmz-details > summary::before {
+  content: '▸'; color: var(--phosphor-dim); font-size: 11px;
+  transition: transform .15s ease; display: inline-block;
+}
+.dmz-details[open] > summary::before { transform: rotate(90deg); }
+.dmz-details > summary:hover { border-color: var(--phosphor-dim); }
+.dmz-details-hint { font-weight: 400; font-size: 11.5px; color: var(--phosphor-dim); }
+.dmz-details[open] .v4-drift-grid { margin-top: 14px; }
+
+@media (max-width: 700px) {
+  .dmz { padding: 12px 8px 4px; }
+  .dmz-head { flex-direction: column; gap: 10px; }
+  .dmz-title { font-size: 17px; }
+  .dmz-sub { font-size: 12.5px; }
+  .dmz-help { align-self: stretch; text-align: center; }
+}
+
+/* ── One-time nudge toward the redesigned drift view ──────────────────
+   A slow, low-contrast halo on the Drift Monitor tab, and only until the
+   visitor has actually opened it once — a permanent pulsing control would
+   be exactly the ambient motion this theme removed everywhere else. */
+@keyframes dmzNudge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0); }
+  50%      { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.22); }
+}
+.v4-mode-btn.is-nudge:not(.active) {
+  animation: dmzNudge 2.4s ease-in-out infinite;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v4-mode-btn.is-nudge:not(.active) { animation: none; }
+}

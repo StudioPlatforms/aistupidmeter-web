@@ -1091,3 +1091,220 @@
 .model-card:nth-child(3) { animation-delay: 0.15s; }
 .model-card:nth-child(4) { animation-delay: 0.2s; }
 .model-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   DRIFT BY DIMENSION (.dm) — the model × axis matrix
+   Replaces the emoji grid. Cells carry the signed change as a number and
+   a diverging tint; near-zero readings stay untinted so the few real
+   movers are the only coloured thing on screen.
+   ═══════════════════════════════════════════════════════════════════ */
+.dm {
+  /* Diverging poles. blue↔red measured colourblind-safe (ΔE 29 protan);
+     red↔green scored 5.0 and was rejected. */
+  --dm-up-rgb: 26, 115, 232;
+  --dm-down-rgb: 217, 48, 37;
+}
+[data-theme="dark"] .dm {
+  --dm-up-rgb: 138, 180, 248;
+  --dm-down-rgb: 242, 139, 130;
+}
+
+.dm-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; margin-bottom: 14px;
+}
+.dm-title {
+  margin: 0 0 4px; font-family: var(--font-display);
+  font-size: 16px; font-weight: 600; letter-spacing: -0.1px;
+  color: var(--phosphor-green);
+}
+.dm-sub { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--phosphor-dim); max-width: 62ch; }
+
+.dm-toggle {
+  flex-shrink: 0; padding: 6px 11px; border-radius: 7px;
+  border: 1px solid var(--metal-silver); background: var(--terminal-dark);
+  color: var(--phosphor-dim); font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.dm-toggle:hover { color: var(--phosphor-green); border-color: var(--phosphor-dim); }
+.dm-toggle.is-on { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+
+/* ── Headline numbers ─────────────────────────────────────────────── */
+.dm-kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.dm-kpi {
+  padding: 10px 12px; border-radius: 8px;
+  background: var(--terminal-black); border: 1px solid var(--metal-silver);
+}
+.dm-kpi-val {
+  font-family: var(--font-display); font-size: 22px; font-weight: 600;
+  line-height: 1.1; letter-spacing: -0.4px; color: var(--phosphor-green);
+}
+.dm-kpi-lab { margin-top: 2px; font-size: 11.5px; color: var(--phosphor-dim); }
+.dm-kpi.is-watch .dm-kpi-val { color: var(--warn); }
+
+/* ── Matrix ───────────────────────────────────────────────────────── */
+.dm-note {
+  margin: -4px 0 14px; padding: 8px 11px; border-radius: 7px;
+  background: var(--terminal-black); border: 1px solid var(--metal-silver);
+  font-size: 11.5px; line-height: 1.5; color: var(--phosphor-dim);
+}
+.dm-note-dash { color: var(--phosphor-green); font-weight: 600; }
+
+/* The drift card sits in a ~720px column, not the full viewport, so column fit has to
+   be decided from the CONTAINER width - a media query here would read 1440px and pick
+   labels that then collide inside a 723px table. */
+.dm-scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -2px;
+  container-type: inline-size; container-name: dmwrap;
+}
+.dm-table {
+  width: 100%; border-collapse: separate; border-spacing: 2px 0;
+  font-size: 12.5px;
+  /* Fixed layout: with auto layout the model column absorbed the slack and pushed
+     Refusal and Recovery outside the card. 640px still fits nine columns legibly and
+     leaves the container to scroll only when it is genuinely too narrow. */
+  table-layout: fixed; min-width: 640px;
+}
+.dm-table thead th {
+  padding: 0 0 8px; text-align: center; vertical-align: bottom;
+  font-weight: 500; color: var(--phosphor-dim);
+  border-bottom: 1px solid var(--metal-silver);
+}
+.dm-th-model { text-align: left !important; width: 20%; }
+.dm-th-status { width: 80px; }
+/* Slightly smaller and allowed to wrap, so real words fit instead of "Corr / Effic /
+   Recov" - abbreviations defeat the point of the panel being readable. */
+.dm-th-axis { width: auto; font-size: 11px; }
+
+.dm-sort {
+  border: none; background: none; padding: 2px 3px; border-radius: 5px;
+  font: inherit; color: inherit; cursor: pointer;
+  /* Wrap rather than spill into the neighbouring header. */
+  white-space: normal; line-height: 1.25; max-width: 100%;
+}
+.dm-sort:hover { background: var(--terminal-black); color: var(--phosphor-green); }
+.dm-sort.is-active { color: var(--accent); font-weight: 600; }
+.dm-axis-full { display: none; }
+.dm-axis-short { display: inline; }
+@container dmwrap (min-width: 690px) {
+  .dm-axis-full { display: inline; }
+  .dm-axis-short { display: none; }
+}
+
+.dm-table tbody tr { cursor: pointer; }
+.dm-table tbody tr:hover .dm-model-name { color: var(--accent); }
+.dm-table tbody td {
+  padding: 7px 4px; border-bottom: 1px solid var(--metal-silver);
+  text-align: center; vertical-align: middle;
+}
+
+.dm-model { text-align: left !important; padding-left: 2px !important; }
+.dm-model-name {
+  display: block; font-weight: 600; color: var(--phosphor-green);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dm-model-meta {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--phosphor-dim); font-weight: 400;
+}
+.dm-modelled {
+  padding: 0 5px; border-radius: 999px; font-size: 9.5px; letter-spacing: .2px;
+  border: 1px solid var(--metal-silver); color: var(--phosphor-dim);
+}
+
+/* Status is a state, so it ships as a word - never colour alone. */
+.dm-pill {
+  display: inline-block; padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .2px; white-space: nowrap;
+}
+.dm-pill--stable     { background: var(--good-bg); color: var(--good); }
+.dm-pill--recovering { background: var(--accent-bg); color: var(--accent); }
+.dm-pill--volatile   { background: var(--warn-bg); color: var(--warn); }
+.dm-pill--degraded   { background: var(--bad-bg);  color: var(--bad); }
+
+/* The cell value is the encoding; the tint only reinforces it. */
+.dm-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600; color: var(--phosphor-green);
+  border-radius: 5px; min-width: 46px;
+}
+.dm-cell.is-flagged { outline: 1.5px solid var(--warn); outline-offset: -1.5px; }
+.dm-flat { color: var(--phosphor-dim); font-weight: 400; }
+.dm-none { color: var(--phosphor-dim); opacity: .5; }
+
+/* ── Legend ───────────────────────────────────────────────────────── */
+.dm-legend { margin-top: 14px; }
+.dm-legend-scale { display: flex; align-items: center; gap: 10px; }
+.dm-legend-cap { font-size: 11px; color: var(--phosphor-dim); white-space: nowrap; }
+.dm-ramp {
+  flex: 1; max-width: 260px; height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg,
+    rgba(var(--dm-down-rgb), .48) 0%,
+    rgba(var(--dm-down-rgb), .06) 42%,
+    var(--terminal-black) 50%,
+    rgba(var(--dm-up-rgb), .06) 58%,
+    rgba(var(--dm-up-rgb), .48) 100%);
+  border: 1px solid var(--metal-silver);
+}
+.dm-legend-ticks {
+  display: flex; justify-content: space-between; gap: 10px;
+  max-width: 300px; margin: 3px 0 0 72px;
+  font-size: 10.5px; color: var(--phosphor-dim); font-variant-numeric: tabular-nums;
+}
+.dm-legend-notes {
+  display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px;
+  font-size: 11px; color: var(--phosphor-dim);
+}
+.dm-legend-notes b { color: var(--phosphor-green); }
+.dm-legend-notes span { display: inline-flex; align-items: center; gap: 5px; }
+.dm-legend-flag {
+  display: inline-block; width: 13px; height: 13px; border-radius: 3px;
+  border: 1.5px solid var(--warn); background: transparent;
+}
+
+/* ── Phone layout: one card per model, listing only what moved ────── */
+.dm-cards { display: none; }
+.dm-card {
+  padding: 11px 12px; border: 1px solid var(--metal-silver); border-radius: 9px;
+  background: var(--terminal-dark); margin-bottom: 8px; cursor: pointer;
+}
+.dm-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.dm-card-id { min-width: 0; }
+.dm-card-none { margin-top: 8px; font-size: 11.5px; color: var(--phosphor-dim); }
+.dm-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.dm-chip {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  padding: 3px 8px; border-radius: 6px;
+  border: 1px solid var(--metal-silver);
+  font-size: 11.5px; color: var(--phosphor-green);
+  font-variant-numeric: tabular-nums;
+}
+.dm-chip-lab { color: var(--phosphor-dim); }
+.dm-chip b { font-weight: 600; }
+.dm-chip.is-flagged { border-color: var(--warn); }
+
+.dm-empty { text-align: center; padding: 36px 12px; color: var(--phosphor-dim); font-size: 13px; }
+
+/* ── Narrow screens ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dm-kpis { grid-template-columns: repeat(2, 1fr); }
+  .dm-head { flex-direction: column; gap: 10px; }
+  .dm-toggle { align-self: flex-start; }
+}
+@media (max-width: 700px) {
+  /* The matrix is replaced outright rather than made scrollable sideways. */
+  .dm-scroll { display: none; }
+  .dm-cards { display: block; }
+  .dm-kpis { gap: 8px; }
+  .dm-kpi { padding: 9px 10px; }
+  .dm-kpi-val { font-size: 19px; }
+  .dm-kpi-lab { font-size: 11px; }
+  .dm-title { font-size: 15px; }
+  .dm-sub { font-size: 12px; }
+  .dm-legend-ticks { margin-left: 0; }
+  .dm-legend-scale { flex-wrap: wrap; }
+  .dm-ramp { max-width: none; }
+}
