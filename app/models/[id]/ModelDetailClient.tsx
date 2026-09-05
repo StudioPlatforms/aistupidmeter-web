@@ -25,6 +25,7 @@ import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum'
 
 // Shared components
 import ProFeatureModal from '../../../components/ProFeatureModal';
+import NewModelNotice from '../../../components/NewModelNotice';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,12 @@ interface ModelDetails {
   displayName?: string;
   version?: string;
   notes?: string;
+  /** Whole days of score history behind this model; null when the age is unknown. */
+  daysTracked?: number | null;
+  /** True while that history is too short for a stable median / drift baseline. */
+  isCalibrating?: boolean;
+  /** Days of history the baseline needs (server-owned, currently 10). */
+  calibrationDays?: number;
   latestScore?: {
     stupidScore: number;
     displayScore?: number;
@@ -573,6 +580,16 @@ export default function ModelDetailClient({
           DOCS
         </button>
       </div>
+
+      {/* Warn that a freshly-added model has no settled baseline yet. Rendered only
+          once the page has data, so it never covers the loading skeleton. */}
+      {!loading && modelDetails && (
+        <NewModelNotice
+          modelName={modelDetails.displayName || modelDetails.name}
+          daysTracked={modelDetails.daysTracked}
+          calibrationDays={modelDetails.calibrationDays}
+        />
+      )}
 
       {/* Pro feature modal */}
       <ProFeatureModal

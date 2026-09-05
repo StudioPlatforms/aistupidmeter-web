@@ -616,3 +616,108 @@ a:hover { color: var(--accent-ink); }
     opacity: 0.5;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ONBOARDING TOUR + NEW-MODEL NOTICE
+   Both reuse the .pro-modal shell above (same backdrop, card, buttons and
+   mobile breakpoints); these rules only add what the shell does not cover.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The tour holds more prose than the PRO card, so it is allowed to be wider. */
+.onb-card { max-width: 480px; padding-top: 20px; }
+
+.onb-head { display: flex; align-items: center; gap: 9px; }
+.onb-icon {
+  flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent-bg); color: var(--accent);
+}
+.onb-title { font-size: 20px; margin-top: 12px; }
+.onb-body { margin: 8px 0 0; font-size: 13.5px; line-height: 1.55; }
+.onb-body + .onb-body { margin-top: 8px; }
+
+/* Progress dots double as jump-to-step controls. */
+.onb-progress { display: flex; align-items: center; gap: 6px; margin: 18px 0 14px; }
+.onb-dot {
+  width: 7px; height: 7px; padding: 0; border-radius: 999px;
+  border: none; background: var(--metal-silver); cursor: pointer;
+  transition: width .18s ease, background .18s ease;
+}
+.onb-dot.is-done { background: var(--accent); opacity: .45; }
+.onb-dot.is-active { width: 22px; background: var(--accent); }
+.onb-dot:hover { background: var(--accent); }
+/* Keep the tap target usable without making the dots themselves big. */
+.onb-dot::before { content: ''; position: absolute; }
+
+.onb-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 4px;
+}
+.onb-actions-right { display: flex; align-items: center; gap: 8px; }
+/* The shell's buttons are full-width stacked; the tour lays them out in a row. */
+.onb-actions .pro-modal-btn { width: auto; min-width: 84px; }
+.onb-actions .onb-skip { min-width: 0; padding-left: 2px; padding-right: 2px; border-color: transparent; }
+.onb-actions .onb-skip:hover { background: transparent; text-decoration: underline; }
+.onb-count {
+  margin-top: 10px; text-align: right;
+  font-size: 11px; color: var(--phosphor-dim); letter-spacing: .2px;
+}
+
+/* ── New-model notice ─────────────────────────────────────────────── */
+.nmn-card { max-width: 430px; }
+/* Amber rather than the accent blue: this is a caveat, not a feature pitch. */
+.nmn-badge { color: var(--warn); background: var(--warn-bg); }
+.nmn-list { margin-top: 14px; }
+.nmn-list .pro-modal-check { background: var(--warn-bg); color: var(--warn); font-size: 10px; }
+.nmn-foot { margin-top: 12px; text-align: center; }
+
+/* ── Small screens ────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .onb-card { padding-top: 18px; }
+  .onb-icon { width: 30px; height: 30px; border-radius: 8px; }
+  .onb-icon svg { width: 17px; height: 17px; }
+  .onb-title { font-size: 17px; margin-top: 10px; }
+  .onb-body { font-size: 12.5px; line-height: 1.5; }
+  .onb-progress { margin: 14px 0 12px; }
+  /* Stack so "Next" is a full-width thumb target and never crowds "Back". */
+  .onb-actions { flex-direction: column-reverse; align-items: stretch; gap: 8px; }
+  .onb-actions-right { flex-direction: row; gap: 8px; }
+  .onb-actions-right .pro-modal-btn { flex: 1; }
+  .onb-actions .pro-modal-btn { width: 100%; }
+  .onb-actions .onb-skip { padding: 8px; }
+  .onb-count { text-align: center; margin-top: 8px; }
+  .nmn-list li { font-size: 11.5px; }
+}
+@media (max-width: 380px) {
+  .onb-title { font-size: 16px; }
+  .onb-body { font-size: 12px; }
+}
+
+/* Respect a reduced-motion preference for the shell's entrance animation. */
+@media (prefers-reduced-motion: reduce) {
+  .pro-modal, .pro-modal-card { animation: none !important; }
+  .onb-dot { transition: none; }
+}
+
+/* Consent dialog — same shell as the PRO modal, slightly narrower. */
+.consent-card { max-width: 420px; }
+.consent-list { margin: 14px 0 0; }
+.consent-foot { margin-top: 12px; line-height: 1.45; }
+
+/* Card-to-card transition in the tour.
+   Deliberately small: a short fade with ~10px of travel, so moving between cards reads
+   as a step rather than a slideshow. Direction follows navigation (forward slides in
+   from the right, Back from the left). Disabled under prefers-reduced-motion by the
+   rule further up this file. */
+@keyframes onbSlideFwd  { from { opacity: 0; transform: translateX(10px);  } to { opacity: 1; transform: none; } }
+@keyframes onbSlideBack { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+
+.onb-slide--fwd  { animation: onbSlideFwd  .22s cubic-bezier(.2,.7,.2,1) both; }
+.onb-slide--back { animation: onbSlideBack .22s cubic-bezier(.2,.7,.2,1) both; }
+/* The eyebrow/icon row changes with the card, so fade it on the same beat. */
+.onb-head { animation: proModalFade .22s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-slide--fwd, .onb-slide--back, .onb-head { animation: none !important; }
+}

@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import TickerTape from '../components/TickerTape';
 import StupidMeter from '../components/StupidMeter';
 import ProFeatureModal from '../components/ProFeatureModal';
+import OnboardingTour, { ONBOARDING_STORAGE_KEY } from '../components/OnboardingTour';
+import ConsentDialog, { CONSENT_STORAGE_KEY } from '../components/ConsentDialog';
 import FeatureCard from '../components/FeatureCard';
 import FAQItem from '../components/FAQItem';
 import StatCounter from '../components/StatCounter';
@@ -231,14 +233,14 @@ export default function Dashboard() {
   const [todayVisits, setTodayVisits] = useState<number | null>(null);
   
   // Welcome popup state
-  const [showWelcomePopup, setShowWelcomePopup] = useState(false);
-  const [welcomeStep, setWelcomeStep] = useState<'updates' | 'privacy' | 'completed'>('updates');
+  const [showConsent, setShowConsent] = useState(false);
 
  // Price info modal state
  const [showPriceInfoModal, setShowPriceInfoModal] = useState(false);
 
  // API Monitoring announcement popup state
  const [showMonitoringAnnouncement, setShowMonitoringAnnouncement] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Smart caching system for leaderboard data (now includes historyMap for charts)
   const [leaderboardCache, setLeaderboardCache] = useState<Map<string, {
@@ -1563,18 +1565,26 @@ export default function Dashboard() {
 
   // Check for welcome popup on first visit and load preferences
   useEffect(() => {
-    const hasSeenWelcome = localStorage.getItem('stupidmeter-welcome-seen');
-    const hasConsentPreference = localStorage.getItem('gdpr-consent');
+    /*
+     * Popup order on the dashboard, highest priority first. Each one waits for the
+     * previous to be answered, so the visitor never sees two stacked cards:
+     *
+     *   1. Consent      — a legal question, and it gates what analytics may store,
+     *                     so it is asked before anything else.
+     *   2. Onboarding   — what this site actually measures (effect further down).
+     *   3. Monitoring   — a feature promo, so it yields to both of the above.
+     *
+     * A brand-new visitor therefore gets consent, then the tour, and meets the promo on
+     * a later visit rather than being shown three dialogs in a row.
+     */
+    const hasConsentPreference = localStorage.getItem(CONSENT_STORAGE_KEY);
 
-    if (!hasSeenWelcome) {
-      setShowWelcomePopup(true); // Full popup for brand new users
-    } else if (!hasConsentPreference) {
-      setShowWelcomePopup(true);   // Just privacy step for returning users
-      setWelcomeStep('privacy');   // Skip straight to consent question
+    if (!hasConsentPreference) {
+      setShowConsent(true);
     } else {
-      // Returning user who completed welcome — show monitoring announcement once
       const hasSeenMonitoring = localStorage.getItem('stupidmeter-monitoring-announcement-seen');
-      if (!hasSeenMonitoring) {
+      const hasSeenOnboarding = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!hasSeenMonitoring && hasSeenOnboarding) {
         setTimeout(() => setShowMonitoringAnnouncement(true), 2000);
       }
     }
@@ -1586,10 +1596,27 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Handle welcome popup steps
-  const handleWelcomeStep = (step: 'updates' | 'privacy' | 'completed') => {
-    setWelcomeStep(step);
-  };
+  /**
+   * Show the explainer once the real dashboard is on screen.
+   *
+   * Gated on `!loading` rather than on mount: over the loading skeleton the card has
+   * nothing behind it and reads like an error page.
+   *
+   * It also waits for the consent dialog: the legal question comes first, and answering
+   * it closes that card so this one has the screen to itself.
+   */
+  useEffect(() => {
+    if (loading || showConsent || showOnboarding) return;
+    let seen = true;
+    try {
+      seen = localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+    } catch {
+      seen = true; // storage blocked — stay quiet rather than nag every visit
+    }
+    if (seen) return;
+    const t = setTimeout(() => setShowOnboarding(true), 450);
+    return () => clearTimeout(t);
+  }, [loading, showConsent, showOnboarding]);
 
   const updateGoogleConsent = (accepted: boolean) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -1602,28 +1629,23 @@ export default function Dashboard() {
     }
   };
 
-  const handleAcceptAnalytics = () => {
-    localStorage.setItem('gdpr-consent', 'accepted');
-    updateGoogleConsent(true);
-    setWelcomeStep('completed');
-  };
-
-  const handleDeclineAnalytics = () => {
-    localStorage.setItem('gdpr-consent', 'declined');
-    updateGoogleConsent(false);
-    setWelcomeStep('completed');
-  };
-
-  const handleCompleteWelcome = () => {
-    localStorage.setItem('stupidmeter-welcome-seen', 'true');
-    setShowWelcomePopup(false);
-    setWelcomeStep('updates'); // Reset for next time
-
-    // After welcome completes, show monitoring announcement if not seen yet
-    const hasSeenMonitoring = localStorage.getItem('stupidmeter-monitoring-announcement-seen');
-    if (!hasSeenMonitoring) {
-      setTimeout(() => setShowMonitoringAnnouncement(true), 500);
+  /**
+   * Record the visitor's analytics choice and close the dialog.
+   *
+   * Closing it is what releases the rest of the popup queue — see the ordering note on
+   * the onboarding effect above. `gdpr-consent` is the only key that matters now; the old
+   * `stupidmeter-welcome-seen` flag belonged to a popup that no longer exists, and is
+   * still written so a returning visitor who answered under the old flow is not re-asked.
+   */
+  const handleConsentDecision = (accepted: boolean) => {
+    try {
+      localStorage.setItem(CONSENT_STORAGE_KEY, accepted ? 'accepted' : 'declined');
+      localStorage.setItem('stupidmeter-welcome-seen', 'true');
+    } catch {
+      /* private mode — the choice applies to this session only */
     }
+    updateGoogleConsent(accepted);
+    setShowConsent(false);
   };
 
   // Generate ticker content immediately when any data becomes available
@@ -4795,185 +4817,14 @@ export default function Dashboard() {
       </div>
 
       {/* Welcome Popup - Two-Step Process - Responsive */}
-      {showWelcomePopup && (
-        <div className="pro-modal">
-          <div className="pro-modal-card" style={{ maxWidth: '440px' }}>
-              {welcomeStep === 'updates' && (
-                <>
-                  <div style={{ fontSize: '1.15em', marginBottom: '10px', textAlign: 'center', fontWeight: 600 }}>
-                    <span className="terminal-text--green">🔬 WELCOME TO AI STUPID METER</span>
-                    <span className="blinking-cursor"></span>
-                  </div>
-                  
-                  <div style={{ marginBottom: '16px', lineHeight: '1.4', textAlign: 'center' }}>
-                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em', marginBottom: '12px' }}>
-                      Track real-time AI model performance across GPT, Claude, Grok & Gemini
-                    </div>
-                    
-                    <div style={{ 
-                      padding: window.innerWidth < 768 ? '12px' : '16px', 
-                      backgroundColor: 'rgba(26, 115, 232, 0.1)', 
-                      border: '2px solid rgba(26, 115, 232, 0.3)',
-                      borderRadius: '6px',
-                      marginBottom: '12px',
-                      fontSize: window.innerWidth < 768 ? '0.8em' : '0.9em'
-                    }}>
-                      <div className="terminal-text--green" style={{ marginBottom: '8px', fontWeight: 'bold' }}>
-                        ✓ Free Features You Get:
-                      </div>
-                      <div className="terminal-text--dim" style={{ textAlign: 'left', marginLeft: '16px' }}>
-                        • Live model rankings updated every 4 hours<br/>
-                        • Real-time degradation alerts<br/>
-                        • 171+ benchmark results across 16+ models<br/>
-                        • Model Intelligence Center with recommendations
-                      </div>
-                    </div>
-
-                    <div style={{ 
-                      padding: window.innerWidth < 768 ? '10px' : '12px', 
-                      backgroundColor: 'rgba(0, 191, 255, 0.08)', 
-                      border: '1px solid rgba(0, 191, 255, 0.3)',
-                      borderRadius: '4px',
-                      textAlign: 'center'
-                    }}>
-                      <div className="terminal-text--amber" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.9em', marginBottom: '4px' }}>
-                        💎 Want automated AI routing?
-                      </div>
-                      <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.75em' : '0.8em' }}>
-                        AI Router Pro available • $4.99/mo • 7-day free trial
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ textAlign: 'center' }}>
-                    <button 
-                      onClick={() => handleWelcomeStep('privacy')}
-                      className="vintage-btn vintage-btn--active"
-                      style={{ padding: window.innerWidth < 768 ? '10px 24px' : '12px 32px', fontSize: window.innerWidth < 768 ? '1.0em' : '1.1em' }}
-                    >
-                      CONTINUE
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {welcomeStep === 'privacy' && (
-                <>
-                  <div style={{ fontSize: '1.15em', marginBottom: '12px', textAlign: 'center', fontWeight: 600 }}>
-                    <span className="terminal-text--amber">🍪 PRIVACY NOTICE</span>
-                    <span className="blinking-cursor"></span>
-                  </div>
-                  
-                  <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                    <div className="terminal-text--green" style={{ marginBottom: window.innerWidth < 768 ? '8px' : '12px' }}>
-                      🔐 Your Privacy is Protected:
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em', marginBottom: '12px' }}>
-                      We use Google Analytics to improve our AI benchmarking tool. This helps us understand usage patterns and optimize performance. 
-                      We <strong>anonymize IP addresses</strong> and <strong>disable advertising features</strong> to protect your privacy.
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.8em' : '0.9em', marginBottom: '12px' }}>
-                      By accepting, you consent to analytics cookies. You can change your preference anytime.
-                    </div>
-                    
-                    <div style={{ 
-                      padding: window.innerWidth < 768 ? '8px' : '12px', 
-                      backgroundColor: 'rgba(26, 115, 232, 0.05)', 
-                      border: '1px solid rgba(26, 115, 232, 0.3)',
-                      borderRadius: '4px',
-                      fontSize: window.innerWidth < 768 ? '0.75em' : '0.85em'
-                    }}>
-                      <div className="terminal-text--green" style={{ marginBottom: '6px' }}>
-                        📋 What we collect:
-                      </div>
-                      <ul style={{ marginLeft: '16px', marginBottom: '6px' }}>
-                        <li className="terminal-text--dim">Page views and user interactions</li>
-                        <li className="terminal-text--dim">Performance metrics (anonymized)</li>
-                        <li className="terminal-text--dim">General location data (country level)</li>
-                      </ul>
-                      <div className="terminal-text--red" style={{ marginBottom: '4px' }}>
-                        ❌ What we DON'T collect:
-                      </div>
-                      <ul style={{ marginLeft: '16px' }}>
-                        <li className="terminal-text--dim">Personal information or emails</li>
-                        <li className="terminal-text--dim">Your API keys or test results</li>
-                        <li className="terminal-text--dim">Advertising profiles or tracking</li>
-                      </ul>
-                    </div>
-                    
-                    <div style={{ marginTop: '16px', fontSize: '0.8em' }}>
-                      <a 
-                        href="/privacy" 
-                        className="terminal-text--green"
-                        style={{ textDecoration: 'underline', marginRight: '16px' }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Privacy Policy
-                      </a>
-                      <a 
-                        href="https://policies.google.com/privacy" 
-                        className="terminal-text--green"
-                        style={{ textDecoration: 'underline' }}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Google Privacy Policy
-                      </a>
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button 
-                      onClick={handleDeclineAnalytics}
-                      className="vintage-btn"
-                      style={{ padding: '8px 24px' }}
-                    >
-                      DECLINE ANALYTICS
-                    </button>
-                    <button 
-                      onClick={handleAcceptAnalytics}
-                      className="vintage-btn vintage-btn--active"
-                      style={{ padding: '8px 24px' }}
-                    >
-                      ACCEPT ANALYTICS
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {welcomeStep === 'completed' && (
-                <>
-                  <div style={{ fontSize: '1.15em', marginBottom: '12px', textAlign: 'center', fontWeight: 600 }}>
-                    <span className="terminal-text--green">✅ ALL SET!</span>
-                    <span className="blinking-cursor"></span>
-                  </div>
-                  
-                  <div style={{ marginBottom: '20px', lineHeight: '1.6', textAlign: 'center' }}>
-                    <div className="terminal-text--green" style={{ fontSize: window.innerWidth < 768 ? '1.0em' : '1.1em', marginBottom: '8px' }}>
-                      🚀 Welcome to Stupid Meter!
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: window.innerWidth < 768 ? '0.85em' : '0.95em' }}>
-                      Thank you for your privacy preferences. You're now ready to explore our AI model rankings and intelligence monitoring system.
-                    </div>
-                  </div>
-                  
-                  <div style={{ textAlign: 'center' }}>
-                    <button 
-                      onClick={handleCompleteWelcome}
-                      className="vintage-btn vintage-btn--active"
-                      style={{ padding: '12px 32px', fontSize: '1.1em' }}
-                    >
-                      START EXPLORING
-                    </button>
-                  </div>
-                </>
-              )}
-          </div>
-        </div>
-      )}
 
       </div>{/* end display:none wrapper for old sections */}
+
+      {/* 1. Analytics consent — asked before anything else */}
+      <ConsentDialog isOpen={showConsent} onDecide={handleConsentDecision} />
+
+      {/* 2. First-visit explainer: what this site actually measures */}
+      <OnboardingTour isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
 
       {/* Pro Feature Modal */}
       <ProFeatureModal
