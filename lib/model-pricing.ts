@@ -17,7 +17,8 @@
  *   Where one is live it is noted in a comment.
  * - Long-context surcharge tiers are not modelled; the base tier is quoted.
  *
- * Verified 2026-07-31. Most recent change: OpenAI cut GPT-5.6 Terra 20% and
+ * Verified 2026-07-31. Most recent change: GPT-6 Astra added 2026-09-05
+ * ($10/$50, GA 2026-09-04). Before that, OpenAI cut GPT-5.6 Terra 20% and
  * Luna 80% on 2026-07-30.
  */
 
@@ -31,6 +32,10 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
   const prov = (provider || '').toLowerCase();
 
   if (prov === 'openai') {
+    // GPT-6 Astra (GA 2026-09-04) — new flagship generation, 2.5x GPT-5.6 Sol.
+    // Cached input is $1/MTok; we quote the cache-MISS rate per the convention
+    // above. Fast mode ($20/$100) and Batch/Flex (-50%) tiers are not modelled.
+    if (name.includes('gpt-6')) return { input: 10, output: 50 };
     // GPT-5.6 family (GA 2026-07-09) — specific tiers before the generic
     // gpt-5 catch-all, which would otherwise swallow every 5.x model.
     if (name.includes('gpt-5.6-terra')) return { input: 2, output: 12 };
