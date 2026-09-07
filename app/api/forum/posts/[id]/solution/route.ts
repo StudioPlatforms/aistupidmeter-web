@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { markAsSolution, getTopicById } from '@/lib/forum-db';
 import { getForumUser, canModerate } from '@/lib/forum-auth';
-import Database from 'better-sqlite3';
+import { openIdentityDb } from '@/lib/identity-db';
 
-const DB_PATH = process.env.DATABASE_URL || '/root/data/stupid_meter.db';
 
 function getPostTopicAuthor(postId: number) {
-  const db = new Database(DB_PATH);
+  const db = openIdentityDb();
   try {
     return db.prepare(`
       SELECT p.topic_id, t.author_id as topic_author_id

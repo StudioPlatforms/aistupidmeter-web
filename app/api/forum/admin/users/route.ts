@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { requireRole } from '@/lib/forum-auth';
-import Database from 'better-sqlite3';
+import { openIdentityDb } from '@/lib/identity-db';
 
-const DB_PATH = process.env.DATABASE_URL || '/root/data/stupid_meter.db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +26,7 @@ export async function GET(request: NextRequest) {
     const roleFilter = searchParams.get('role') || '';
     const offset = (page - 1) * limit;
 
-    const db = new Database(DB_PATH);
+    const db = openIdentityDb();
     try {
       let whereClause = '1=1';
       const params: any[] = [];

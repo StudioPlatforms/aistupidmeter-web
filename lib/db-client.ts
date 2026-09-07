@@ -3,11 +3,9 @@
  * Handles user operations in the router_users table
  */
 
-import Database from 'better-sqlite3';
+import { openIdentityDb } from '@/lib/identity-db';
 import path from 'path';
 
-// Get database path from environment or use default
-const DB_PATH = process.env.DATABASE_URL || '/root/data/stupid_meter.db';
 
 export interface User {
   id: number;
@@ -41,7 +39,7 @@ export interface User {
  * Get database connection
  */
 function getDb() {
-  return new Database(DB_PATH);
+  return openIdentityDb();
 }
 
 /**

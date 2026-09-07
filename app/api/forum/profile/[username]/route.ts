@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getForumProfileByUsername } from '@/lib/forum-db';
-import Database from 'better-sqlite3';
+import { openIdentityDb } from '@/lib/identity-db';
 
-const DB_PATH = process.env.DATABASE_URL || '/root/data/stupid_meter.db';
 
 function getRecentActivity(userId: number) {
-  const db = new Database(DB_PATH);
+  const db = openIdentityDb();
   try {
     const recentTopics = db.prepare(`
       SELECT t.id, t.title, t.slug, t.created_at, c.name as category_name, c.slug as category_slug

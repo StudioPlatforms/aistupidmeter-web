@@ -2,12 +2,11 @@
  * Forum Auth — Role system and permission helpers
  */
 
-import Database from 'better-sqlite3';
+import { openIdentityDb } from '@/lib/identity-db';
 
-const DB_PATH = process.env.DATABASE_URL || '/root/data/stupid_meter.db';
 
 function getDb() {
-  return new Database(DB_PATH);
+  return openIdentityDb();
 }
 
 // Role hierarchy — higher number = more privilege
