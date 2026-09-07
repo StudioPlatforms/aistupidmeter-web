@@ -364,15 +364,36 @@ export default function ForumAdminUsers() {
                         </div>
                       </td>
 
-                      {/* Username */}
+                      {/* Username.
+                          forum_username is a handle the user chooses on their
+                          first forum visit, so most accounts do not have one -
+                          currently ~90%. Showing "No username" for all of them
+                          hid the account name we already have, and disagreed
+                          with the avatar beside it, which has always fallen back
+                          to name. Green means a real forum handle (the only case
+                          that can link to a profile); dim means we are falling
+                          back to the account name. */}
                       <td>
                         {user.forum_username ? (
-                          <span className="td-green">{user.forum_username}</span>
+                          <>
+                            <span className="td-green">{user.forum_username}</span>
+                            {user.name && user.name !== user.forum_username && (
+                              <div className="td-dim" style={{ fontSize: '10px' }}>{user.name}</div>
+                            )}
+                          </>
+                        ) : user.name ? (
+                          <>
+                            <span className="td-dim">{user.name}</span>
+                            <span
+                              className="td-dim"
+                              style={{ fontSize: '9px', opacity: 0.6, marginLeft: '6px' }}
+                              title="This account has not chosen a forum handle yet"
+                            >
+                              (no handle)
+                            </span>
+                          </>
                         ) : (
                           <span className="td-dim" style={{ fontStyle: 'italic' }}>No username</span>
-                        )}
-                        {user.name && user.forum_username && user.name !== user.forum_username && (
-                          <div className="td-dim" style={{ fontSize: '10px' }}>{user.name}</div>
                         )}
                       </td>
 
