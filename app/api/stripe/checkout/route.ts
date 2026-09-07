@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import Stripe from 'stripe';
+import { redirectToPath } from '@/lib/safe-redirect';
 
 // Initialize Stripe with secret key from environment
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -14,8 +15,11 @@ export async function GET(request: NextRequest) {
     const session = await auth();
     
     if (!session?.user?.id || !session?.user?.email) {
-      // Redirect to sign in if not authenticated
-      return NextResponse.redirect(new URL('/auth/signin', request.url));
+      // request.url carries the internal localhost origin behind nginx, so an
+      // absolute URL built from it points nowhere the browser can reach.
+      // See lib/safe-redirect.ts. Stripe's success/cancel URLs below must stay
+      // absolute - Stripe resolves those from outside this site.
+      return redirectToPath(request, '/auth/signin');
     }
 
     const userId = session.user.id;
@@ -50,8 +54,8 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Stripe checkout error:', error);
-    // Redirect to home page with error
-    return NextResponse.redirect(new URL('/?error=checkout_failed', request.url));
+    // Redirect to home page with error (same origin problem as above)
+    return redirectToPath(request, '/?error=checkout_failed');
   }
 }
 

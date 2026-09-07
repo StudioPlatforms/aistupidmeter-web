@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { redirectToPath, signInPath } from '@/lib/safe-redirect';
 
 /**
  * Simple cookie-based middleware for NextAuth v5
@@ -37,11 +38,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Protect /router routes - require authentication
+  // Protect /router routes - require authentication.
+  //
+  // The previous spelling, `new URL('/auth/signin', request.url)`, resolved
+  // against the URL Next.js was reached on *internally* - http://localhost:3000,
+  // because nginx proxies to that port - rather than the address the browser
+  // used. Signed-out visitors clicking "Pro" were therefore sent to
+  // https://localhost:3000/auth/signin, a dead link everywhere but this server.
+  // See lib/safe-redirect.ts for why the origin is rebuilt from config.
   if (pathname.startsWith('/router') && !isLoggedIn) {
-    const signInUrl = new URL('/auth/signin', request.url);
-    signInUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(signInUrl);
+    return redirectToPath(request, signInPath(pathname));
   }
   
   return NextResponse.next();
