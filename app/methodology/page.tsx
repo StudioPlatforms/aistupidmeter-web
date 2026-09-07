@@ -128,6 +128,47 @@ const styles = {
     fontWeight: 'bold',
     letterSpacing: '0.3px',
   } as React.CSSProperties,
+  whitepaperPanel: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '14px',
+    padding: '16px 18px',
+    background: 'rgba(26, 115, 232,0.05)',
+    border: '1px solid rgba(26, 115, 232,0.3)',
+    borderRadius: '3px',
+    marginBottom: '18px',
+  } as React.CSSProperties,
+  whitepaperTitle: {
+    fontSize: '11px',
+    fontWeight: 'bold',
+    color: 'var(--amber-warning, #ffb000)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1.5px',
+    marginBottom: '6px',
+  } as React.CSSProperties,
+  whitepaperSub: {
+    fontSize: '11px',
+    color: 'var(--phosphor-dim)',
+    lineHeight: '1.55',
+    maxWidth: '52ch',
+  } as React.CSSProperties,
+  whitepaperButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    whiteSpace: 'nowrap' as const,
+    fontSize: '11px',
+    fontWeight: 'bold',
+    letterSpacing: '0.8px',
+    padding: '10px 16px',
+    background: 'rgba(26, 115, 232,0.12)',
+    border: '1px solid rgba(26, 115, 232,0.5)',
+    color: 'var(--phosphor-green)',
+    textDecoration: 'none',
+    borderRadius: '2px',
+  } as React.CSSProperties,
   codeBlock: {
     backgroundColor: 'rgba(26, 115, 232,0.05)',
     padding: '14px 16px',
@@ -231,6 +272,33 @@ export default async function MethodologyPage() {
           </h1>
           <div style={styles.pageSub}>
             Complete Technical Methodology — Statistically Rigorous, Execution-Based, Continuous Monitoring
+          </div>
+
+          {/* Methodology whitepaper. The PDF is the public edition: it withholds
+              the live task bank, hidden tests and detector calibration constants
+              on purpose, so it can be shared for review without turning the
+              benchmark into a training target. */}
+          <div style={styles.whitepaperPanel}>
+            <div>
+              <div style={styles.whitepaperTitle}>Methodology Whitepaper</div>
+              <div style={styles.whitepaperSub}>
+                Public methodology edition, 2026 - measurement framework, benchmark
+                surfaces, statistical interpretation and evidence-to-routing logic,
+                written up for external technical review.
+              </div>
+            </div>
+            <a
+              href="/asl-public-benchmark-methodology-2026.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={styles.whitepaperButton}
+              aria-label="Download the AI Stupid Level public benchmark methodology whitepaper, PDF, 13 pages"
+            >
+              DOWNLOAD PDF
+              <span style={{ opacity: 0.65, fontWeight: 'normal', letterSpacing: 0 }}>
+                13 pages · 136 KB
+              </span>
+            </a>
           </div>
 
           {/* Quick Navigation */}
