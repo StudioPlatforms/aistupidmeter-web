@@ -22,6 +22,7 @@ import ModelDetailQuickStats from '../../../components/model-detail/ModelDetailQ
 import ModelDetailPricing from '../../../components/model-detail/ModelDetailPricing';
 import ModelDetailMatrix from '../../../components/model-detail/ModelDetailMatrix';
 import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum';
+import ModelDetailSliceRegressions from '../../../components/model-detail/ModelDetailSliceRegressions';
 
 // Shared components
 import ProFeatureModal from '../../../components/ProFeatureModal';
@@ -521,6 +522,11 @@ export default function ModelDetailClient({
         hasProAccess={hasProAccess}
         onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
       />
+
+      {/* Per-task regressions. Sits directly under the CUSUM curve because it
+          answers the question that curve raises but cannot resolve: the composite
+          moved (or did not) — which task actually changed? */}
+      <ModelDetailSliceRegressions modelId={modelId} includeResolved />
 
       {/* Two-column: Quick Stats + Pricing */}
       <div className="md-info-grid">
