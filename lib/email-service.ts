@@ -176,7 +176,7 @@ async function deliver(to: string, subject: string, html: string, text: string) 
 }
 
 /** Sent once, immediately after an account is created. */
-export async function sendWelcomeEmail(email: string, name?: string | null) {
+export async function sendWelcomeEmail(email: string, name?: string | null, verifyLink?: string | null) {
   const who = name ? `${name}, ` : '';
   const intro =
     `${who}your account is ready. The fastest way to get value from it is to tell us which models ` +
@@ -193,9 +193,14 @@ export async function sendWelcomeEmail(email: string, name?: string | null) {
         ['Weekly summary', 'Every Monday'],
         ['Change alerts', 'When a tracked model moves'],
       ],
-      ctaLabel: 'Choose your models',
-      ctaUrl: 'https://aistupidlevel.info/watchlist',
+      ctaLabel: verifyLink ? 'Confirm my address' : 'Choose your models',
+      ctaUrl: verifyLink ?? 'https://aistupidlevel.info/watchlist',
       footnote:
+        (verifyLink
+          ? 'Confirming your address is what lets us send the digest and alerts — we only mail ' +
+            'confirmed addresses, which is how our email stays out of spam folders. The link is ' +
+            'valid for 24 hours.<br><br>'
+          : '') +
         'You can turn off the summary and alerts at any time from your account settings. ' +
         'We never sell your data and take no money from any model provider.',
     }),
@@ -205,7 +210,7 @@ export async function sendWelcomeEmail(email: string, name?: string | null) {
     `  Models you can track: 3 on the free plan\n` +
     `  Weekly summary: every Monday\n` +
     `  Change alerts: when a tracked model moves\n\n` +
-    `Choose your models: https://aistupidlevel.info/watchlist\n\n` +
+    (verifyLink ? `Confirm your address: ${verifyLink}\n\n` : `Choose your models: https://aistupidlevel.info/watchlist\n\n`) +
     `You can turn off the summary and alerts at any time in your account settings.\n`
   );
 }
@@ -274,5 +279,30 @@ export async function sendTrialEndingEmail(
     `Your ${opts.planLabel} trial ends on ${opts.chargeDate}, when it renews at ${opts.amount}.\n\n` +
     `No action is needed to continue. To cancel before being charged:\n` +
     `https://aistupidlevel.info/router/subscription\n`
+  );
+}
+
+/** Confirm-your-address link. Sent on password signup and on request. */
+export async function sendVerificationEmail(email: string, verifyLink: string) {
+  return deliver(
+    email,
+    'Confirm your email address',
+    renderEmail({
+      heading: 'Confirm your email address',
+      intro:
+        'One click and your weekly digest and change alerts can start arriving. ' +
+        'We only send those to confirmed addresses — it keeps our mail out of spam ' +
+        'folders, including for the people waiting on a receipt.',
+      ctaLabel: 'Confirm my address',
+      ctaUrl: verifyLink,
+      footnote:
+        'If the button does not work, paste this into your browser:<br>' +
+        `<span style="word-break:break-all;color:#1a73e8;">${verifyLink}</span>` +
+        '<br><br>The link is valid for 24 hours. If you did not create an account, ignore this email.',
+    }),
+    `Confirm your email address\n\n` +
+    `One click and your weekly digest and change alerts can start arriving.\n` +
+    `We only send those to confirmed addresses.\n\n${verifyLink}\n\n` +
+    `The link is valid for 24 hours. If you did not create an account, ignore this email.\n`
   );
 }

@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, isPlan, type Plan } from '@/lib/entitlements';
@@ -64,12 +65,20 @@ function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean
 
 export default function SettingsClient() {
   const { data: session, status } = useSession();
+  const params = useSearchParams();
+  const [sendingVerify, setSendingVerify] = useState(false);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [models, setModels] = useState<WatchedModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<string | null>(null);
 
   const flash = (m: string) => { setSaved(m); setTimeout(() => setSaved(null), 2200); };
+
+  useEffect(() => {
+    const v = params?.get('verified');
+    if (v === '1') flash('Email confirmed — your digest and alerts are on');
+    else if (v === '0') flash('That confirmation link has expired. Send a new one below.');
+  }, [params]);
 
   useEffect(() => {
     if (status !== 'authenticated') { if (status === 'unauthenticated') setLoading(false); return; }
@@ -135,7 +144,26 @@ export default function SettingsClient() {
                 : 'Not verified — the weekly digest and change alerts are only sent to verified addresses.'}
             </div>
           </div>
-          {!verified && <button className="md-ctrl-btn" style={{ fontSize: '0.82em' }}>Resend</button>}
+          {!verified && (
+            <button
+              className="md-ctrl-btn"
+              style={{ fontSize: '0.82em', whiteSpace: 'nowrap' }}
+              disabled={sendingVerify}
+              onClick={async () => {
+                setSendingVerify(true);
+                try {
+                  const r = await fetch('/api/auth/send-verification', { method: 'POST' });
+                  const j = await r.json();
+                  flash(j?.success
+                    ? (j.alreadyVerified ? 'Already confirmed' : 'Confirmation email sent')
+                    : (j?.message ?? 'Could not send it'));
+                } catch { flash('Could not send it'); }
+                finally { setSendingVerify(false); }
+              }}
+            >
+              {sendingVerify ? 'Sending…' : 'Send link'}
+            </button>
+          )}
         </div>
         <div style={row}>
           <span style={{ fontSize: '0.88em' }}>Plan</span>

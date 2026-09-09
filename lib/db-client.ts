@@ -159,6 +159,78 @@ export function updateUserLastLogin(userId: number): void {
 }
 
 /**
+ * Issue an email-verification token.
+ *
+ * Mirrors createPasswordResetToken deliberately — same shape, same lifetime
+ * semantics — so there is one pattern to reason about rather than two.
+ * Rate-limited by the caller via verify_sent_at.
+ */
+export function createEmailVerificationToken(
+  userId: number
+): { token: string; expires: string } | null {
+  const db = getDb();
+  try {
+    const crypto = require('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const info = db.prepare(`
+      UPDATE router_users SET
+        verify_token = ?, verify_token_expires = ?,
+        verify_sent_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      WHERE id = ?
+    `).run(token, expires, userId);
+    return info.changes > 0 ? { token, expires } : null;
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Consume a verification token.
+ *
+ * Returns the verified email on success. The token is cleared either way once
+ * matched, so a link cannot be replayed.
+ */
+export function consumeEmailVerificationToken(token: string): { email: string } | null {
+  if (!token || token.length < 32) return null;
+  const db = getDb();
+  try {
+    const row = db.prepare(
+      'SELECT id, email, verify_token_expires FROM router_users WHERE verify_token = ?'
+    ).get(token) as { id: number; email: string; verify_token_expires: string } | undefined;
+    if (!row) return null;
+
+    const expired = !row.verify_token_expires || new Date(row.verify_token_expires) < new Date();
+    db.prepare(`
+      UPDATE router_users SET
+        verify_token = NULL, verify_token_expires = NULL,
+        email_verified = CASE WHEN ? THEN email_verified ELSE 1 END,
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      WHERE id = ?
+    `).run(expired ? 1 : 0, row.id);
+
+    return expired ? null : { email: row.email };
+  } finally {
+    db.close();
+  }
+}
+
+/** Seconds since the last verification email, or null if never sent. */
+export function secondsSinceVerificationSent(userId: number): number | null {
+  const db = getDb();
+  try {
+    const row = db.prepare('SELECT verify_sent_at FROM router_users WHERE id = ?')
+      .get(userId) as { verify_sent_at: string | null } | undefined;
+    if (!row?.verify_sent_at) return null;
+    const t = Date.parse(row.verify_sent_at);
+    return Number.isNaN(t) ? null : Math.floor((Date.now() - t) / 1000);
+  } finally {
+    db.close();
+  }
+}
+
+/**
  * Verify email
  */
 export function verifyUserEmail(userId: number): void {

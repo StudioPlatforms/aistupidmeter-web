@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findUserByEmail, createUserWithPassword } from '@/lib/db-client';
+import { findUserByEmail, createUserWithPassword, createEmailVerificationToken } from '@/lib/db-client';
 import { recordActivation } from '@/lib/activation';
 import { sendWelcomeEmail } from '@/lib/email-service';
 import { hashPassword, validateEmail, validatePasswordStrength } from '@/lib/password';
@@ -54,7 +54,14 @@ export async function POST(request: NextRequest) {
 
     // Fire-and-forget: a mail failure must never fail a signup. sendWelcomeEmail
     // already swallows its own errors, and this catch covers the promise itself.
-    void sendWelcomeEmail(email, name).catch(() => {});
+    // Password signups start unverified, and bulk mail only goes to verified
+    // addresses — so the welcome email carries the confirmation link. OAuth
+    // accounts arrive already verified by the provider and skip this.
+    const uid = (user as any)?.id ?? null;
+    const issued = uid ? createEmailVerificationToken(uid) : null;
+    const base = process.env.NEXT_PUBLIC_APP_URL || 'https://aistupidlevel.info';
+    const verifyLink = issued ? `${base}/api/auth/verify?token=${issued.token}` : null;
+    void sendWelcomeEmail(email, name, verifyLink).catch(() => {});
 
     return NextResponse.json(
       {
