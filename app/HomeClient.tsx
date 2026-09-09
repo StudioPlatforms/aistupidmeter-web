@@ -3046,7 +3046,7 @@ export default function Dashboard() {
                 🚨 LATEST: TOOL CALLING + INTELLIGENCE CENTER REVOLUTION
               </div>
               <div className="terminal-text--green" style={{ fontSize: '1.0em' }}>
-                World-first evaluation system for real AI tool usage capabilities
+                Evaluates real tool use — models execute commands and multi-step workflows, not just describe them
               </div>
             </div>
           </div>

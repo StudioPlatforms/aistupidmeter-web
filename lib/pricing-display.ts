@@ -25,11 +25,23 @@ export const ROUTER_PLAN: Plan = 'developer';
 const money = (n: number | null): string =>
   n === null ? 'Custom' : n === 0 ? 'Free' : Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
 
-/** e.g. "$9/mo" */
-export const monthly = (plan: Plan): string => `${money(PLANS[plan].priceMonthly)}/mo`;
+/**
+ * A period suffix only makes sense on an actual amount. Without this guard,
+ * `monthly('free')` renders "Free/mo" and enterprise renders "Custom/mo" —
+ * neither is used by a current CTA, but both are the kind of thing that ships
+ * the day someone reuses the helper somewhere new.
+ */
+const withPeriod = (plan: Plan, suffix: string): string => {
+  const amount = PLANS[plan].priceMonthly;
+  const text = money(amount);
+  return amount === null || amount === 0 ? text : `${text}${suffix}`;
+};
 
-/** e.g. "$9/month" */
-export const monthlyLong = (plan: Plan): string => `${money(PLANS[plan].priceMonthly)}/month`;
+/** e.g. "$9/mo", or plain "Free" / "Custom" where a period is meaningless. */
+export const monthly = (plan: Plan): string => withPeriod(plan, '/mo');
+
+/** e.g. "$9/month". */
+export const monthlyLong = (plan: Plan): string => withPeriod(plan, '/month');
 
 /** e.g. "from $9/mo" — for CTAs that unlock across several plans. */
 export const fromMonthly = (plan: Plan): string => `from ${monthly(plan)}`;

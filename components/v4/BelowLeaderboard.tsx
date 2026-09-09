@@ -102,7 +102,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
           &gt; WHAT IS STUPID METER?
         </div>
         <div style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
-          The world&apos;s first AI intelligence degradation detection system. We continuously benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
+          Continuous, independent measurement of whether AI models degrade behind a stable API name. We benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
           Our CUSUM + Page-Hinkley change-point detection algorithms identify performance regressions within hours, not days.
         </div>
         <div style={{ fontWeight: 'bold', color: 'var(--phosphor-green)', marginTop: '10px', marginBottom: '6px', textShadow: '0 0 2px var(--phosphor-green)' }}>

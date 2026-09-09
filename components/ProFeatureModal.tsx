@@ -1,6 +1,6 @@
 'use client';
 
-import { ENTRY_PAID_PLAN, planName, monthly } from '@/lib/pricing-display';
+import { ENTRY_PAID_PLAN, ROUTER_PLAN, planName, monthly } from '@/lib/pricing-display';
 
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -62,6 +62,15 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
 
   const details = featureDetails[feature];
 
+  /**
+   * Quote the cheapest plan that actually unlocks THIS feature.
+   *
+   * Three of the four are analytics and come with Pro. API monitoring is a
+   * routing surface and does not — telling someone $9 buys it would be a
+   * promise the checkout could not keep.
+   */
+  const unlockedBy = feature === 'api-monitoring' ? ROUTER_PLAN : ENTRY_PAID_PLAN;
+
   const handleUpgrade = () => {
     router.push(session ? '/pricing' : '/auth/signup');
   };
@@ -85,7 +94,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         </ul>
 
         <div className="pro-modal-pricebox">
-          <div className="pro-modal-price"><b>{monthly(ENTRY_PAID_PLAN)}</b><span> · {planName(ENTRY_PAID_PLAN)}</span></div>
+          <div className="pro-modal-price"><b>{monthly(unlockedBy)}</b><span> · {planName(unlockedBy)}</span></div>
           <div className="pro-modal-priceline">7-day free trial · cancel anytime · no card surprises</div>
         </div>
 
