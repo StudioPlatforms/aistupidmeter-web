@@ -584,8 +584,8 @@ export default function ModelDetailClient({
         <button className="md-mobile-nav-btn" onClick={() => router.push('/compare')}>
           COMPARE
         </button>
-        <button className="md-mobile-nav-btn pro" onClick={() => router.push('/router')}>
-          PRO
+        <button className="md-mobile-nav-btn pro" onClick={() => router.push('/watchlist')}>
+          ★ WATCH
         </button>
         <button className="md-mobile-nav-btn" onClick={() => router.push('/router/forum')} style={{ color: '#ffb000', borderColor: 'rgba(255,176,0,0.4)' }}>
           FORUM

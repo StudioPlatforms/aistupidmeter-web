@@ -19,6 +19,7 @@ interface WatchedModel {
   score: number | null;
   scoredAt: string | null;
   addedAt: string;
+  alertsEnabled: boolean;
 }
 
 interface Payload {
@@ -60,6 +61,17 @@ export default function WatchlistClient() {
   const remove = async (modelId: number) => {
     await fetch(`/api/account/watchlist/${modelId}`, { method: 'DELETE' });
     load();
+  };
+
+  const setAlerts = async (modelId: number, alertsEnabled: boolean) => {
+    setData(d => d && ({
+      ...d,
+      models: d.models.map(m => (m.modelId === modelId ? { ...m, alertsEnabled } : m)),
+    }));
+    await fetch(`/api/account/watchlist/${modelId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alertsEnabled }),
+    });
   };
 
   if (status === 'unauthenticated') {
@@ -104,8 +116,9 @@ export default function WatchlistClient() {
         <div style={{ marginTop: 28, padding: 24, textAlign: 'center', color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
           <p>You are not tracking anything yet.</p>
           <p style={{ fontSize: '0.9em' }}>
-            Open any model and choose <strong>Track this model</strong>, or start from the{' '}
-            <Link href="/" style={{ color: 'var(--phosphor-green)' }}>leaderboard</Link>.
+            Tap the <span style={{ color: 'var(--amber-warning)' }}>☆</span> beside any model on the{' '}
+            <Link href="/" style={{ color: 'var(--phosphor-green)' }}>leaderboard</Link> — or open a
+            model and choose <strong>Track this model</strong>.
           </p>
         </div>
       ) : (
@@ -116,6 +129,7 @@ export default function WatchlistClient() {
                 <th style={{ padding: '8px 10px 8px 0' }}>Model</th>
                 <th style={{ padding: '8px 10px' }}>Score</th>
                 <th style={{ padding: '8px 10px' }}>Last measured</th>
+                <th style={{ padding: '8px 10px', textAlign: 'center' }}>Email me</th>
                 <th style={{ padding: '8px 0 8px 10px' }}></th>
               </tr>
             </thead>
@@ -137,6 +151,17 @@ export default function WatchlistClient() {
                     <td style={{ padding: '10px', color: stale ? 'var(--amber-warning)' : 'var(--phosphor-dim)' }}>
                       {age === null ? 'never' : age === 0 ? 'today' : `${age}d ago`}
                     </td>
+                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={m.alertsEnabled !== false}
+                        onChange={e => setAlerts(m.modelId, e.target.checked)}
+                        title={m.alertsEnabled !== false
+                          ? `Stop emailing me about ${m.name}`
+                          : `Email me when ${m.name} changes`}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                    </td>
                     <td style={{ padding: '10px 0 10px 10px', textAlign: 'right' }}>
                       <button onClick={() => remove(m.modelId)} className="md-ctrl-btn"
                         style={{ fontSize: '0.85em', padding: '4px 10px' }}>
@@ -148,6 +173,13 @@ export default function WatchlistClient() {
               })}
             </tbody>
           </table>
+
+          <p style={{ fontSize: '0.82em', color: 'var(--phosphor-dim)', marginTop: 14, lineHeight: 1.55 }}>
+            Add more with the <span style={{ color: 'var(--amber-warning)' }}>☆</span> beside any model on the{' '}
+            <Link href="/" style={{ color: 'var(--phosphor-green)' }}>leaderboard</Link>. Unticking
+            &ldquo;email me&rdquo; keeps a model tracked and in your weekly digest, but stops it
+            interrupting you.
+          </p>
 
           {hasStale && (
             <p style={{ fontSize: '0.8em', color: 'var(--phosphor-dim)', marginTop: 14, lineHeight: 1.55 }}>

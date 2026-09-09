@@ -730,3 +730,16 @@
   .md-matrix-grid { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
   .md-chart-section { padding: 20px 24px; }
 }
+
+/* ── Control bar on small screens ───────────────────────────────────────────
+   Two button groups plus their labels are wider than a 390px viewport (measured
+   at 461px), so on a phone the last period and the last scoring mode were simply
+   unreachable. Wrapping is better than a horizontal scroll here: these are only
+   nine short buttons, and a second row costs less than a hidden control. */
+@media (max-width: 560px) {
+  .md-controls { flex-wrap: wrap; row-gap: 8px; }
+  .md-ctrl-group { flex: 1 1 auto; min-width: 0; }
+  .md-ctrl-btn { flex: 1 1 auto; min-width: 0; }
+  /* The vertical rule between groups makes no sense once they are stacked. */
+  .md-ctrl-sep { display: none; }
+}

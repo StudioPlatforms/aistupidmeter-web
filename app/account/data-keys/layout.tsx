@@ -16,10 +16,10 @@ export const metadata: Metadata = {
     title: 'Data API Keys — Free Access to AI Benchmark Data',
     description:
       'Free API key for live model rankings, degradation alerts and drift data from AIStupidLevel.',
-    url: 'https://aistupidlevel.info/router/data-keys',
+    url: 'https://aistupidlevel.info/account/data-keys',
   },
   alternates: {
-    canonical: '/router/data-keys',
+    canonical: '/account/data-keys',
   },
 };
 

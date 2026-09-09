@@ -1,6 +1,7 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
+import { WatchlistProvider } from './WatchlistProvider';
 import { ReactNode } from 'react';
 
 // Imported for its side effect: installs the fetch wrapper that attaches the
@@ -11,5 +12,9 @@ import { ReactNode } from 'react';
 import '@/lib/asl-token';
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider>
+      <WatchlistProvider>{children}</WatchlistProvider>
+    </SessionProvider>
+  );
 }

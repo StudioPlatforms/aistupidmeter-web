@@ -21,8 +21,12 @@ const nextConfig = {
     }
     return config;
   },
-  // Ensure server-only modules stay server-side
-  serverComponentsExternalPackages: ['better-sqlite3', 'bcryptjs'],
+  // Ensure server-only modules stay server-side.
+  // In Next 14 this lives under `experimental`; at the top level it is ignored
+  // and the server warns "Unrecognized key(s)" on every boot.
+  experimental: {
+    serverComponentsExternalPackages: ['better-sqlite3', 'bcryptjs'],
+  },
 
   /**
    * Account surfaces moved out of /router/*.
@@ -40,6 +44,7 @@ const nextConfig = {
     return [
       { source: '/router/subscription', destination: '/account/billing', permanent: true },
       { source: '/router/profile', destination: '/account/settings', permanent: true },
+      { source: '/router/data-keys', destination: '/account/data-keys', permanent: true },
     ];
   },
 

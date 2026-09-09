@@ -54,7 +54,7 @@ export default function RouterSidebar() {
         { label: '★ WATCHLIST', href: '/watchlist' },
         { label: 'DASHBOARD', href: '/router' },
         { label: 'SR API KEY', href: '/router/keys' },
-        { label: 'DATA API KEYS', href: '/router/data-keys' },
+        { label: 'DATA API KEYS', href: '/account/data-keys' },
         { label: 'PROVIDERS', href: '/router/providers' },
         { label: 'PREFERENCES', href: '/router/preferences' },
         { label: 'ANALYTICS', href: '/router/analytics' },

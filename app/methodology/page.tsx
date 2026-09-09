@@ -725,7 +725,7 @@ export default async function MethodologyPage() {
               The data API lives at <code style={{ color: 'var(--phosphor-green)' }}>/api/v1</code> and
               authenticates with a bearer token. Creating a key takes about thirty seconds and costs
               nothing &mdash;{' '}
-              <Link href="/router/data-keys" style={styles.link}>create one here</Link>, or read the{' '}
+              <Link href="/account/data-keys" style={styles.link}>create one here</Link>, or read the{' '}
               <Link href="/api-docs" style={styles.link}>full API reference</Link>.
             </div>
           </div>

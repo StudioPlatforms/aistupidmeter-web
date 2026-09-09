@@ -112,7 +112,7 @@ export default function ApiDocsPage() {
           </p>
 
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <Link href="/router/data-keys" style={s.cta}>GET A FREE API KEY →</Link>
+            <Link href="/account/data-keys" style={s.cta}>GET A FREE API KEY →</Link>
           </div>
 
           {/* Why a key */}
@@ -326,7 +326,7 @@ export default function ApiDocsPage() {
           <div style={s.divider} />
 
           <div style={{ textAlign: 'center' }}>
-            <Link href="/router/data-keys" style={s.cta}>CREATE YOUR FREE KEY →</Link>
+            <Link href="/account/data-keys" style={s.cta}>CREATE YOUR FREE KEY →</Link>
             <p style={{ ...s.text, marginTop: '12px' }}>
               See also: <Link href="/methodology" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>how the scores are produced</Link>
             </p>

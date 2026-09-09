@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import WatchStar from '../WatchStar';
 import ProviderLogo from '../ProviderLogo';
 import { slugifyModelName } from '../../lib/model-slug';
 import { getModelPricing } from '../../lib/model-pricing';
@@ -199,6 +200,7 @@ export default function V4Leaderboard({
 
             {/* Model Name + Provider */}
             <div className="v4-lb-model">
+              <WatchStar modelId={model.id} modelName={model.displayName || model.name} />
               <span className="v4-lb-logo">
                 <ProviderLogo provider={normalizeProvider(model.provider)} size={18} />
               </span>

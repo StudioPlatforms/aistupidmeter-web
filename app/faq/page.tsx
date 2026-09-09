@@ -84,7 +84,7 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "Do you have an API?",
-    answer: "Yes. The Public Data API at /api/v1 gives you current rankings, historical time-series, confidence intervals, degradation alerts and drift signatures. Endpoints include GET /api/v1/models (current scores), GET /api/v1/models/:id/history?period=7d (historical trends), and GET /api/v1/analytics/degradations (models currently degrading). It is free \u2014 create a key at /router/data-keys and send it as an Authorization header. Keys let us keep the API fast for everyone and stop the data being republished as someone else's leaderboard. Full reference at /api-docs."
+    answer: "Yes. The Public Data API at /api/v1 gives you current rankings, historical time-series, confidence intervals, degradation alerts and drift signatures. Endpoints include GET /api/v1/models (current scores), GET /api/v1/models/:id/history?period=7d (historical trends), and GET /api/v1/analytics/degradations (models currently degrading). It is free \u2014 create a key at /account/data-keys and send it as an Authorization header. Keys let us keep the API fast for everyone and stop the data being republished as someone else's leaderboard. Full reference at /api-docs."
   },
   {
     category: "Technical",

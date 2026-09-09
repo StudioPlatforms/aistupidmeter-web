@@ -127,7 +127,7 @@ export default function RouterKeysPage() {
                 SR keys <strong>run inference</strong> and can spend money. If you just want to{' '}
                 <strong>read benchmark data</strong> — rankings, drift, degradation alerts — that is a
                 separate, free, read-only{' '}
-                <a href="/router/data-keys" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Data API key</a>{' '}
+                <a href="/account/data-keys" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Data API key</a>{' '}
                 (<code style={{ fontFamily: 'var(--font-mono)' }}>asl_live_…</code>). Deliberately
                 separate, so a leaked read key can never touch your provider accounts.
               </div>
