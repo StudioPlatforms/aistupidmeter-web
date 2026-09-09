@@ -16,6 +16,14 @@ import Link from 'next/link';
 import { PLANS, SELLABLE_PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
 
 interface Meter { key: string; label: string; used: number; limit: number; period: string }
+interface Overage {
+  behavior: 'stop' | 'continue';
+  monthlyCapUsd: number;
+  usedThisMonth: number;
+  includedThisMonth: number;
+  priceLabel: string;
+}
+
 interface Usage {
   plan: Plan; label: string; priceMonthly: number | null;
   meters: Meter[];
@@ -44,14 +52,20 @@ function Bar({ used, limit }: { used: number; limit: number }) {
 export default function BillingClient({ buyable = [] }: { buyable?: string[] }) {
   const { data: session, status } = useSession();
   const [usage, setUsage] = useState<Usage | null>(null);
+  const [ov, setOv] = useState<Overage | null>(null);
+  const [capDraft, setCapDraft] = useState<string>('');
+  const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (status !== 'authenticated') { if (status === 'unauthenticated') setLoading(false); return; }
-    fetch('/api/account/usage', { cache: 'no-store' })
-      .then(r => r.json())
-      .then(d => { if (d?.success) setUsage(d.data); })
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetch('/api/account/usage', { cache: 'no-store' }).then(r => r.json()),
+      fetch('/api/account/overage', { cache: 'no-store' }).then(r => r.json()),
+    ]).then(([u, o]) => {
+      if (u?.success) setUsage(u.data);
+      if (o?.success) { setOv(o.data); setCapDraft(String(o.data.monthlyCapUsd || '')); }
+    }).finally(() => setLoading(false));
   }, [status]);
 
   if (status === 'unauthenticated') {
@@ -128,6 +142,87 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
           <span>Seats: {isUnlimited(usage?.seats ?? 1) ? '∞' : usage?.seats}</span>
           <span>Projects: {usage?.projects === 0 ? '—' : isUnlimited(usage?.projects ?? 0) ? '∞' : usage?.projects}</span>
         </div>
+      </section>
+
+      {/* What happens at the limit */}
+      <section style={card}>
+        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>When the allowance runs out</h2>
+        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
+          Your choice, made in advance. Stopping means requests are refused once the included
+          allowance is used — nothing is ever billed that you did not opt into. Continuing keeps
+          your application running and bills the excess at {ov?.priceLabel ?? '$1 per 10,000 requests'},
+          never past a cap you set.
+        </p>
+
+        {(['stop', 'continue'] as const).map(b => (
+          <label key={b} style={{
+            display: 'flex', gap: 11, alignItems: 'flex-start', padding: '11px 12px', marginBottom: 8,
+            border: `1px solid ${ov?.behavior === b ? 'var(--phosphor-green)' : 'var(--border-subtle, #2a2a2a)'}`,
+            borderRadius: 5, cursor: 'pointer',
+          }}>
+            <input
+              type="radio" name="overage" checked={ov?.behavior === b} style={{ marginTop: 3 }}
+              onChange={async () => {
+                const cap = b === 'continue' ? Number(capDraft || 0) : 0;
+                const r = await fetch('/api/account/overage', {
+                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ behavior: b, monthlyCapUsd: cap }),
+                });
+                const j = await r.json();
+                if (j?.success) { setOv(o => (o ? { ...o, behavior: b, monthlyCapUsd: cap } : o)); setMsg('Saved'); }
+                else setMsg(j?.message ?? 'Could not save');
+                setTimeout(() => setMsg(null), 2600);
+              }}
+            />
+            <span>
+              <span style={{ fontSize: '0.9em', fontWeight: 600 }}>
+                {b === 'stop' ? 'Stop at the limit' : 'Keep going and bill the overage'}
+              </span>
+              <span style={{ display: 'block', fontSize: '0.8em', color: 'var(--phosphor-dim)', marginTop: 3, lineHeight: 1.5 }}>
+                {b === 'stop'
+                  ? 'Requests are refused with a clear reason until the month resets. No surprise bill.'
+                  : 'Your application keeps working. Requires a monthly cap — we will not run an uncapped meter against your account.'}
+              </span>
+            </span>
+          </label>
+        ))}
+
+        {ov?.behavior === 'continue' && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+            <label style={{ fontSize: '0.85em' }}>Monthly cap</label>
+            <span style={{ fontSize: '0.9em' }}>$</span>
+            <input
+              type="number" min={1} max={10000} step={1} value={capDraft}
+              onChange={e => setCapDraft(e.target.value)}
+              style={{
+                width: 96, padding: '7px 9px', font: 'inherit', fontSize: '0.88em',
+                background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border-subtle, #2a2a2a)',
+                borderRadius: 3, color: 'inherit',
+              }}
+            />
+            <button className="md-ctrl-btn" style={{ fontSize: '0.82em' }}
+              onClick={async () => {
+                const r = await fetch('/api/account/overage', {
+                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ behavior: 'continue', monthlyCapUsd: Number(capDraft) }),
+                });
+                const j = await r.json();
+                setMsg(j?.success ? 'Cap saved' : (j?.message ?? 'Could not save'));
+                if (j?.success) setOv(o => (o ? { ...o, monthlyCapUsd: Number(capDraft) } : o));
+                setTimeout(() => setMsg(null), 2600);
+              }}>Save cap</button>
+            {msg && <span style={{ fontSize: '0.82em', color: 'var(--phosphor-green)' }}>{msg}</span>}
+          </div>
+        )}
+        {ov?.behavior === 'stop' && msg && (
+          <div style={{ fontSize: '0.82em', color: 'var(--phosphor-green)' }}>{msg}</div>
+        )}
+
+        <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 14, marginBottom: 0, lineHeight: 1.55 }}>
+          Overage billing becomes active once metered billing is switched on. Until then the cap is
+          still enforced — routing stops at it — so this setting can never cost you anything
+          unexpectedly.
+        </p>
       </section>
 
       {/* Change plan */}
