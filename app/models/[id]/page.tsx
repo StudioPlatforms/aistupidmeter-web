@@ -105,7 +105,7 @@ export async function generateMetadata(
   const ogTitle = `${name} Benchmark & Live Performance Score (${YEAR}) — ${vendor}`;
   const description =
     `Independent, real-time benchmark results for ${name} by ${vendor}. See live coding, ` +
-    `reasoning, tool-calling and speed scores, a 7-axis quality breakdown, price per 1M tokens, ` +
+    `reasoning, tool-calling and speed scores, a 9-axis quality breakdown, price per 1M tokens, ` +
     `and historical performance drift — updated hourly by AI Stupid Level.`;
 
   return {
@@ -297,8 +297,8 @@ function ModelSeoContent({
 
       <h2 style={s.h2}>How we test {name}</h2>
       <p style={s.p}>
-        Every model runs the same three benchmark suites. A 7-axis code suite scores correctness, adherence to spec,
-        code quality, efficiency, stability, refusal behaviour and error recovery. A deep reasoning suite measures
+        Every model runs the same three benchmark suites. A 9-axis code suite scores correctness, task complexity,
+        code quality, stability, efficiency, edge cases, debugging, output format and safety. A deep reasoning suite measures
         multi-step problem solving, plan coherence, long-context retention and hallucination rate. A tooling suite
         measures tool selection, argument accuracy and recovery from failed calls. The headline score weights the code
         suite at 50% and the reasoning and tooling suites at 25% each. Full details are on our{' '}

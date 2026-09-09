@@ -13,7 +13,6 @@ import DriftTour, { DRIFT_TOUR_STORAGE_KEY } from '../components/DriftTour';
 /** Set once the visitor has opened the drift view; stops the tab pulsing forever. */
 const DRIFT_SEEN_KEY = 'stupidmeter-drift-visited';
 import FeatureCard from '../components/FeatureCard';
-import FAQItem from '../components/FAQItem';
 import StatCounter from '../components/StatCounter';
 import ThemeButton from '../components/ThemeButton';
 import ShareButton from '../components/ShareButton';
@@ -1235,11 +1234,11 @@ export default function Dashboard() {
     
     // Did you know? Facts
     "Did you know? AI models can lose 30% capability overnight!",
-    "Did you know? We run 147 coding challenges every 4 hours!",
+    "Did you know? We re-run every benchmark suite around the clock!",
     "Did you know? 'AI lobotomy' = companies reducing model intelligence",
-    "Did you know? We've completed 171+ tool calling benchmark sessions!",
-    "Did you know? Our system detects degradation using CUSUM algorithms!",
-    "Did you know? We track 7 performance axes for each model!",
+    "Did you know? We've completed over 61,000 tool-calling benchmark sessions!",
+    "Did you know? Our system detects degradation using Page-Hinkley change detection!",
+    "Did you know? We track 9 performance axes for each model!",
     "Did you know? We monitor 20+ AI models across 4 major providers!",
     "Did you know? Models are tested with 5 runs for statistical accuracy!",
     "Did you know? We use 95% confidence intervals for reliability!",
@@ -2980,7 +2979,7 @@ export default function Dashboard() {
               <span className="blinking-cursor"></span>
             </div>
             <div className="terminal-text--dim" style={{ fontSize: '1.1em', textAlign: 'center', marginBottom: '24px' }}>
-              The World's First AI Intelligence Degradation Detection System
+              Continuous, independent measurement of AI model degradation
             </div>
             
             {/* Animated Statistics Grid */}
@@ -3061,12 +3060,12 @@ export default function Dashboard() {
           <FeatureCard
             icon="🔧"
             title="TOOL CALLING EVALUATION"
-            description="Revolutionary breakthrough in AI assessment - models execute real system commands, file operations, and multi-step workflows in secure sandboxes."
+            description="Models execute real system commands, file operations and multi-step workflows in secure sandboxes — scored on what actually ran."
             details={[
               "Real System Commands",
               "Multi-Step Task Chains", 
               "Sandbox Execution",
-              "171+ Successful Sessions"
+              "61,000+ Recorded Sessions"
             ]}
             highlight={true}
             delay={0}
@@ -3088,9 +3087,9 @@ export default function Dashboard() {
           <FeatureCard
             icon="🔬"
             title="DUAL-BENCHMARK SYSTEM"
-            description="Two distinct evaluation suites: 7-axis speed tests (hourly) and deep reasoning challenges (daily) for comprehensive assessment."
+            description="Two distinct evaluation suites: 9-axis code tests (every 4 hours) and deep reasoning challenges (daily) for comprehensive assessment."
             details={[
-              "147 Coding Challenges",
+              "10 Python Tasks, 35 Test Cases",
               "Complex Multi-Step Tasks",
               "70/30 Weight Distribution",
               "Real-Time Updates"
@@ -3101,9 +3100,9 @@ export default function Dashboard() {
           <FeatureCard
             icon="🧮"
             title="ADVANCED MATHEMATICS"
-            description="Sophisticated statistical analysis using CUSUM algorithms, Mann-Whitney U tests, and change point detection."
+            description="Statistical analysis using Page-Hinkley change detection, Mann-Whitney U tests and confidence intervals."
             details={[
-              "CUSUM Algorithm",
+              "Page-Hinkley Detection",
               "Statistical Significance",
               "Change Point Detection",
               "Multi-dimensional Z-score"
@@ -3186,14 +3185,14 @@ export default function Dashboard() {
               
               <div>
                 <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '12px' }}>
-                  🌐 OPEN SOURCE COMMITMENT
+                  🌐 OPEN WHERE IT HELPS YOU VERIFY
                 </div>
                 <div className="terminal-text--dim">
-                  • Full benchmark source code on GitHub<br/>
-                  • Complete methodology transparency<br/>
-                  • Academic paper submitted for peer review<br/>
-                  • Regular community audits<br/>
-                  • Historical data export for research
+                  • Web application is open source<br/>
+                  • Complete methodology published<br/>
+                  • Benchmark task bank held back so it cannot be trained on<br/>
+                  • Methodology paper submitted and under peer review<br/>
+                  • &quot;Test Your Keys&quot; reproduces our scoring on your own account
                 </div>
               </div>
               
@@ -3458,198 +3457,27 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* FAQ Categories */}
+        {/*
+          The FAQ used to be duplicated here in full. That copy predated the
+          September 2026 claims audit and still said "147 coding challenges",
+          "7 axes" and "CUSUM" — all of which were corrected on /faq and never
+          here, so the two pages contradicted each other. One canonical FAQ.
+        */}
         <div style={{ marginBottom: '32px' }}>
-          {/* Methodology Questions */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ 
-              fontSize: '1.3em', 
-              marginBottom: '16px', 
-              textAlign: 'center',
-              color: 'var(--phosphor-green)',
-              textShadow: '0 0 10px var(--phosphor-green)'
-            }}>
-              🔬 METHODOLOGY & DETECTION
+          <div className="crt-monitor">
+            <div className="terminal-text" style={{ textAlign: 'center' }}>
+              <div className="terminal-text--green" style={{ fontSize: '1.3em', marginBottom: '12px' }}>
+                📖 FULL FAQ
+              </div>
+              <div className="terminal-text--dim" style={{ fontSize: '1.0em', marginBottom: '20px', lineHeight: '1.6' }}>
+                Scoring, drift detection, task coverage, funding, limitations and what we
+                deliberately do not claim — all answered in one place, kept current with the
+                methodology.
+              </div>
+              <a href="/faq" className="vintage-btn" style={{ padding: '12px 24px', textDecoration: 'none', display: 'inline-block' }}>
+                READ THE FAQ →
+              </a>
             </div>
-            
-            <FAQItem
-              question="How does Stupid Meter detect AI model degradation?"
-              answer="Our system continuously monitors AI model performance through **automated benchmarking every 4 hours**. We execute 147 unique coding challenges against each model, measuring performance across 7 key axes. Statistical analysis using **z-score standardization** against 28-day rolling baselines detects significant performance drops. Our **CUSUM algorithm** identifies persistent degradation patterns that indicate when AI companies reduce model capability to save computational costs."
-              category="methodology"
-              isPopular={true}
-              delay={0}
-            />
-            
-            <FAQItem
-              question="What exactly is the 'StupidScore' and how is it calculated?"
-              answer="The StupidScore is our proprietary **weighted composite metric** calculated as: `StupidScore = Σ(weight_i × z_score_i)` where `z_score_i = (metric_i - μ_i) / σ_i`. Each performance axis has a specific weight: Correctness (35%), Specification (15%), Code Quality (15%), Efficiency (5%), Stability (15%), Refusal Rate (10%), Recovery (5%). The z-score standardization compares current performance against historical baselines. **Negative values indicate degradation** from historical performance, while positive values show improvement."
-              category="methodology"
-              isTechnical={true}
-              delay={100}
-            />
-            
-            <FAQItem
-              question="How exactly do the 7 performance axes work?"
-              answer="**CORRECTNESS (35%)**: Measures functional accuracy through 200+ automated unit tests per challenge, including edge cases, error handling, and runtime stability. **SPECIFICATION (15%)**: Validates adherence to function signatures, JSON schema compliance, documentation format, and code structure requirements. **CODE QUALITY (15%)**: Uses static analysis (ESLint, Pylint), measures cyclomatic complexity, detects code duplication, and validates naming conventions. **EFFICIENCY (5%)**: Tracks API latency (P50/P95/P99), token usage optimization, and algorithmic complexity. **STABILITY (15%)**: Tests consistency across multiple runs with different seeds and temperature settings. **REFUSAL RATE (10%)**: Detects inappropriate task rejections for legitimate coding requests. **RECOVERY (5%)**: Measures self-correction ability when provided with error feedback."
-              category="methodology"
-              isTechnical={true}
-              delay={200}
-            />
-            
-            <FAQItem
-              question="What statistical methods ensure detection accuracy?"
-              answer="We employ multiple statistical techniques for robust detection: **Mann-Whitney U Tests** for non-parametric significance testing, **PELT Algorithm** for change point detection to identify performance breakpoints, **Linear Regression with Confidence Intervals** for trend analysis, and **Seasonal Decomposition** to isolate genuine performance changes from cyclical patterns. Our **rolling 28-day baselines** use IQR outlier removal to maintain statistical validity, and we require **statistical significance (p < 0.05)** before flagging degradation."
-              category="methodology"
-              isTechnical={true}
-              delay={300}
-            />
-          </div>
-
-          {/* Technical Questions */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ 
-              fontSize: '1.3em', 
-              marginBottom: '16px', 
-              textAlign: 'center',
-              color: 'var(--amber-warning)',
-              textShadow: '0 0 10px var(--amber-warning)'
-            }}>
-              ⚙️ TECHNICAL IMPLEMENTATION
-            </div>
-            
-            <FAQItem
-              question="How comprehensive are your anti-gaming measures?"
-              answer="Our anti-gaming architecture includes: **Test Case Obfuscation** - 73% of test cases are hidden, with dynamic generation using parameterized templates and regular rotation from 2000+ unique challenges. **Execution Control** - Standardized parameters (temperature 0.3, top_p 0.95), deterministic seeds, multi-trial execution with median scoring. **Prompt Security** - SHA-256 hash verification, version control tracking, A/B testing framework, and regular human expert review. **Adversarial Testing** - Prompt injection resistance testing and overfitting prevention through adversarial examples."
-              category="technical"
-              isTechnical={true}
-              delay={0}
-            />
-            
-            <FAQItem
-              question="What is your infrastructure reliability and monitoring coverage?"
-              answer="Our system operates with **99.7% uptime SLA** across distributed infrastructure in 3 geographic regions. We monitor 12+ AI models continuously with automatic failover between redundant API keys. Real-time anomaly detection using isolation forests identifies system issues before they affect measurements. Our PostgreSQL database includes point-in-time recovery, and we maintain 30-day data retention for trend analysis. Performance metrics are validated through cross-checking multiple API endpoints and statistical correlation analysis."
-              category="technical"
-              isTechnical={true}
-              delay={100}
-            />
-            
-            <FAQItem
-              question="What is the new Tool Calling evaluation system and how does it work?"
-              answer="Our **world-first Tool Calling evaluation system** tests AI models' ability to use real system tools and execute multi-step workflows. Models must successfully use tools like execute-command, read-file, write-file, list-files, and search-files to complete complex tasks. We run these evaluations in secure sandbox environments with comprehensive error handling and real-time monitoring. This breakthrough allows us to measure practical AI capabilities beyond simple text generation, providing insights into how models perform in real-world scenarios requiring tool coordination and systematic problem-solving."
-              category="technical"
-              isPopular={true}
-              isTechnical={true}
-              delay={200}
-            />
-            
-            <FAQItem
-              question="How does the enhanced Intelligence Center improve model recommendations?"
-              answer="Our redesigned **Intelligence Center features 29 comprehensive warning categories** across 5 major detection types: performance trends, cost-efficiency alerts, stability monitoring, regional variations, and service disruptions. The system provides real-time recommendations for 'Best for Code,' 'Most Reliable,' and 'Fastest Response' models based on current performance data. Our **proactive alert system** warns users about cost-performance issues and capability reductions before they impact your applications. The Intelligence Center also includes Provider Trust Scores that track reliability metrics across all AI providers, helping you make informed decisions about which services to depend on."
-              category="technical"
-              isPopular={true}
-              delay={300}
-            />
-          </div>
-
-          {/* Privacy & Ethics Questions */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ 
-              fontSize: '1.3em', 
-              marginBottom: '16px', 
-              textAlign: 'center',
-              color: 'var(--red-alert)',
-              textShadow: '0 0 10px var(--red-alert)'
-            }}>
-              🛡️ PRIVACY & ETHICS
-            </div>
-            
-            <FAQItem
-              question="How do you ensure data privacy and ethical API usage?"
-              answer="We maintain strict data privacy: only benchmark outputs and aggregated metrics are stored - never model weights, training data, or proprietary information. All API usage complies with provider Terms of Service through rate limiting, appropriate request patterns, and legitimate use cases. We undergo regular security audits and maintain SOC 2 compliance for data handling."
-              category="privacy"
-              isPopular={true}
-              delay={0}
-            />
-            
-            <FAQItem
-              question="What does 'unavailable' status mean and why don't you show estimated scores?"
-              answer="Models show 'unavailable' when we lack API access (missing keys), encounter consistent API failures, or detect rate limiting. We maintain **strict data integrity** - if we can't directly test a model, we never display estimated or interpolated scores. This ensures our rankings reflect only verified, real-time performance data. We believe showing fake scores would undermine trust in our methodology and mislead users making important AI model decisions."
-              category="privacy"
-              delay={100}
-            />
-          </div>
-
-          {/* General Questions */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ 
-              fontSize: '1.3em', 
-              marginBottom: '16px', 
-              textAlign: 'center',
-              color: 'var(--terminal-text)',
-              textShadow: '0 0 10px #1a73e8'
-            }}>
-              ❓ GENERAL QUESTIONS
-            </div>
-            
-            <FAQItem
-              question="How accurate and representative are your performance measurements?"
-              answer="Our measurements use **real production API calls** with actual latency, token usage, and response generation. We execute 5 trials per test and use median values to eliminate outliers. All scores derive from objective, measurable criteria: automated unit test pass rates, schema validation, linting scores, and performance benchmarks. We calibrate against human expert evaluations quarterly and maintain 99.7% measurement consistency. Our benchmarks represent real-world usage patterns from algorithm implementation to debugging scenarios."
-              category="general"
-              isPopular={true}
-              delay={0}
-            />
-            
-            <FAQItem
-              question="Why focus on coding tasks rather than general language capabilities?"
-              answer="Coding provides **objective, binary success criteria** - code either works or doesn't. Unlike subjective tasks (creative writing, opinion generation), programming tasks have verifiable outputs through automated testing. Code represents a significant portion of commercial AI usage and requires complex reasoning combining logic, syntax, problem-solving, and constraint satisfaction. Programming challenges also resist gaming since there are countless ways to implement solutions, making it impossible for providers to memorize all possible correct answers."
-              category="general"
-              delay={100}
-            />
-            
-            <FAQItem
-              question="How do you handle model updates and new releases?"
-              answer="We automatically detect new model releases through API endpoint monitoring and provider announcements. New models undergo a **7-day calibration period** to establish statistical baselines before public scoring. Major model updates trigger re-baselining to ensure fair comparison. We maintain separate tracking for model versions (e.g., GPT-4 vs GPT-4-turbo) and clearly indicate when providers update models. Our version detection system flags undisclosed model changes by identifying statistical signatures in performance patterns."
-              category="general"
-              delay={200}
-            />
-            
-            <FAQItem
-              question="Can your methodology detect gradual performance degradation?"
-              answer="Yes, our **CUSUM algorithm** specifically detects gradual drift that might escape simple threshold-based monitoring. We track cumulative deviations from baseline performance and flag persistent downward trends even when individual measurements remain within normal ranges. Our seasonal decomposition isolates genuine performance changes from expected variations (time of day, API load patterns). Change point detection identifies the specific timeframe when degradation began, enabling precise tracking of model capability reductions."
-              category="general"
-              delay={300}
-            />
-            
-            <FAQItem
-              question="What validation do you have for your scoring methodology?"
-              answer="Our methodology undergoes regular validation through: **Human expert evaluation** where experienced developers assess model outputs and correlate with our scores, **Academic peer review** with submission to AI evaluation conferences, **Cross-validation** against established benchmarks like HumanEval and MBPP, and **Third-party audits** of our statistical methods and implementation. We maintain correlation coefficients above 0.85 with human expert rankings and publish detailed methodology papers for reproducibility."
-              category="general"
-              delay={400}
-            />
-            
-            <FAQItem
-              question="How do you differentiate between degradation and natural performance variations?"
-              answer="We distinguish degradation from normal variation through multiple statistical filters: **Significance Testing** requiring p < 0.05 confidence levels, **Effect Size Analysis** ensuring detected changes are practically meaningful (Cohen's d > 0.5), **Duration Thresholds** requiring sustained degradation over 48+ hours, and **Magnitude Requirements** filtering out minor fluctuations below ±5% from baseline. Our algorithms account for expected variations from API load, time zones, and infrastructure changes while flagging genuine capability reductions."
-              category="general"
-              isTechnical={true}
-              delay={500}
-            />
-            
-            <FAQItem
-              question="What makes your Tool Calling benchmarks different from other AI evaluations?"
-              answer="Unlike traditional text-based evaluations, our Tool Calling system requires models to **execute actual system commands and coordinate multiple tools** to complete real-world tasks. Models must demonstrate practical capabilities like file manipulation, data processing, and multi-step problem solving in secure sandbox environments. We've completed **171+ successful tool calling sessions** that clearly differentiate model capabilities in ways that simple Q&A tests cannot. This evaluation method reveals which models can actually perform useful work versus those that only excel at generating plausible-sounding text responses."
-              category="general"
-              isPopular={true}
-              delay={600}
-            />
-            
-            <FAQItem
-              question="What is the AI Smart Router and how does it use your benchmark data?"
-              answer="Our **AI Smart Router** is an intelligent API gateway that automatically selects the best AI model for each request based on our real-time benchmark data. Instead of manually choosing between GPT, Claude, Gemini, DeepSeek, Kimi or GLM, the router analyzes your request and picks the optimal model using live performance rankings updated every 4 hours. You can choose from **6 routing strategies**: Best Overall (recommended), Best for Coding, Best for Reasoning, Best for Creative, Most Cost-Effective, or Fastest Response. The router uses our 9-axis scoring system (correctness, complexity, code quality, stability, efficiency, edge cases, debugging, format, safety) to make intelligent decisions, helping you **save 50-70% on AI costs** while maintaining quality. It includes automatic failover, custom constraints (max cost, latency limits), and detailed analytics. Available as part of our Pro subscription at $4.99/month with a 7-day free trial."
-              category="general"
-              isPopular={true}
-              delay={700}
-            />
           </div>
         </div>
 
@@ -4604,7 +4432,7 @@ export default function Dashboard() {
                 » WHAT IS STUPID METER?
               </div>
               <div className="terminal-text--dim">
-                Stupid Meter is the world's first AI intelligence degradation detection system. 
+                Stupid Meter continuously measures whether AI models degrade behind a stable API name. 
                 We monitor <span className="terminal-text--green">OpenAI GPT models</span> (including the GPT-5.x line and Codex), 
                 <span className="terminal-text--green"> Anthropic Claude</span> (Opus, Sonnet and Fable), 
                 <span className="terminal-text--green"> Google Gemini</span>, 
@@ -4644,7 +4472,7 @@ export default function Dashboard() {
               </div>
               <div className="terminal-text--dim">
                 Use our <span className="terminal-text--green">"Test Your Keys"</span> feature to run the same benchmarks 
-                against your own OpenAI, Anthropic, xAI, or Google API keys for complete transparency. 
+                against your own OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM API keys for complete transparency. 
                 Verify our results independently and see real-time performance metrics.
               </div>
             </div>
@@ -4717,8 +4545,8 @@ export default function Dashboard() {
           {leaderboardSortBy === 'reasoning' ? 
             'Deep reasoning benchmarks run daily • Scores based on complex multi-step challenges' :
             leaderboardSortBy === 'speed' ?
-            '7-axis benchmarks refresh every 4 hours • Scores based on rapid coding tasks' :
-            'Combined benchmarks refresh every 4 hours • Scores based on 7-axis + deep reasoning metrics'
+            '9-axis benchmarks refresh every 4 hours • Scores based on rapid coding tasks' :
+            'Combined benchmarks refresh every 4 hours • Scores based on 9-axis + deep reasoning metrics'
           }{visitorCount && (
             <> • <span className="terminal-text--green">VISITORS {(() => {
               if (visitorCount >= 1000000) {
@@ -4795,21 +4623,6 @@ export default function Dashboard() {
             onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
           >
             Web App
-          </a>
-          {' '} • {' '}
-          <a 
-            href="https://github.com/StudioPlatforms/aistupidmeter-api" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            style={{ 
-              color: 'var(--phosphor-green)', 
-              textDecoration: 'none',
-              borderBottom: '1px dotted var(--phosphor-green)'
-            }}
-            onMouseOver={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
-            onMouseOut={(e) => (e.target as HTMLElement).style.color = 'var(--metal-silver)'}
-          >
-            Server
           </a>
           {' '} • Star us on GitHub!
         </div>

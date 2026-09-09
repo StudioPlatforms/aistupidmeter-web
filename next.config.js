@@ -24,6 +24,25 @@ const nextConfig = {
   // Ensure server-only modules stay server-side
   serverComponentsExternalPackages: ['better-sqlite3', 'bcryptjs'],
 
+  /**
+   * Account surfaces moved out of /router/*.
+   *
+   * /router stays the routing product — keys, providers, routing preferences,
+   * analytics, monitoring. What moved is the part about the person rather than
+   * the proxy: plan, settings, team. A Pro subscriber who never routes a request
+   * should not open a page called "router" to change their email preferences.
+   *
+   * NOTE: these must live in THIS file. Next resolves next.config.js BEFORE
+   * next.config.mjs, so a config placed in the .mjs is silently ignored — which
+   * is exactly what happened on the first attempt.
+   */
+  async redirects() {
+    return [
+      { source: '/router/subscription', destination: '/account/billing', permanent: true },
+      { source: '/router/profile', destination: '/account/settings', permanent: true },
+    ];
+  },
+
   compiler: {
     // Strip console output from production builds.
     //

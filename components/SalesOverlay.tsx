@@ -1,5 +1,7 @@
 'use client';
 
+import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
+
 export default function SalesOverlay() {
   const handleStartTrial = () => {
     window.location.href = '/api/stripe/checkout';
@@ -10,11 +12,10 @@ export default function SalesOverlay() {
       <div className="rv4-upgrade-container">
       {/* Hero */}
       <div className="rv4-upgrade-hero">
-        <div className="rv4-upgrade-hero-title">STOP OVERPAYING FOR AI<span className="blinking-cursor"></span></div>
-        <div className="rv4-upgrade-hero-sub">Save 50-70% on AI costs • Get better results with intelligence-based routing</div>
-        <div className="rv4-upgrade-price-original">$49.99/month</div>
+        <div className="rv4-upgrade-hero-title">ROUTE ON MEASURED PERFORMANCE<span className="blinking-cursor"></span></div>
+        <div className="rv4-upgrade-hero-sub">Pick models from live benchmark data instead of guesswork — in our own benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less per request</div>
         <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
-        <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL — NO CREDIT CARD</div>
+        <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
           Start Free Trial →
         </button>
@@ -24,25 +25,25 @@ export default function SalesOverlay() {
       {/* Intelligence section */}
       <div className="rv4-panel" style={{ marginBottom: '16px' }}>
         <div className="rv4-panel-header">
-          <span className="rv4-panel-title">WORLD'S FIRST INTELLIGENCE-BASED AI ROUTER</span>
-          <span className="rv4-badge blue">UNIQUE</span>
+          <span className="rv4-panel-title">BENCHMARK-DRIVEN MODEL SELECTION</span>
+          <span className="rv4-badge blue">LIVE DATA</span>
         </div>
         <div className="rv4-panel-body">
           <div style={{ textAlign: 'center', marginBottom: '16px' }}>
             <p style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.6', maxWidth: '600px', margin: '0 auto' }}>
-              Unlike other routers that guess, we use live data from{' '}
-              <strong style={{ color: 'var(--phosphor-green)' }}>171+ benchmarks</strong> across{' '}
-              <strong style={{ color: 'var(--phosphor-green)' }}>16+ models</strong> to route your requests
-              to the best-performing, most cost-effective model in real-time.
+              Routing decisions come from our own continuous measurements —{' '}
+              <strong style={{ color: 'var(--phosphor-green)' }}>24 models</strong> re-benchmarked{' '}
+              <strong style={{ color: 'var(--phosphor-green)' }}>every 4 hours</strong> — rather than a
+              static list. You keep your provider keys; we choose which model each request goes to.
             </p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', marginBottom: '14px' }}>
             {[
-              { step: '01', title: 'LIVE INTELLIGENCE', desc: 'AI Stupid Meter runs 171+ benchmarks 24/7 tracking real performance' },
+              { step: '01', title: 'LIVE MEASUREMENT', desc: 'Every tracked model is re-benchmarked around the clock, not scored once' },
               { step: '02', title: 'SMART ANALYSIS', desc: 'Router analyzes your request and matches with current model rankings' },
               { step: '03', title: 'OPTIMAL ROUTING', desc: 'Selects the best model for quality, speed, and cost automatically' },
-              { step: '04', title: 'SAVE 50-70%', desc: 'Get better results while paying less — no manual switching needed' },
+              { step: '04', title: 'SEE THE RESULT', desc: 'Per-request logs of model, cost and latency, so you can check the trade-off yourself' },
             ].map((s, i) => (
               <div key={i} style={{
                 padding: '12px', background: 'rgba(0,0,0,0.04)',
@@ -56,10 +57,10 @@ export default function SalesOverlay() {
           </div>
 
           <div style={{ padding: '10px', background: 'rgba(255,176,0,0.06)', border: '1px solid rgba(255,176,0,0.2)', borderRadius: '3px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '3px', letterSpacing: '0.5px' }}>NO ONE ELSE DOES THIS</div>
+            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '3px', letterSpacing: '0.5px' }}>WHY THIS DIFFERS</div>
             <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
-              Other routers use static rules or outdated data. We use <strong style={{ color: 'var(--phosphor-green)' }}>live benchmark intelligence</strong>.
-              When GPT-5 degrades, we know instantly. When Claude improves, you benefit immediately.
+              Routing follows our own <strong style={{ color: 'var(--phosphor-green)' }}>live measurements</strong> rather than a
+              static rule or a launch-day score. When a model&apos;s measured quality moves, the ranking it is routed on moves with it.
             </div>
           </div>
         </div>
@@ -91,10 +92,10 @@ export default function SalesOverlay() {
         <div className="rv4-panel-body">
           <div className="rv4-upgrade-benefits">
             {[
-              { title: 'CUT COSTS 50-70%', desc: 'Smart routing picks cheaper models when quality matches' },
+              { title: 'COST-AWARE', desc: `Prefers a cheaper model when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements` },
               { title: 'BEST SELECTION', desc: 'Real-time benchmarks prevent degraded models from being used' },
               { title: 'ZERO DOWNTIME', desc: 'Auto-failover with intelligent fallback to alternative models' },
-              { title: 'ONE API KEY', desc: 'Access GPT, Claude, Grok, Gemini & more from a single endpoint' },
+              { title: 'ONE API KEY', desc: 'Access GPT, Claude, Gemini, DeepSeek, Kimi and GLM from a single endpoint' },
             ].map((b, i) => (
               <div key={i} className="rv4-upgrade-benefit">
                 <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>→</div>
@@ -109,16 +110,19 @@ export default function SalesOverlay() {
       {/* Stats */}
       <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '16px' }}>
         {[
-          { label: 'Benchmarks', value: '171+', accent: 'accent-green' },
-          { label: 'AI Models', value: '16+', accent: 'accent-green' },
-          { label: 'Monitoring', value: '24/7', accent: 'accent-blue' },
-          { label: 'Cost Savings', value: '50-70%', accent: 'accent-amber' },
+          { label: 'Models tracked', value: '24', accent: 'accent-green' },
+          { label: 'Scores recorded', value: '175K+', accent: 'accent-green' },
+          { label: 'Re-benchmarked', value: '4-hourly', accent: 'accent-blue' },
+          { label: 'Cost gap (measured)', value: `~${SAVINGS_PCT}%`, accent: 'accent-amber' },
         ].map((s, i) => (
           <div key={i} className={`rv4-stat-cell ${s.accent}`}>
             <div className={`rv4-stat-value${s.accent === 'accent-amber' ? ' amber' : ''}`}>{s.value}</div>
             <div className="rv4-stat-label">{s.label}</div>
           </div>
         ))}
+      </div>
+      <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', lineHeight: '1.5', marginBottom: '16px', textAlign: 'center' }}>
+        {SAVINGS_QUALIFIER}
       </div>
 
       {/* Features included */}
@@ -152,7 +156,7 @@ export default function SalesOverlay() {
           $4.99/month
         </div>
         <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
-          7-Day Free Trial • No Credit Card • Cancel Anytime
+          7-Day Free Trial • Cancel Anytime
         </div>
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
           START FREE TRIAL →

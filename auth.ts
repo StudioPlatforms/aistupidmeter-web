@@ -10,6 +10,7 @@ import {
   updateUserLastLogin,
   hasActiveSubscription
 } from './lib/db-client';
+import { planFor, entitlementsFor } from '@/lib/entitlements';
 import { verifyPassword } from './lib/password';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -138,11 +139,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         try {
           const user = findUserByEmail(session.user.email!);
           if (user) {
-            // Use hasActiveSubscription to determine if user has pro access
+            // Resolve the plan once, here, and hand the whole entitlement object
+            // to the client. Every downstream check should read `entitlements`
+            // rather than re-deriving access from a tier string — that habit is
+            // what let the FAQ and the dashboard disagree for months.
+            const plan = planFor(user as any);
+            const entitlements = entitlementsFor(user as any);
+
+            // `subscriptionStatus` is kept for the call sites that still test
+            // for 'active' | 'trialing'. It is a derived flag, NOT the dead
+            // `subscription_status` column (which reads 'trial' for everyone,
+            // including active payers).
             const hasProAccess = hasActiveSubscription(user);
             (session.user as any).subscriptionStatus = hasProAccess ? 'active' : 'inactive';
             (session.user as any).subscriptionId = user.stripe_subscription_id;
             (session.user as any).subscriptionTier = user.subscription_tier;
+            (session.user as any).plan = plan;
+            (session.user as any).entitlements = entitlements;
+            // Needed by settings: bulk mail (digest, alerts) is only sent to
+            // verified addresses, so the UI has to be able to say so and offer
+            // to re-send the verification.
+            (session.user as any).emailVerified = user.email_verified === 1;
             (session.user as any).role = user.role || 'user';
             (session.user as any).forumUsername = user.forum_username || null;
           }

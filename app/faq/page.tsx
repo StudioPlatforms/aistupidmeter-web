@@ -39,12 +39,12 @@ const faqs: FAQItem[] = [
   {
     category: "General",
     question: "How is this different from other AI benchmarks?",
-    answer: "Most benchmarks (HumanEval, MMLU) show single measurements without uncertainty quantification. We run multiple trials (n=5) per model, calculate confidence intervals, and use statistical tests to distinguish real changes from noise. We also provide continuous monitoring with drift detection, not just one-time snapshots. Plus, everything is open source and independently verifiable."
+    answer: "Most benchmarks (HumanEval, MMLU) show single measurements without uncertainty quantification. We run multiple trials (n=5) per model, calculate confidence intervals, and use statistical tests to distinguish real changes from noise. We also provide continuous monitoring with drift detection, not just one-time snapshots. Every scoring weight, threshold and statistical method is published, and you can reproduce our scoring with your own API keys."
   },
   {
     category: "General",
     question: "Is AI Stupid Level free to use?",
-    answer: "The website is free and always will be — every ranking, chart and drift alert on aistupidlevel.info costs nothing and needs no account. The Data API also has a free tier, though it now requires a key (see /api-docs) after the open version was being used to republish our rankings elsewhere. Paid API tiers and the optional Smart Router subscription help fund the benchmark bill; no AI vendor pays us anything."
+    answer: "The evidence is free. Current scores, every category ranking (coding, reasoning, tool-calling, price), seven days of history, the methodology and the freshness of each measurement all cost nothing and need no account. With a free account you can also track three models and get a weekly summary of what changed. Paid plans buy depth and workflow rather than access: longer history, the drift curve and axis breakdown behind an alert, more tracked models, exports, custom thresholds and team features. The Data API has a free tier too, though it now requires a key (see /api-docs) after the open version was being used to republish our rankings elsewhere. Subscriptions and paid API tiers fund the benchmark bill; no AI vendor pays us anything."
   },
   {
     category: "Methodology",
@@ -79,7 +79,7 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "Can I verify your results myself?",
-    answer: "Absolutely! Use our \"Test Your Keys\" feature to run the same benchmarks with your own API keys. You'll get the same tasks, same scoring, same methodology — proving we're not making up numbers. Additionally, all our code is open source on GitHub, so you can audit every algorithm and even run the full platform locally."
+    answer: "Absolutely! Use our \"Test Your Keys\" feature to run the same benchmarks with your own API keys. You'll get the same tasks, same scoring, same methodology — proving we're not making up numbers. The web application is also open source. The benchmark repository is not: when it was public, providers optimised against the specific tasks, and a test that can be studied in advance stops measuring anything. The method is published in full regardless."
   },
   {
     category: "Technical",
@@ -124,7 +124,7 @@ const faqs: FAQItem[] = [
   {
     category: "Trust & Independence",
     question: "How can I trust your methodology?",
-    answer: "Trust through verification, not claims: (1) All code is open source on GitHub, (2) Complete methodology documentation is public, (3) \"Test Your Keys\" lets you reproduce results, (4) The algorithms we use (Page-Hinkley change detection, t-distribution confidence intervals) are standard published methods, not something we invented, (5) every scoring weight and constant is a line you can read in the repo. To be clear about what this does not mean: the platform itself has not been through academic peer review. We would welcome it. Verify rather than trust us."
+    answer: "Trust through verification, not claims: (1) Complete methodology documentation is public, including every scoring weight and drift constant, (2) \"Test Your Keys\" lets you reproduce our scoring with your own API keys, (3) the algorithms we use (Page-Hinkley change detection, t-distribution confidence intervals) are standard published methods, not something we invented, (4) the web application is open source. What we deliberately do not publish is the benchmark task bank — when it was public, providers optimised against the specific tasks, which destroys the measurement. Our methodology paper is currently under peer review, and a SOC 2 Type II audit is in progress. Verify rather than trust us."
   },
   {
     category: "Using the Platform",

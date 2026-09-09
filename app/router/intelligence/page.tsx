@@ -200,8 +200,8 @@ export default function ModelIntelligencePage() {
             <div className="rv4-stat-value">{loading ? '...' : String(providers.length - 1)}</div>
           </div>
           <div className="rv4-stat-cell accent-blue">
-            <div className="rv4-stat-label">Benchmarks</div>
-            <div className="rv4-stat-value blue">171+</div>
+            <div className="rv4-stat-label">Scores recorded</div>
+            <div className="rv4-stat-value blue">175K+</div>
           </div>
           <div className="rv4-stat-cell accent-amber">
             <div className="rv4-stat-label">Update Cycle</div>
@@ -757,7 +757,7 @@ function ComparisonModal({ models, onClose }: { models: Model[]; onClose: () => 
                       return (
                         <div className="rv4-empty" style={{ padding: '48px' }}>
                           <div className="rv4-empty-title">NO AXES DATA AVAILABLE</div>
-                          <div className="rv4-empty-text">7-axis data is available after benchmarks run. Try the 7D or 1M period.</div>
+                          <div className="rv4-empty-text">9-axis data is available after benchmarks run. Try the 7D or 1M period.</div>
                         </div>
                       );
                     }
@@ -1022,7 +1022,7 @@ function DownloadModal({ model, downloading, onDownload, onClose }: { model: Mod
             <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{model.provider}</div>
           </div>
           <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', marginBottom: '16px', lineHeight: '1.5', textAlign: 'center' }}>
-            Download comprehensive model intelligence including performance metrics, 7-axis breakdown, pricing analysis, and 30-day historical data.
+            Download comprehensive model intelligence including performance metrics, 9-axis breakdown, pricing analysis, and 30-day historical data.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button onClick={() => onDownload('csv')} disabled={downloading} className="rv4-ctrl-btn primary" style={{ width: '100%', fontSize: '11px', padding: '12px' }}>

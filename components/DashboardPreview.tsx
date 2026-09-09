@@ -1,5 +1,7 @@
 'use client';
 
+import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
+
 export default function DashboardPreview() {
   const handleStartTrial = () => {
     window.location.href = '/api/stripe/checkout';
@@ -14,7 +16,7 @@ export default function DashboardPreview() {
           <span style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', color: 'var(--amber-warning)' }}>[LOCKED]</span>
           <div>
             <div className="rv4-upgrade-sticky-title">PREVIEW MODE — Upgrade to Access Full Dashboard</div>
-            <div className="rv4-upgrade-sticky-sub">7-day free trial • No credit card required • Cancel anytime</div>
+            <div className="rv4-upgrade-sticky-sub">7-day free trial • Cancel anytime</div>
           </div>
         </div>
         <button onClick={handleStartTrial} className="rv4-ctrl-btn primary" style={{ fontSize: '11px', padding: '8px 18px' }}>
@@ -59,13 +61,12 @@ export default function DashboardPreview() {
 
       {/* Hero upgrade section */}
       <div className="rv4-upgrade-hero">
-        <div className="rv4-upgrade-hero-title">STOP OVERPAYING FOR AI</div>
-        <div className="rv4-upgrade-hero-sub">Save 50-70% on costs • Get better results with intelligence-based routing</div>
-        <div className="rv4-upgrade-price-original">$49.99/month</div>
+        <div className="rv4-upgrade-hero-title">ROUTE ON MEASURED PERFORMANCE</div>
+        <div className="rv4-upgrade-hero-sub">Pick models from live benchmark data instead of guesswork — in our own benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less per request</div>
         <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
-        <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL — NO CREDIT CARD</div>
+        <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
-          Start Free Trial — No Credit Card →
+          Start Free Trial →
         </button>
         <div className="rv4-upgrade-fine-print">Cancel anytime • Instant access • Powered by AI Stupid Meter benchmarks</div>
       </div>
@@ -96,12 +97,12 @@ export default function DashboardPreview() {
         <div className="rv4-panel-body">
           <div className="rv4-upgrade-benefits">
             {[
-              { icon: '→', title: 'Cut Costs 50-70%', desc: 'Smart routing picks cheaper models when quality matches. Save real money.' },
+              { icon: '→', title: 'Cost-Aware Routing', desc: `Prefers a cheaper model when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements.` },
               { icon: '→', title: 'Best Model Always', desc: 'Real-time benchmarks from AI Stupid Meter prevent degraded models.' },
               { icon: '→', title: 'Zero Downtime', desc: 'Auto-failover ensures your apps keep running if a model goes down.' },
-              { icon: '→', title: 'One Universal Key', desc: 'Replace all provider keys with one key for GPT, Claude, Grok, Gemini.' },
+              { icon: '→', title: 'One Universal Key', desc: 'Replace all provider keys with one key for GPT, Claude, Gemini, DeepSeek, Kimi and GLM.' },
               { icon: '→', title: 'Full Analytics', desc: 'See every request, cost, latency, and provider breakdown in real-time.' },
-              { icon: '→', title: 'Live Intelligence', desc: '171+ benchmarks run 24/7. When GPT-5 degrades, you benefit immediately.' },
+              { icon: '→', title: 'Live Measurement', desc: 'Every tracked model is re-benchmarked around the clock, so a decline shows up in the ranking you route on.' },
             ].map((b, i) => (
               <div key={i} className="rv4-upgrade-benefit">
                 <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>{b.icon}</div>
@@ -116,15 +117,15 @@ export default function DashboardPreview() {
       {/* How it works */}
       <div className="rv4-panel" style={{ marginBottom: '16px' }}>
         <div className="rv4-panel-header">
-          <span className="rv4-panel-title">WORLD'S FIRST INTELLIGENCE-BASED AI ROUTER</span>
+          <span className="rv4-panel-title">BENCHMARK-DRIVEN MODEL SELECTION</span>
         </div>
         <div className="rv4-panel-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
             {[
-              { step: '01', title: 'LIVE INTELLIGENCE', desc: 'AI Stupid Meter runs 171+ benchmarks 24/7 tracking real performance' },
+              { step: '01', title: 'LIVE MEASUREMENT', desc: 'Every tracked model is re-benchmarked around the clock, not scored once' },
               { step: '02', title: 'SMART ANALYSIS', desc: 'Router analyzes your request and matches with current model rankings' },
               { step: '03', title: 'OPTIMAL ROUTING', desc: 'Automatically selects the best model for quality, speed, and cost' },
-              { step: '04', title: 'SAVE 50-70%', desc: 'Get better results while paying less — no manual switching needed' },
+              { step: '04', title: 'SEE THE RESULT', desc: 'Per-request logs of model, cost and latency, so you can check the trade-off yourself' },
             ].map((step, i) => (
               <div key={i} style={{
                 padding: '12px', background: 'rgba(0,0,0,0.04)',
@@ -143,10 +144,10 @@ export default function DashboardPreview() {
             ))}
           </div>
           <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(255,176,0,0.06)', border: '1px solid rgba(255,176,0,0.25)', borderRadius: '3px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '3px', letterSpacing: '0.5px' }}>NO ONE ELSE DOES THIS</div>
+            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '3px', letterSpacing: '0.5px' }}>WHY THIS DIFFERS</div>
             <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
-              Other routers use static rules. We use <strong style={{ color: 'var(--phosphor-green)' }}>live benchmark intelligence</strong> from AI Stupid Meter.
-              When GPT-5 degrades, we know instantly. When Claude improves, you benefit immediately.
+              Routing follows our own <strong style={{ color: 'var(--phosphor-green)' }}>live measurements</strong> rather than a
+              static rule or a launch-day score. When a model&apos;s measured quality moves, the ranking it is routed on moves with it.
             </div>
           </div>
         </div>
@@ -155,16 +156,19 @@ export default function DashboardPreview() {
       {/* Stats proof */}
       <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '16px' }}>
         {[
-          { label: 'Benchmarks', value: '171+', accent: 'accent-green' },
-          { label: 'AI Models', value: '16+', accent: 'accent-green' },
-          { label: 'Monitoring', value: '24/7', accent: 'accent-blue' },
-          { label: 'Cost Savings', value: '50-70%', accent: 'accent-amber' },
+          { label: 'Models tracked', value: '24', accent: 'accent-green' },
+          { label: 'Scores recorded', value: '175K+', accent: 'accent-green' },
+          { label: 'Re-benchmarked', value: '4-hourly', accent: 'accent-blue' },
+          { label: 'Cost gap (measured)', value: `~${SAVINGS_PCT}%`, accent: 'accent-amber' },
         ].map((s, i) => (
           <div key={i} className={`rv4-stat-cell ${s.accent}`}>
             <div className={`rv4-stat-value${s.accent === 'accent-amber' ? ' amber' : ''}`}>{s.value}</div>
             <div className="rv4-stat-label">{s.label}</div>
           </div>
         ))}
+      </div>
+      <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', lineHeight: '1.5', marginBottom: '16px', textAlign: 'center' }}>
+        {SAVINGS_QUALIFIER}
       </div>
 
       {/* Features checklist */}
@@ -197,7 +201,7 @@ export default function DashboardPreview() {
           $4.99/month
         </div>
         <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
-          7-Day Free Trial • No Credit Card • Cancel Anytime
+          7-Day Free Trial • Cancel Anytime
         </div>
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
           UNLOCK FULL ACCESS — START FREE TRIAL →

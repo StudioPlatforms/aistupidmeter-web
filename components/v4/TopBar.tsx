@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ThemeButton from '../ThemeButton';
+import AccountMenu from '../AccountMenu';
 
 interface TopBarProps {
   selectedView: string;
@@ -73,17 +74,17 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
             FAQ
           </button>
           <button
+            className={`v4-nav-btn ${selectedView === 'pricing' ? 'active' : ''}`}
+            onClick={() => router.push('/pricing')}
+          >
+            PRICING
+          </button>
+          <button
             className="v4-nav-btn"
             onClick={() => router.push('/router/forum')}
             style={{ color: 'var(--amber-warning, #ffb000)' }}
           >
             FORUM
-          </button>
-          <button
-            className="v4-nav-btn pro-btn"
-            onClick={() => router.push('/router')}
-          >
-            PRO
           </button>
         </div>
       </div>
@@ -95,6 +96,7 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
         <span>ONLINE</span>
         <span className="v4-clock">{currentTime}</span>
         <span className="v4-topbar-theme"><ThemeButton /></span>
+        <AccountMenu />
       </div>
     </div>
   );

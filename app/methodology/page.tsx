@@ -596,10 +596,10 @@ export default async function MethodologyPage() {
 
           <div style={styles.grid4}>
             {[
-              { title: 'OPEN SOURCE', desc: 'Full code on GitHub. Fully auditable methodology. Run locally to verify.' },
+              { title: 'PUBLISHED METHOD', desc: 'Every scoring weight, threshold and statistical method is documented on this page.' },
               { title: 'INDEPENDENT', desc: 'Zero vendor funding. No affiliate revenue. 100% unbiased.' },
               { title: 'VERIFIABLE', desc: '"Test Your Keys" feature. Reproduce our results. Compare independently.' },
-              { title: 'PUBLICLY AUDITABLE', desc: 'Scoring weights, tasks and drift constants all live in the public repo. Disagree with a weight? You can see it, and open an issue.' },
+              { title: 'HELD-OUT TASKS', desc: 'The task bank stays private. When it was public, providers optimised against the specific tests — which destroys the measurement.' },
             ].map((item, i) => (
               <div key={i} style={{ ...styles.panel, background: 'rgba(26, 115, 232,0.04)', borderColor: 'rgba(26, 115, 232,0.2)' }}>
                 <div style={styles.panelTitle}>{item.title}</div>
@@ -685,9 +685,8 @@ export default async function MethodologyPage() {
                 &rarr; Single measurements (unreliable)<br/>
                 &rarr; No confidence intervals<br/>
                 &rarr; Point-in-time snapshots<br/>
-                &rarr; Vendor-sponsored (biased)<br/>
-                &rarr; No safety testing<br/>
-                &rarr; No bias evaluation<br/>
+                &rarr; Often vendor-sponsored<br/>
+                &rarr; Run once, then quoted for years<br/>
                 &rarr; Opaque methodology
               </div>
             </div>
@@ -698,18 +697,18 @@ export default async function MethodologyPage() {
               <div style={styles.text}>
                 &rarr; 5 trials per task (statistical power)<br/>
                 &rarr; 95% confidence intervals<br/>
-                &rarr; 2+ years continuous monitoring<br/>
+                &rarr; Continuous since August 2025<br/>
                 &rarr; 100% independent funding<br/>
-                &rarr; 120K+ safety tests/year<br/>
-                &rarr; 60K+ bias tests/year<br/>
-                &rarr; Fully open source
+                &rarr; 175,000+ scores from 170,000+ runs<br/>
+                &rarr; 61,000+ tool-calling sessions<br/>
+                &rarr; Published methodology, live row counts
               </div>
             </div>
           </div>
 
           <div style={styles.highlightPanel}>
             <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>
-              Result: Data you can bet your business on.
+              Result: measurements you can check, with the counts behind them shown above.
             </span>
           </div>
 

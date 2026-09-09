@@ -47,7 +47,7 @@ export default function HelpPage() {
           <h4 style={{ color: 'var(--phosphor-green)', fontSize: '11px', margin: '0 0 8px 0' }}>What is the AI Smart Router?</h4>
           <p style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '14px' }}>
             The AI Smart Router is an intelligent API gateway that automatically selects the best AI model for your requests.
-            Instead of manually choosing between Claude, GPT, Gemini, Grok, DeepSeek, Kimi, or GLM, our system continuously benchmarks
+            Instead of manually choosing between Claude, GPT, Gemini, DeepSeek, Kimi or GLM, our system continuously benchmarks
             all models and routes your requests to the optimal one based on performance, cost, and your preferences.
           </p>
 
@@ -57,7 +57,7 @@ export default function HelpPage() {
               Go to <a href="/router/keys" style={{ color: 'var(--phosphor-green)' }}>API Keys</a> → Click "Create Key" → Copy and save it securely. Your key starts with <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>aism_</code>
             </StepCard>
             <StepCard step={2} title="Add Provider API Keys">
-              Go to <a href="/router/providers" style={{ color: 'var(--phosphor-green)' }}>Providers</a> → Add keys for OpenAI, Anthropic, Google, xAI, DeepSeek, Kimi, or GLM. The more providers you add, the better the routing!
+              Go to <a href="/router/providers" style={{ color: 'var(--phosphor-green)' }}>Providers</a> → Add keys for OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM. The more providers you add, the better the routing!
             </StepCard>
             <StepCard step={3} title="Configure Your Tool">
               Use your <code style={{ fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>aism_</code> key with any OpenAI-compatible tool:
@@ -171,7 +171,7 @@ export default function HelpPage() {
             { q: 'Does streaming work?', a: 'Yes — set stream: true. Streaming is currently simulated (sentence-level chunking). True token-level streaming is a future enhancement.' },
             { q: 'How often are benchmarks updated?', a: 'Continuous 24/7 benchmarking. Model rankings update in real-time as new results arrive.' },
             { q: 'Can I use a specific model directly?', a: 'Yes — send any real model ID (e.g., "claude-opus-4-7", "gpt-5.5") instead of an auto-* strategy. The router forwards directly to that provider.' },
-            { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, xAI (Grok), Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI). Add as many as you like.' },
+            { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like. xAI/Grok is not currently routable — none of its models are in the benchmark lineup.' },
             { q: 'Does it work with embeddings?', a: 'Yes — POST /v1/embeddings proxies to OpenAI embedding models. Required by Continue, LibreChat, and Open WebUI for RAG.' },
           ].map((faq, i) => (
             <div key={i} style={{ marginBottom: '12px' }}>

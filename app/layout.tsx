@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   // Leads with drift detection / degradation: it is the platform's actual
   // differentiator and the query cluster the site was invisible for.
-  description: 'Independent AI benchmarking with continuous drift detection — find out when an AI model silently degrades. We track GPT-5, Claude Opus 5, Gemini 3, DeepSeek V4, Kimi and GLM with live performance scores, CUSUM drift alerts and historical charts. Plus a smart API router that sends every request to the best-performing model, with usage monitoring and budget controls behind one API key.',
+  description: 'Independent AI benchmarking with continuous drift detection — find out when an AI model silently degrades. We track GPT-5, Claude Opus 5, Gemini 3, DeepSeek V4, Kimi and GLM with live performance scores, Page-Hinkley drift alerts and historical charts. Plus a smart API router that sends every request to the best-performing model, with usage monitoring and budget controls behind one API key.',
   keywords: [
     // Core Benchmark Keywords
     'AI benchmark',
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
     'LLM regression testing',
     'model drift monitoring',
     'AI quality monitoring',
-    'CUSUM drift detection',
+    'Page-Hinkley drift detection',
     'change point detection LLM',
     'silent model updates',
     'is ChatGPT getting worse',
@@ -297,7 +297,6 @@ export default function RootLayout({
                   "url": "https://aistupidlevel.info",
                   "sameAs": [
                     "https://github.com/StudioPlatforms/aistupidmeter-web",
-                    "https://github.com/StudioPlatforms/aistupidmeter-api",
                     "https://www.reddit.com/r/aistupidlevel/",
                     "https://x.com/GOATGameDev"
                   ],

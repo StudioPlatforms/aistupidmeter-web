@@ -1107,3 +1107,115 @@
 .badge-rsn { background: #1a73e8; color: var(--terminal-black); }
 .badge-new { background: var(--phosphor-green); color: var(--terminal-black); }
 .badge-crit { background: var(--red-alert); color: white; }
+
+/* ── Header account control ─────────────────────────────────────────────────
+   Replaces the old PRO button. The header previously showed no account state at
+   all, so a signed-in user had no way to reach their own pages except by
+   guessing that "PRO" meant an account area. */
+.v4-account { position: relative; display: inline-flex; }
+.v4-account-placeholder { display: inline-block; width: 92px; height: 30px; }
+
+.v4-account-trigger {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: transparent; cursor: pointer;
+  border: 1px solid var(--border-subtle, rgba(128,128,128,0.35));
+  border-radius: 999px; padding: 3px 10px 3px 3px;
+  font: inherit; color: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.v4-account-trigger:hover { border-color: var(--phosphor-green); background: rgba(26,115,232,0.06); }
+
+.v4-account-avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--phosphor-green, #1a73e8); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; line-height: 1;
+}
+.v4-account-plan {
+  font-size: 10px; font-weight: 600; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--phosphor-dim);
+}
+
+.v4-account-menu {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 200;
+  min-width: 208px; padding: 6px;
+  background: var(--terminal-black, #fff);
+  border: 1px solid var(--border-subtle, rgba(128,128,128,0.3));
+  border-radius: 6px; box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+}
+.v4-account-menu-head { padding: 8px 10px 10px; border-bottom: 1px solid var(--border-subtle, rgba(128,128,128,0.2)); margin-bottom: 4px; }
+.v4-account-menu-email { font-size: 11px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+.v4-account-menu-sub { font-size: 10px; color: var(--phosphor-dim); margin-top: 2px; }
+
+.v4-account-menu-item {
+  display: block; width: 100%; text-align: left;
+  padding: 8px 10px; border: 0; border-radius: 4px;
+  background: transparent; color: inherit; font: inherit; font-size: 12px;
+  cursor: pointer;
+}
+.v4-account-menu-item:hover { background: rgba(26,115,232,0.09); }
+.v4-account-menu-item.muted { color: var(--phosphor-dim); border-top: 1px solid var(--border-subtle, rgba(128,128,128,0.2)); border-radius: 0 0 4px 4px; margin-top: 4px; }
+
+.v4-signin-btn { font-weight: 700; }
+
+/* ── Mobile "More" drawer ───────────────────────────────────────────────────
+   The bottom nav was six items at 9px and had no room for anything new. It is
+   now three thumb targets plus this sheet. */
+.v4-drawer-scrim {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.45);
+  display: flex; align-items: flex-end;
+  animation: v4-drawer-fade .14s ease-out;
+}
+@keyframes v4-drawer-fade { from { opacity: 0 } to { opacity: 1 } }
+
+.v4-drawer {
+  width: 100%; max-height: 82vh; overflow-y: auto;
+  background: var(--terminal-black, #fff);
+  border-top: 1px solid var(--border-subtle, rgba(128,128,128,0.3));
+  border-radius: 12px 12px 0 0;
+  /* Clear the fixed bottom nav plus the home indicator. */
+  padding: 8px 10px calc(64px + env(safe-area-inset-bottom));
+  animation: v4-drawer-rise .16s ease-out;
+}
+@keyframes v4-drawer-rise { from { transform: translateY(14px) } to { transform: translateY(0) } }
+
+.v4-drawer-grip {
+  width: 34px; height: 4px; border-radius: 999px; margin: 4px auto 10px;
+  background: var(--border-subtle, rgba(128,128,128,0.4));
+}
+.v4-drawer-head { padding: 4px 12px 10px; }
+.v4-drawer-email { font-size: 12px; font-weight: 600; word-break: break-all; line-height: 1.35; }
+.v4-drawer-plan { font-size: 11px; color: var(--phosphor-dim); margin-top: 2px; }
+
+.v4-drawer-item {
+  display: block; width: 100%; text-align: left;
+  padding: 13px 12px; border: 0; border-radius: 6px;
+  background: transparent; color: inherit; font: inherit; font-size: 14px;
+  cursor: pointer; min-height: 44px; /* touch target */
+}
+.v4-drawer-item:active { background: rgba(26,115,232,0.12); }
+.v4-drawer-item.muted { color: var(--phosphor-dim); }
+
+.v4-drawer-sep { height: 1px; background: var(--border-subtle, rgba(128,128,128,0.22)); margin: 6px 8px; }
+.v4-drawer-theme {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; font-size: 14px;
+}
+
+/* ── Pricing comparison table on small screens ──────────────────────────────
+   The table is wider than a phone viewport, so the paid columns sit off-screen.
+   Pin the row-label column so a horizontal scroll never loses the reader, and
+   show the hint only where scrolling is actually needed. */
+.pricing-scroll-hint { display: none; }
+@media (max-width: 760px) {
+  .pricing-scroll-hint { display: inline; }
+  .pricing-table-scroll { -webkit-overflow-scrolling: touch; }
+  .pricing-table-scroll td.pricing-row-label,
+  .pricing-table-scroll th.pricing-row-label {
+    position: sticky; left: 0; z-index: 1;
+    background: var(--terminal-black, #f6f8fc);
+    min-width: 132px;
+    box-shadow: 1px 0 0 var(--border-subtle, rgba(128,128,128,0.25));
+  }
+}

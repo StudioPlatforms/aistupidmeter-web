@@ -518,7 +518,7 @@ export default function TestKeysPage() {
               <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
                 {testType === 'chat' ? 
                   'Quick validation test - checks if your API key works' :
-                  'Comprehensive 7-axis performance evaluation - results saved to rankings'
+                  'Comprehensive 9-axis performance evaluation - results saved to rankings'
                 }
               </div>
             </div>

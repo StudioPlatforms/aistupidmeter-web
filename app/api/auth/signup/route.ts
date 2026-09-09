@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUserByEmail, createUserWithPassword } from '@/lib/db-client';
+import { recordActivation } from '@/lib/activation';
+import { sendWelcomeEmail } from '@/lib/email-service';
 import { hashPassword, validateEmail, validatePasswordStrength } from '@/lib/password';
 
 export async function POST(request: NextRequest) {
@@ -46,6 +48,13 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const user = createUserWithPassword(email, passwordHash, name);
+    // Entry point of the funnel. Everything downstream — first watchlist save,
+    // checkout, renewal — is measured relative to this row.
+    recordActivation((user as any)?.id ?? null, 'account_created', 'free');
+
+    // Fire-and-forget: a mail failure must never fail a signup. sendWelcomeEmail
+    // already swallows its own errors, and this catch covers the promise itself.
+    void sendWelcomeEmail(email, name).catch(() => {});
 
     return NextResponse.json(
       {

@@ -94,8 +94,8 @@ export default function IntelligencePreview() {
         {[
           { label: 'Live Models', value: loading ? '...' : String(models.length), accent: 'accent-green' },
           { label: 'Providers', value: loading ? '...' : String(new Set(models.map(m => m.provider)).size), accent: 'accent-green' },
-          { label: 'Benchmarks', value: '171+', accent: 'accent-blue' },
-          { label: 'Data Points', value: '10K+', accent: 'accent-amber' },
+          { label: 'Scores recorded', value: '175K+', accent: 'accent-blue' },
+          { label: 'Tool sessions', value: '61K+', accent: 'accent-amber' },
         ].map((s, i) => (
           <div key={i} className={`rv4-stat-cell ${s.accent}`}>
             <div className={`rv4-stat-value${s.accent === 'accent-amber' ? ' amber' : ''}`}>{s.value}</div>
@@ -220,7 +220,7 @@ export default function IntelligencePreview() {
             borderRadius: '3px', padding: '16px', textAlign: 'center',
           }}>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8', marginBottom: '4px' }}>$4.99/month</div>
-            <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • No Credit Card • Cancel Anytime</div>
+            <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • Cancel Anytime</div>
             <button onClick={handleStartTrial} className="rv4-upgrade-cta">
               UNLOCK INTELLIGENCE NOW →
             </button>

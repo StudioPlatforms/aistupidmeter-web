@@ -1,5 +1,7 @@
 'use client';
 
+import { PLANS } from '@/lib/entitlements';
+
 interface ControlsBarProps {
   leaderboardPeriod: 'latest' | '24h' | '7d' | '1m';
   leaderboardSortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price';
@@ -26,20 +28,36 @@ export default function ControlsBar({
   onShowProModal,
   nudgeDrift = false,
 }: ControlsBarProps) {
-  const periods: Array<{ key: 'latest' | '24h' | '7d' | '1m'; label: string; proOnly: boolean }> = [
-    { key: 'latest', label: 'LATEST', proOnly: false },
-    { key: '24h', label: '24H', proOnly: true },
-    { key: '7d', label: '7D', proOnly: true },
-    { key: '1m', label: '1M', proOnly: true },
-  ];
+  // What a signed-out visitor gets. Everything below is derived from the plan
+  // table rather than hard-coded, so the entitlement matrix on /faq and the
+  // locks on this bar cannot drift apart — which is precisely what happened
+  // before: the FAQ promised "every ranking, chart and drift alert costs
+  // nothing" while this component locked three sorts and three periods.
+  const free = PLANS.free;
 
-  const sortModes: Array<{ key: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'; label: string; proOnly: boolean }> = [
-    { key: 'combined', label: 'COMBINED', proOnly: false },
-    { key: 'reasoning', label: 'REASONING', proOnly: true },
-    { key: 'speed', label: 'CODING', proOnly: true },
-    { key: 'tooling', label: 'TOOLING', proOnly: true },
-    { key: 'price', label: 'PRICE', proOnly: false },
-  ];
+  /** Days of history each period needs. `null` means "current values only". */
+  const PERIOD_DAYS: Record<'latest' | '24h' | '7d' | '1m', number | null> = {
+    latest: null, '24h': 1, '7d': 7, '1m': 30,
+  };
+
+  const needsUpgrade = (days: number | null): boolean => {
+    if (hasProAccess || days === null) return false;
+    return free.historyDays !== null && days > free.historyDays;
+  };
+
+  const periods: Array<{ key: 'latest' | '24h' | '7d' | '1m'; label: string; proOnly: boolean }> = (
+    [['latest', 'LATEST'], ['24h', '24H'], ['7d', '7D'], ['1m', '1M']] as const
+  ).map(([key, label]) => ({ key, label, proOnly: needsUpgrade(PERIOD_DAYS[key]) }));
+
+  const sortModes: Array<{ key: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'; label: string; proOnly: boolean }> = (
+    [['combined', 'COMBINED'], ['reasoning', 'REASONING'], ['speed', 'CODING'], ['tooling', 'TOOLING'], ['price', 'PRICE']] as const
+  ).map(([key, label]) => ({
+    key, label,
+    // Category sorts are public utility on every plan; only the combined and
+    // price views were ever meant to be universal, and the rest read as
+    // withholding evidence a visitor needs to judge whether ASL is any good.
+    proOnly: false,
+  }));
 
   const handlePeriodClick = (period: typeof periods[number]) => {
     if (period.proOnly && !hasProAccess) {

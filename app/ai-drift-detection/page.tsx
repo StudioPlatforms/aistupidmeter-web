@@ -18,7 +18,7 @@ const CANONICAL = `${SITE}/ai-drift-detection`;
 export const metadata: Metadata = {
   title: 'AI Drift Detection — Track AI Model Degradation & Performance Decline',
   description:
-    'AI drift detection explained: how to tell when an AI model degrades behind a stable API name. We monitor GPT, Claude, Gemini, Grok, DeepSeek and Kimi for performance decline using CUSUM change-point detection, with live drift alerts and historical charts.',
+    'AI drift detection explained: how to tell when an AI model degrades behind a stable API name. We monitor GPT, Claude, Gemini, DeepSeek, Kimi and GLM for performance decline using Page-Hinkley change-point detection, with live drift alerts and historical charts.',
   keywords: [
     'AI drift detection',
     'AI model drift',

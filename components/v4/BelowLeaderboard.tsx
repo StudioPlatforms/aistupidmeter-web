@@ -74,7 +74,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
             <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Every hour</span>
           </div>
           <div className="v4-info-row">
-            <span className="v4-info-label">Full 7-axis (speed)</span>
+            <span className="v4-info-label">Full 9-axis (code)</span>
             <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Every 4 hours</span>
           </div>
           <div className="v4-info-row">
@@ -91,7 +91,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Scoring</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>7-axis w/ 95% CI</span>
+            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>9-axis w/ 95% CI</span>
           </div>
         </div>
       </div>

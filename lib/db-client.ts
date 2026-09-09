@@ -4,6 +4,7 @@
  */
 
 import { openIdentityDb } from '@/lib/identity-db';
+import { hasPaidAccess } from '@/lib/entitlements';
 import path from 'path';
 
 
@@ -185,22 +186,29 @@ export function updateStripeCustomerId(userId: number, customerId: string): void
 /**
  * Start user's trial period
  */
-export function startUserTrial(userId: number, stripeCustomerId: string, stripeSubscriptionId: string): void {
+export function startUserTrial(
+  userId: number,
+  stripeCustomerId: string,
+  stripeSubscriptionId: string,
+  plan: string = 'pro',
+  trialEndsAtIso?: string | null,
+): void {
   const db = getDb();
   try {
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7); // 7 days from now
-    
+    // The trial window comes from Stripe (subscription.trial_end), not from a
+    // hard-coded 7 days here. Stripe owns the trial length so it can be changed
+    // per Price in the dashboard without a deploy; if the subscription carries
+    // no trial, none is recorded.
     db.prepare(`
       UPDATE router_users SET
         stripe_customer_id = ?,
         stripe_subscription_id = ?,
-        subscription_tier = 'pro',
-        trial_started_at = datetime('now'),
+        subscription_tier = ?,
+        trial_started_at = CASE WHEN ? IS NULL THEN trial_started_at ELSE (strftime('%Y-%m-%dT%H:%M:%fZ','now')) END,
         trial_ends_at = ?,
-        updated_at = datetime('now')
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
-    `).run(stripeCustomerId, stripeSubscriptionId, trialEndsAt.toISOString(), userId);
+    `).run(stripeCustomerId, stripeSubscriptionId, plan, trialEndsAtIso ?? null, trialEndsAtIso ?? null, userId);
   } finally {
     db.close();
   }
@@ -209,18 +217,29 @@ export function startUserTrial(userId: number, stripeCustomerId: string, stripeS
 /**
  * Activate user's paid subscription
  */
-export function activateSubscription(userId: number, stripeSubscriptionId: string): void {
+export function activateSubscription(
+  userId: number,
+  stripeSubscriptionId: string,
+  plan: string = 'pro',
+): void {
   const db = getDb();
   try {
+    // `plan` comes from the Price the customer actually bought. It used to be
+    // hard-coded to 'pro', which under a multi-plan ladder would have sold
+    // someone Teams and granted them Pro.
+    //
+    // A legacy subscriber who simply renews must keep 'legacy_pro' — never let
+    // a renewal quietly move them onto the new, more expensive Pro plan.
     db.prepare(`
       UPDATE router_users SET
         stripe_subscription_id = ?,
-        subscription_tier = 'pro',
-        last_payment_at = datetime('now'),
+        subscription_tier = CASE WHEN subscription_tier = 'legacy_pro' THEN 'legacy_pro' ELSE ? END,
+        last_payment_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
         subscription_canceled_at = NULL,
-        updated_at = datetime('now')
+        subscription_ends_at = NULL,
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
-    `).run(stripeSubscriptionId, userId);
+    `).run(stripeSubscriptionId, plan, userId);
   } finally {
     db.close();
   }
@@ -234,9 +253,9 @@ export function cancelSubscription(userId: number, endsAt: string): void {
   try {
     db.prepare(`
       UPDATE router_users SET
-        subscription_canceled_at = datetime('now'),
+        subscription_canceled_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
         subscription_ends_at = ?,
-        updated_at = datetime('now')
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
     `).run(endsAt, userId);
   } finally {
@@ -254,7 +273,7 @@ export function downgradeToFree(userId: number): void {
       UPDATE router_users SET
         subscription_tier = 'free',
         stripe_subscription_id = NULL,
-        updated_at = datetime('now')
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
     `).run(userId);
   } finally {
@@ -266,28 +285,14 @@ export function downgradeToFree(userId: number): void {
  * Check if user has active subscription (trial or paid)
  */
 export function hasActiveSubscription(user: User): boolean {
-  // Check if trial is active
-  if (user.trial_ends_at) {
-    const trialEnds = new Date(user.trial_ends_at);
-    if (trialEnds > new Date()) {
-      return true;
-    }
-  }
-  
-  // Check if paid subscription is active
-  if (user.subscription_tier === 'pro') {
-    // If subscription is canceled, check if it hasn't ended yet
-    if (user.subscription_canceled_at && user.subscription_ends_at) {
-      const endsAt = new Date(user.subscription_ends_at);
-      return endsAt > new Date();
-    }
-    // If not canceled, it's active
-    if (!user.subscription_canceled_at) {
-      return true;
-    }
-  }
-  
-  return false;
+  // Thin wrapper over lib/entitlements.ts so there is one definition of "paid".
+  //
+  // This used to hard-code `subscription_tier === 'pro'`, which meant any new
+  // tier name was silently treated as unsubscribed. Introducing 'legacy_pro'
+  // under that logic would have revoked access from every existing subscriber
+  // the moment the migration ran. Route new tiers through hasPaidAccess and
+  // that whole class of mistake goes away.
+  return hasPaidAccess(user as any);
 }
 
 /**

@@ -30,7 +30,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
       title: 'Unlock the full performance matrix',
       description: 'Go beyond the combined score and see how each model performs on every benchmark dimension.',
       benefits: [
-        'Full 7-axis performance breakdown',
+        'Full 9-axis performance breakdown',
         'Deep-reasoning benchmark suite',
         'Tool-calling reliability metrics',
         'Coding, speed and cost-efficiency views',

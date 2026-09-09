@@ -1,5 +1,7 @@
 'use client';
 
+import { SAVINGS_PCT } from '@/lib/savings-estimate';
+
 import { useRouter } from 'next/navigation';
 import { getModelPricing } from '../../lib/model-pricing';
 
@@ -299,7 +301,7 @@ export default function IntelligencePanel({
       <div className="v4-pro-cta" onClick={() => router.push('/router')}>
         <div className="v4-pro-cta-title">⚡ UNLOCK PRO ROUTER</div>
         <div className="v4-pro-cta-sub">Intelligent routing powered by live benchmark data</div>
-        <div className="v4-pro-cta-sub">Save 50-70% on AI costs • One API key for all models</div>
+        <div className="v4-pro-cta-sub">Route on live benchmark data • {SAVINGS_PCT}% measured cost gap</div>
         <div className="v4-pro-cta-price">$4.99/mo — 7-day free trial</div>
       </div>
 

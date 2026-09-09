@@ -4,16 +4,16 @@ import SubpageLayout from '@/components/SubpageLayout';
 
 export const metadata: Metadata = {
   title: 'About AI Stupid Level | Independent AI Benchmarking Platform',
-  description: 'Learn about our mission to provide transparent, independent AI model benchmarking. Meet our team, explore enterprise data licensing, and discover why we built an open-source platform for AI performance monitoring.',
+  description: 'Learn about our mission to provide transparent, independent AI model benchmarking. Meet our team, explore enterprise data licensing, and see how we keep the measurement honest.',
   keywords: [
-    'About AI benchmarking platform', 'Independent AI testing', 'AI safety dataset',
-    'AI bias detection data', 'Enterprise AI benchmarking', 'AI model monitoring team',
-    'Open source AI benchmarking', 'Transparent AI evaluation', 'AI performance monitoring company',
+    'About AI benchmarking platform', 'Independent AI testing', 'AI model drift dataset',
+    'AI performance history data', 'Enterprise AI benchmarking', 'AI model monitoring team',
+    'Transparent AI evaluation', 'AI performance monitoring company', 'LLM regression detection',
   ],
   alternates: { canonical: '/about' },
   openGraph: {
     title: 'About AI Stupid Level | Independent AI Benchmarking',
-    description: 'Independent watchdog platform for AI model performance. 100% transparent, open source, no vendor affiliations.',
+    description: 'Independent watchdog platform for AI model performance. Published methodology, no vendor affiliations, no paid placement.',
     url: 'https://aistupidlevel.info/about',
     type: 'website',
   }
@@ -249,12 +249,11 @@ export default function AboutPage() {
           </div>
 
           <div style={{ ...styles.text, ...styles.panel }}>
-            The methodology is open to review by anyone who wants to check it — the scoring code, the tasks and the
-            drift constants are all public. Corrections and contributions are welcome; several scoring fixes have come
-            from people reading the repo. Check our GitHub:{' '}
+            The methodology is open to review by anyone who wants to check it — the scoring weights, the statistical
+            methods and the drift constants are all documented on the methodology page. The benchmark repository itself
+            is private, because when it was public we saw providers optimising against the specific tasks, and a test
+            you can study in advance stops measuring anything. Corrections are welcome. The web application is public:{' '}
             <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer" style={styles.link}>Web</a>
-            {' '}&bull;{' '}
-            <a href="https://github.com/StudioPlatforms/aistupidmeter-api" target="_blank" rel="noopener noreferrer" style={styles.link}>API</a>
           </div>
 
           <hr style={styles.divider} />
@@ -398,11 +397,11 @@ export default function AboutPage() {
 
           {/* Open Source */}
           <h2 style={styles.sectionTitle}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> OPEN SOURCE AND TRANSPARENCY
+            <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> TRANSPARENCY AND VERIFICATION
           </h2>
           <div style={styles.grid2}>
             {[
-              { title: 'Full Source Code', desc: 'Every line of code is public on GitHub. Audit our methodology, suggest improvements, or run locally.', links: [{ label: 'Frontend (Web) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-web' }, { label: 'Backend (API) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-api' }] },
+              { title: 'Open Web Application', desc: 'The site you are reading is open source. The benchmark repository is deliberately private: when it was public, providers optimised against the specific tasks, which destroys the measurement. The method itself is fully published.', links: [{ label: 'Frontend (Web) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-web' }] },
               { title: 'Public API', desc: 'All benchmark data accessible via a free, keyed REST API. Rankings, historical scores, confidence intervals, degradation alerts and drift signatures.', code: 'GET /api/v1/models', internalLink: { label: 'API Docs \u2192', href: '/api-docs' } },
               { title: 'Detailed Documentation', desc: 'Complete technical documentation of our 9-axis scoring, Page-Hinkley drift detection, and statistical methods.', internalLink: { label: 'Read Methodology \u2192', href: '/methodology' } },
               { title: 'Test Your Keys', desc: 'Run benchmarks with your own API keys to verify we\'re not making up numbers.', internalLink: { label: 'Test Now \u2192', href: '/router/test-keys' } },
@@ -431,8 +430,8 @@ export default function AboutPage() {
           </h2>
           <div style={styles.grid2}>
             {[
-              ['Scientific Rigor', 'We use proper statistical methods, confidence intervals, and peer-reviewed algorithms. No hand-waving, no marketing fluff — just math.'],
-              ['Radical Transparency', 'Everything is open source. Every decision documented. Every benchmark reproducible. Trust through verification, not through claims.'],
+              ['Scientific Rigor', 'We use established statistical methods — Page-Hinkley change detection, t-distribution confidence intervals — and publish the constants. No hand-waving, no marketing fluff.'],
+              ['Radical Transparency', 'Every scoring decision is documented and every result is reproducible with your own keys. Trust through verification, not through claims.'],
               ['Independence', 'No vendor funding. No affiliate revenue. No conflicts of interest. Our only loyalty is to developers who need accurate data.'],
               ['Community First', 'Built by developers, for developers. We listen to feedback, accept contributions, and evolve based on community needs.'],
             ].map(([title, desc], i) => (

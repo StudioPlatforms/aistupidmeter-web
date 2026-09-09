@@ -294,7 +294,7 @@ export default function SubscriptionPage() {
           }}>
             <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '4px' }}>$4.99/month</div>
             <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
-              7-Day Free Trial • No Credit Card • Cancel Anytime
+              7-Day Free Trial • Cancel Anytime
             </div>
             <button onClick={handleUpgrade} className="rv4-upgrade-cta">
               UPGRADE TO PRO — START FREE TRIAL →

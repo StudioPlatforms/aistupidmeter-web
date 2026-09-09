@@ -16,6 +16,7 @@ import { TopBar, V4Footer } from '../../../components/v4';
 import ModelDetailHeader from '../../../components/model-detail/ModelDetailHeader';
 import ModelDetailStatBar from '../../../components/model-detail/ModelDetailStatBar';
 import ModelDetailControls from '../../../components/model-detail/ModelDetailControls';
+import TrackModelButton from '../../../components/TrackModelButton';
 import ModelDetailMeter from '../../../components/model-detail/ModelDetailMeter';
 import ModelDetailChart from '../../../components/model-detail/ModelDetailChart';
 import ModelDetailQuickStats from '../../../components/model-detail/ModelDetailQuickStats';
@@ -478,6 +479,13 @@ export default function ModelDetailClient({
         onToggleAutoRefresh={() => setAutoRefresh(prev => !prev)}
         onRefresh={() => fetchModelData(true)}
       />
+
+      {/* Track this model — the activation event the whole retention plan
+          hangs on. Works signed-out: it routes to sign-up with the intent
+          preserved rather than doing nothing. */}
+      <div style={{ margin: '0 0 16px 0' }}>
+        <TrackModelButton modelId={modelId} modelName={modelDetails.name} />
+      </div>
 
       {/* KPI stat bar */}
       <ModelDetailStatBar

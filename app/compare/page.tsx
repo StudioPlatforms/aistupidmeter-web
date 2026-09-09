@@ -213,11 +213,11 @@ export default function ComparePage() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
-              '147 unique coding challenges across multiple programming languages',
+              '10 Python tasks covering 35 test cases, executed not just graded',
               'Standardized temperature (0.3) and parameters for consistent results',
               'Multiple test runs with median scoring to eliminate outliers',
               'Real production API calls with actual latency and token measurements',
-              'Independent verification available through open source benchmarks',
+              'Independent verification by running the same suites with your own API keys',
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
                 <span style={{ color: 'var(--phosphor-green)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>→</span>

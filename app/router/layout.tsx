@@ -5,7 +5,7 @@ export const metadata: Metadata = {
     default: 'AI Smart Router — Intelligent API Gateway for All AI Models',
     template: '%s | AI Smart Router — AI Stupid Meter',
   },
-  description: 'AI Smart Router: one universal API key for OpenAI, Anthropic, xAI, Google, DeepSeek & more. Automatic model selection based on live benchmarks, prompt auditing, budget controls, cost analytics. Works with Cursor, Windsurf, Aider, Continue.dev, Cline, and more.',
+  description: 'AI Smart Router: one universal API key for OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM. Automatic model selection based on live benchmarks, prompt auditing, budget controls, cost analytics. Works with Cursor, Windsurf, Aider, Continue.dev, Cline, and more.',
   keywords: [
     'AI smart router',
     'AI API gateway',
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'AI Smart Router — Route to the Best AI Model Automatically',
-    description: 'One API key for GPT-5, Claude, Grok, Gemini & more. Smart routing, prompt auditing, budget controls. $4.99/mo with 7-day free trial.',
+    description: 'One API key for GPT-5, Claude, Gemini, DeepSeek and more. Smart routing, prompt auditing, budget controls. $4.99/mo with 7-day free trial.',
   },
   alternates: {
     canonical: '/router',

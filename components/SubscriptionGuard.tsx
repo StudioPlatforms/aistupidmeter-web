@@ -1,5 +1,7 @@
 'use client';
 
+import { SAVINGS_PCT } from '@/lib/savings-estimate';
+
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 
@@ -78,7 +80,7 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
           <div className="rv4-upgrade-hero-title">{feature.toUpperCase()} IS A PRO FEATURE</div>
           <div className="rv4-upgrade-hero-sub">Upgrade to AI Router PRO to unlock this and all other Pro features</div>
           <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
-          <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL — NO CREDIT CARD</div>
+          <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
           <button onClick={handleUpgrade} className="rv4-upgrade-cta">
             Upgrade to PRO →
           </button>
@@ -111,7 +113,7 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
           <div className="rv4-panel-body">
             <div className="rv4-features-checklist">
               {[
-                'Save 50-70% on AI costs with intelligent routing',
+                `Route on live benchmark data instead of guesswork — a ${SAVINGS_PCT}% measured cost gap between equally-scoring models`,
                 'Access all AI models (GPT, Claude, Grok, Gemini)',
                 'Real-time analytics and performance tracking',
                 'Unlimited universal API keys',
@@ -138,7 +140,7 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
             $4.99/month
           </div>
           <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
-            7-Day Free Trial • No Credit Card • Cancel Anytime
+            7-Day Free Trial • Cancel Anytime
           </div>
           <button onClick={handleUpgrade} className="rv4-upgrade-cta">
             UNLOCK {feature.toUpperCase()} — START FREE TRIAL →
@@ -179,7 +181,7 @@ function getFeatureBenefits(feature: string) {
       { title: 'COST CONTROLS', description: 'Set budget limits, latency thresholds, and feature requirements' },
     ],
     'Intelligence': [
-      { title: 'MODEL INSIGHTS', description: 'Real-time performance data from 171+ continuous benchmarks' },
+      { title: 'MODEL INSIGHTS', description: 'Real-time performance data from continuous benchmarking across 24 tracked models' },
       { title: 'SIDE-BY-SIDE COMPARE', description: 'Compare up to 4 models with overlaid charts and detailed analytics' },
       { title: 'DATA EXPORT', description: 'Download comprehensive model data in CSV or JSON format' },
     ],

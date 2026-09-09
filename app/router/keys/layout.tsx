@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Smart Router API Keys — One Key for All AI Providers',
-  description: 'Create Smart Router (SR) API keys that work with every AI provider: OpenAI, Anthropic, xAI, Google, DeepSeek, GLM, and Kimi. One key for GPT-5, Claude Opus 4, Grok 4, Gemini 3 and more. Setup guides for Cursor, Windsurf, Aider, Continue.dev, Cline, and Open WebUI.',
+  description: 'Create Smart Router (SR) API keys that work across every routable provider: OpenAI, Anthropic, Google, DeepSeek, GLM and Kimi. One key for GPT-5, Claude Opus 5, Gemini 3 and more. Setup guides for Cursor, Windsurf, Aider, Continue.dev, Cline, and Open WebUI.',
   keywords: [
     'AI API key',
     'universal AI API key',
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: 'Smart Router API Keys — One Key for All AI Providers',
-    description: 'Create one Smart Router key that works with GPT-5, Claude, Grok, Gemini & more. Setup guides for Cursor, Windsurf, Aider, and 8+ tools.',
+    description: 'Create one Smart Router key that works with GPT-5, Claude, Gemini and more. Setup guides for Cursor, Windsurf, Aider, and 8+ tools.',
     url: 'https://aistupidlevel.info/router/keys',
   },
   alternates: {

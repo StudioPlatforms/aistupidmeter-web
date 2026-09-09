@@ -1,5 +1,7 @@
 'use client';
 
+import { SAVINGS_PCT } from '@/lib/savings-estimate';
+
 import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -129,7 +131,7 @@ function RouterDashboardContent() {
         <div className="rv4-page-header-left">
           <div>
             <div className="rv4-page-title">AI SMART ROUTER<span className="blinking-cursor"></span></div>
-            <div className="rv4-page-title-sub">Intelligent Model Selection • Save 50-70% on AI Costs</div>
+            <div className="rv4-page-title-sub">Intelligent Model Selection • Backed by Live Benchmarks</div>
           </div>
         </div>
         <div className="rv4-page-header-right">
@@ -309,9 +311,9 @@ function RouterDashboardContent() {
               <div className="rv4-panel-body">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
-                    { title: 'LIVE BENCHMARK DATA', desc: 'Real-time performance data from AI Stupid Meter 7-axis testing' },
+                    { title: 'LIVE BENCHMARK DATA', desc: 'Real-time performance data from AI Stupid Meter 9-axis testing' },
                     { title: '6 ROUTING STRATEGIES', desc: 'Best Overall, Coding, Reasoning, Creative, Cheapest, or Fastest' },
-                    { title: 'COST OPTIMIZATION', desc: 'Save 50-70% by auto-selecting cost-effective models' },
+                    { title: 'COST AWARENESS', desc: `Prefers cheaper models when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements` },
                     { title: 'AUTO FAILOVER', desc: 'Zero downtime with intelligent fallback to alternatives' },
                   ].map((f, i) => (
                     <div key={i} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: i < 3 ? '1px solid rgba(192,192,192,0.08)' : 'none' }}>

@@ -1,5 +1,7 @@
 'use client';
 
+import { PLANS } from '@/lib/entitlements';
+
 type HistoricalPeriod = 'latest' | '24h' | '7d' | '1m';
 type ScoringMode = 'combined' | 'reasoning' | 'speed' | 'tooling';
 
@@ -13,12 +15,24 @@ interface ModelDetailControlsProps {
   onShowProModal: (feature: 'historical-data' | 'performance-matrix') => void;
 }
 
-const periods: Array<{ key: HistoricalPeriod; label: string; proOnly: boolean }> = [
-  { key: 'latest', label: 'LATEST', proOnly: false },
-  { key: '24h', label: '24H', proOnly: true },
-  { key: '7d', label: '7D', proOnly: true },
-  { key: '1m', label: '1M', proOnly: true },
-];
+/**
+ * History depth is an entitlement, not a hard-coded flag — same rule as the
+ * leaderboard's ControlsBar. Free covers everything inside PLANS.free.historyDays;
+ * beyond that is paid. Diagnosis (the Page-Hinkley curve, the axis matrix) stays
+ * paid regardless of window, which is the line the pricing is drawn on: basic
+ * evidence is public, interpreting it is the product.
+ */
+const PERIOD_DAYS: Record<HistoricalPeriod, number | null> = {
+  latest: null, '24h': 1, '7d': 7, '1m': 30,
+};
+
+function periodsFor(hasProAccess: boolean): Array<{ key: HistoricalPeriod; label: string; proOnly: boolean }> {
+  const freeDays = PLANS.free.historyDays;
+  const locked = (d: number | null) =>
+    !hasProAccess && d !== null && freeDays !== null && d > freeDays;
+  return ([['latest', 'LATEST'], ['24h', '24H'], ['7d', '7D'], ['1m', '1M']] as const)
+    .map(([key, label]) => ({ key, label, proOnly: locked(PERIOD_DAYS[key]) }));
+}
 
 const scoringModes: Array<{ key: ScoringMode; label: string }> = [
   { key: 'combined', label: 'COMBINED' },
@@ -36,6 +50,8 @@ export default function ModelDetailControls({
   onScoringModeChange,
   onShowProModal,
 }: ModelDetailControlsProps) {
+  const periods = periodsFor(hasProAccess);
+
   const handlePeriodClick = (period: typeof periods[number]) => {
     if (period.proOnly && !hasProAccess) {
       onShowProModal('historical-data');

@@ -159,7 +159,7 @@ export default function PreferencesPreview() {
             borderRadius: '3px', padding: '16px', textAlign: 'center', marginTop: '14px',
           }}>
             <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '4px' }}>$4.99/month</div>
-            <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • No Credit Card • Cancel Anytime</div>
+            <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • Cancel Anytime</div>
             <button onClick={handleStartTrial} className="rv4-upgrade-cta">
               CUSTOMIZE YOUR ROUTER NOW →
             </button>

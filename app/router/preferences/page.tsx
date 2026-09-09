@@ -15,7 +15,7 @@ type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best
  */
 const ROUTING_STRATEGIES = [
   { id: 'best_overall' as RoutingStrategy, name: 'BEST OVERALL', desc: 'Highest combined score across all three benchmark suites', basis: 'Combined score — code 50%, reasoning 25%, tool use 25%', recommended: true },
-  { id: 'best_coding' as RoutingStrategy, name: 'BEST FOR CODING', desc: 'Best at writing correct, well-structured code to spec', basis: 'Hourly 7-axis code benchmark', recommended: false },
+  { id: 'best_coding' as RoutingStrategy, name: 'BEST FOR CODING', desc: 'Best at writing correct, well-structured code to spec', basis: 'Hourly 9-axis code benchmark', recommended: false },
   { id: 'best_reasoning' as RoutingStrategy, name: 'BEST FOR REASONING', desc: 'Best at multi-step problems, planning and long-context analysis', basis: 'Deep reasoning benchmark', recommended: false },
   { id: 'best_tooling' as RoutingStrategy, name: 'BEST FOR TOOL USE', desc: 'Best at picking the right tool with the right arguments and recovering from errors — use this for agents and coding assistants', basis: 'Tooling benchmark', recommended: false },
   { id: 'best_creative' as RoutingStrategy, name: 'BEST FOR CREATIVE', desc: 'General-purpose quality for open-ended writing. There is no creative-writing benchmark on this site, so this ranks on the same combined score as Best Overall', basis: 'Combined score (no dedicated creative benchmark)', recommended: false },
@@ -483,7 +483,7 @@ export default function RouterPreferencesPage() {
             <div className="rv4-info-banner-title">REAL-TIME INTELLIGENCE</div>
             <div className="rv4-info-banner-text">
               Your router ranks models on the same live benchmark scores shown on the leaderboard, refreshed at
-              least every 4 hours across three suites: a 7-axis code benchmark, a deep reasoning benchmark, and a
+              least every 4 hours across three suites: a 9-axis code benchmark, a deep reasoning benchmark, and a
               tool-use benchmark. Each strategy above ranks on a different one. Rankings are cached for 5 minutes,
               so a preference change takes effect on your next request.
             </div>

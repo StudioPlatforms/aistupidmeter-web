@@ -149,7 +149,7 @@ export default async function HomePage() {
         <p>
           AI providers update the model behind a stable API name without notice, so a model that
           scored well at launch may behave differently today. We benchmark continuously and apply
-          CUSUM change-point detection to separate a genuine sustained decline from ordinary
+          Page-Hinkley change-point detection to separate a genuine sustained decline from ordinary
           run-to-run noise. Read{' '}
           <a href="/ai-drift-detection">how AI drift detection and model degradation tracking works</a>.
         </p>
