@@ -4,10 +4,18 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
+import { PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
 
 interface NavItem {
   label: string;
   href: string;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+  /** Pushes Support to the bottom of the rail. */
+  grow?: boolean;
 }
 
 function NavLink({ item, active, collapsed, onClick }: { item: NavItem; active: boolean; collapsed: boolean; onClick?: () => void }) {
@@ -42,45 +50,60 @@ export default function RouterSidebar() {
   // Guest on forum page — show minimal sidebar
   const guestForumMode = isGuest && isForumPage;
 
-  const navItems: NavItem[] = guestForumMode
-    ? [
-        { label: '← BACK TO RANKINGS', href: '/' },
-        { label: 'FORUM', href: '/router/forum' },
-      ]
-    : [
-        { label: '← BACK TO RANKINGS', href: '/' },
-        // Monitoring first: a subscriber who never routes a request still needs
-        // somewhere to land, and the watchlist is the reason most of them stay.
-        { label: '★ WATCHLIST', href: '/watchlist' },
-        { label: 'DASHBOARD', href: '/router' },
-        { label: 'SR API KEY', href: '/router/keys' },
-        { label: 'DATA API KEYS', href: '/account/data-keys' },
-        { label: 'PROVIDERS', href: '/router/providers' },
-        { label: 'PREFERENCES', href: '/router/preferences' },
-        { label: 'ANALYTICS', href: '/router/analytics' },
-        { label: 'API MONITORING', href: '/router/monitoring' },
-        { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
-        { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
-        { label: 'FORUM', href: '/router/forum' },
-        { label: 'TEST KEYS', href: '/router/test-keys' },
-      ];
-
-  const userItems: NavItem[] = guestForumMode
-    ? []
-    : [
-        { label: 'SETTINGS', href: '/account/settings' },
-        { label: 'PLAN & BILLING', href: '/account/billing' },
-      ];
-
   const userRole = (session?.user as any)?.role;
   const isForumAdmin = userRole === 'admin' || userRole === 'superadmin';
 
-  const supportItems: NavItem[] = guestForumMode
-    ? []
+  const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
+  const seats = PLANS[plan].seats;
+  const hasTeam = isUnlimited(seats) || seats > 1;
+
+  /**
+   * Grouped rather than one flat list of twelve.
+   *
+   * Monitoring comes first deliberately: a subscriber who never routes a request
+   * still needs somewhere to land, and under the new pricing most of them will
+   * be here for the watchlist rather than the proxy. Routing is a section, not
+   * the whole product.
+   */
+  const groups: NavGroup[] = guestForumMode
+    ? [{ label: 'Navigation', items: [
+        { label: '← BACK TO RANKINGS', href: '/' },
+        { label: 'FORUM', href: '/router/forum' },
+      ] }]
     : [
-        { label: 'HELP', href: '/router/help' },
-        { label: 'API DOCS', href: '/router/docs' },
-        ...(isForumAdmin ? [{ label: 'FORUM ADMIN', href: '/router/forum/admin' }] : []),
+        { label: 'Monitoring', items: [
+          { label: '← BACK TO RANKINGS', href: '/' },
+          { label: '★ WATCHLIST', href: '/watchlist' },
+          { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
+        ] },
+        { label: 'Routing', items: [
+          { label: 'DASHBOARD', href: '/router' },
+          { label: 'SR API KEY', href: '/router/keys' },
+          { label: 'PROVIDERS', href: '/router/providers' },
+          { label: 'ROUTING PREFERENCES', href: '/router/preferences' },
+          { label: 'ANALYTICS', href: '/router/analytics' },
+          { label: 'API MONITORING', href: '/router/monitoring' },
+          { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
+          { label: 'TEST KEYS', href: '/router/test-keys' },
+        ] },
+        { label: 'Data API', items: [
+          { label: 'DATA API KEYS', href: '/account/data-keys' },
+        ] },
+        ...(hasTeam ? [{ label: 'Team', items: [
+          { label: 'WORKSPACE', href: '/account/team' },
+        ] }] : []),
+        { label: 'Account', items: [
+          { label: 'SETTINGS', href: '/account/settings' },
+          { label: 'PLAN & BILLING', href: '/account/billing' },
+        ] },
+        { label: 'Community', items: [
+          { label: 'FORUM', href: '/router/forum' },
+          ...(isForumAdmin ? [{ label: 'FORUM ADMIN', href: '/router/forum/admin' }] : []),
+        ] },
+        { label: 'Support', grow: true, items: [
+          { label: 'HELP', href: '/router/help' },
+          { label: 'API DOCS', href: '/router/docs' },
+        ] },
       ];
 
   useEffect(() => {
@@ -121,29 +144,18 @@ export default function RouterSidebar() {
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="rv4-sidebar-section">
-        {(!collapsed || isMobile) && (
-          <div className="rv4-sidebar-section-label">Navigation</div>
-        )}
-        {navItems.map(item => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={pathname === item.href}
-            collapsed={collapsed && !isMobile}
-            onClick={isMobile ? () => setMobileOpen(false) : undefined}
-          />
-        ))}
-      </div>
-
-      {/* Account — hidden for guests */}
-      {userItems.length > 0 && (
-        <div className="rv4-sidebar-section">
+      {/* One render for every group — five near-identical blocks were how the
+          flat list survived so long. */}
+      {groups.map(group => (
+        <div
+          key={group.label}
+          className="rv4-sidebar-section"
+          style={group.grow ? { flex: 1 } : undefined}
+        >
           {(!collapsed || isMobile) && (
-            <div className="rv4-sidebar-section-label">Account</div>
+            <div className="rv4-sidebar-section-label">{group.label}</div>
           )}
-          {userItems.map(item => (
+          {group.items.map(item => (
             <NavLink
               key={item.href}
               item={item}
@@ -153,27 +165,8 @@ export default function RouterSidebar() {
             />
           ))}
         </div>
-      )}
-
-      {/* Support — hidden for guests */}
-      {supportItems.length > 0 ? (
-        <div className="rv4-sidebar-section" style={{ flex: 1 }}>
-          {(!collapsed || isMobile) && (
-            <div className="rv4-sidebar-section-label">Support</div>
-          )}
-          {supportItems.map(item => (
-            <NavLink
-              key={item.href}
-              item={item}
-              active={pathname === item.href}
-              collapsed={collapsed && !isMobile}
-              onClick={isMobile ? () => setMobileOpen(false) : undefined}
-            />
-          ))}
-        </div>
-      ) : (
-        <div style={{ flex: 1 }} />
-      )}
+      ))}
+      {!groups.some(g => g.grow) && <div style={{ flex: 1 }} />}
 
       {/* User footer */}
       {session?.user ? (

@@ -79,6 +79,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
 
             <button className="v4-drawer-item" onClick={() => go('/pricing')}>Pricing</button>
             <button className="v4-drawer-item" onClick={() => { setDrawer(false); onViewChange('about'); }}>About</button>
+            <button className="v4-drawer-item" onClick={() => go('/compare')}>Compare models</button>
             <button className="v4-drawer-item" onClick={() => go('/methodology')}>Methodology</button>
             <button className="v4-drawer-item" onClick={() => go('/router/forum')} style={{ color: 'var(--amber-warning)' }}>Forum</button>
 

@@ -11,6 +11,7 @@ import '../../../styles/model-detail-v4.css';
 
 // V4 components (shared with main page)
 import { TopBar, V4Footer } from '../../../components/v4';
+import MobileNav from '../../../components/v4/MobileNav';
 
 // Model-detail specific components
 import ModelDetailHeader from '../../../components/model-detail/ModelDetailHeader';
@@ -566,34 +567,16 @@ export default function ModelDetailClient({
       {/* Footer */}
       <V4Footer visitorCount={null} />
 
-      {/* Mobile nav */}
-      <div className="md-mobile-nav">
-        <button className="md-mobile-nav-btn" onClick={() => router.push('/')}>
-          ← DASH
-        </button>
-        <button className="md-mobile-nav-btn" onClick={() => {
-          const root = document.documentElement;
-          const themes = ['green', 'amber', 'blue', 'red', 'purple', 'cyan'];
-          const cur = root.getAttribute('data-theme') || 'green';
-          const next = themes[(themes.indexOf(cur) + 1) % themes.length];
-          root.setAttribute('data-theme', next);
-          localStorage.setItem('theme', next);
-        }}>
-          THEME
-        </button>
-        <button className="md-mobile-nav-btn" onClick={() => router.push('/compare')}>
-          COMPARE
-        </button>
-        <button className="md-mobile-nav-btn pro" onClick={() => router.push('/watchlist')}>
-          ★ WATCH
-        </button>
-        <button className="md-mobile-nav-btn" onClick={() => router.push('/router/forum')} style={{ color: '#ffb000', borderColor: 'rgba(255,176,0,0.4)' }}>
-          FORUM
-        </button>
-        <button className="md-mobile-nav-btn" onClick={() => router.push('/methodology')}>
-          DOCS
-        </button>
-      </div>
+      {/* One navigation for the whole site.
+          This page used to carry its own six-button bar with a second,
+          incompatible theme switcher — two nav systems and two theme systems
+          to keep in step. Compare moved into the shared drawer so nothing is
+          lost. */}
+      <MobileNav selectedView="model" onViewChange={(v) => {
+        if (v === 'dashboard') router.push('/');
+        else if (v === 'about') router.push('/about');
+        else router.push('/faq');
+      }} />
 
       {/* Warn that a freshly-added model has no settled baseline yet. Rendered only
           once the page has data, so it never covers the loading skeleton. */}
