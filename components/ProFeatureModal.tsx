@@ -1,5 +1,7 @@
 'use client';
 
+import { ENTRY_PAID_PLAN, planName, monthly } from '@/lib/pricing-display';
+
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
@@ -61,7 +63,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
   const details = featureDetails[feature];
 
   const handleUpgrade = () => {
-    router.push(session ? '/router/subscription' : '/auth/signup');
+    router.push(session ? '/pricing' : '/auth/signup');
   };
 
   return (
@@ -83,7 +85,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         </ul>
 
         <div className="pro-modal-pricebox">
-          <div className="pro-modal-price"><b>$4.99</b><span>/month</span></div>
+          <div className="pro-modal-price"><b>{monthly(ENTRY_PAID_PLAN)}</b><span> · {planName(ENTRY_PAID_PLAN)}</span></div>
           <div className="pro-modal-priceline">7-day free trial · cancel anytime · no card surprises</div>
         </div>
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { ENTRY_PAID_PLAN, monthlyLong } from '@/lib/pricing-display';
+
 import { useEffect, useState } from 'react';
 import { slugifyModelName } from '../lib/model-slug';
 
@@ -219,7 +221,7 @@ export default function IntelligencePreview() {
             background: 'rgba(0,191,255,0.06)', border: '2px solid rgba(0,191,255,0.3)',
             borderRadius: '3px', padding: '16px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8', marginBottom: '4px' }}>$4.99/month</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8', marginBottom: '4px' }}>{monthlyLong(ENTRY_PAID_PLAN)}</div>
             <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • Cancel Anytime</div>
             <button onClick={handleStartTrial} className="rv4-upgrade-cta">
               UNLOCK INTELLIGENCE NOW →

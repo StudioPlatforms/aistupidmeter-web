@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ROUTER_PLAN, planName, priceNumber } from '@/lib/pricing-display';
 import Script from 'next/script'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
@@ -319,12 +320,12 @@ export default function RootLayout({
                   "dateModified": new Date().toISOString().split('T')[0],
                   "offers": {
                     "@type": "Offer",
-                    "name": "AI Router PRO",
-                    "price": "4.99",
+                    "name": `ASL ${planName(ROUTER_PLAN)}`,
+                    "price": priceNumber(ROUTER_PLAN),
                     "priceCurrency": "USD",
                     "priceValidUntil": "2027-12-31",
                     "availability": "https://schema.org/InStock",
-                    "description": "AI Router PRO subscription: intelligent API routing, smart model selection based on live benchmarks, API monitoring with prompt auditing, budget controls, cost analytics, and one universal API key for all AI providers. 7-day free trial included."
+                    "description": "Intelligent API routing driven by live benchmark data, with per-request decision logs, budget controls, cost analytics and one universal key across supported providers. Provider inference is billed separately by your own providers."
                   },
                   "featureList": [
                     "AI benchmark testing and evaluation across 20+ models",

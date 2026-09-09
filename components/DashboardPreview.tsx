@@ -1,5 +1,7 @@
 'use client';
 
+import { ROUTER_PLAN, monthly, monthlyLong } from '@/lib/pricing-display';
+
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 
 export default function DashboardPreview() {
@@ -63,7 +65,7 @@ export default function DashboardPreview() {
       <div className="rv4-upgrade-hero">
         <div className="rv4-upgrade-hero-title">ROUTE ON MEASURED PERFORMANCE</div>
         <div className="rv4-upgrade-hero-sub">Pick models from live benchmark data instead of guesswork — in our own benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less per request</div>
-        <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
+        <div className="rv4-upgrade-price">{monthly(ROUTER_PLAN)}</div>
         <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
           Start Free Trial →
@@ -198,7 +200,7 @@ export default function DashboardPreview() {
         borderRadius: '3px', padding: '20px', textAlign: 'center', marginBottom: '16px',
       }}>
         <div style={{ fontSize: '22px', fontWeight: 'bold', color: 'var(--amber-warning)', textShadow: '0 0 8px rgba(255,176,0,0.4)', marginBottom: '6px' }}>
-          $4.99/month
+          {monthlyLong(ROUTER_PLAN)}
         </div>
         <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
           7-Day Free Trial • Cancel Anytime

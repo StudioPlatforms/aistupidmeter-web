@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
     
     if (!user) {
       console.error('[Portal] User not found in database');
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/router/subscription?error=user_not_found`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/account/billing?error=user_not_found`);
     }
     
     if (!user.stripe_customer_id) {
       console.error('[Portal] User has no Stripe customer ID');
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/router/subscription?error=no_subscription`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/account/billing?error=no_subscription`);
     }
 
     console.log('[Portal] Creating portal session for customer:', user.stripe_customer_id);
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Create Stripe billing portal session
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/router/subscription`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/billing`,
     });
 
     console.log('[Portal] Portal session created, redirecting to:', portalSession.url);
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[Portal] Error:', error);
     console.error('[Portal] Error stack:', error.stack);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/router/subscription?error=portal_failed&message=${encodeURIComponent(error.message || 'Unknown error')}`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/account/billing?error=portal_failed&message=${encodeURIComponent(error.message || 'Unknown error')}`);
   }
 }
 

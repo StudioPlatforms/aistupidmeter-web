@@ -1,5 +1,7 @@
 'use client';
 
+import { ROUTER_PLAN, monthly, monthlyLong } from '@/lib/pricing-display';
+
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
 import { useEffect, useState } from 'react';
@@ -79,7 +81,7 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
         <div className="rv4-upgrade-hero">
           <div className="rv4-upgrade-hero-title">{feature.toUpperCase()} IS A PRO FEATURE</div>
           <div className="rv4-upgrade-hero-sub">Upgrade to AI Router PRO to unlock this and all other Pro features</div>
-          <div className="rv4-upgrade-price">$4.99<sub>/mo</sub></div>
+          <div className="rv4-upgrade-price">{monthly(ROUTER_PLAN)}</div>
           <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
           <button onClick={handleUpgrade} className="rv4-upgrade-cta">
             Upgrade to PRO →
@@ -137,7 +139,7 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
           borderRadius: '3px', padding: '20px', textAlign: 'center', marginBottom: '16px',
         }}>
           <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '6px' }}>
-            $4.99/month
+            {monthlyLong(ROUTER_PLAN)}
           </div>
           <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
             7-Day Free Trial • Cancel Anytime

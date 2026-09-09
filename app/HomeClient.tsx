@@ -1,5 +1,7 @@
 'use client';
 
+import { ENTRY_PAID_PLAN, planName, monthly } from '@/lib/pricing-display';
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -4759,7 +4761,7 @@ export default function Dashboard() {
             </ul>
 
             <div className="pro-modal-pricebox">
-              <div className="pro-modal-price"><b>$4.99</b><span>/month</span></div>
+              <div className="pro-modal-price"><b>{monthly(ENTRY_PAID_PLAN)}</b><span> · {planName(ENTRY_PAID_PLAN)}</span></div>
               <div className="pro-modal-priceline">7-day free trial · cancel anytime</div>
             </div>
 

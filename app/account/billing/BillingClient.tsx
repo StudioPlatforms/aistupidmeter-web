@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { monthlyLong } from '@/lib/pricing-display';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, SELLABLE_PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
@@ -97,7 +98,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
             fontSize: '0.85em', lineHeight: 1.6,
           }}>
             You are on our original Pro plan — routing and Data API access included, at your
-            original <strong>$4.99/month</strong>, held until September 2027. Nothing in our
+            original <strong>{monthlyLong('legacy_pro')}</strong>, held until September 2027. Nothing in our
             current pricing reduces what you have; you only move if you choose to.
           </p>
         )}
@@ -134,7 +135,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
         <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Change plan</h2>
         <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
           {isLegacy
-            ? 'Moving to a current plan ends your held $4.99 price. Compare carefully before switching — your plan already includes routing and Data API access.'
+            ? `Moving to a current plan ends your held ${monthlyLong('legacy_pro')} price. Compare carefully before switching — your plan already includes routing and Data API access.`
             : 'Every plan collects a payment method at checkout, including during a free trial, and you can cancel any time.'}
         </p>
         <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>

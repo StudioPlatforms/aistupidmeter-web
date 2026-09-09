@@ -1,5 +1,7 @@
 'use client';
 
+import { ROUTER_PLAN, monthly } from '@/lib/pricing-display';
+
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
 import React from 'react';
@@ -373,7 +375,7 @@ export default function AnalyticsPanel({
 
       {/* Pro CTA */}
       <div className="v4-pro-cta" onClick={() => router.push('/router')} style={{ margin: '8px 10px' }}>
-        <div className="v4-pro-cta-title">⚡ PRO ROUTER — $4.99/mo</div>
+        <div className="v4-pro-cta-title">⚡ SMART ROUTER — {monthly(ROUTER_PLAN)}</div>
         <div className="v4-pro-cta-sub">Benchmark-powered routing • All models • {SAVINGS_PCT}% measured cost gap</div>
         <div className="v4-pro-cta-price">7-day free trial → Start now</div>
       </div>

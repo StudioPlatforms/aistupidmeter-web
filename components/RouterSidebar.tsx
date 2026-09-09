@@ -49,6 +49,9 @@ export default function RouterSidebar() {
       ]
     : [
         { label: '← BACK TO RANKINGS', href: '/' },
+        // Monitoring first: a subscriber who never routes a request still needs
+        // somewhere to land, and the watchlist is the reason most of them stay.
+        { label: '★ WATCHLIST', href: '/watchlist' },
         { label: 'DASHBOARD', href: '/router' },
         { label: 'SR API KEY', href: '/router/keys' },
         { label: 'DATA API KEYS', href: '/router/data-keys' },
@@ -65,8 +68,8 @@ export default function RouterSidebar() {
   const userItems: NavItem[] = guestForumMode
     ? []
     : [
-        { label: 'PROFILE', href: '/router/profile' },
-        { label: 'SUBSCRIPTION', href: '/router/subscription' },
+        { label: 'SETTINGS', href: '/account/settings' },
+        { label: 'PLAN & BILLING', href: '/account/billing' },
       ];
 
   const userRole = (session?.user as any)?.role;

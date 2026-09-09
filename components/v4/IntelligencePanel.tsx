@@ -1,5 +1,7 @@
 'use client';
 
+import { ENTRY_PAID_PLAN, monthly } from '@/lib/pricing-display';
+
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
 import { useRouter } from 'next/navigation';
@@ -302,7 +304,7 @@ export default function IntelligencePanel({
         <div className="v4-pro-cta-title">⚡ UNLOCK PRO ROUTER</div>
         <div className="v4-pro-cta-sub">Intelligent routing powered by live benchmark data</div>
         <div className="v4-pro-cta-sub">Route on live benchmark data • {SAVINGS_PCT}% measured cost gap</div>
-        <div className="v4-pro-cta-price">$4.99/mo — 7-day free trial</div>
+        <div className="v4-pro-cta-price">{monthly(ENTRY_PAID_PLAN)} — 7-day free trial</div>
       </div>
 
       {/* Activity Feed */}

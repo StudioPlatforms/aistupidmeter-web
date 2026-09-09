@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'AI Smart Router — Route to the Best AI Model Automatically',
-    description: 'One API key for GPT-5, Claude, Gemini, DeepSeek and more. Smart routing, prompt auditing, budget controls. $4.99/mo with 7-day free trial.',
+    description: 'One API key for GPT-5, Claude, Gemini, DeepSeek and more. Smart routing, prompt auditing, budget controls and per-request decision logs. Free tier included.',
   },
   alternates: {
     canonical: '/router',

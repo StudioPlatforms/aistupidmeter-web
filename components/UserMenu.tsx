@@ -11,7 +11,7 @@ export async function UserMenu() {
 
   return (
     <div className="flex items-center space-x-4">
-      <Link href="/router/profile" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+      <Link href="/account/settings" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
         {session.user.image && (
           <Image
             src={session.user.image}
@@ -31,7 +31,7 @@ export async function UserMenu() {
       
       <div className="flex items-center space-x-2">
         <Link
-          href="/router/subscription"
+          href="/account/billing"
           className="text-sm text-gray-600 hover:text-gray-900 font-medium px-3 py-1 rounded hover:bg-gray-100 transition-colors"
         >
           💳 Subscription

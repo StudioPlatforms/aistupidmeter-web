@@ -1,5 +1,7 @@
 'use client';
 
+import { ROUTER_PLAN, monthlyLong } from '@/lib/pricing-display';
+
 // Keep in step with app/router/preferences/page.tsx — this is the blurred
 // preview of that page shown to users without a subscription.
 const ROUTING_STRATEGIES = [
@@ -158,7 +160,7 @@ export default function PreferencesPreview() {
             background: 'rgba(255,140,0,0.06)', border: '2px solid rgba(255,140,0,0.4)',
             borderRadius: '3px', padding: '16px', textAlign: 'center', marginTop: '14px',
           }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '4px' }}>$4.99/month</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '4px' }}>{monthlyLong(ROUTER_PLAN)}</div>
             <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • Cancel Anytime</div>
             <button onClick={handleStartTrial} className="rv4-upgrade-cta">
               CUSTOMIZE YOUR ROUTER NOW →
