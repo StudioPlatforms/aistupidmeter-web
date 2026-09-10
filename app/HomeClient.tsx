@@ -2815,7 +2815,7 @@ export default function Dashboard() {
                 ))}
                 {loadingUserBenchmark && (
                   <div className="terminal-text--amber">
-                    <span className="blinking-cursor">█</span> Processing...
+                    Processing…
                   </div>
                 )}
               </div>

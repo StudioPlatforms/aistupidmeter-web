@@ -67,12 +67,11 @@ export function SignInForm() {
       
       <div className="crt-monitor">
         <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-            <span className="terminal-text--green">SYSTEM ACCESS</span>
-            <span className="blinking-cursor"></span>
+          <div style={{ fontSize: '1.5em', marginBottom: '10px', textAlign: 'center' }}>
+            Sign in
           </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px' }}>
-            AI Router Authentication Portal
+          <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px', lineHeight: 1.55 }}>
+            Your watchlist, alerts, plan and the Smart Router — all in one account.
           </div>
           
           {error && (
@@ -91,13 +90,13 @@ export function SignInForm() {
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '16px' }}>
               <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                EMAIL ADDRESS:
+                Email address
               </div>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="user@domain.com"
+                placeholder="you@company.com"
                 required
                 disabled={loading}
                 style={{
@@ -115,7 +114,7 @@ export function SignInForm() {
 
             <div style={{ marginBottom: '20px' }}>
               <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                PASSWORD:
+                Password
               </div>
               <input
                 type="password"
@@ -155,7 +154,7 @@ export function SignInForm() {
             
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <button type="submit" disabled={loading} className="vintage-btn" style={{ padding: '12px 32px', fontSize: '1.1em' }}>
-                {loading ? 'AUTHENTICATING...' : 'SIGN IN'}
+                {loading ? 'Signing in…' : 'Sign in'}
               </button>
             </div>
           </form>
@@ -192,7 +191,7 @@ export function SignInForm() {
               className="vintage-btn"
               style={{ width: '100%', padding: '12px' }}
             >
-              🔗 CONTINUE WITH GOOGLE
+              Continue with Google
             </button>
 
             <button
@@ -201,7 +200,7 @@ export function SignInForm() {
               className="vintage-btn"
               style={{ width: '100%', padding: '12px' }}
             >
-              ⚡ CONTINUE WITH GITHUB
+              Continue with GitHub
             </button>
           </div>
 
@@ -212,10 +211,10 @@ export function SignInForm() {
             paddingTop: '16px'
           }}>
             <div className="terminal-text--amber" style={{ marginBottom: '8px' }}>
-              DON'T HAVE AN ACCOUNT?
+              New to AI Stupid Level?
             </div>
             <Link href="/auth/signup" className="vintage-btn" style={{ textDecoration: 'none' }}>
-              CREATE ACCOUNT
+              Create a free account
             </Link>
           </div>
         </div>
@@ -228,7 +227,7 @@ export function SignInForm() {
         fontSize: '0.8em'
       }}>
         <div className="terminal-text--dim">
-          <span className="blinking-cursor">█</span> SECURE CONNECTION ESTABLISHED
+          Free to create. We never sell your data, and we take no money from any model provider.
         </div>
       </div>
     </div>

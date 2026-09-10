@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import SubpageLayout from '@/components/SubpageLayout';
+import AccountShell from '@/components/AccountShell';
 import TeamClient from './TeamClient';
 
 export const metadata: Metadata = {
@@ -19,8 +19,8 @@ export const dynamic = 'force-dynamic';
 
 export default function TeamPage() {
   return (
-    <SubpageLayout>
+    <AccountShell>
       <TeamClient />
-    </SubpageLayout>
+    </AccountShell>
   );
 }

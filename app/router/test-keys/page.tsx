@@ -640,7 +640,7 @@ export default function TestKeysPage() {
               ))}
               {testing && (
                 <div className="terminal-text--amber">
-                  <span className="blinking-cursor">█</span> Processing...
+                  Processing…
                 </div>
               )}
             </div>

@@ -71,8 +71,11 @@ export default function RouterSidebar() {
         { label: 'FORUM', href: '/router/forum' },
       ] }]
     : [
-        { label: 'Monitoring', items: [
+        { label: 'Overview', items: [
           { label: '← BACK TO RANKINGS', href: '/' },
+          { label: 'ACCOUNT HOME', href: '/account' },
+        ] },
+        { label: 'Monitoring', items: [
           { label: '★ WATCHLIST', href: '/watchlist' },
           { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
         ] },
@@ -126,7 +129,7 @@ export default function RouterSidebar() {
       {/* Logo header */}
       <div className="rv4-sidebar-logo">
         {(!collapsed || isMobile) && (
-          <span className="rv4-sidebar-brand">AI <em>ROUTER</em></span>
+          <span className="rv4-sidebar-brand">ASL <em>ACCOUNT</em></span>
         )}
         {!isMobile && (
           <button

@@ -58,6 +58,7 @@ export default function AccountMenu() {
   const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
 
   const items: Item[] = [
+    { label: 'Account home', href: '/account' },
     { label: 'Watchlist', href: '/watchlist' },
     { label: 'Plan & billing', href: '/account/billing' },
     { label: 'Settings', href: '/account/settings' },

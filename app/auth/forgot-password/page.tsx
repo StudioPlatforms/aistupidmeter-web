@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
       <div className="crt-monitor">
         <div className="terminal-text">
           <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-            <span className="terminal-text--amber">PASSWORD RECOVERY</span>
+            Reset your password
             <span className="blinking-cursor"></span>
           </div>
           
@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
                     className="vintage-btn" 
                     style={{ padding: '12px 32px', fontSize: '1.1em' }}
                   >
-                    {loading ? 'SENDING...' : 'SEND RESET LINK'}
+                    {loading ? 'Sending…' : 'Send reset link'}
                   </button>
                 </div>
               </form>
@@ -120,10 +120,10 @@ export default function ForgotPasswordPage() {
                 paddingTop: '16px'
               }}>
                 <div className="terminal-text--dim" style={{ marginBottom: '8px' }}>
-                  REMEMBER YOUR PASSWORD?
+                  Remembered it?
                 </div>
                 <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-                  BACK TO SIGN IN
+                  Back to sign in
                 </Link>
               </div>
             </>
@@ -139,7 +139,7 @@ export default function ForgotPasswordPage() {
               }}>
                 <div style={{ fontSize: '2em', marginBottom: '10px' }}>✓</div>
                 <div style={{ fontSize: '1.2em', marginBottom: '10px' }}>
-                  CHECK YOUR EMAIL
+                  Check your email
                 </div>
                 <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
                   If an account exists with <strong>{email}</strong>, you will receive a password reset link shortly.
@@ -154,7 +154,7 @@ export default function ForgotPasswordPage() {
                 marginBottom: '20px',
                 fontSize: '0.9em'
               }}>
-                <strong>⚠️ IMPORTANT:</strong>
+                <strong>Before you go looking:</strong>
                 <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
                   <li>The reset link will expire in 1 hour</li>
                   <li>Check your spam folder if you don't see the email</li>
@@ -164,7 +164,7 @@ export default function ForgotPasswordPage() {
 
               <div style={{ textAlign: 'center' }}>
                 <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-                  BACK TO SIGN IN
+                  Back to sign in
                 </Link>
               </div>
             </>
@@ -178,7 +178,7 @@ export default function ForgotPasswordPage() {
         fontSize: '0.8em'
       }}>
         <div className="terminal-text--dim">
-          <span className="blinking-cursor">█</span> SECURE CONNECTION ESTABLISHED
+          The link works once and expires after an hour.
         </div>
       </div>
     </div>

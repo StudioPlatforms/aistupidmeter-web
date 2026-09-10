@@ -86,6 +86,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
             {authed ? (
               <>
                 <div className="v4-drawer-sep" />
+                <button className="v4-drawer-item" onClick={() => go('/account')}>Account home</button>
                 <button className="v4-drawer-item" onClick={() => go('/account/billing')}>Plan &amp; billing</button>
                 <button className="v4-drawer-item" onClick={() => go('/account/settings')}>Settings</button>
                 {hasTeam && <button className="v4-drawer-item" onClick={() => go('/account/team')}>Team</button>}

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import SubpageLayout from '@/components/SubpageLayout';
+import AccountShell from '@/components/AccountShell';
 import WatchlistClient from './WatchlistClient';
 
 export const metadata: Metadata = {
@@ -21,8 +21,8 @@ export const dynamic = 'force-dynamic';
 
 export default function WatchlistPage() {
   return (
-    <SubpageLayout>
+    <AccountShell>
       <WatchlistClient />
-    </SubpageLayout>
+    </AccountShell>
   );
 }

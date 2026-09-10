@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import SubpageLayout from '@/components/SubpageLayout';
+import AccountShell from '@/components/AccountShell';
 import BillingClient from './BillingClient';
 import { priceIdFor, type SellablePlan } from '@/lib/stripe-plans';
 
@@ -24,8 +24,8 @@ export default function BillingPage() {
     .filter(p => priceIdFor(p, 'monthly') || priceIdFor(p, 'annual'));
 
   return (
-    <SubpageLayout>
+    <AccountShell>
       <BillingClient buyable={buyable} />
-    </SubpageLayout>
+    </AccountShell>
   );
 }

@@ -312,7 +312,7 @@ function RouterDashboardContent() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
                     { title: 'LIVE BENCHMARK DATA', desc: 'Real-time performance data from AI Stupid Meter 9-axis testing' },
-                    { title: '6 ROUTING STRATEGIES', desc: 'Best Overall, Coding, Reasoning, Creative, Cheapest, or Fastest' },
+                    { title: '8 ROUTING STRATEGIES', desc: 'Best Overall, Coding, Reasoning, Creative, Cheapest, Fastest, Tool-use or Agentic' },
                     { title: 'COST AWARENESS', desc: `Prefers cheaper models when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements` },
                     { title: 'AUTO FAILOVER', desc: 'Zero downtime with intelligent fallback to alternatives' },
                   ].map((f, i) => (
@@ -331,7 +331,7 @@ function RouterDashboardContent() {
         </div>
 
         <div className="rv4-footer">
-          Powered by AI Stupid Meter • Real-time model intelligence from 16+ models tested every 4 hours • <a href="/">View Live Rankings</a>
+          Powered by AI Stupid Meter • Real-time model intelligence from 24 models re-tested every 4 hours • <a href="/">View Live Rankings</a>
         </div>
       </div>
     </RouterLayout>

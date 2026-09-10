@@ -97,7 +97,7 @@ function ResetPasswordForm() {
         <div className="crt-monitor">
           <div className="terminal-text" style={{ textAlign: 'center', padding: '40px' }}>
             <div className="terminal-text--amber" style={{ fontSize: '1.2em' }}>
-              VALIDATING RESET LINK<span className="blinking-cursor"></span>
+              Checking your reset link…
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ function ResetPasswordForm() {
         <div className="crt-monitor">
           <div className="terminal-text">
             <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-              <span className="terminal-text--red">INVALID LINK</span>
+              This link is no longer valid
             </div>
             
             <div className="terminal-text--red" style={{ 
@@ -164,7 +164,7 @@ function ResetPasswordForm() {
       <div className="crt-monitor">
         <div className="terminal-text">
           <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-            <span className="terminal-text--green">RESET PASSWORD</span>
+            Choose a new password
             <span className="blinking-cursor"></span>
           </div>
           
@@ -259,7 +259,7 @@ function ResetPasswordForm() {
                     className="vintage-btn" 
                     style={{ padding: '12px 32px', fontSize: '1.1em' }}
                   >
-                    {loading ? 'RESETTING...' : 'RESET PASSWORD'}
+                    {loading ? 'Saving…' : 'Save new password'}
                   </button>
                 </div>
               </form>
@@ -309,7 +309,7 @@ function ResetPasswordForm() {
         fontSize: '0.8em'
       }}>
         <div className="terminal-text--dim">
-          <span className="blinking-cursor">█</span> SECURE CONNECTION ESTABLISHED
+          Signing in again with the new password confirms it worked.
         </div>
       </div>
     </div>
@@ -327,7 +327,7 @@ export default function ResetPasswordPage() {
         <div className="crt-monitor">
           <div className="terminal-text" style={{ textAlign: 'center', padding: '40px' }}>
             <div className="terminal-text--amber" style={{ fontSize: '1.2em' }}>
-              LOADING<span className="blinking-cursor"></span>
+              Loading…
             </div>
           </div>
         </div>

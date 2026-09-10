@@ -111,12 +111,12 @@ export default function SignUpPage() {
       
       <div className="crt-monitor">
         <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-            <span className="terminal-text--green">CREATE ACCOUNT</span>
-            <span className="blinking-cursor"></span>
+          <div style={{ fontSize: '1.5em', marginBottom: '10px', textAlign: 'center' }}>
+            Create your free account
           </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px' }}>
-            Join the AI Router Network
+          <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px', lineHeight: 1.55 }}>
+            Track three models, and we will tell you when their measured performance
+            changes — and when it does not. No card required.
           </div>
           
           {error && (
@@ -135,13 +135,13 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '16px' }}>
               <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                EMAIL ADDRESS:
+                Email address
               </div>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="user@domain.com"
+                placeholder="you@company.com"
                 required
                 disabled={loading}
                 style={{
@@ -159,7 +159,7 @@ export default function SignUpPage() {
 
             <div style={{ marginBottom: '16px' }}>
               <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                PASSWORD:
+                Password
               </div>
               <input
                 type="password"
@@ -183,7 +183,7 @@ export default function SignUpPage() {
 
             <div style={{ marginBottom: '20px' }}>
               <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                CONFIRM PASSWORD:
+                Confirm password
               </div>
               <input
                 type="password"
@@ -207,7 +207,7 @@ export default function SignUpPage() {
             
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <button type="submit" disabled={loading} className="vintage-btn" style={{ padding: '12px 32px', fontSize: '1.1em' }}>
-                {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
+                {loading ? 'Creating your account…' : 'Create account'}
               </button>
             </div>
           </form>
@@ -244,7 +244,7 @@ export default function SignUpPage() {
               className="vintage-btn"
               style={{ width: '100%', padding: '12px' }}
             >
-              🔗 CONTINUE WITH GOOGLE
+              Continue with Google
             </button>
 
             <button
@@ -253,7 +253,7 @@ export default function SignUpPage() {
               className="vintage-btn"
               style={{ width: '100%', padding: '12px' }}
             >
-              ⚡ CONTINUE WITH GITHUB
+              Continue with GitHub
             </button>
           </div>
 
@@ -264,10 +264,10 @@ export default function SignUpPage() {
             paddingTop: '16px'
           }}>
             <div className="terminal-text--amber" style={{ marginBottom: '8px' }}>
-              ALREADY HAVE AN ACCOUNT?
+              Already have an account?
             </div>
             <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-              SIGN IN
+              Sign in
             </Link>
           </div>
         </div>
@@ -280,7 +280,7 @@ export default function SignUpPage() {
         fontSize: '0.8em'
       }}>
         <div className="terminal-text--dim">
-          <span className="blinking-cursor">█</span> SECURE CONNECTION ESTABLISHED
+          Free forever on the basic plan. No card required to start.
         </div>
       </div>
     </div>
