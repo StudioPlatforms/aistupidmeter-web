@@ -4,7 +4,8 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
-import { PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
+import { PLANS, isPlan, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
 
 interface NavItem {
   label: string;
@@ -56,6 +57,7 @@ export default function RouterSidebar() {
   const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
   const projects = PLANS[plan].projects;
   const hasTeam = isUnlimited(projects) || projects >= 1;
+  const hasGovernance = planMeets(plan, REQUIRED_PLAN.governance);
 
   /**
    * Grouped rather than one flat list of twelve.
@@ -94,7 +96,7 @@ export default function RouterSidebar() {
         ] },
         ...(hasTeam ? [{ label: 'Team', items: [
           { label: 'WORKSPACE', href: '/account/team' },
-          { label: 'SECURITY', href: '/account/security' },
+          ...(hasGovernance ? [{ label: 'SECURITY', href: '/account/security' }] : []),
         ] }] : []),
         { label: 'Account', items: [
           { label: 'SETTINGS', href: '/account/settings' },

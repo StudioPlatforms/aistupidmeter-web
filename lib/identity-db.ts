@@ -151,6 +151,26 @@ export function stampRole(db: Database.Database, role: DbRole, description: stri
 export function openIdentityDb(options?: Database.Options): Database.Database {
   const path = identityDbPath();
   const db = new Database(path, options);
+
+  /**
+   * The same pragmas the API's accessor sets. This side had none, which cost
+   * two things quietly:
+   *
+   * - `busy_timeout`: the API writes to this file concurrently. Without a
+   *   timeout a write that collides returns SQLITE_BUSY immediately instead of
+   *   waiting the moment it takes for the other writer to commit.
+   * - `foreign_keys`: SQLite defaults this OFF, which makes every ON DELETE
+   *   CASCADE in the schema inert and lets a row reference a parent that does
+   *   not exist. SCIM and SSO both insert organisation members from here, so
+   *   this side needs the constraint just as much as the API side does.
+   *
+   * WAL is a persistent property of the file rather than the connection; it is
+   * set anyway so that whichever process opens it first gets it right.
+   */
+  db.pragma('journal_mode = WAL');
+  db.pragma('busy_timeout = 5000');
+  db.pragma('foreign_keys = ON');
+
   if (!verified.has(path)) {
     try {
       assertIsIdentityDb(db, path);

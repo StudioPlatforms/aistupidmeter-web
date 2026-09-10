@@ -35,6 +35,13 @@ const rowS: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14,
   padding: '11px 0', borderTop: '1px solid var(--border-subtle, #2a2a2a)',
 };
+/** "1 project" / "3 projects" / "Unlimited projects" — never "1 projects". */
+function plural(n: number | undefined, noun: string): string {
+  if (n === undefined) return noun;
+  if (n === -1) return `unlimited ${noun}s`;
+  return `${n} ${noun}${n === 1 ? '' : 's'}`;
+}
+
 const field: React.CSSProperties = {
   padding: '8px 10px', background: 'rgba(0,0,0,0.04)',
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 3,
@@ -88,10 +95,11 @@ export default function TeamClient() {
   if (!d?.org && d?.canCreate === false) {
     return (
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '50px 20px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '1.35em', marginBottom: 10 }}>Shared workspaces are part of Teams</h1>
+        <h1 style={{ fontSize: '1.35em', marginBottom: 10 }}>Workspaces start on Developer</h1>
         <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 24 }}>
-          Teams adds five editor seats and unlimited viewers, three projects so client work stays
-          separate, shared watchlists, and webhooks so findings reach your own tooling.
+          Developer gives you a workspace of your own with one project, to keep a piece of work and
+          its watchlist separate. Teams opens it up: five editor seats, unlimited viewers, three
+          projects, webhooks, single sign-on and the audit trail.
         </p>
         <Link href="/pricing" className="vintage-btn" style={{ padding: '11px 22px', textDecoration: 'none' }}>
           Compare plans
@@ -108,8 +116,14 @@ export default function TeamClient() {
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '50px 20px' }}>
         <h1 style={{ fontSize: '1.35em', marginBottom: 8 }}>Create your workspace</h1>
         <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 20 }}>
-          A workspace is where your team shares monitoring. You get {d.seatLimit} editor seats,
-          unlimited viewers and {d.projectLimit} projects.
+          {d.seatLimit === 1
+            ? <>A workspace keeps a piece of work and its watchlist separate from the rest of your
+                account. Your plan includes {plural(d.projectLimit, 'project')} and one editor seat.
+                You can still invite people as viewers — those do not use a seat — and Teams adds
+                more editors.</>
+            : <>A workspace is where your team shares monitoring. You get{' '}
+                {plural(d.seatLimit, 'editor seat')}, unlimited viewers and{' '}
+                {plural(d.projectLimit, 'project')}.</>}
         </p>
         <form onSubmit={async e => {
           e.preventDefault();

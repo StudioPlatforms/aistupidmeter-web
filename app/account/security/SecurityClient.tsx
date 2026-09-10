@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { PLANS, isPlan, planMeets, type Plan } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
 
 interface ScimToken {
   id: number; token_prefix: string; name: string | null;
@@ -82,6 +83,7 @@ export default function SecurityClient() {
   const [audit, setAudit] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [gateMsg, setGateMsg] = useState<string | null>(null);
+  const [needsWorkspace, setNeedsWorkspace] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [freshToken, setFreshToken] = useState<string | null>(null);
 
@@ -115,7 +117,10 @@ export default function SecurityClient() {
           setJit(s.jitProvisioning); setEnabled(s.enabled);
         }
       } else if (sec?.error) {
-        setGateMsg(sec.message || 'You do not have access to security settings.');
+        // Two different 403s arrive here and they need opposite answers: an
+        // upgrade prompt, or "make a workspace first".
+        setNeedsWorkspace(sec.error !== 'upgrade_required');
+        setGateMsg(sec.message ?? null);
       }
       if (aud?.success) setAudit(aud.data.rows ?? []);
     }).finally(() => setLoading(false));
@@ -140,7 +145,25 @@ export default function SecurityClient() {
   }
   if (loading) return <div style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
 
-  if (gateMsg || !planMeets(plan, 'teams')) {
+  // Entitled, but with nowhere to put the settings yet.
+  if (needsWorkspace && planMeets(plan, REQUIRED_PLAN.governance)) {
+    return (
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '50px 20px' }}>
+        <h1 style={{ fontSize: '1.4em', margin: '0 0 10px' }}>Create your workspace first</h1>
+        <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 22 }}>
+          Single sign-on, SCIM provisioning and the audit trail all belong to a workspace — they
+          decide who may act inside one. Your {PLANS[plan].label} plan includes them; create the
+          workspace and these settings become available immediately.
+        </p>
+        <Link href="/account/team" className="vintage-btn vintage-btn--primary"
+          style={{ padding: '10px 20px', textDecoration: 'none' }}>
+          Create a workspace
+        </Link>
+      </div>
+    );
+  }
+
+  if (needsWorkspace || gateMsg || !planMeets(plan, REQUIRED_PLAN.governance)) {
     return (
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '50px 20px' }}>
         <h1 style={{ fontSize: '1.4em', margin: '0 0 10px' }}>Security &amp; governance</h1>
