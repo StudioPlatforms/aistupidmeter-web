@@ -54,8 +54,8 @@ export default function RouterSidebar() {
   const isForumAdmin = userRole === 'admin' || userRole === 'superadmin';
 
   const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
-  const seats = PLANS[plan].seats;
-  const hasTeam = isUnlimited(seats) || seats > 1;
+  const projects = PLANS[plan].projects;
+  const hasTeam = isUnlimited(projects) || projects >= 1;
 
   /**
    * Grouped rather than one flat list of twelve.
@@ -94,6 +94,7 @@ export default function RouterSidebar() {
         ] },
         ...(hasTeam ? [{ label: 'Team', items: [
           { label: 'WORKSPACE', href: '/account/team' },
+          { label: 'SECURITY', href: '/account/security' },
         ] }] : []),
         { label: 'Account', items: [
           { label: 'SETTINGS', href: '/account/settings' },

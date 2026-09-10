@@ -365,7 +365,7 @@ export default function PerformanceTimingPage() {
 
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="Performance Timing">
+      <SubscriptionGuard feature="Performance timing" requires="routing-analytics">
         {/* Page header */}
         <div className="rv4-page-header">
           <div className="rv4-page-header-left">

@@ -149,7 +149,7 @@ export default function RouterAnalyticsPage() {
 
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="Analytics">
+      <SubscriptionGuard feature="Routing analytics" requires="routing-analytics">
         {/* Page header */}
         <div className="rv4-page-header">
           <div className="rv4-page-header-left">

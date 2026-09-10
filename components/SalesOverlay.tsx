@@ -1,12 +1,13 @@
 'use client';
 
 import { ROUTER_PLAN, monthly, monthlyLong } from '@/lib/pricing-display';
+import { upgradeHref } from '@/lib/checkout-url';
 
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 
 export default function SalesOverlay() {
   const handleStartTrial = () => {
-    window.location.href = '/api/stripe/checkout';
+    window.location.href = upgradeHref(ROUTER_PLAN, 'monthly');
   };
 
   return (
@@ -17,7 +18,7 @@ export default function SalesOverlay() {
         <div className="rv4-upgrade-hero-title">ROUTE ON MEASURED PERFORMANCE<span className="blinking-cursor"></span></div>
         <div className="rv4-upgrade-hero-sub">Pick models from live benchmark data instead of guesswork — in our own benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less per request</div>
         <div className="rv4-upgrade-price">{monthly(ROUTER_PLAN)}</div>
-        <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
+        <div className="rv4-upgrade-trial-badge">FREE TRIAL</div>
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
           Start Free Trial →
         </button>

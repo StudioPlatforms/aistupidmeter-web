@@ -90,11 +90,10 @@ export function configuredPlans(): Array<{ plan: SellablePlan; interval: Interva
  * Until a plan's Price is configured, `priceIdFor` returns null, the pricing page
  * marks it unavailable, and checkout refuses. `STRIPE_PRICE_ID` still has a job —
  * `planForPriceId` uses it to map existing subscribers to legacy_pro — but it can
- * never back a new purchase.
+ * never back a new purchase. The `priceIdWithLegacyFallback` wrapper that used to
+ * sit here was removed once its last caller was gone: a function whose name
+ * promises a fallback it does not perform is an invitation to reintroduce one.
  */
-export function priceIdWithLegacyFallback(plan: SellablePlan, interval: Interval): string | null {
-  return priceIdFor(plan, interval);
-}
 
 /** Reverse lookup for the webhook: which plan does this Price grant? */
 export function planForPriceId(priceId: string | null | undefined): Plan | null {

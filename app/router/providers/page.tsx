@@ -122,7 +122,7 @@ export default function RouterProvidersPage() {
 
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="Providers">
+      <SubscriptionGuard feature="Provider keys" requires="routing">
         {/* Page header */}
         <div className="rv4-page-header">
           <div className="rv4-page-header-left">

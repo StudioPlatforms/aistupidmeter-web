@@ -90,7 +90,10 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
       </div>
       <div className="v4-topbar-right">
         <span className="visitors-count">
-          👁 <b style={{ color: 'var(--phosphor-green)' }}>{todayVisits !== null ? todayVisits.toLocaleString() : visitorCount ? (visitorCount >= 1000 ? `${Math.round(visitorCount / 1000)}K` : visitorCount.toLocaleString()) : '...'}</b> today
+          {/* Was an eye emoji. Dropped for the same reason the rest of the
+              chrome lost its pictograms in the clean redesign, and the label now
+              says what the number is rather than leaving it to an icon. */}
+          <b style={{ color: 'var(--phosphor-green)' }}>{todayVisits !== null ? todayVisits.toLocaleString() : visitorCount ? (visitorCount >= 1000 ? `${Math.round(visitorCount / 1000)}K` : visitorCount.toLocaleString()) : '…'}</b> visits today
         </span>
         <div className="v4-live-dot"></div>
         <span>ONLINE</span>

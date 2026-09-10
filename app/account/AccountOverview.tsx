@@ -102,6 +102,7 @@ export default function AccountOverview() {
     { href: '/router/intelligence', title: 'Model intelligence', desc: 'Rankings, drift and the full matrix' },
     { href: '/router', title: 'Smart Router', desc: 'Route requests to the model measuring best' },
     { href: '/account/data-keys', title: 'Data API keys', desc: 'Programmatic access to benchmark data' },
+    { href: '/contact?topic=support', title: 'Contact us', desc: 'Questions, problems, or anything else' },
   ];
 
   return (

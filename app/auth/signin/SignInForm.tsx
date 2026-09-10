@@ -202,6 +202,11 @@ export function SignInForm() {
             >
               Continue with GitHub
             </button>
+
+            <Link href="/auth/sso" className="vintage-btn"
+              style={{ width: '100%', padding: '12px', textAlign: 'center', textDecoration: 'none' }}>
+              Continue with SSO
+            </Link>
           </div>
 
           {/* Sign Up Link */}

@@ -40,7 +40,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
   const plan: Plan = isPlan(user?.plan) ? user.plan : 'free';
   const ent = PLANS[plan];
   const planLabel = plan === 'legacy_pro' ? 'Pro' : ent.label;
-  const hasTeam = isUnlimited(ent.seats) || ent.seats > 1;
+  const hasTeam = isUnlimited(ent.projects) || ent.projects >= 1;
 
   const btn = (label: string, active: boolean, onClick: () => void, accent?: string) => (
     <button

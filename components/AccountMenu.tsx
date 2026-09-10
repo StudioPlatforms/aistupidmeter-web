@@ -53,7 +53,7 @@ export default function AccountMenu() {
   // "Pro (legacy)" is never shown to the customer — see uiplan.md §5.1. They hold
   // more than the current Pro plan, and a legacy label reads as a demotion.
   const planLabel = plan === 'legacy_pro' ? 'Pro' : ent.label;
-  const hasTeam = isUnlimited(ent.seats) || ent.seats > 1;
+  const hasTeam = isUnlimited(ent.projects) || ent.projects >= 1;
 
   const initial = (user?.name || user?.email || '?').trim().charAt(0).toUpperCase();
 

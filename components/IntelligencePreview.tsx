@@ -1,6 +1,7 @@
 'use client';
 
 import { ENTRY_PAID_PLAN, monthlyLong } from '@/lib/pricing-display';
+import { upgradeHref } from '@/lib/checkout-url';
 
 import { useEffect, useState } from 'react';
 import { slugifyModelName } from '../lib/model-slug';
@@ -50,7 +51,7 @@ export default function IntelligencePreview() {
   };
 
   const handleStartTrial = () => {
-    window.location.href = '/api/stripe/checkout';
+    window.location.href = upgradeHref(ENTRY_PAID_PLAN, 'monthly');
   };
 
   const getTrendLabel = (trend: string) => {

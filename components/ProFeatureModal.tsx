@@ -95,12 +95,12 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
 
         <div className="pro-modal-pricebox">
           <div className="pro-modal-price"><b>{monthly(unlockedBy)}</b><span> · {planName(unlockedBy)}</span></div>
-          <div className="pro-modal-priceline">7-day free trial · cancel anytime · no card surprises</div>
+          <div className="pro-modal-priceline">Free trial · cancel anytime · a card is collected at checkout</div>
         </div>
 
         <div className="pro-modal-actions">
           <button className="pro-modal-btn primary" onClick={handleUpgrade}>
-            {session ? 'Start your free trial' : 'Start 7-day free trial'}
+            {session ? 'Start your free trial' : 'Start your free trial'}
           </button>
           {!session && (
             <button className="pro-modal-btn ghost" onClick={() => router.push('/auth/signin')}>

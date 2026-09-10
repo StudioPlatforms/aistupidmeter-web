@@ -33,6 +33,22 @@ export type Plan =
 /** Quota tiers on the public Data API. Must stay in sync with lib/data-api-keys.ts. */
 export type DataApiTier = 'free' | 'pro' | 'teams' | 'enterprise';
 
+/**
+ * Daily and per-minute quota for each Data API tier.
+ *
+ * MUST match TIERS in apps/api/src/lib/data-api-keys.ts, which is what the
+ * rate limiter actually enforces. Kept here so public documentation can be
+ * rendered from a table rather than typed out: /api-docs used to carry these
+ * numbers by hand and had silently lost the Teams row entirely, so a Teams
+ * customer reading the docs saw no mention of the tier they were paying for.
+ */
+export const DATA_API_LIMITS: Record<DataApiTier, { daily: number; perMinute: number; label: string }> = {
+  free:       { daily: 10,      perMinute: 1,    label: 'Free' },
+  pro:        { daily: 10_000,  perMinute: 60,   label: 'Pro' },
+  teams:      { daily: 100_000, perMinute: 300,  label: 'Teams' },
+  enterprise: { daily: 250_000, perMinute: 1000, label: 'Enterprise' },
+};
+
 /** Sentinel for "no limit". JSON-safe, unlike Infinity. */
 export const UNLIMITED = -1;
 export const isUnlimited = (n: number): boolean => n === UNLIMITED;
@@ -144,6 +160,33 @@ export const SELLABLE_PLANS: Plan[] = ['free', 'pro', 'developer', 'teams', 'ent
 
 /** Plans that carry paid access. Used for "is this a customer" checks. */
 export const PAID_PLANS: Plan[] = ['pro', 'developer', 'teams', 'enterprise', 'legacy_pro'];
+
+/**
+ * The ladder, in order. Used to answer "does this plan reach at least X?".
+ *
+ * `legacy_pro` sits at Developer because that is the feature set it was granted
+ * — the original $4.99 Pro included routing and Data API access, so ranking it
+ * at the new `pro` would silently lock those subscribers out of pages they have
+ * always been able to open.
+ */
+const PLAN_RANK: Record<Plan, number> = {
+  free: 0,
+  pro: 1,
+  developer: 2,
+  legacy_pro: 2,
+  teams: 3,
+  enterprise: 4,
+};
+
+/** True when `plan` is at least as capable as `minimum` on the ladder. */
+export function planMeets(plan: Plan, minimum: Plan): boolean {
+  return PLAN_RANK[plan] >= PLAN_RANK[minimum];
+}
+
+/** Ladder position, for sorting or comparing two plans. */
+export function planRank(plan: Plan): number {
+  return PLAN_RANK[plan];
+}
 
 export function isPlan(value: unknown): value is Plan {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(PLANS, value);

@@ -190,7 +190,7 @@ function MonitoringPageContent() {
 
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="API Monitoring">
+      <SubscriptionGuard feature="API monitoring" requires="api-monitoring">
         {/* Page header */}
         <div className="rv4-page-header">
           <div className="rv4-page-header-left">

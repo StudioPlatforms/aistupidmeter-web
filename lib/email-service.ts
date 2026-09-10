@@ -156,7 +156,7 @@ function renderEmail(opts: {
 </body></html>`;
 }
 
-async function deliver(to: string, subject: string, html: string, text: string) {
+async function deliver(to: string, subject: string, html: string, text: string, replyTo?: string) {
   try {
     const isLocalhost = SMTP_HOST === 'localhost' || SMTP_HOST === '127.0.0.1';
     if (!isLocalhost && (!SMTP_USER || !SMTP_PASS)) {
@@ -165,6 +165,10 @@ async function deliver(to: string, subject: string, html: string, text: string) 
     }
     await createTransporter().sendMail({
       from: `"AI Stupid Level" <${SMTP_FROM}>`,
+      // Never put the sender's address in From: — we are not authorised to sign
+      // for their domain, and DMARC-protected senders would fail outright.
+      // Reply-To is the correct header for "answer this person".
+      ...(replyTo ? { replyTo } : {}),
       to, subject, html, text,
     });
     return { success: true };
@@ -304,5 +308,146 @@ export async function sendVerificationEmail(email: string, verifyLink: string) {
     `One click and your weekly digest and change alerts can start arriving.\n` +
     `We only send those to confirmed addresses.\n\n${verifyLink}\n\n` +
     `The link is valid for 24 hours. If you did not create an account, ignore this email.\n`
+  );
+}
+
+
+// ─── Contact form ────────────────────────────────────────────────────────────
+
+/**
+ * Where public enquiries are routed.
+ *
+ * NOTE ON THE ADDRESS: components/EnterpriseContact.tsx has carried
+ * `ionutvisan@studioplatforms.eu` (with the "t") since it was written, and that
+ * is used as the default here. The brief for this form said "ionuvisan", one
+ * letter shorter. Rather than guess in a way that fails silently — a wrong
+ * address means sales enquiries bounce into nothing and nobody finds out — the
+ * value is overridable without a deploy. Set CONTACT_INBOX in .env.local if the
+ * shorter spelling is the correct one.
+ */
+export const CONTACT_INBOX = process.env.CONTACT_INBOX || 'ionutvisan@studioplatforms.eu';
+
+const TOPIC_LABEL: Record<string, string> = {
+  general: 'General enquiry',
+  enterprise: 'Enterprise',
+  sales: 'Sales and pricing',
+  support: 'Support',
+  security: 'Security',
+  press: 'Press',
+};
+
+/** HTML-escape untrusted text before it goes into an email body. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
+ * Tell the operator that someone got in touch.
+ *
+ * Reply-To is the sender, so answering is one keystroke. The body carries
+ * everything needed to reply without opening the database.
+ */
+export async function sendContactNotification(msg: {
+  id: number;
+  name?: string | null;
+  email: string;
+  company?: string | null;
+  topic: string;
+  message: string;
+  accountPlan?: string | null;
+}) {
+  const label = TOPIC_LABEL[msg.topic] ?? msg.topic;
+  const rows: Array<[string, string]> = [
+    ['From', esc(msg.name ? `${msg.name} <${msg.email}>` : msg.email)],
+    ['Topic', esc(label)],
+  ];
+  if (msg.company) rows.push(['Company', esc(msg.company)]);
+  if (msg.accountPlan) rows.push(['Account', esc(msg.accountPlan)]);
+  rows.push(['Reference', `#${msg.id}`]);
+
+  const text =
+    `New ${label.toLowerCase()} enquiry (#${msg.id})\n\n` +
+    `From: ${msg.name ? `${msg.name} <${msg.email}>` : msg.email}\n` +
+    (msg.company ? `Company: ${msg.company}\n` : '') +
+    (msg.accountPlan ? `Account: ${msg.accountPlan}\n` : '') +
+    `\n${msg.message}\n`;
+
+  return deliver(
+    CONTACT_INBOX,
+    `[${label}] ${msg.name || msg.email} — AI Stupid Level`,
+    renderEmail({
+      heading: `New ${label.toLowerCase()} enquiry`,
+      intro: `<span style="white-space:pre-wrap;">${esc(msg.message)}</span>`,
+      rows,
+      ctaLabel: 'Reply',
+      ctaUrl: `mailto:${msg.email}`,
+      footnote: `Stored as contact_messages #${msg.id}. Reply to this email to answer ${esc(msg.email)} directly.`,
+    }),
+    text,
+    msg.email,
+  );
+}
+
+/**
+ * Confirm receipt to the person who wrote in.
+ *
+ * Deliberately does not echo their message back: a form that mails an
+ * attacker-controlled body to an arbitrary address is a spam relay, and the
+ * value of the acknowledgement is the promise of a reply, not a transcript.
+ */
+export async function sendContactAcknowledgement(to: string, name?: string | null, topic = 'general') {
+  const label = TOPIC_LABEL[topic] ?? 'enquiry';
+  const who = name ? `${name}, thanks` : 'Thanks';
+  return deliver(
+    to,
+    'We have your message — AI Stupid Level',
+    renderEmail({
+      heading: 'Thanks for getting in touch',
+      intro:
+        `${who} for writing to us. Your ${label.toLowerCase()} has reached a person, not a queue — ` +
+        `we answer every message ourselves, usually within one business day.`,
+      footnote:
+        'If it is urgent, replying to this email adds to the same thread. ' +
+        'You are receiving this because you used the contact form on aistupidlevel.info.',
+    }),
+    `Thanks for getting in touch.\n\nYour message has reached a person, not a queue — we answer ` +
+    `every message ourselves, usually within one business day.\n\nAI Stupid Level\nhttps://aistupidlevel.info\n`,
+  );
+}
+
+/** Tell the operator about a new $490 assessment request. */
+export async function sendAssessmentNotification(req: {
+  id: number;
+  contactEmail: string;
+  company?: string | null;
+  workload: string;
+  candidateModels?: string | null;
+  taskCount?: number | null;
+}) {
+  const rows: Array<[string, string]> = [['From', esc(req.contactEmail)]];
+  if (req.company) rows.push(['Company', esc(req.company)]);
+  if (req.candidateModels) rows.push(['Candidate models', esc(req.candidateModels)]);
+  if (req.taskCount) rows.push(['Tasks', String(req.taskCount)]);
+  rows.push(['Reference', `#${req.id}`]);
+
+  return deliver(
+    CONTACT_INBOX,
+    `[Assessment] ${req.company || req.contactEmail} — AI Stupid Level`,
+    renderEmail({
+      heading: 'New workload assessment request',
+      intro: `<span style="white-space:pre-wrap;">${esc(req.workload)}</span>`,
+      rows,
+      ctaLabel: 'Reply',
+      ctaUrl: `mailto:${req.contactEmail}`,
+      footnote:
+        `Stored as assessment_requests #${req.id}, status "requested". ` +
+        `Scope is agreed before anyone is charged.`,
+    }),
+    `New workload assessment request (#${req.id})\n\nFrom: ${req.contactEmail}\n` +
+    (req.company ? `Company: ${req.company}\n` : '') +
+    `\n${req.workload}\n`,
+    req.contactEmail,
   );
 }

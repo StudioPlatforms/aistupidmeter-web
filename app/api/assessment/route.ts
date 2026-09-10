@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { openIdentityDb } from '@/lib/identity-db';
+import { sendAssessmentNotification, sendContactAcknowledgement } from '@/lib/email-service';
 
 /**
  * Intake for the $490 workload assessment.
@@ -45,8 +46,19 @@ export async function POST(request: NextRequest) {
       contactEmail, company, workload, candidateModels, taskCount
     );
 
-    console.log(`[assessment] request #${info.lastInsertRowid} from ${contactEmail}`);
-    return NextResponse.json({ success: true, data: { id: Number(info.lastInsertRowid) } });
+    const id = Number(info.lastInsertRowid);
+
+    // Notify, then acknowledge. Both are best-effort: the row is the record of
+    // the request, and a mail failure must not lose the lead or fail the form.
+    void sendAssessmentNotification({
+      id, contactEmail, company, workload, candidateModels, taskCount,
+    }).then(res => {
+      if (!res.success) console.error(`[assessment] #${id} stored but NOT emailed:`, res.error);
+    });
+    void sendContactAcknowledgement(contactEmail, null, 'sales');
+
+    console.log(`[assessment] request #${id} from ${contactEmail}`);
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     console.error('[assessment] intake failed:', error);
     return NextResponse.json({ success: false, error: 'Could not record your request' }, { status: 500 });

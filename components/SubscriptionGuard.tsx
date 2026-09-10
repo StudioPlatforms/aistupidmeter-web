@@ -1,104 +1,93 @@
 'use client';
 
-import { ROUTER_PLAN, monthly, monthlyLong } from '@/lib/pricing-display';
+/**
+ * Gate a page on the plan it actually requires.
+ *
+ * WHAT CHANGED
+ * ------------
+ * This used to POST to /api/subscription/check and read a single `hasAccess`
+ * boolean, which is true for any paid plan. Every guarded page therefore had the
+ * same price of entry — $9 — while four of them displayed $19 and one of them
+ * (API monitoring) was described elsewhere as a Developer feature. It also sent
+ * every upgrade click to `/api/stripe/checkout` with no plan, which the checkout
+ * route defaults to `pro/monthly`: the button charged $9 no matter what it said.
+ *
+ * The plan is already on the session — `auth.ts` resolves it and attaches the
+ * whole entitlement object — so no fetch is needed at all. The guard now
+ * compares that plan against the capability the page names, and the upgrade CTA
+ * quotes and sells exactly the plan that would unlock it.
+ */
 
-import { SAVINGS_PCT } from '@/lib/savings-estimate';
-
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { isPlan, planMeets, PLANS, type Plan } from '@/lib/entitlements';
+import { REQUIRED_PLAN, CAPABILITY_LABEL, type Capability } from '@/lib/capabilities';
+import { upgradeHref } from '@/lib/checkout-url';
+import { monthlyLong, planName } from '@/lib/pricing-display';
 
 interface SubscriptionGuardProps {
   children: React.ReactNode;
+  /** Display name of the locked page. */
   feature: string;
+  /** The entitlement this page needs. */
+  requires: Capability;
 }
 
-export default function SubscriptionGuard({ children, feature }: SubscriptionGuardProps) {
+export default function SubscriptionGuard({ children, feature, requires }: SubscriptionGuardProps) {
   const { data: session, status } = useSession();
-  const [checking, setChecking] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
 
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.email) {
-      checkSubscription();
-    } else if (status === 'unauthenticated') {
-      setChecking(false);
-      setHasAccess(false);
-    }
-  }, [status, session]);
-
-  const checkSubscription = async () => {
-    try {
-      const response = await fetch('/api/subscription/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session!.user!.email! })
-      });
-      const result = await response.json();
-      setHasAccess(result.success && result.data.hasAccess);
-    } catch {
-      setHasAccess(false);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  const handleUpgrade = () => {
-    window.location.href = '/api/stripe/checkout';
-  };
-
-  if (checking) {
+  if (status === 'loading') {
     return (
       <div className="rv4-loading" style={{ minHeight: '300px' }}>
         <div className="rv4-loading-dot" />
         <div className="rv4-loading-dot" />
         <div className="rv4-loading-dot" />
-        <span>CHECKING ACCESS</span>
+        <span>Checking access</span>
       </div>
     );
   }
 
-  if (!hasAccess) {
-    const featureBenefits = getFeatureBenefits(feature);
+  const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
+  const needed = REQUIRED_PLAN[requires];
 
-    return (
-      <div className="rv4-body">
-        <div className="rv4-upgrade-container">
-        {/* Sticky upgrade banner */}
-        <div className="rv4-upgrade-sticky">
-          <div className="rv4-upgrade-sticky-msg">
-            <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--amber-warning)', fontWeight: 'bold' }}>[LOCKED]</span>
-            <div>
-              <div className="rv4-upgrade-sticky-title">{feature.toUpperCase()} — PRO FEATURE</div>
-              <div className="rv4-upgrade-sticky-sub">Upgrade to AI Router PRO to unlock this feature</div>
-            </div>
-          </div>
-          <button onClick={handleUpgrade} className="rv4-ctrl-btn primary" style={{ padding: '8px 18px', fontSize: '11px' }}>
-            START FREE TRIAL →
-          </button>
-        </div>
+  if (planMeets(plan, needed)) return <>{children}</>;
 
-        {/* Hero CTA */}
+  const benefits = FEATURE_BENEFITS[requires];
+  const neededLabel = planName(needed);
+  const price = monthlyLong(needed);
+
+  return (
+    <div className="rv4-body">
+      <div className="rv4-upgrade-container">
         <div className="rv4-upgrade-hero">
-          <div className="rv4-upgrade-hero-title">{feature.toUpperCase()} IS A PRO FEATURE</div>
-          <div className="rv4-upgrade-hero-sub">Upgrade to AI Router PRO to unlock this and all other Pro features</div>
-          <div className="rv4-upgrade-price">{monthly(ROUTER_PLAN)}</div>
-          <div className="rv4-upgrade-trial-badge">7-DAY FREE TRIAL</div>
-          <button onClick={handleUpgrade} className="rv4-upgrade-cta">
-            Upgrade to PRO →
-          </button>
-          <div className="rv4-upgrade-fine-print">Cancel anytime • Instant access</div>
+          <div className="rv4-upgrade-hero-title">{feature}</div>
+          <div className="rv4-upgrade-hero-sub">
+            {CAPABILITY_LABEL[requires]} is part of {neededLabel}. You are on{' '}
+            {planName(plan)} today.
+          </div>
+          <div className="rv4-upgrade-price">{price}</div>
+          <Link href={upgradeHref(needed, 'monthly')} className="rv4-upgrade-cta" style={{ textDecoration: 'none' }}>
+            Upgrade to {neededLabel}
+          </Link>
+          <div className="rv4-upgrade-fine-print">
+            Cancel any time · a payment method is collected at checkout, including during a trial
+          </div>
         </div>
 
-        {/* Feature benefits */}
         <div className="rv4-panel" style={{ marginBottom: '16px' }}>
           <div className="rv4-panel-header">
-            <span className="rv4-panel-title">WHAT YOU'LL UNLOCK</span>
+            <span className="rv4-panel-title">What {neededLabel} adds</span>
           </div>
           <div className="rv4-panel-body">
             <div className="rv4-upgrade-benefits">
-              {featureBenefits.map((b, i) => (
+              {benefits.map((b, i) => (
                 <div key={i} className="rv4-upgrade-benefit">
-                  <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}>→</div>
+                  <div
+                    className="rv4-upgrade-benefit-icon"
+                    style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}
+                  >
+                    →
+                  </div>
                   <div className="rv4-upgrade-benefit-title">{b.title}</div>
                   <div className="rv4-upgrade-benefit-desc">{b.description}</div>
                 </div>
@@ -107,96 +96,88 @@ export default function SubscriptionGuard({ children, feature }: SubscriptionGua
           </div>
         </div>
 
-        {/* Why upgrade */}
+        {/* The measured allowances, straight from the plan table. Nothing here is
+            typed by hand, so a limit cannot drift from what is enforced. */}
         <div className="rv4-panel" style={{ marginBottom: '16px' }}>
           <div className="rv4-panel-header">
-            <span className="rv4-panel-title">WHY UPGRADE TO PRO?</span>
+            <span className="rv4-panel-title">Your plan vs {neededLabel}</span>
           </div>
           <div className="rv4-panel-body">
-            <div className="rv4-features-checklist">
-              {[
-                `Route on live benchmark data instead of guesswork — a ${SAVINGS_PCT}% measured cost gap between equally-scoring models`,
-                'Access all AI models (GPT, Claude, Grok, Gemini)',
-                'Real-time analytics and performance tracking',
-                'Unlimited universal API keys',
-                'Zero downtime with automatic failover',
-                'Secure provider key management',
-                'Advanced cost optimization',
-                'Custom routing preferences',
-              ].map((item, i) => (
-                <div key={i} className="rv4-feature-check">
-                  <span className="check">✓</span>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+              <thead>
+                <tr style={{ color: 'var(--phosphor-dim)', textAlign: 'left' }}>
+                  <th style={{ padding: '6px 8px 6px 0' }}></th>
+                  <th style={{ padding: '6px 8px' }}>{planName(plan)}</th>
+                  <th style={{ padding: '6px 8px' }}>{neededLabel}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARISON.map(row => (
+                  <tr key={row.label} style={{ borderTop: '1px solid var(--metal-silver)' }}>
+                    <td style={{ padding: '7px 8px 7px 0', color: 'var(--phosphor-dim)' }}>{row.label}</td>
+                    <td style={{ padding: '7px 8px' }}>{row.get(plan)}</td>
+                    <td style={{ padding: '7px 8px', color: 'var(--phosphor-green)' }}>{row.get(needed)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* Final CTA */}
-        <div style={{
-          background: 'rgba(255,176,0,0.06)', border: '2px solid var(--amber-warning)',
-          borderRadius: '3px', padding: '20px', textAlign: 'center', marginBottom: '16px',
-        }}>
-          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '6px' }}>
-            {monthlyLong(ROUTER_PLAN)}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '14px' }}>
-            7-Day Free Trial • Cancel Anytime
-          </div>
-          <button onClick={handleUpgrade} className="rv4-upgrade-cta">
-            UNLOCK {feature.toUpperCase()} — START FREE TRIAL →
-          </button>
+        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+          <Link href="/pricing" style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}>
+            Compare every plan, including annual →
+          </Link>
         </div>
-
-        <div className="rv4-footer">
-          Powered by AI Stupid Meter • Real-time benchmarks • <a href="/">View Live Rankings</a>
-        </div>
-        </div>{/* /rv4-upgrade-container */}
       </div>
-    );
-  }
-
-  return <>{children}</>;
+    </div>
+  );
 }
 
-function getFeatureBenefits(feature: string) {
-  const benefits: Record<string, Array<{ title: string; description: string }>> = {
-    'API Keys': [
-      { title: 'UNLIMITED KEYS', description: 'Create as many universal API keys as you need for any application' },
-      { title: 'SECURE STORAGE', description: 'AES-256 encryption protects all your keys at rest and in transit' },
-      { title: 'USAGE TRACKING', description: 'Monitor key usage, last used date, and performance metrics' },
-    ],
-    'Providers': [
-      { title: 'ALL PROVIDERS', description: 'Connect OpenAI, Anthropic, xAI, Google, DeepSeek, GLM, Kimi' },
-      { title: 'AUTO VALIDATION', description: 'Automatic key validation tests connectivity and lists available models' },
-      { title: 'SMART ROUTING', description: 'Intelligent routing uses your keys for optimal model selection' },
-    ],
-    'Analytics': [
-      { title: 'FULL ANALYTICS', description: 'Complete usage and cost tracking across all your API requests' },
-      { title: 'COST INSIGHTS', description: 'See exactly how much you save vs. worst-case pricing' },
-      { title: 'DATA EXPORT', description: 'Download your analytics data in CSV or JSON format anytime' },
-    ],
-    'Preferences': [
-      { title: 'CUSTOM RULES', description: 'Set your own routing strategy optimized for your use case' },
-      { title: 'MODEL SELECTION', description: 'Choose preferred models and exclude providers you don\'t want' },
-      { title: 'COST CONTROLS', description: 'Set budget limits, latency thresholds, and feature requirements' },
-    ],
-    'Intelligence': [
-      { title: 'MODEL INSIGHTS', description: 'Real-time performance data from continuous benchmarking across 24 tracked models' },
-      { title: 'SIDE-BY-SIDE COMPARE', description: 'Compare up to 4 models with overlaid charts and detailed analytics' },
-      { title: 'DATA EXPORT', description: 'Download comprehensive model data in CSV or JSON format' },
-    ],
-    'API Monitoring': [
-      { title: 'PER-KEY TRACKING', description: 'See exactly how each API key is being used, by whom, and how much it costs' },
-      { title: 'PROMPT AUDITING', description: 'Opt-in prompt logging with automatic secret scrubbing and encryption at rest' },
-      { title: 'BUDGET CONTROLS', description: 'Set spending limits per key with soft or hard enforcement and threshold alerts' },
-    ],
-  };
+const fmt = (n: number) => (n === -1 ? 'Unlimited' : n.toLocaleString());
 
-  return benefits[feature] || [
-    { title: 'FULL ACCESS', description: 'Unlock all features and capabilities of AI Router' },
-    { title: 'NO LIMITS', description: 'Unlimited usage with no rate limits or feature restrictions' },
-    { title: 'PREMIUM SUPPORT', description: 'Priority customer support with fast response times' },
-  ];
-}
+const COMPARISON: Array<{ label: string; get: (p: Plan) => string }> = [
+  { label: 'Tracked models', get: p => fmt(PLANS[p].watchedModels) },
+  { label: 'Comparable history', get: p => (PLANS[p].historyDays === null ? 'Everything we hold' : `${PLANS[p].historyDays} days`) },
+  { label: 'Routed requests / mo', get: p => fmt(PLANS[p].routerRequestsPerMonth) },
+  { label: 'Decision-log history', get: p => `${PLANS[p].routerDiagnosticDays} days` },
+  { label: 'Data API', get: p => `${PLANS[p].dataApiTier} tier` },
+];
+
+const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: string }>> = {
+  routing: [
+    { title: 'Bring your own keys', description: 'Connect OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM. Providers bill you directly; we never mark up tokens.' },
+    { title: 'Eight strategies', description: 'Best overall, coding, reasoning, creative, cheapest, fastest, tool-use or agentic — chosen from live benchmarks.' },
+    { title: 'Automatic failover', description: 'A provider outage falls through to the next best model rather than failing your request.' },
+  ],
+  'data-api': [
+    { title: 'Programmatic access', description: 'Read scores, rankings, history, drift and incidents from your own tooling.' },
+    { title: 'Quota that scales', description: 'Free is an evaluation tier; paid plans lift the daily and per-minute limits.' },
+    { title: 'Stable contract', description: 'Versioned endpoints with rate-limit headers on every response.' },
+  ],
+  analysis: [
+    { title: 'Full history', description: 'Every measurement we hold, not the last seven days — so you can see a slow decline, not just today.' },
+    { title: 'The whole matrix', description: 'All nine axes per model, plus the deep-reasoning and tool-calling suites.' },
+    { title: 'Exports and custom alerts', description: 'CSV and JSON out, and thresholds you choose instead of our default.' },
+  ],
+  'routing-analytics': [
+    { title: 'Cost and latency trends', description: 'What each routed request cost, which model served it, and how that moved over time.' },
+    { title: 'Timing breakdowns', description: 'Hour-of-day performance so you can schedule around a provider’s bad windows.' },
+    { title: 'Exports', description: 'Take the analysis into your own spreadsheets and dashboards.' },
+  ],
+  'api-monitoring': [
+    { title: 'Per-key request logs', description: 'See exactly how each key is used, by which model, at what cost and latency.' },
+    { title: 'Prompt auditing', description: 'Opt-in prompt retention with automatic secret scrubbing.' },
+    { title: 'Budget controls', description: 'Spending limits per key with soft or hard enforcement and threshold alerts.' },
+  ],
+  team: [
+    { title: 'Five editor seats', description: 'Viewers are unlimited — only people who change things consume a seat.' },
+    { title: 'Shared watchlists', description: 'Projects the whole team follows, rather than one person’s private list.' },
+    { title: 'Outbound webhooks', description: 'Signed HTTP callbacks when a model you depend on regresses.' },
+  ],
+  governance: [
+    { title: 'Single sign-on', description: 'OIDC or SAML against your own identity provider, with domain-based routing.' },
+    { title: 'Directory provisioning', description: 'SCIM 2.0, so joiners and leavers are handled by your directory rather than by hand.' },
+    { title: 'Audit trail', description: 'An exportable record of who changed what, and when.' },
+  ],
+};

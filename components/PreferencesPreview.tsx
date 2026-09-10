@@ -1,6 +1,7 @@
 'use client';
 
 import { ROUTER_PLAN, monthlyLong } from '@/lib/pricing-display';
+import { upgradeHref } from '@/lib/checkout-url';
 
 // Keep in step with app/router/preferences/page.tsx — this is the blurred
 // preview of that page shown to users without a subscription.
@@ -18,7 +19,7 @@ const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
 
 export default function PreferencesPreview() {
   const handleStartTrial = () => {
-    window.location.href = '/api/stripe/checkout';
+    window.location.href = upgradeHref(ROUTER_PLAN, 'monthly');
   };
 
   return (

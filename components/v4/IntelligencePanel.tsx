@@ -1,10 +1,11 @@
 'use client';
 
-import { ROUTER_PLAN, monthly } from '@/lib/pricing-display';
+import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
 
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { getModelPricing } from '../../lib/model-pricing';
 
 interface IntelligencePanelProps {
@@ -49,6 +50,7 @@ export default function IntelligencePanel({
   driftIncidents,
 }: IntelligencePanelProps) {
   const router = useRouter();
+  const { data: session } = useSession();
 
   // Build recommendation items from real data
   const recoItems: Array<{ type: string; name: string; detail: string; score: number; status: string; danger?: boolean; providerDot?: string }> = [];
@@ -299,11 +301,23 @@ export default function IntelligencePanel({
         ))}
       </div>
 
-      {/* Pro CTA */}
-      <div className="v4-pro-cta" onClick={() => router.push('/router')}>
-        <div className="v4-pro-cta-title">⚡ SMART ROUTER</div>
-        <div className="v4-pro-cta-sub">Route on live benchmark data • {SAVINGS_PCT}% measured cost gap</div>
-        <div className="v4-pro-cta-price">{monthly(ROUTER_PLAN)} — 7-day free trial</div>
+      {/*
+        Sends signed-out visitors to /pricing, not /router. /router is behind
+        auth, so an advert that landed there bounced the reader straight into a
+        sign-in wall before they had been told what they would be buying.
+      */}
+      <div className="v4-pro-cta" onClick={() => router.push(session ? '/router' : '/pricing')}>
+        <div className="v4-pro-cta-title">SMART ROUTER</div>
+        <div className="v4-pro-cta-sub">
+          Every request goes to the model measuring best right now. Bring your own provider keys —
+          in our benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less.
+        </div>
+        <div className="v4-pro-cta-price">
+          {annualMonthly(ROUTER_PLAN)}{' '}
+          <span className="cta-note">
+            billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}
+          </span>
+        </div>
       </div>
 
       {/* Activity Feed */}

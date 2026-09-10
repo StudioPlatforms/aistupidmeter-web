@@ -76,7 +76,7 @@ export default function RouterKeysPage() {
 
   return (
     <RouterLayout>
-      <SubscriptionGuard feature="API Keys">
+      <SubscriptionGuard feature="Router API keys" requires="routing">
         {/* Page header */}
         <div className="rv4-page-header">
           <div className="rv4-page-header-left">

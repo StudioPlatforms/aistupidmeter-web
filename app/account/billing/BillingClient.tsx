@@ -14,6 +14,7 @@ import { monthlyLong } from '@/lib/pricing-display';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, SELLABLE_PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
+import type { SellablePlan } from '@/lib/stripe-plans';
 
 interface Meter { key: string; label: string; used: number; limit: number; period: string }
 interface Overage {
@@ -56,6 +57,43 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
   const [capDraft, setCapDraft] = useState<string>('');
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [switching, setSwitching] = useState<SellablePlan | null>(null);
+
+  /**
+   * Change an existing subscription rather than starting a second one.
+   *
+   * Someone with no subscription has nothing to update, so the API answers 409
+   * with the checkout URL to use instead — that is the normal first-purchase
+   * path, not an error worth showing.
+   */
+  const switchTo = async (target: SellablePlan) => {
+    setSwitching(target);
+    setMsg(null);
+    try {
+      const res = await fetch('/api/stripe/change-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: target, interval: 'annual' }),
+      });
+      const payload = await res.json().catch(() => null);
+
+      if (res.status === 409 && payload?.checkoutUrl) {
+        window.location.href = payload.checkoutUrl;
+        return;
+      }
+      if (!payload?.success) {
+        setMsg(payload?.message || payload?.error || 'Could not change your plan.');
+        setSwitching(null);
+        return;
+      }
+      setMsg('Plan updated. Your next invoice reflects the change, prorated from today.');
+      // The tier is written by Stripe's webhook, which lands a moment later.
+      setTimeout(() => window.location.reload(), 2500);
+    } catch {
+      setMsg('Could not reach billing. Please try again.');
+      setSwitching(null);
+    }
+  };
 
   useEffect(() => {
     if (status !== 'authenticated') { if (status === 'unauthenticated') setLoading(false); return; }
@@ -253,9 +291,16 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
                     {p === 'enterprise' ? 'Talk to us →' : 'Compare →'}
                   </Link>
                 ) : buyable.includes(p) ? (
-                  <Link href={`/api/stripe/checkout?plan=${p}&interval=monthly`} style={{ fontSize: '0.8em', color: 'var(--phosphor-green)' }}>
-                    Switch →
-                  </Link>
+                  <button
+                    onClick={() => switchTo(p as SellablePlan)}
+                    disabled={switching !== null}
+                    style={{
+                      background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                      fontSize: '0.8em', color: 'var(--phosphor-green)', fontFamily: 'inherit',
+                      opacity: switching !== null ? 0.5 : 1,
+                    }}>
+                    {switching === p ? 'Switching…' : 'Switch →'}
+                  </button>
                 ) : (
                   <span style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>Available shortly</span>
                 )}

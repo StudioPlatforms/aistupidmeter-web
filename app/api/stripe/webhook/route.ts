@@ -17,6 +17,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
 });
 
+import { syncDataApiTier } from '@/lib/data-api-tier';
+
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 
@@ -148,6 +150,7 @@ export async function POST(request: NextRequest) {
           // Handle subscription status changes
           if (subscription.status === 'active' && !(subscription as any).cancel_at_period_end) {
             activateSubscription(user.id, subscription.id, planFromSubscription(subscription));
+            syncDataApiTier(user.id);
             console.log(`Subscription activated for user ${user.id} on plan ${planFromSubscription(subscription)}`);
           } else if ((subscription as any).cancel_at_period_end) {
             const endsAt = new Date((subscription as any).current_period_end * 1000).toISOString();
@@ -159,6 +162,7 @@ export async function POST(request: NextRequest) {
           
           if (subscription.status === 'active' && !(subscription as any).cancel_at_period_end) {
             activateSubscription(userIdInt, subscription.id, planFromSubscription(subscription));
+            syncDataApiTier(userIdInt);
             console.log(`Subscription activated for user ${userIdInt} on plan ${planFromSubscription(subscription)}`);
           } else if ((subscription as any).cancel_at_period_end) {
             const endsAt = new Date((subscription as any).current_period_end * 1000).toISOString();
@@ -179,8 +183,25 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        // Only downgrade if this is the subscription we currently grant access
+        // from. A customer can have more than one on their Stripe record — an
+        // abandoned trial, or the leftover of a plan change made before
+        // /api/stripe/change-plan existed. Cancelling one of those must not
+        // revoke the plan they are actively paying for.
+        if (user.stripe_subscription_id && user.stripe_subscription_id !== subscription.id) {
+          console.log(
+            `[stripe] ignoring deletion of ${subscription.id} for user ${user.id}; ` +
+            `active subscription is ${user.stripe_subscription_id}`
+          );
+          break;
+        }
+
         // Downgrade to free tier
         downgradeToFree(user.id);
+        // Data API keys carry their own tier column and would otherwise keep a
+        // paid quota indefinitely — a cancelled Teams key stays at 100,000/day
+        // until the owner happens to open the keys page.
+        syncDataApiTier(user.id);
         recordActivation(user.id, 'subscription_cancelled', null, { subscriptionId: subscription.id });
         console.log(`User ${user.id} downgraded to free tier`);
         break;

@@ -43,6 +43,29 @@ export const monthly = (plan: Plan): string => withPeriod(plan, '/mo');
 /** e.g. "$9/month". */
 export const monthlyLong = (plan: Plan): string => withPeriod(plan, '/month');
 
+/**
+ * Annual-equivalent monthly price, e.g. "$15.83/mo".
+ *
+ * The pricing page leads with annual, so a CTA that quotes the monthly figure
+ * sends people to a page showing a different, lower number — which reads as a
+ * bait-and-switch in reverse and undersells the offer. These keep every surface
+ * on the same footing.
+ */
+export const annualMonthly = (plan: Plan): string => {
+  const annual = PLANS[plan].priceAnnual;
+  if (annual === null || annual === 0) return monthly(plan);
+  const per = annual / 12;
+  return Number.isInteger(per) ? `$${per}/mo` : `$${per.toFixed(2)}/mo`;
+};
+
+/** What a year on the annual plan saves against paying monthly, e.g. "$38". */
+export const annualSaving = (plan: Plan): string | null => {
+  const { priceMonthly, priceAnnual } = PLANS[plan];
+  if (!priceMonthly || priceAnnual === null) return null;
+  const saved = priceMonthly * 12 - priceAnnual;
+  return saved > 0 ? (Number.isInteger(saved) ? `$${saved}` : `$${saved.toFixed(2)}`) : null;
+};
+
 /** e.g. "from $9/mo" — for CTAs that unlock across several plans. */
 export const fromMonthly = (plan: Plan): string => `from ${monthly(plan)}`;
 

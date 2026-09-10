@@ -78,7 +78,7 @@ export default function TestKeysPage() {
     
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/test-adapters/discovery?provider=${selectedProvider}`, {
+      const response = await fetch(`/api/test-adapters/discovery?provider=${selectedProvider}`, {
         headers: {
           'x-user-api-key': apiKey,
         },
@@ -132,7 +132,7 @@ export default function TestKeysPage() {
       
       if (testType === 'chat') {
         // For chat tests, use the simple endpoint
-        const response = await fetch(`${apiUrl}/test-adapters/chat-test`, {
+        const response = await fetch(`/api/test-adapters/chat-test`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -157,7 +157,7 @@ export default function TestKeysPage() {
         setTestLogs(['🚀 Starting streaming benchmark test...', `📊 Testing ${selectedModel.toUpperCase()} from ${selectedProvider.toUpperCase()}`]);
 
         // First, start the streaming benchmark
-        const response = await fetch(`${apiUrl}/api/test-adapters/benchmark-test-stream`, {
+        const response = await fetch(`/api/test-adapters/benchmark-test-stream`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -294,7 +294,7 @@ export default function TestKeysPage() {
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const response = await fetch(`${apiUrl}/api/test-adapters/benchmark-test`, {
+        const response = await fetch(`/api/test-adapters/benchmark-test`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

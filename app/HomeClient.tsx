@@ -4762,7 +4762,7 @@ export default function Dashboard() {
 
             <div className="pro-modal-pricebox">
               <div className="pro-modal-price"><b>{monthly(ENTRY_PAID_PLAN)}</b><span> · {planName(ENTRY_PAID_PLAN)}</span></div>
-              <div className="pro-modal-priceline">7-day free trial · cancel anytime</div>
+              <div className="pro-modal-priceline">Free trial · cancel anytime</div>
             </div>
 
             <div className="pro-modal-actions">

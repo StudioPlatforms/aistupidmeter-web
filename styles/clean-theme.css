@@ -786,3 +786,49 @@ a:hover { color: var(--accent-ink); }
 @media (prefers-reduced-motion: reduce) {
   .v4-mode-btn.is-nudge:not(.active) { animation: none; }
 }
+
+/* ── Contact form ──────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .contact-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Smart Router promo cards ──────────────────────────────────────────
+   The v4 originals kept their neon-era treatment: a cyan text-shadow, a
+   glow on hover, amber pricing and square corners. Same clean rules as
+   everything else — one accent colour, no glow, no shadow on text. */
+.v4-pro-cta {
+  border: 1px solid var(--border-subtle, #dadce0) !important;
+  border-radius: 8px !important;
+  background: rgba(26, 115, 232, 0.04) !important;
+  text-align: left !important;
+  padding: 14px 16px !important;
+  transition: background 0.15s, border-color 0.15s !important;
+}
+.v4-pro-cta:hover {
+  background: rgba(26, 115, 232, 0.08) !important;
+  border-color: var(--accent, #1a73e8) !important;
+  box-shadow: none !important;
+}
+.v4-pro-cta-title {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: .3px !important;
+  color: var(--accent, #1a73e8) !important;
+  text-shadow: none !important;
+  margin-bottom: 5px !important;
+}
+.v4-pro-cta-sub {
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+  color: var(--phosphor-dim) !important;
+}
+.v4-pro-cta-price {
+  font-size: 11.5px !important;
+  color: inherit !important;
+  margin-top: 8px !important;
+  font-weight: 600 !important;
+}
+.v4-pro-cta-price .cta-note {
+  font-weight: 400 !important;
+  color: var(--phosphor-dim) !important;
+}

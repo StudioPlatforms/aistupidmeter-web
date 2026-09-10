@@ -1,11 +1,11 @@
 'use client';
 
-import { ROUTER_PLAN, monthly } from '@/lib/pricing-display';
+import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
 
-import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { getModelPricing } from '../../lib/model-pricing';
 
 interface AnalyticsPanelProps {
@@ -122,6 +122,7 @@ export default function AnalyticsPanel({
   leaderboardPeriod,
 }: AnalyticsPanelProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const available = modelScores.filter(m => typeof m.currentScore === 'number' && m.currentScore > 0);
 
   // Get mode config — pick the right axis set per benchmark suite
@@ -373,11 +374,19 @@ export default function AnalyticsPanel({
         })}
       </div>
 
-      {/* Pro CTA */}
-      <div className="v4-pro-cta" onClick={() => router.push('/router')} style={{ margin: '8px 10px' }}>
-        <div className="v4-pro-cta-title">⚡ SMART ROUTER — {monthly(ROUTER_PLAN)}</div>
-        <div className="v4-pro-cta-sub">Benchmark-powered routing • All models • {SAVINGS_PCT}% measured cost gap</div>
-        <div className="v4-pro-cta-price">7-day free trial → Start now</div>
+      {/* Signed-out readers go to /pricing; /router is behind auth. */}
+      <div className="v4-pro-cta" onClick={() => router.push(session ? '/router' : '/pricing')} style={{ margin: '8px 10px' }}>
+        <div className="v4-pro-cta-title">SMART ROUTER</div>
+        <div className="v4-pro-cta-sub">
+          Stop picking a model by reputation. Route each request to whichever one is measuring best,
+          across every provider you already pay for.
+        </div>
+        <div className="v4-pro-cta-price">
+          {annualMonthly(ROUTER_PLAN)}{' '}
+          <span className="cta-note">
+            billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -3,8 +3,9 @@ import { auth } from '@/auth';
 import Stripe from 'stripe';
 import { redirectToPath } from '@/lib/safe-redirect';
 import { recordActivation } from '@/lib/activation';
+import { findUserById } from '@/lib/db-client';
 import {
-  isSellablePlan, isInterval, priceIdWithLegacyFallback,
+  isSellablePlan, isInterval, priceIdFor,
   type SellablePlan, type Interval,
 } from '@/lib/stripe-plans';
 
@@ -49,9 +50,10 @@ function resolveSelection(searchParams: URLSearchParams, body?: Record<string, u
 }
 
 async function buildSession(
-  plan: SellablePlan, interval: Interval, userId: string, userEmail: string, cancelPath: string
+  plan: SellablePlan, interval: Interval, userId: string, userEmail: string, cancelPath: string,
+  existingCustomerId?: string | null,
 ) {
-  const priceId = priceIdWithLegacyFallback(plan, interval);
+  const priceId = priceIdFor(plan, interval);
   if (!priceId) {
     throw Object.assign(new Error(`No Stripe price configured for ${plan}/${interval}`), { code: 'unconfigured' });
   }
@@ -61,7 +63,10 @@ async function buildSession(
 
   return stripe.checkout.sessions.create({
     mode: 'subscription',
-    customer_email: userEmail,
+    // One or the other — Stripe rejects both together. Reusing the known
+    // customer keeps a returning buyer's invoices, cards and history on one
+    // record instead of creating a parallel one keyed off the same address.
+    ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: userEmail }),
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/router?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${cancelPath}`,
@@ -98,8 +103,10 @@ export async function GET(request: NextRequest) {
     const sel = resolveSelection(new URL(request.url).searchParams);
     if ('error' in sel) return redirectToPath(request, '/pricing?error=unknown_plan');
 
+    const buyer = findUserById(Number(session.user.id));
     const checkoutSession = await buildSession(
-      sel.plan, sel.interval, session.user.id, session.user.email, '/pricing'
+      sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
+      buyer?.stripe_customer_id
     );
     return NextResponse.redirect(checkoutSession.url!);
   } catch (error: any) {
@@ -123,8 +130,10 @@ export async function POST(request: NextRequest) {
     const sel = resolveSelection(new URL(request.url).searchParams, body);
     if ('error' in sel) return NextResponse.json({ error: sel.error }, { status: 400 });
 
+    const buyer = findUserById(Number(session.user.id));
     const checkoutSession = await buildSession(
-      sel.plan, sel.interval, session.user.id, session.user.email, '/pricing'
+      sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
+      buyer?.stripe_customer_id
     );
     return NextResponse.json({ sessionId: checkoutSession.id, url: checkoutSession.url });
   } catch (error: any) {

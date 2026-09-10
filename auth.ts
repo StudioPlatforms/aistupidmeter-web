@@ -5,11 +5,13 @@ import Credentials from 'next-auth/providers/credentials';
 import { authConfig } from './auth.config';
 import { 
   findUserByEmail, 
+  findUserById,
   createUserWithPassword,
   createUserWithOAuth,
   updateUserLastLogin,
   hasActiveSubscription
 } from './lib/db-client';
+import { consumeTicket } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
 import { verifyPassword } from './lib/password';
 
@@ -63,6 +65,46 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Update last login
         updateUserLastLogin(user.id);
 
+        return {
+          id: user.id.toString(),
+          email: user.email,
+          name: user.name,
+          image: user.avatar_url,
+        };
+      },
+    }),
+
+    /**
+     * Enterprise SSO hand-off.
+     *
+     * This provider takes NO user-supplied identity — only an opaque ticket that
+     * /api/sso/callback/* minted after it had already verified a signed OIDC id
+     * token or SAML assertion. The ticket is single-use and expires in two
+     * minutes, and `consumeTicket` marks it used in the same statement that
+     * requires it to be unused, so two redemptions cannot race.
+     *
+     * It exists because NextAuth builds its provider list once at module load,
+     * which makes a per-organisation identity provider impossible to express
+     * there. Doing the IdP conversation in route handlers and redeeming the
+     * result here keeps session issuance in exactly one place.
+     */
+    Credentials({
+      id: 'sso-ticket',
+      name: 'Single sign-on',
+      credentials: { ticket: { label: 'Ticket', type: 'text' } },
+      async authorize(credentials) {
+        const ticket = String((credentials as any)?.ticket ?? '');
+        if (!ticket) return null;
+
+        const userId = consumeTicket(ticket);
+        if (!userId) {
+          throw new Error('That sign-in link has expired. Please start again.');
+        }
+
+        const user = findUserById(userId);
+        if (!user) return null;
+
+        updateUserLastLogin(user.id);
         return {
           id: user.id.toString(),
           email: user.email,

@@ -38,6 +38,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Documentation is a pre-purchase surface. Making a developer create an
+  // account before they can read what the API does costs more integrations than
+  // it protects, and none of this is secret — it describes a public interface.
+  if (pathname === '/router/docs' || pathname === '/router/help') {
+    return NextResponse.next();
+  }
+
   // Protect /router routes - require authentication.
   //
   // The previous spelling, `new URL('/auth/signin', request.url)`, resolved

@@ -9,6 +9,7 @@
   "dependencies": {
     "@auth/core": "^0.40.0",
     "@auth/drizzle-adapter": "^1.10.0",
+    "@node-saml/node-saml": "^5.1.0",
     "@stripe/stripe-js": "^8.0.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/nodemailer": "^7.0.2",

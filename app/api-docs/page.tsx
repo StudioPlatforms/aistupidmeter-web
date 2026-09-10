@@ -2,6 +2,15 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import SubpageLayout from '@/components/SubpageLayout';
 import EnterpriseContact from '@/components/EnterpriseContact';
+import { DATA_API_LIMITS } from '@/lib/entitlements';
+
+/** How each Data API tier is obtained. The limits themselves come from the plan table. */
+const HOW_TO_GET: Record<'free' | 'pro' | 'teams' | 'enterprise', string> = {
+  free: 'Sign up and create a key',
+  pro: 'Included with Pro and Developer',
+  teams: 'Included with Teams',
+  enterprise: 'By arrangement — see below',
+};
 
 export const metadata: Metadata = {
   title: 'Public Data API | Live AI Model Benchmark Data',
@@ -230,24 +239,19 @@ export default function ApiDocsPage() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td style={{ ...s.td, color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Free</td>
-                  <td style={s.td}>10</td>
-                  <td style={s.td}>1</td>
-                  <td style={s.td}>Sign up and create a key</td>
-                </tr>
-                <tr>
-                  <td style={{ ...s.td, color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Pro</td>
-                  <td style={s.td}>10,000</td>
-                  <td style={s.td}>60</td>
-                  <td style={s.td}>Included with a Pro subscription</td>
-                </tr>
-                <tr>
-                  <td style={{ ...s.td, color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Enterprise</td>
-                  <td style={s.td}>250,000</td>
-                  <td style={s.td}>1,000</td>
-                  <td style={s.td}>By arrangement — see below</td>
-                </tr>
+                {/* Rendered from the shared limit table so the docs cannot drift
+                    from what the rate limiter enforces. The hand-written version
+                    of this table had lost the Teams row entirely. */}
+                {(['free', 'pro', 'teams', 'enterprise'] as const).map(tier => (
+                  <tr key={tier}>
+                    <td style={{ ...s.td, color: 'var(--phosphor-green)', fontWeight: 'bold' }}>
+                      {DATA_API_LIMITS[tier].label}
+                    </td>
+                    <td style={s.td}>{DATA_API_LIMITS[tier].daily.toLocaleString()}</td>
+                    <td style={s.td}>{DATA_API_LIMITS[tier].perMinute.toLocaleString()}</td>
+                    <td style={s.td}>{HOW_TO_GET[tier]}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
