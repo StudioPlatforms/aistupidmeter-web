@@ -80,6 +80,16 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
 
   if (prov === 'google') {
     // 3.1 Pro is the base (<=200K ctx) tier; above that it rises to $4/$18.
+    // Flash 3.5 -> 3.8 must come BEFORE the generic gemini-3 + flash rule below, or they
+    // all collapse into $0.50/$3 (the same ordering bug that made every gpt-5.x show
+    // $1.25/$10). STANDARD rates: 3.6/3.7/3.8 are on a $0.75/$3.75 introductory price
+    // through 2026-12-31, and this table never carries intro rates because they expire
+    // silently. Keep in sync with apps/api/src/lib/model-pricing.ts.
+    if (name.includes('3.8-flash')) return { input: 1.50, output: 7.50 };
+    if (name.includes('3.7-flash')) return { input: 1.50, output: 7.50 };
+    if (name.includes('3.6-flash')) return { input: 1.50, output: 7.50 };
+    if (name.includes('3.5-flash-lite')) return { input: 0.30, output: 2.50 };
+    if (name.includes('3.5-flash')) return { input: 1.50, output: 9 };
     if (name.includes('3.1-flash-lite')) return { input: 0.25, output: 1.50 };
     if (name.includes('3.1-flash')) return { input: 0.50, output: 3 };
     if (name.includes('3.1-pro')) return { input: 2, output: 12 };
