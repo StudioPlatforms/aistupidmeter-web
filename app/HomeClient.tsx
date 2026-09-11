@@ -3810,7 +3810,11 @@ export default function Dashboard() {
               </div>
 
               {modelScores.length > 0 && (
-                <DriftHeatmap models={modelScores.filter(m => typeof m.currentScore === 'number')} />
+                <DriftHeatmap
+                  models={modelScores.filter(m => typeof m.currentScore === 'number')}
+                  period={leaderboardPeriod}
+                  sortBy={leaderboardSortBy}
+                />
               )}
 
               {/* The per-model cards were 4,000px of near-identical "STABLE" panels above

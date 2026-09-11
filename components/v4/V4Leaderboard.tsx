@@ -171,7 +171,8 @@ export default function V4Leaderboard({
       <div className={`v4-lb-header${isLoading ? ' v4-lb-dimmed' : ''}`}>
         <div style={{ textAlign: 'center' }}>RK</div>
         <div style={{ textAlign: 'left', paddingLeft: '10px' }}>MODEL</div>
-        <div style={{ textAlign: 'center' }}>SCORE</div>
+        {/* A period view is the measured average over the window, and the header says so. */}
+        <div style={{ textAlign: 'center' }}>{leaderboardPeriod === 'latest' ? 'SCORE' : `AVG ${({ '24h': '24H', '7d': '7D', '1m': '30D' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod.toUpperCase()}`}</div>
         <div style={{ textAlign: 'center' }}>TRND</div>
         <div style={{ textAlign: 'center' }} className="v4-col-regime">REGIME</div>
         <div className="v4-col-upd">UPDATED</div>

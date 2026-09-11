@@ -1120,6 +1120,7 @@
 }
 .dm-sub { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--phosphor-dim); max-width: 62ch; }
 
+.dm-head-actions { display: flex; flex-wrap: wrap; gap: 6px; flex-shrink: 0; }
 .dm-toggle {
   flex-shrink: 0; padding: 6px 11px; border-radius: 7px;
   border: 1px solid var(--metal-silver); background: var(--terminal-dark);
@@ -1292,7 +1293,7 @@
 @media (max-width: 900px) {
   .dm-kpis { grid-template-columns: repeat(2, 1fr); }
   .dm-head { flex-direction: column; gap: 10px; }
-  .dm-toggle { align-self: flex-start; }
+  .dm-head-actions { align-self: flex-start; }
 }
 @media (max-width: 700px) {
   /* The matrix is replaced outright rather than made scrollable sideways. */

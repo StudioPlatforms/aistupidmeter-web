@@ -54,8 +54,15 @@ interface DriftStatus {
 }
 
 interface HeatmapProps {
+  /** In leaderboard order for the selected sort — the default row order here. */
   models: { id: string; name: string; provider: string }[];
+  /** Window the movement is measured over; 'latest' is the 28-day alerting signature. */
+  period?: 'latest' | '24h' | '7d' | '1m';
+  /** The top-bar sort. Only used to reset the row order when it changes. */
+  sortBy?: string;
 }
+
+const PERIOD_TEXT: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '1m': '30 days' };
 
 /** All seven axes the API scores. The old table showed four of them. */
 const AXES = [
@@ -83,18 +90,27 @@ const TINT_FLOOR = 2;
  */
 const MIN_RUNS = 3;
 
-export default function DriftHeatmap({ models }: HeatmapProps) {
+export default function DriftHeatmap({ models, period = 'latest', sortBy = 'combined' }: HeatmapProps) {
   const router = useRouter();
   const [driftData, setDriftData] = useState<DriftStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState<string>('__movement');
+  // Rows open in leaderboard order, so the top-bar sort (combined / reasoning / coding /
+  // tooling / price) is what orders this table too. "Biggest movers" and the per-column
+  // sorts are one click away and give way again whenever the top bar changes.
+  const [sortKey, setSortKey] = useState<string>('__board');
   const [measuredOnly, setMeasuredOnly] = useState(false);
+
+  // `models` is a fresh array on every parent render; key the fetch on its contents.
+  const modelKey = models.map(m => m.id).join(',');
+
+  useEffect(() => { setSortKey('__board'); }, [sortBy, period]);
 
   useEffect(() => {
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
     const modelIds = new Set(models.map(m => m.id));
+    setLoading(true);
 
-    fetch(`${apiUrl}/api/drift/batch`)
+    fetch(`${apiUrl}/api/drift/batch${period === 'latest' ? '' : `?period=${period}`}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -122,7 +138,11 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
         console.error('Failed to load drift matrix:', error);
         setLoading(false);
       });
-  }, [models]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modelKey, period]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const boardOrder = useMemo(() => new Map(models.map((m, i) => [String(m.id), i])), [modelKey]);
 
   // NOTE: axesSource, not dataSource. This table is entirely about the axis breakdown,
   // and the two can disagree — glm-5.2 has a measured score series but a modelled
@@ -135,6 +155,10 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
 
   const sorted = useMemo(() => {
     const rows = [...visible];
+    if (sortKey === '__board') {
+      return rows.sort((a, b) =>
+        (boardOrder.get(String(a.modelId)) ?? Infinity) - (boardOrder.get(String(b.modelId)) ?? Infinity));
+    }
     if (sortKey === '__movement') {
       // Biggest mover first: a monitor should open on whatever needs attention.
       return rows.sort((a, b) => biggestMove(b) - biggestMove(a));
@@ -144,7 +168,7 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
     }
     // Sorting by a dimension puts the steepest decline at the top.
     return rows.sort((a, b) => changeOf(a, sortKey) - changeOf(b, sortKey));
-  }, [visible, sortKey]);
+  }, [visible, sortKey, boardOrder]);
 
   const summary = useMemo(() => {
     const moved = visible.reduce(
@@ -186,20 +210,40 @@ export default function DriftHeatmap({ models }: HeatmapProps) {
         <div>
           <h3 className="dm-title">Drift by dimension</h3>
           <p className="dm-sub">
-            How far each model has moved from its own baseline on every scored dimension.
-            Positive is better than baseline, negative is worse.
+            {period === 'latest'
+              ? 'How far each model has moved from its own 28-day baseline on every scored dimension.'
+              : `How far each model has moved over the last ${PERIOD_TEXT[period]} on every scored dimension — its newest runs in that window against its oldest.`}
+            {' '}Positive is better than baseline, negative is worse.
           </p>
         </div>
-        {summary.modelledCount > 0 && (
+        <div className="dm-head-actions">
           <button
             type="button"
-            className={`dm-toggle${measuredOnly ? ' is-on' : ''}`}
-            onClick={() => setMeasuredOnly(v => !v)}
-            title="Hide rows whose dimension figures are modelled while live benchmarking is paused"
+            className={`dm-toggle${sortKey === '__board' ? ' is-on' : ''}`}
+            onClick={() => setSortKey('__board')}
+            title="Same order as the leaderboard for the selected sort"
           >
-            {measuredOnly ? 'Showing measured only' : 'Hide modelled'}
+            Leaderboard order
           </button>
-        )}
+          <button
+            type="button"
+            className={`dm-toggle${sortKey === '__movement' ? ' is-on' : ''}`}
+            onClick={() => setSortKey('__movement')}
+            title="Largest movement on any dimension first"
+          >
+            Biggest movers
+          </button>
+          {summary.modelledCount > 0 && (
+            <button
+              type="button"
+              className={`dm-toggle${measuredOnly ? ' is-on' : ''}`}
+              onClick={() => setMeasuredOnly(v => !v)}
+              title="Hide rows whose dimension figures are modelled while live benchmarking is paused"
+            >
+              {measuredOnly ? 'Showing measured only' : 'Hide modelled'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Headline numbers first - the panel should answer "is anything wrong?" before
