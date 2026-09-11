@@ -33,7 +33,7 @@ interface Watchlist { limit: number | null; used: number; models: WatchedModel[]
 
 const card: React.CSSProperties = {
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6,
-  padding: '18px 20px', marginBottom: 16,
+  padding: '18px 20px',
 };
 const label: React.CSSProperties = {
   fontSize: '0.78em', color: 'var(--phosphor-dim)',

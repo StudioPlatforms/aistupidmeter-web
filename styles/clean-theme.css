@@ -847,23 +847,36 @@ a:hover { color: var(--accent-ink); }
    The signed-OUT prompts on the same pages keep their narrow centred card — a
    sign-in box stretched across a desktop reads as broken, not spacious. */
 .acct-page {
-  max-width: 1280px;
-  margin: 0 auto;
+  /* No max-width on purpose. Every other signed-in surface (/router/*, the API monitor)
+     fills the space left by the 240px sidebar, and a 1280px cap still reads as a centred
+     column on a 1440px+ display — which is the thing being fixed. The grid below keeps
+     content readable at any width by adding columns rather than stretching cards. */
+  width: 100%;
   padding: 26px 24px 70px;
 }
+/* Flex, not `grid-template-columns: repeat(auto-fit, minmax(420px, 1fr))`: auto-fit
+   only collapses a track when NOTHING occupies it, and `.acct-wide` spans every
+   track — so on a 2200px display the row held four tracks for three cards and left
+   a visible hole on the right. Flex divides whatever the row has between however
+   many cards are actually on it. */
 .acct-grid {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  align-items: start;
 }
-/* Anything that reads badly in a narrow column (tables, link grids) spans. */
-.acct-grid > .acct-wide { grid-column: 1 / -1; }
+.acct-grid > * {
+  flex: 1 1 420px;
+  min-width: 0;   /* without this a long unbroken string stretches the card past the row */
+}
+/* Anything that reads badly in a narrow column (tables, link grids) takes the row. */
+.acct-grid > .acct-wide { flex-basis: 100%; }
 
 @media (max-width: 1024px) {
-  .acct-grid { grid-template-columns: 1fr; }
+  .acct-grid > * { flex-basis: 100%; }
 }
 @media (max-width: 640px) {
-  .acct-page { padding: 18px 14px 56px; }
+  /* 88px at the bottom, not 56: the fixed mobile menu button covers the lowest
+     ~72px of the viewport, and .rv4-body clears it the same way. */
+  .acct-page { padding: 18px 14px 88px; }
   .acct-grid { gap: 12px; }
 }

@@ -34,7 +34,7 @@ interface Usage {
 
 const card: React.CSSProperties = {
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6,
-  padding: '18px 20px', marginBottom: 16,
+  padding: '18px 20px',
 };
 
 function Bar({ used, limit }: { used: number; limit: number }) {
@@ -266,7 +266,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
 
       {/* Change plan */}
       {/* spans: the plan cards below need the full row */}
-      <section className="acct-wide" style={{ ...card, marginBottom: 0 }}>
+      <section className="acct-wide" style={card}>
         <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Change plan</h2>
         <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
           {isLegacy

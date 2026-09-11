@@ -32,7 +32,7 @@ interface WatchedModel {
 
 const card: React.CSSProperties = {
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6,
-  padding: '18px 20px', marginBottom: 16,
+  padding: '18px 20px',
 };
 const h2: React.CSSProperties = { fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 };
 const sub: React.CSSProperties = { fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 };
@@ -225,7 +225,21 @@ export default function SettingsClient() {
         </div>
       </section>
 
-      {/* 3 — Which models email you */}
+      {/* 3 — What we always send */}
+      <section style={card}>
+        <h2 style={h2}>What we always send</h2>
+        <p style={{ ...sub, marginBottom: 10 }}>
+          These are service messages about your own account, not marketing, so they cannot
+          be switched off while the account is open.
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.85 }}>
+          <li>Password reset, when you ask for one</li>
+          <li>Purchase confirmation and receipts</li>
+          <li>A notice three days before a trial converts to a charge</li>
+        </ul>
+      </section>
+
+      {/* 4 — Which models email you */}
       {/* spans: reads badly squeezed into half a row */}
       <section className="acct-wide" style={card}>
         <h2 style={h2}>Which models email you</h2>
@@ -254,20 +268,6 @@ export default function SettingsClient() {
             appears in the weekly digest, so your coverage is never quietly reduced.
           </p>
         )}
-      </section>
-
-      {/* 4 — What we always send */}
-      <section style={{ ...card, marginBottom: 0 }}>
-        <h2 style={h2}>What we always send</h2>
-        <p style={{ ...sub, marginBottom: 10 }}>
-          These are service messages about your own account, not marketing, so they cannot
-          be switched off while the account is open.
-        </p>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.85 }}>
-          <li>Password reset, when you ask for one</li>
-          <li>Purchase confirmation and receipts</li>
-          <li>A notice three days before a trial converts to a charge</li>
-        </ul>
       </section>
       </div>
     </div>
