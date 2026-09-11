@@ -187,15 +187,25 @@ export default function V4Leaderboard({
           inc.modelId === parseInt(model.id)
         );
 
+        // HONEST ABSENCE. A row can now carry a score that is real but incomplete (a suite
+        // was skipped and the rest were reweighted), stale, or too old to rank. Each of
+        // those states is shown in words next to the number rather than hidden inside it.
+        const held = model.rankable === false;
+        const coverageNote: string | null = model.coverage ?? null;
+        const isReasoningView = leaderboardSortBy === 'reasoning';
+
         return (
           <div
             key={model.id}
-            className={`v4-lb-row ${isHighlight ? 'highlight' : ''}${isLoading ? ' v4-lb-dimmed' : ''}`}
+            className={`v4-lb-row ${isHighlight ? 'highlight' : ''}${isLoading ? ' v4-lb-dimmed' : ''}${held ? ' v4-lb-held' : ''}`}
             onClick={() => router.push(modelHref)}
+            title={model.staleReason || undefined}
           >
-            {/* Rank */}
+            {/* Rank — an expired score is shown but does not take a rank */}
             <div style={{ textAlign: 'center' }}>
-              <span className={`v4-lb-rank ${rank <= 3 ? 'top' : ''}`}>{rank}</span>
+              {held
+                ? <span className="v4-lb-rank" style={{ color: 'var(--phosphor-dim)' }}>–</span>
+                : <span className={`v4-lb-rank ${rank <= 3 ? 'top' : ''}`}>{rank}</span>}
             </div>
 
             {/* Model Name + Provider */}
@@ -223,12 +233,18 @@ export default function V4Leaderboard({
               </div>
             </div>
 
-            {/* Score */}
+            {/* Score, with what it is made of when that is less than everything */}
             <div style={{ textAlign: 'center' }}>
               {isUnavailable ? (
                 <span style={{ color: 'var(--phosphor-dim)', fontSize: '12px' }}>N/A</span>
               ) : (
-                <span className="v4-lb-score" style={{ color: scoreColor(score!) }}>{score}</span>
+                <>
+                  <span className="v4-lb-score" style={{ color: held ? 'var(--phosphor-dim)' : scoreColor(score!) }}>{score}</span>
+                  {held && <div className="v4-cov v4-cov-held">not ranked</div>}
+                  {!held && coverageNote && !isReasoningView && (
+                    <div className="v4-cov v4-cov-partial" title={coverageNote}>{coverageNote.replace(/ suites.*$/, '/3')}</div>
+                  )}
+                </>
               )}
             </div>
 
@@ -246,9 +262,15 @@ export default function V4Leaderboard({
               )}
             </div>
 
-            {/* Updated */}
-            <div className="v4-col-upd" style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
-              {formatTimeAgo(model.lastUpdated)}
+            {/* Updated — the OLDEST measurement in the score, not the newest. A fresh
+                hourly run used to mask a days-old deep component as "36m". In the
+                reasoning view the rotation task is named, because a deep score is only
+                comparable to other scores on the same task. */}
+            <div className="v4-col-upd" style={{ fontSize: '10px', color: model.isStale ? 'var(--warn)' : 'var(--phosphor-dim)' }}>
+              {formatTimeAgo(model.oldestComponentAt || model.lastUpdated)}
+              {isReasoningView && model.taskSlug && (
+                <div className="v4-cov" style={{ marginTop: 2 }}>{model.taskSlug}</div>
+              )}
             </div>
 
             {/* Price */}

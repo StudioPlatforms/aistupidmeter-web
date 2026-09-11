@@ -976,20 +976,17 @@ export default function Dashboard() {
           
           // Create new objects to force React state change
           const timestamp = Date.now();
+          // Spread the API row FIRST, then override the computed fields. This used to be
+          // an explicit allow-list, which silently dropped every field the API added
+          // later — the leaderboard was showing a fresh hourly timestamp for a
+          // composite whose deep component was 17 hours old, because
+          // `oldestComponentAt` never made it into state. Anything the API says about a
+          // row (coverage, rankable, staleReason, taskSlug, suites) must reach the row.
           const scoresToSet = processedScores.map((score: any, index: number) => ({
-            id: score.id,
-            name: score.name,
-            displayName: score.displayName,
-            provider: score.provider,
-            currentScore: score.currentScore,
-            trend: score.trend,
+            ...score,
             lastUpdated: new Date(score.lastUpdated),
-            status: score.status,
-            weeklyBest: score.weeklyBest,
-            weeklyWorst: score.weeklyWorst,
-            unavailableReason: score.unavailableReason,
+            oldestComponentAt: score.oldestComponentAt ? new Date(score.oldestComponentAt) : undefined,
             history: score.history ? [...score.history] : [],
-            isNew: score.isNew,
             _renderKey: `${score.id}_${period}_${sortBy}_${score.currentScore}_${timestamp}_${index}`,
             _period: period,
             _sortBy: sortBy
