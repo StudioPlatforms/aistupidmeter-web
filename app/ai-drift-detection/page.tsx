@@ -36,7 +36,8 @@ export const metadata: Metadata = {
     'LLM regression testing',
     'AI model monitoring',
     'AI quality monitoring',
-    'CUSUM drift detection',
+    'Page-Hinkley drift detection',
+    'CUSUM change detection',
     'change point detection LLM',
     'silent model updates',
     'AI model nerfed',
@@ -49,13 +50,13 @@ export const metadata: Metadata = {
     url: CANONICAL,
     title: 'AI Drift Detection — Track AI Model Degradation Over Time',
     description:
-      'How to detect when an AI model silently degrades. CUSUM change-point detection applied to continuous LLM benchmarks, with live drift alerts.',
+      'How to detect when an AI model silently degrades. Page-Hinkley change-point detection applied to continuous LLM benchmarks, with live drift alerts.',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'AI Drift Detection — Track AI Model Degradation Over Time',
     description:
-      'How to detect when an AI model silently degrades, using CUSUM change-point detection over continuous benchmarks.',
+      'How to detect when an AI model silently degrades, using Page-Hinkley change-point detection over continuous benchmarks.',
   },
 };
 
@@ -73,12 +74,12 @@ const FAQ = [
     a: 'You need a fixed test set, repeated runs, and a statistical baseline. A single bad response proves nothing — model output is stochastic, so quality varies run to run even with no change at the provider. The signal you want is a sustained shift in the average across many runs, which is exactly what change-point detection is designed to isolate.',
   },
   {
-    q: 'What is CUSUM and why use it for drift detection?',
-    a: 'CUSUM (cumulative sum) is a change-point detection algorithm that accumulates deviations from a baseline mean. Small random fluctuations cancel out over time, but a genuine sustained shift accumulates until it crosses a decision threshold. This makes it far better suited to catching gradual decline than a simple threshold alarm, which either fires constantly on noise or misses slow degradation entirely.',
+    q: 'What is the Page-Hinkley test and why use it for drift detection?',
+    a: 'The Page-Hinkley test is a cumulative-sum (CUSUM-family) change-point detector. It keeps a running total of how far each new observation falls below the running mean, less a small tolerance, and compares that total with its own lowest point so far. Random fluctuations have no consistent sign and cancel out; a genuine sustained decline accumulates until the gap crosses a decision threshold and a drift event fires. That makes it far better suited to catching gradual decline than a simple threshold alarm, which either fires constantly on noise or misses slow degradation entirely. We run it on each model\'s daily median score, and the constants are published on the methodology page.',
   },
   {
     q: 'How often do you check for model drift?',
-    a: 'Benchmarks run continuously, with the code suite refreshing multiple times a day and deeper reasoning and tool-use suites on their own cadence. Every completed run feeds the drift calculation, so a sustained change surfaces within hours rather than whenever someone happens to notice.',
+    a: 'The code suite runs every four hours, the reasoning and tool-use suites once a day, and a small canary every hour. The Page-Hinkley statistic is computed on daily medians, so it confirms a sustained shift over days rather than reacting to one bad hour; a separate regime check compares recent scores with the model\'s 28-day baseline and flags a sharp drop sooner. If a suite could not run — a provider outage, or a prompt the provider declined — that suite is left out of the score and the gap is shown next to it rather than filled in.',
   },
   {
     q: 'Which models do you monitor for degradation?',
@@ -101,7 +102,7 @@ const jsonLd = {
       '@id': CANONICAL,
       headline: 'AI Drift Detection — Track AI Model Degradation Over Time',
       description:
-        'How to detect when an AI model silently degrades behind a stable API name, using CUSUM change-point detection over continuous benchmarks.',
+        'How to detect when an AI model silently degrades behind a stable API name, using Page-Hinkley change-point detection over continuous benchmarks.',
       author: { '@type': 'Organization', name: 'AI Stupid Level' },
       publisher: { '@type': 'Organization', name: 'AI Stupid Level', url: SITE },
       mainEntityOfPage: CANONICAL,
@@ -245,7 +246,10 @@ export default function AiDriftDetectionPage() {
             <h3 style={styles.h3}>Safety and refusal tuning</h3>
             <p style={{ ...styles.text, margin: 0 }}>
               Tightened filters raise refusal rates on legitimate requests. The model is not less capable, but it is
-              measurably less useful for the task you had.
+              measurably less useful for the task you had. In our multi-turn reasoning suite, a prompt the provider
+              declines outright is recorded as a refusal with the provider&apos;s stated category and that
+              session&apos;s score is withheld, so a tightened filter shows up as a refusal rate rather than as
+              invented incapability.
             </p>
           </div>
           <div style={styles.panel}>
@@ -256,24 +260,28 @@ export default function AiDriftDetectionPage() {
             </p>
           </div>
 
-          <h2 style={styles.h2}>How we detect drift: CUSUM change-point detection</h2>
+          <h2 style={styles.h2}>How we detect drift: the Page-Hinkley test</h2>
           <p style={styles.text}>
             A single weak response is not evidence. Model output is stochastic, so scores vary run to run even when
             nothing has changed upstream. A naive threshold alarm on raw scores either fires constantly on that noise
             or is set so loose it misses real decline.
           </p>
           <p style={styles.text}>
-            We use CUSUM — a cumulative sum control technique from statistical process control. Instead of testing each
-            run in isolation, CUSUM accumulates each run&apos;s deviation from an established baseline. Random noise
-            has no consistent sign, so it cancels out and the running total stays near zero. A genuine sustained
-            decline pushes deviations consistently in one direction, so the total climbs until it crosses a decision
-            threshold and a drift event fires.
+            We use the Page-Hinkley test — a cumulative-sum change detector from statistical process control. Instead
+            of judging each run in isolation, it accumulates how far each day&apos;s median score falls below the
+            running mean, less a small tolerance, and tracks the gap between that running total and its lowest point
+            so far. Random noise has no consistent sign, so it cancels out and the gap stays near zero. A genuine
+            sustained decline pushes the deviations consistently in one direction, so the gap grows until it crosses
+            a decision threshold and a drift event fires.
           </p>
           <p style={styles.text}>
-            The threshold is what trades false alarms against detection lag. We tune it against historical benchmark
-            variance so that ordinary fluctuation stays quiet while a real shift is caught within hours. Every score is
-            also published with a confidence interval, so you can see how much of a gap between two models is
-            meaningful and how much is noise. The full statistical approach is documented on our{' '}
+            The threshold is what trades false alarms against detection lag. The tolerance and threshold were chosen
+            by sweeping them against the full history of real benchmark scores, so ordinary day-to-day fluctuation
+            stays quiet while a real shift is confirmed over days rather than hours; a separate regime check against
+            the model&apos;s 28-day baseline flags a sharp drop sooner. Every score is also published with a
+            confidence interval, so you can see how much of a gap between two models is meaningful and how much is
+            noise, and a composite score is labelled with how many suites actually contributed to it. The full
+            statistical approach, including the constants, is documented on our{' '}
             <Link href="/methodology" style={styles.link}>benchmarking methodology page</Link>.
           </p>
 
@@ -283,24 +291,26 @@ export default function AiDriftDetectionPage() {
             another — a common pattern after a cost-optimisation update.
           </p>
           <div style={styles.panel}>
-            <h3 style={styles.h3}>Code generation (7 axes)</h3>
+            <h3 style={styles.h3}>Code generation (9 axes)</h3>
             <p style={{ ...styles.text, margin: 0 }}>
-              Correctness, adherence to spec, code quality, efficiency, stability, refusal rate and error recovery,
-              scored by executing the generated code rather than grading it by similarity.
+              Correctness, task complexity handling, code quality, stability, efficiency, edge cases, debugging,
+              output format and safety, scored by executing the generated code rather than grading it by similarity.
             </p>
           </div>
           <div style={styles.panel}>
             <h3 style={styles.h3}>Deep reasoning</h3>
             <p style={{ ...styles.text, margin: 0 }}>
-              Multi-step problem solving, plan coherence, long-context retention and hallucination rate — usually the
-              first place a quantised model shows decline.
+              Multi-step problem solving over a multi-turn session, scored on the code axes plus memory retention,
+              hallucination rate, plan coherence and context-window use — usually the first place a quantised model
+              shows decline.
             </p>
           </div>
           <div style={styles.panel}>
             <h3 style={styles.h3}>Tool calling</h3>
             <p style={{ ...styles.text, margin: 0 }}>
-              Tool selection, argument accuracy, error handling and recovery. Critical for agents, where a small drop
-              in argument accuracy compounds across a long chain of calls.
+              Task completion, tool selection, parameter accuracy, efficiency, error handling, context awareness and
+              safety compliance. Critical for agents, where a small drop in parameter accuracy compounds across a
+              long chain of calls.
             </p>
           </div>
 

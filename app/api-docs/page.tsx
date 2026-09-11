@@ -106,7 +106,7 @@ const ENDPOINTS: Array<{ path: string; desc: string; params?: string }> = [
   { path: 'GET /api/v1/analytics/recommendations', desc: 'Which model to use right now, by task type.', params: 'period' },
   { path: 'GET /api/v1/analytics/provider-reliability', desc: 'Reliability scoring per provider.', params: 'period' },
   { path: 'GET /api/v1/analytics/transparency', desc: 'Full scoring transparency data.', params: 'period' },
-  { path: 'GET /api/v1/drift/:id', desc: 'CUSUM drift signature for one model.' },
+  { path: 'GET /api/v1/drift/:id', desc: 'Drift signature for one model: Page-Hinkley statistic, regime and per-axis trends.' },
   { path: 'GET /api/v1/me', desc: 'Your key, its tier, and your current quota.' },
 ];
 

@@ -60,7 +60,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Detection Method</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>CUSUM + Page-Hinkley</span>
+            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Page-Hinkley (CUSUM-family)</span>
           </div>
         </div>
 
@@ -103,7 +103,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
         </div>
         <div style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
           Continuous, independent measurement of whether AI models degrade behind a stable API name. We benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
-          Our CUSUM + Page-Hinkley change-point detection algorithms identify performance regressions within hours, not days.
+          Page-Hinkley change-point detection separates a sustained regression from run-to-run noise, and every composite score says how many suites actually contributed to it.
         </div>
         <div style={{ fontWeight: 'bold', color: 'var(--phosphor-green)', marginTop: '10px', marginBottom: '6px', textShadow: '0 0 2px var(--phosphor-green)' }}>
           &gt; TEST YOUR OWN KEYS

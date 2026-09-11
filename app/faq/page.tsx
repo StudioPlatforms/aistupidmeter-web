@@ -59,7 +59,7 @@ const faqs: FAQItem[] = [
   {
     category: "Methodology",
     question: "What is drift detection and how does it work?",
-    answer: "Drift detection identifies sustained performance changes over time. We use the CUSUM (Cumulative Sum) algorithm, which tracks cumulative deviations from a model's baseline. Unlike simple comparisons, CUSUM distinguishes between daily noise and actual trends. Each model has calibrated thresholds based on its historical variance — noisy models get higher thresholds to avoid false alarms."
+    answer: "Drift detection identifies sustained performance changes over time. We use the Page-Hinkley test, a cumulative-sum (CUSUM-family) change detector, on each model's daily median score: it accumulates how far each day falls below the running mean, less a small tolerance, so daily noise cancels out while a real sustained decline builds up until it crosses the alarm threshold. That threshold is global and was calibrated against the full score history; the regime classifier that labels a model DEGRADED or VOLATILE uses thresholds scaled to that model's own historical variance, so noisy models need a bigger drop to flag. The constants are published on the methodology page."
   },
   {
     category: "Methodology",

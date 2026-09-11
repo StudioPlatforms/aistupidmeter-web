@@ -8,6 +8,11 @@ interface ModelDetailStatBarProps {
   averageLatency: number;
   averageCorrectness: number;
   lastUpdated: string;
+  /** What `lastUpdated` refers to — for a composite, its oldest contributing suite. */
+  lastUpdatedNote?: string;
+  /** e.g. "2 of 3 suites (no deep)"; null when every suite contributed. */
+  coverage?: string | null;
+  staleReason?: string | null;
 }
 
 const scoreColor = (score: number): string =>
@@ -21,6 +26,9 @@ export default function ModelDetailStatBar({
   averageLatency,
   averageCorrectness,
   lastUpdated,
+  lastUpdatedNote,
+  coverage,
+  staleReason,
 }: ModelDetailStatBarProps) {
   const scoreCol = currentScore >= 80 ? 'color-green' : currentScore >= 60 ? 'color-amber' : 'color-red';
   const rateCol = successRate >= 80 ? 'color-green' : successRate >= 60 ? 'color-amber' : 'color-red';
@@ -33,7 +41,7 @@ export default function ModelDetailStatBar({
         <div className="md-stat-value" style={{ color: scoreColor(currentScore) }}>
           {currentScore || '—'}
         </div>
-        <div className="md-stat-detail">{status.toUpperCase()}</div>
+        <div className="md-stat-detail" title={staleReason ?? undefined}>{coverage ?? status.toUpperCase()}</div>
       </div>
 
       <div className={`md-stat-cell ${rateCol}`}>
@@ -73,7 +81,7 @@ export default function ModelDetailStatBar({
         <div className="md-stat-value" style={{ color: 'var(--phosphor-green)', fontSize: '14px' }}>
           {lastUpdated || '—'}
         </div>
-        <div className="md-stat-detail">benchmark time</div>
+        <div className="md-stat-detail">{lastUpdatedNote ?? 'benchmark time'}</div>
       </div>
     </div>
   );

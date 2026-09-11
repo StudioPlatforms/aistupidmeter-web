@@ -4,7 +4,7 @@ import SubpageLayout from '@/components/SubpageLayout';
 
 export const metadata: Metadata = {
   title: 'AI Benchmarking Methodology | How We Test AI Models',
-  description: 'Comprehensive technical documentation of our 9-axis AI benchmarking methodology using CUSUM drift detection, statistical confidence intervals, and execution-based testing. Learn how we measure AI performance objectively.',
+  description: 'Comprehensive technical documentation of our 9-axis AI benchmarking methodology using Page-Hinkley drift detection, statistical confidence intervals, and execution-based testing. Learn how we measure AI performance objectively.',
   keywords: [
     'AI benchmarking methodology',
     'How to test AI models',
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     'AI drift detection algorithm',
     'AI benchmark scoring system',
     'Statistical AI testing',
-    'CUSUM algorithm AI',
+    'Page-Hinkley drift detection',
     'Confidence intervals AI testing',
     'Objective AI measurement'
   ],
@@ -889,7 +889,7 @@ export default async function MethodologyPage() {
                 {
                   "@type": "HowToStep",
                   "name": "Detect Drift",
-                  "text": "Apply CUSUM algorithm to identify sustained performance changes"
+                  "text": "Apply the Page-Hinkley test to identify sustained performance changes"
                 }
               ]
             })

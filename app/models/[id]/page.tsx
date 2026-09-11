@@ -309,7 +309,7 @@ function ModelSeoContent({
       <p style={s.p}>
         This is the question the platform exists to answer. Model quality can shift after a provider updates a model
         behind a stable API name, and without continuous measurement that change is invisible to the people relying on
-        it. We track {name} for performance drift using CUSUM change-point detection, which separates a sustained
+        it. We track {name} for performance drift using Page-Hinkley change-point detection, which separates a sustained
         decline from ordinary run-to-run noise. When {name} degrades in a statistically meaningful way, it shows up on
         its chart above and in our drift alerts. See{' '}
         <a href="/ai-drift-detection" style={s.a}>how AI drift detection works</a> for the method behind it.

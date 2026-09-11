@@ -27,7 +27,7 @@ export default function AlertBar({ alerts, degradations }: AlertBarProps) {
   const criticalAlert = alerts.find(a => a.severity === 'critical');
 
   const alertText = criticalDeg
-    ? `${criticalDeg.modelName || 'Unknown model'} performance dropped ${criticalDeg.dropPercentage}% — ${criticalDeg.message || 'CUSUM change-point detected'}`
+    ? `${criticalDeg.modelName || 'Unknown model'} performance dropped ${criticalDeg.dropPercentage}% — ${criticalDeg.message || 'Page-Hinkley change-point detected'}`
     : criticalAlert
     ? `${criticalAlert.name} — ${criticalAlert.issue}`
     : null;

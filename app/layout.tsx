@@ -346,7 +346,7 @@ export default function RootLayout({
                     "Budget controls with hard/soft limits and threshold alerts",
                     "Cost analytics with daily trends and model spend breakdown",
                     "Key efficiency metrics and error rate tracking",
-                    "AI quality drift detection using CUSUM + Page-Hinkley algorithms",
+                    "AI quality drift detection using the Page-Hinkley change detector",
                     "Tool calling and function calling benchmark tests",
                     "Historical AI performance analysis with 24h/7d/30d time periods",
                     "Works with Cursor, Windsurf, Aider, Continue.dev, Cline, Open WebUI, and more",

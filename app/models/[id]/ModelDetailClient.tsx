@@ -89,6 +89,13 @@ interface ModelStats {
   successRate: number;
   averageCorrectness: number;
   averageLatency: number;
+  // Coverage of the headline number (same fields as the leaderboard row). A composite
+  // built from two suites says so instead of passing as a complete one.
+  suites?: string[] | null;
+  coverage?: string | null;
+  rankable?: boolean;
+  staleReason?: string | null;
+  oldestComponentAt?: string | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -452,7 +459,11 @@ export default function ModelDetailClient({
 
   // ─── Main Render ─────────────────────────────────────────────────────────────
 
-  const lastUpdatedStr = modelDetails.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts) : 'Unknown';
+  // For a composite, "last update" is the OLDEST contributing measurement. The newest
+  // suite's timestamp would describe a quarter of the number as if it were all of it.
+  const lastUpdatedStr = stats?.oldestComponentAt
+    ? formatTimeAgo(stats.oldestComponentAt)
+    : modelDetails.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts) : 'Unknown';
 
   return (
     <div>
@@ -498,6 +509,9 @@ export default function ModelDetailClient({
         averageLatency={stats?.averageLatency || 0}
         averageCorrectness={stats?.averageCorrectness || 0}
         lastUpdated={lastUpdatedStr}
+        lastUpdatedNote={stats?.oldestComponentAt ? 'oldest contributing suite' : 'benchmark time'}
+        coverage={stats?.coverage ?? null}
+        staleReason={stats?.staleReason ?? null}
       />
 
       {/* Period + Scoring mode controls */}
