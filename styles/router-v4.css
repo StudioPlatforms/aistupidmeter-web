@@ -947,6 +947,31 @@
   border-color: rgba(26, 115, 232, 0.4);
   background: rgba(26, 115, 232, 0.04);
 }
+/* Selected provider. Only `.connected` existed, so a page that marked the chosen card
+   `.active` (test-keys) styled nothing and the user could not tell what was selected.
+   Matches .rv4-strategy-card.active so selection looks the same wherever it appears. */
+.rv4-provider-card { cursor: pointer; position: relative; }
+.rv4-provider-card:hover {
+  border-color: rgba(26, 115, 232, 0.4);
+  background: rgba(26, 115, 232, 0.04);
+}
+.rv4-provider-card.active {
+  border-color: var(--phosphor-green);
+  background: rgba(26, 115, 232, 0.08);
+  box-shadow: 0 0 10px rgba(26, 115, 232, 0.1);
+}
+.rv4-provider-card.active .rv4-provider-card-name { color: var(--accent, #1a73e8); }
+/* A tick as well as colour: selection must not depend on hue alone. */
+.rv4-provider-card.active::after {
+  content: "✓";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent, #1a73e8);
+  line-height: 1;
+}
 .rv4-provider-card-name {
   font-size: 12px;
   font-weight: bold;

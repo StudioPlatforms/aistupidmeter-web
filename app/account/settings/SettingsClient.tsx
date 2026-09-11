@@ -125,12 +125,13 @@ export default function SettingsClient() {
   const verified = user?.emailVerified !== false;
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '26px 20px 70px' }}>
+    <div className="acct-page">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20, gap: 12 }}>
         <h1 style={{ fontSize: '1.4em', margin: 0 }}>Settings</h1>
         {saved && <span style={{ fontSize: '0.82em', color: 'var(--phosphor-green)' }}>{saved}</span>}
       </div>
 
+      <div className="acct-grid">
       {/* 1 — Account */}
       <section style={card}>
         <h2 style={h2}>Account</h2>
@@ -225,7 +226,8 @@ export default function SettingsClient() {
       </section>
 
       {/* 3 — Which models email you */}
-      <section style={card}>
+      {/* spans: reads badly squeezed into half a row */}
+      <section className="acct-wide" style={card}>
         <h2 style={h2}>Which models email you</h2>
         <p style={sub}>
           Tracking and alerting are separate choices. Watch as many as your plan allows,
@@ -267,6 +269,7 @@ export default function SettingsClient() {
           <li>A notice three days before a trial converts to a charge</li>
         </ul>
       </section>
+      </div>
     </div>
   );
 }

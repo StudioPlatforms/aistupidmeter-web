@@ -106,7 +106,7 @@ export default function AccountOverview() {
   ];
 
   return (
-    <div style={{ maxWidth: 880, margin: '0 auto', padding: '26px 20px 70px' }}>
+    <div className="acct-page">
       <h1 style={{ fontSize: '1.4em', margin: '0 0 4px' }}>
         {firstName ? `Welcome back, ${firstName}` : 'Your account'}
       </h1>
@@ -114,6 +114,7 @@ export default function AccountOverview() {
         Your plan, what you are tracking, and how much of it you have used.
       </p>
 
+      <div className="acct-grid">
       {/* Plan */}
       <section style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
@@ -203,8 +204,9 @@ export default function AccountOverview() {
         </section>
       )}
 
-      {/* Where to go next */}
-      <section>
+      {/* Where to go next — spans, because a grid of links inside a half-width
+          column would wrap to one per row and look broken. */}
+      <section className="acct-wide">
         <div style={{ ...label, marginBottom: 12 }}>Everything in your account</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
           {links.map(l => (
@@ -223,6 +225,7 @@ export default function AccountOverview() {
           ))}
         </div>
       </section>
+      </div>
     </div>
   );
 }

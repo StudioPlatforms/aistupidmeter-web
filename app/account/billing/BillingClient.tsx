@@ -125,9 +125,10 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
   const price = e.priceMonthly === null ? 'Contracted' : e.priceMonthly === 0 ? 'Free' : `$${e.priceMonthly}/month`;
 
   return (
-    <div style={{ maxWidth: 780, margin: '0 auto', padding: '26px 20px 70px' }}>
+    <div className="acct-page">
       <h1 style={{ fontSize: '1.4em', margin: '0 0 20px' }}>Plan &amp; billing</h1>
 
+      <div className="acct-grid">
       {/* Current plan */}
       <section style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
@@ -264,7 +265,8 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
       </section>
 
       {/* Change plan */}
-      <section style={{ ...card, marginBottom: 0 }}>
+      {/* spans: the plan cards below need the full row */}
+      <section className="acct-wide" style={{ ...card, marginBottom: 0 }}>
         <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Change plan</h2>
         <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
           {isLegacy
@@ -312,6 +314,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
           Full comparison on the <Link href="/pricing" style={{ color: 'var(--phosphor-green)' }}>pricing page</Link>.
         </p>
       </section>
+      </div>
     </div>
   );
 }

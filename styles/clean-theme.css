@@ -832,3 +832,38 @@ a:hover { color: var(--accent-ink); }
   font-weight: 400 !important;
   color: var(--phosphor-dim) !important;
 }
+
+/* ═══ ACCOUNT PAGES — use the width that is actually there ═══════════════════
+   /account, /account/settings and /account/billing each pinned their signed-in
+   content to a narrow centred column (880 / 720 / 780px) while RouterLayout's
+   sidebar already takes 240px. On a 1440px display that left most of the screen
+   empty with the content hugging the middle.
+
+   The cards are a plain vertical stack, so simply widening the container would
+   have produced very wide, mostly empty cards. `.acct-grid` lets them flow into
+   2-3 columns when there is room and collapse to one when there is not, which is
+   also what makes these pages work on a phone.
+
+   The signed-OUT prompts on the same pages keep their narrow centred card — a
+   sign-in box stretched across a desktop reads as broken, not spacious. */
+.acct-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 26px 24px 70px;
+}
+.acct-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  align-items: start;
+}
+/* Anything that reads badly in a narrow column (tables, link grids) spans. */
+.acct-grid > .acct-wide { grid-column: 1 / -1; }
+
+@media (max-width: 1024px) {
+  .acct-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .acct-page { padding: 18px 14px 56px; }
+  .acct-grid { gap: 12px; }
+}
