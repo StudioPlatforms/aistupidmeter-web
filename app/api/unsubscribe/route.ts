@@ -18,9 +18,10 @@ function unsubscribe(token: string): boolean {
   const db = openIdentityDb();
   const info = db.prepare(`
     UPDATE alert_preferences
-       SET weekly_digest = 0,
-           email_alerts  = 0,
-           updated_at    = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+       SET weekly_digest   = 0,
+           email_alerts    = 0,
+           provider_alerts = 0,
+           updated_at      = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
      WHERE unsubscribe_token = ?
   `).run(token);
   return info.changes > 0;

@@ -21,6 +21,7 @@ import { PLANS, isPlan, type Plan } from '@/lib/entitlements';
 interface Prefs {
   emailAlerts: boolean;
   weeklyDigest: boolean;
+  providerAlerts: boolean;
   minDropPoints: number;
   canCustomiseThreshold: boolean;
   plan: string;
@@ -200,6 +201,17 @@ export default function SettingsClient() {
             </div>
           </div>
           <Toggle on={!!prefs?.emailAlerts} onChange={v => savePrefs({ emailAlerts: v })} />
+        </div>
+
+        <div style={row}>
+          <div>
+            <div style={{ fontSize: '0.9em', fontWeight: 600 }}>Provider outages</div>
+            <div style={{ fontSize: '0.8em', color: 'var(--phosphor-dim)', marginTop: 2 }}>
+              When a provider stops answering for 20 minutes or more, and again when it comes back.
+              Only for providers you track or have connected. <Link href="/status" style={{ color: 'var(--phosphor-green)' }}>See live status</Link>.
+            </div>
+          </div>
+          <Toggle on={!!prefs?.providerAlerts} onChange={v => savePrefs({ providerAlerts: v })} />
         </div>
 
         <div style={row}>

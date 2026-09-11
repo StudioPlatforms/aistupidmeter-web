@@ -42,6 +42,7 @@ export default function V4Footer({ visitorCount }: V4FooterProps) {
         <a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer">Follow on X</a>
         <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a href="https://www.producthunt.com/products/aistupidlevel?launch=aistupidlevel" target="_blank" rel="noopener noreferrer">Product Hunt</a>
+        <a href="/status">Provider status</a>
         <a href="/contact">Contact</a>
         <span>Next bench: <b style={{ color: 'var(--phosphor-green)' }}>{nextBenchTime}</b></span>
       </div>

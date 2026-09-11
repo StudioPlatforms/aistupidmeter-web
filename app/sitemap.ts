@@ -21,6 +21,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/about`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/faq`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/api-docs`, lastModified: currentDate, changeFrequency: 'monthly', priority: 0.8 },
+    // Provider status: updates every 10 minutes and answers a query people actually
+    // type ("is openai down"), so it is crawled hourly like the dashboard.
+    { url: `${baseUrl}/status`, lastModified: currentDate, changeFrequency: 'hourly', priority: 0.8 },
     { url: `${baseUrl}/router/forum`, lastModified: currentDate, changeFrequency: 'daily', priority: 0.6 },
   ];
 
