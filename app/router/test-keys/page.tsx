@@ -301,7 +301,11 @@ export default function TestKeysPage() {
                     Estimated {money(chosen.estimatedUsd)}
                     {chosen.estimatedRangeUsd && ` (typically ${money(chosen.estimatedRangeUsd[0])}–${money(chosen.estimatedRangeUsd[1])})`}
                     {chosen.basis === 'measured' && ' · based on this model’s real usage'}
-                    {chosen.basis === 'typical' && ' · typical usage, we have not benchmarked this model'}
+                    {/* The old copy here said "we have not benchmarked this model", which was
+                        untrue for nearly every model on the list — a fallback only means we
+                        have no token count for THIS suite on THIS model, usually because the
+                        suite is a connectivity ping we do not record usage for. */}
+                    {chosen.basis === 'typical' && ' · typical usage across the models we run'}
                   </div>
                   <div className="rv4-info-banner-text">
                     {chosen.notes.join(' ')}
