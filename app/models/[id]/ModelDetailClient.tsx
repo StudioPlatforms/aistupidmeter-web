@@ -96,6 +96,8 @@ interface ModelStats {
   rankable?: boolean;
   staleReason?: string | null;
   oldestComponentAt?: string | null;
+  lastUpdated?: string | null;
+  suiteUpdatedAt?: Record<string, string> | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -459,11 +461,17 @@ export default function ModelDetailClient({
 
   // ─── Main Render ─────────────────────────────────────────────────────────────
 
-  // For a composite, "last update" is the OLDEST contributing measurement. The newest
-  // suite's timestamp would describe a quarter of the number as if it were all of it.
-  const lastUpdatedStr = stats?.oldestComponentAt
-    ? formatTimeAgo(stats.oldestComponentAt)
+  // "Last update" is when the headline score last changed. The age of every contributing
+  // suite goes in the cell's tooltip, so a fresh coding run does not hide an older
+  // reasoning component from anyone who looks.
+  const lastUpdatedStr = stats?.lastUpdated
+    ? formatTimeAgo(stats.lastUpdated)
     : modelDetails.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts) : 'Unknown';
+  const SUITE_LABEL: Record<string, string> = { hourly: 'coding', deep: 'reasoning', tooling: 'tools' };
+  const suiteAges = stats?.suiteUpdatedAt
+    ? ['hourly', 'deep', 'tooling'].filter(s => stats.suiteUpdatedAt![s]).map(s => `${SUITE_LABEL[s]} ${formatTimeAgo(stats.suiteUpdatedAt![s])}`)
+    : [];
+  const lastUpdatedTitle = suiteAges.length ? suiteAges.join(' · ') : undefined;
 
   return (
     <div>
@@ -509,7 +517,8 @@ export default function ModelDetailClient({
         averageLatency={stats?.averageLatency || 0}
         averageCorrectness={stats?.averageCorrectness || 0}
         lastUpdated={lastUpdatedStr}
-        lastUpdatedNote={stats?.oldestComponentAt ? 'oldest contributing suite' : 'benchmark time'}
+        lastUpdatedNote={suiteAges.length > 1 ? 'latest suite run' : 'benchmark time'}
+        lastUpdatedTitle={lastUpdatedTitle}
         coverage={stats?.coverage ?? null}
         staleReason={stats?.staleReason ?? null}
       />

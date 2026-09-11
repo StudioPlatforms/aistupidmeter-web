@@ -10,6 +10,8 @@ interface ModelDetailStatBarProps {
   lastUpdated: string;
   /** What `lastUpdated` refers to — for a composite, its oldest contributing suite. */
   lastUpdatedNote?: string;
+  /** Tooltip: the age of every contributing suite. */
+  lastUpdatedTitle?: string;
   /** e.g. "2 of 3 suites (no deep)"; null when every suite contributed. */
   coverage?: string | null;
   staleReason?: string | null;
@@ -27,6 +29,7 @@ export default function ModelDetailStatBar({
   averageCorrectness,
   lastUpdated,
   lastUpdatedNote,
+  lastUpdatedTitle,
   coverage,
   staleReason,
 }: ModelDetailStatBarProps) {
@@ -76,7 +79,7 @@ export default function ModelDetailStatBar({
         <div className="md-stat-detail">avg accuracy</div>
       </div>
 
-      <div className="md-stat-cell color-green">
+      <div className="md-stat-cell color-green" title={lastUpdatedTitle}>
         <div className="md-stat-label">LAST UPDATE</div>
         <div className="md-stat-value" style={{ color: 'var(--phosphor-green)', fontSize: '14px' }}>
           {lastUpdated || '—'}

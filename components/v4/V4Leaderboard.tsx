@@ -85,6 +85,19 @@ function formatTimeAgo(date: Date | string): string {
   return `${days}d`;
 }
 
+// Tooltip for the Updated cell: the age of every contributing suite, the reasoning task
+// and any staleness note. The cell itself shows only when the score last changed.
+const SUITE_LABEL: Record<string, string> = { hourly: 'coding', deep: 'reasoning', tooling: 'tools' };
+function updatedTitle(model: any): string | undefined {
+  const at: Record<string, string> | undefined = model.suiteUpdatedAt;
+  const parts = at
+    ? ['hourly', 'deep', 'tooling'].filter(s => at[s]).map(s =>
+        `${SUITE_LABEL[s]} ${formatTimeAgo(at[s])}${s === 'deep' && model.taskSlug ? ` (${model.taskSlug})` : ''}`)
+    : [];
+  if (model.staleReason) parts.push(model.staleReason);
+  return parts.length ? parts.join(' · ') : undefined;
+}
+
 function MiniSparkline({ history, modelId, modelHistoryData }: { history: any[]; modelId: string; modelHistoryData: Map<string, any[]> }) {
   const data = modelHistoryData.get(modelId) || history || [];
   if (!data || data.length === 0) return <span style={{ color: 'var(--phosphor-dim)', fontSize: '9px' }}>—</span>;
@@ -262,15 +275,12 @@ export default function V4Leaderboard({
               )}
             </div>
 
-            {/* Updated — the OLDEST measurement in the score, not the newest. A fresh
-                hourly run used to mask a days-old deep component as "36m". In the
-                reasoning view the rotation task is named, because a deep score is only
-                comparable to other scores on the same task. */}
-            <div className="v4-col-upd" style={{ fontSize: '10px', color: model.isStale ? 'var(--warn)' : 'var(--phosphor-dim)' }}>
-              {formatTimeAgo(model.oldestComponentAt || model.lastUpdated)}
-              {isReasoningView && model.taskSlug && (
-                <div className="v4-cov" style={{ marginTop: 2 }}>{model.taskSlug}</div>
-              )}
+            {/* Updated — when the score last changed, on one line. The age of every
+                component, the reasoning task and any staleness note are in the tooltip,
+                so a fresh coding run cannot hide a days-old deep component from anyone
+                who looks, and the coverage badge under the score still says "2/3". */}
+            <div className="v4-col-upd" style={{ fontSize: '10px', color: model.isStale ? 'var(--warn)' : 'var(--phosphor-dim)' }} title={updatedTitle(model)}>
+              {formatTimeAgo(model.lastUpdated)}
             </div>
 
             {/* Price */}
