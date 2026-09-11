@@ -25,6 +25,7 @@ import ModelDetailPricing from '../../../components/model-detail/ModelDetailPric
 import ModelDetailMatrix from '../../../components/model-detail/ModelDetailMatrix';
 import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum';
 import ModelDetailSliceRegressions from '../../../components/model-detail/ModelDetailSliceRegressions';
+import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
 
 // Shared components
 import ProFeatureModal from '../../../components/ProFeatureModal';
@@ -536,6 +537,15 @@ export default function ModelDetailClient({
           answers the question that curve raises but cannot resolve: the composite
           moved (or did not) — which task actually changed? */}
       <ModelDetailSliceRegressions modelId={modelId} includeResolved />
+
+      {/* Runs other people made with their own API keys. Deliberately placed AFTER every
+          measured panel and clearly labelled: these are individual samples on individual
+          keys, not ranking data, and they used to be written into `scores` where they
+          could displace the published number. Renders nothing when nobody has tested. */}
+      <ModelDetailCommunityTests
+        modelName={modelDetails.name}
+        publishedScore={currentScore}
+      />
 
       {/* Two-column: Quick Stats + Pricing */}
       <div className="md-info-grid">

@@ -1,381 +1,180 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import ProviderLogo from '@/components/ProviderLogo';
 
-interface TestResult {
-  success: boolean;
-  provider: string;
-  model: string;
-  error?: string;
-  latency?: number;
-  response?: {
-    text: string;
-    tokensIn: number;
-    tokensOut: number;
-  };
-  testPassed?: boolean;
-  performance?: {
-    displayScore: number;
-    stupidScore: number;
-    axes: {
-      correctness: number;
-      spec: number;
-      codeQuality: number;
-      efficiency: number;
-      stability: number;
-      refusal: number;
-      recovery: number;
-    };
-  };
-  metrics?: {
-    totalLatency: number;
-    avgLatency: number;
-    totalTokensIn: number;
-    totalTokensOut: number;
-    testsRun: number;
-    refusalRate: string;
-    recoveryRate: string;
-    tasksCompleted: string;
-  };
-}
+/**
+ * Test your keys.
+ *
+ * Rebuilt 2026-09-11. The previous version was left behind by the clean redesign (17
+ * retro vintage and terminal classes against 0 on every other router page), offered only "QUICK
+ * CHAT TEST" and "FULL BENCHMARK" — the latter being the coding suite alone, a third of
+ * what the leaderboard reports — spent up to 50 billable calls on the user's key with no
+ * price shown anywhere, and wrote its result into the public `scores` table.
+ */
 
 type Provider = 'openai' | 'anthropic' | 'xai' | 'google' | 'glm' | 'deepseek' | 'kimi';
+type Suite = 'connectivity' | 'coding' | 'reasoning' | 'tooling';
+
+interface CostEstimate {
+  suite: Suite;
+  label: string;
+  description: string;
+  apiCalls: number;
+  typicalSeconds: number;
+  estimatedUsd: number | null;
+  estimatedRangeUsd: [number, number] | null;
+  basis: 'measured' | 'typical' | 'unpriced';
+  notes: string[];
+}
+
+interface TestRun {
+  success: boolean;
+  suite: Suite;
+  score: number | null;
+  axes: Record<string, number> | null;
+  latencyMs: number;
+  avgLatencyMs: number;
+  tokensIn: number;
+  tokensOut: number;
+  apiCalls: number;
+  tasksTotal: number | null;
+  tasksPassed: number | null;
+  estCostUsd: number | null;
+  referenceScore?: number | null;
+  error?: string;
+  breakdown?: Array<{ label: string; passed: boolean; detail?: string; latencyMs?: number }>;
+}
+
+interface HistoryRow {
+  id: number;
+  provider: string;
+  model_name: string;
+  suite: Suite;
+  ts: string;
+  success: boolean;
+  score: number | null;
+  est_cost_usd: number | null;
+  reference_score: number | null;
+  tasks_passed: number | null;
+  tasks_total: number | null;
+  avg_latency_ms: number | null;
+  error: string | null;
+}
+
+// Kept current deliberately: the old copy still advertised GPT-4o/o3, Gemini 2.5,
+// GLM-4.6, DeepSeek R1 and Kimi K2, several generations behind what is benchmarked.
+const PROVIDERS: { id: Provider; name: string; description: string }[] = [
+  { id: 'openai',    name: 'OpenAI',    description: 'GPT-6 Astra, GPT-5.6 Sol / Terra / Luna, GPT-5.5' },
+  { id: 'anthropic', name: 'Anthropic', description: 'Claude Opus 5, Sonnet 5, Fable 5.1' },
+  { id: 'google',    name: 'Google',    description: 'Gemini 3.8 Flash, 3.1 Pro, 3.5 Flash-Lite' },
+  { id: 'deepseek',  name: 'DeepSeek',  description: 'DeepSeek V4 Pro and V4 Flash' },
+  { id: 'kimi',      name: 'Kimi',      description: 'Kimi K3 and K2.7 Code' },
+  { id: 'glm',       name: 'GLM',       description: 'GLM-5.2' },
+  { id: 'xai',       name: 'xAI',       description: 'Grok models' },
+];
+
+const SUITE_ORDER: Suite[] = ['connectivity', 'coding', 'reasoning', 'tooling'];
+
+function money(v: number | null | undefined): string {
+  if (v === null || v === undefined) return 'unknown';
+  if (v < 0.01) return `<$0.01`;
+  return `$${v.toFixed(2)}`;
+}
+
+function when(ts: string): string {
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+}
 
 export default function TestKeysPage() {
-  const { data: session, status } = useSession();
-  const [selectedProvider, setSelectedProvider] = useState<Provider>('openai');
+  const { status } = useSession();
+  const [provider, setProvider] = useState<Provider>('openai');
   const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [testType, setTestType] = useState<'chat' | 'benchmark'>('chat');
-  const [testing, setTesting] = useState(false);
-  const [result, setResult] = useState<TestResult | null>(null);
-  const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [discoveringModels, setDiscoveringModels] = useState(false);
-  const [testLogs, setTestLogs] = useState<string[]>([]);
-  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [model, setModel] = useState('');
+  const [models, setModels] = useState<string[]>([]);
+  const [discovering, setDiscovering] = useState(false);
+  const [suite, setSuite] = useState<Suite>('connectivity');
+  const [estimates, setEstimates] = useState<CostEstimate[]>([]);
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<TestRun | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryRow[]>([]);
 
-  const providers: { id: Provider; name: string; description: string }[] = [
-    { id: 'openai', name: 'OpenAI', description: 'GPT-4o, GPT-5, o3 models' },
-    { id: 'anthropic', name: 'Anthropic', description: 'Claude Sonnet, Opus, Haiku' },
-    { id: 'xai', name: 'xAI', description: 'Grok models' },
-    { id: 'google', name: 'Google', description: 'Gemini 2.5 Pro, Flash' },
-    { id: 'glm', name: 'GLM', description: 'GLM-4.6 models' },
-    { id: 'deepseek', name: 'DeepSeek', description: 'DeepSeek R1, V3 models' },
-    { id: 'kimi', name: 'Kimi', description: 'Moonshot K2 models' },
-  ];
-
-  const discoverModels = async () => {
-    if (!apiKey.trim()) {
-      alert('Please enter your API key first');
-      return;
-    }
-
-    setDiscoveringModels(true);
-    setAvailableModels([]);
-    
+  const loadHistory = useCallback(async () => {
     try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-      const response = await fetch(`/api/test-adapters/discovery?provider=${selectedProvider}`, {
-        headers: {
-          'x-user-api-key': apiKey,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Discovery failed: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      const providerResult = data.results[selectedProvider];
-      
-      if (providerResult && providerResult.success) {
-        setAvailableModels(providerResult.models);
-        if (providerResult.models.length > 0) {
-          setSelectedModel(providerResult.models[0]);
-        }
-      } else {
-        throw new Error(providerResult?.error || 'Model discovery failed');
-      }
-    } catch (error) {
-      console.error('Model discovery failed:', error);
-      alert(`Model discovery failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setDiscoveringModels(false);
-    }
-  };
+      const r = await fetch('/api/test-adapters/history');
+      if (r.ok) setHistory((await r.json()).tests || []);
+    } catch { /* history is a nice-to-have, never blocks a test */ }
+  }, []);
 
-  const runTest = async () => {
-    if (!apiKey.trim()) {
-      alert('Please enter your API key');
-      return;
-    }
+  useEffect(() => { if (status === 'authenticated') loadHistory(); }, [status, loadHistory]);
 
-    if (testType === 'benchmark') {
-      setShowConsentModal(true);
-      return;
-    }
-
-    // For chat tests, run directly
-    await executeTest();
-  };
-
-  const executeTest = async () => {
-    setTesting(true);
-    setResult(null);
-    setTestLogs([]);
-
-    try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-      
-      if (testType === 'chat') {
-        // For chat tests, use the simple endpoint
-        const response = await fetch(`/api/test-adapters/chat-test`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-user-api-key': apiKey,
-          },
-          body: JSON.stringify({
-            provider: selectedProvider,
-            model: selectedModel || undefined,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: response.statusText }));
-          throw new Error(errorData.error || `Test failed: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        setResult(data);
-        setTesting(false);
-      } else {
-        // For benchmark tests, use streaming functionality like the original test page
-        setTestLogs(['🚀 Starting streaming benchmark test...', `📊 Testing ${selectedModel.toUpperCase()} from ${selectedProvider.toUpperCase()}`]);
-
-        // First, start the streaming benchmark
-        const response = await fetch(`/api/test-adapters/benchmark-test-stream`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-user-api-key': apiKey
-          },
-          body: JSON.stringify({
-            provider: selectedProvider,
-            model: selectedModel
-          })
-        });
-
-        const startResult = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(startResult.error || 'Failed to start benchmark');
-        }
-
-        const { sessionId } = startResult;
-        setTestLogs(prev => [...prev, `📡 Connected to streaming session: ${sessionId.substring(0, 8)}...`]);
-
-        // Connect to the streaming endpoint
-        const eventSource = new EventSource(`${apiUrl}/api/test-adapters/benchmark-stream/${sessionId}`);
-        let completed = false;
-        let errorRetries = 0;
-        const maxErrorRetries = 3;
-
-        eventSource.onmessage = (event) => {
-          try {
-            // Ignore SSE comment heartbeats (lines starting with ':')
-            if (!event.data || event.data.startsWith(':')) return;
-
-            const data = JSON.parse(event.data);
-            
-            // Add log message
-            if (data.message) {
-              setTestLogs(prev => [...prev, data.message]);
-            }
-            
-            // Handle completion
-            if (data.type === 'complete' && data.data) {
-              completed = true;
-              setResult(data.data);
-              setTestLogs(prev => [...prev, '🎉 Streaming benchmark completed successfully!']);
-              eventSource.close();
-              setTesting(false);
-            } else if (data.type === 'error') {
-              completed = true;
-              setResult({
-                success: false,
-                provider: selectedProvider,
-                model: selectedModel || 'unknown',
-                error: data.message || 'Streaming benchmark failed'
-              });
-              setTestLogs(prev => [...prev, `❌ Error: ${data.message}`]);
-              eventSource.close();
-              setTesting(false);
-            }
-          } catch (parseError) {
-            console.error('Error parsing streaming data:', parseError);
-            setTestLogs(prev => [...prev, `⚠️ Received malformed data: ${event.data?.substring(0, 100)}...`]);
-          }
-        };
-
-        eventSource.onerror = (error) => {
-          // If we already completed, the browser is just signalling the server
-          // closed the stream cleanly. Don't kick off a second full benchmark.
-          if (completed) {
-            eventSource.close();
-            return;
-          }
-
-          // EventSource auto-reconnects on transient drops. Only escalate after
-          // repeated failures and only when readyState is permanently CLOSED.
-          if (eventSource.readyState === EventSource.CONNECTING) {
-            errorRetries += 1;
-            if (errorRetries <= maxErrorRetries) {
-              setTestLogs(prev => [...prev, `⚠️ Stream hiccup, reconnecting (${errorRetries}/${maxErrorRetries})...`]);
-              return;
-            }
-          }
-
-          console.error('EventSource error:', error);
-          setTestLogs(prev => [...prev, '❌ Real-time stream lost - benchmark continues on the server. Check back on the dashboard in a few minutes.']);
-          eventSource.close();
-          setTesting(false);
-          // NOTE: We intentionally do NOT call /benchmark-test as a fallback here.
-          // The streaming benchmark is already running server-side (and may even
-          // have finished); starting another full benchmark would double-bill the
-          // user's API key and cause 502s from nginx's read timeout.
-        };
-
-        eventSource.onopen = () => {
-          errorRetries = 0;
-          setTestLogs(prev => [...prev, '✅ Real-time streaming connected']);
-        };
-
-        // Cleanup function to close EventSource if component unmounts
-        const cleanup = () => {
-          eventSource.close();
-          setTesting(false);
-        };
-
-        // Set timeout for safety (5 minutes max)
-        const timeout = setTimeout(() => {
-          setTestLogs(prev => [...prev, '⏰ Benchmark taking longer than expected, continuing...']);
-        }, 5 * 60 * 1000);
-
-        // Store cleanup function for potential use
-        (window as any).benchmarkCleanup = () => {
-          clearTimeout(timeout);
-          cleanup();
-        };
-      }
-    } catch (error) {
-      console.error('Test failed:', error);
-      setResult({
-        success: false,
-        provider: selectedProvider,
-        model: selectedModel || 'unknown',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-      
-      if (testType === 'benchmark') {
-        setTestLogs(prev => [...prev, `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`]);
-      }
-      setTesting(false);
-    }
-  };
-
-  // Fallback function for when streaming fails
-  const fallbackToRegularBenchmark = async () => {
-    const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-    const maxAttempts = 2;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+  // Refresh the price the moment the model changes — the user should never have to click
+  // to find out what a run will cost them.
+  useEffect(() => {
+    if (!model) { setEstimates([]); return; }
+    let cancelled = false;
+    (async () => {
       try {
-        const response = await fetch(`/api/test-adapters/benchmark-test`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-user-api-key': apiKey
-          },
-          body: JSON.stringify({
-            provider: selectedProvider,
-            model: selectedModel
-          })
-        });
+        const r = await fetch(`/api/test-adapters/estimate?provider=${provider}&model=${encodeURIComponent(model)}`);
+        if (r.ok && !cancelled) setEstimates((await r.json()).estimates || []);
+      } catch { /* the UI falls back to "unknown", never to "free" */ }
+    })();
+    return () => { cancelled = true; };
+  }, [provider, model]);
 
-        const result = await response.json();
-        
-        if (response.ok) {
-          setResult(result);
-          setTestLogs(prev => [...prev, '✅ Non-streaming benchmark completed']);
-          setTesting(false);
-          return;
-        }
-
-        // For 5xx, retry once
-        if (response.status >= 500 && attempt < maxAttempts) {
-          setTestLogs(prev => [...prev, `⚠️ Backend ${response.status} (${result.error || response.statusText}) - retrying (${attempt}/${maxAttempts})...`]);
-          await new Promise(r => setTimeout(r, 1200));
-          continue;
-        }
-
-        setResult({
-          success: false,
-          provider: selectedProvider,
-          model: selectedModel || 'unknown',
-          error: result.error || 'Benchmark failed'
-        });
-        setTestLogs(prev => [...prev, `❌ Error: ${result.error || 'Benchmark failed'}`]);
-        setTesting(false);
-        return;
-      } catch (error: any) {
-        if (attempt < maxAttempts) {
-          setTestLogs(prev => [...prev, `⚠️ Fallback error (${error.message || 'network'}) - retrying (${attempt}/${maxAttempts})...`]);
-          await new Promise(r => setTimeout(r, 1200));
-          continue;
-        }
-        setResult({
-          success: false,
-          provider: selectedProvider,
-          model: selectedModel || 'unknown',
-          error: error.message || 'Network error'
-        });
-        setTestLogs(prev => [...prev, `❌ Fallback error: ${error.message || 'Network error'}`]);
-        setTesting(false);
-      }
+  const discover = async () => {
+    if (!apiKey.trim()) { setError('Enter your API key first.'); return; }
+    setDiscovering(true); setError(null); setModels([]);
+    try {
+      const r = await fetch(`/api/test-adapters/discovery?provider=${provider}`, {
+        headers: { 'x-user-api-key': apiKey },
+      });
+      const data = await r.json();
+      const res = data?.results?.[provider];
+      if (!r.ok || !res?.success) throw new Error(res?.error || data?.error || 'Could not list models with that key.');
+      setModels(res.models || []);
+      if (res.models?.length) setModel(res.models[0]);
+    } catch (e: any) {
+      setError(e?.message || 'Model discovery failed.');
+    } finally {
+      setDiscovering(false);
     }
   };
 
-  const getApiKeyPlaceholder = (provider: Provider) => {
-    switch (provider) {
-      case 'openai': return 'sk-proj-... or sk-...';
-      case 'anthropic': return 'sk-ant-api03-...';
-      case 'xai': return 'xai-...';
-      case 'google': return 'AIza...';
-      case 'glm': return 'glm-...';
-      case 'deepseek': return 'sk-...';
-      case 'kimi': return 'sk-...';
-      default: return 'Enter API key';
+  const run = async () => {
+    if (!apiKey.trim() || !model) return;
+    setRunning(true); setError(null); setResult(null);
+    try {
+      const r = await fetch('/api/test-adapters/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-api-key': apiKey },
+        body: JSON.stringify({ provider, model, suite }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data?.error || 'The test could not be completed.');
+      setResult(data);
+      loadHistory();
+    } catch (e: any) {
+      setError(e?.message || 'The test could not be completed.');
+    } finally {
+      setRunning(false);
     }
   };
 
-  if (status === 'unauthenticated') {
+  const chosen = estimates.find(e => e.suite === suite);
+  const modelHistory = history.filter(h => h.model_name === model);
+
+  if (status === 'loading') {
     return (
       <RouterLayout>
-        <div className="vintage-container">
-          <div className="error-banner">
-            <div className="terminal-text">
-              <div className="terminal-text--red" style={{ fontSize: '1.2em', marginBottom: '12px' }}>
-                ⚠️ AUTHENTICATION REQUIRED
-              </div>
-              <div className="terminal-text--dim">
-                Please sign in to test your API keys
-              </div>
-            </div>
-          </div>
+        <div className="rv4-loading" style={{ padding: 40 }}>
+          <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+          <span>Loading</span>
         </div>
       </RouterLayout>
     );
@@ -383,400 +182,312 @@ export default function TestKeysPage() {
 
   return (
     <RouterLayout>
-      <div className="vintage-container">
-        <div className="dashboard-header">
-          <div>
-            <h1 className="dashboard-title">
-              <span className="terminal-text--green">🔑 TEST YOUR API KEYS</span>
-              <span className="blinking-cursor"></span>
-            </h1>
-            <p className="dashboard-subtitle terminal-text--dim">
-              Validate your API keys and benchmark your models with our comprehensive testing suite
-            </p>
+      <div className="rv4-page-header">
+        <div className="rv4-page-header-left">
+          <h1 className="rv4-page-title">Test your keys</h1>
+          <div className="rv4-page-title-sub">
+            Run the same benchmarks behind the public leaderboard against your own API key, and see how your
+            access compares to ours.
           </div>
         </div>
+      </div>
 
-        <div className="section-card" style={{ marginBottom: 'var(--space-lg)' }}>
-          <div className="section-header">
-            <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold' }}>
-              🎛️ TEST CONFIGURATION
-            </span>
+      <div className="rv4-info-banner" style={{ marginBottom: 14 }}>
+        <div className="rv4-info-banner-icon">🔒</div>
+        <div className="rv4-info-banner-content">
+          <div className="rv4-info-banner-title">Your key is never stored, and your results stay yours</div>
+          <div className="rv4-info-banner-text">
+            The key is used for this run and discarded. Results are saved to your account only — they never
+            change a public ranking. Your provider bills you directly for whatever the test uses.
           </div>
+        </div>
+      </div>
 
-          <div style={{ display: 'grid', gap: 'var(--space-md)' }}>
-            {/* Provider Selection */}
-            <div>
-              <label className="terminal-text--dim" style={{ fontSize: '0.85em', display: 'block', marginBottom: '8px' }}>
-                PROVIDER
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
-                {providers.map((provider) => (
-                  <button
-                    key={provider.id}
-                    onClick={() => {
-                      setSelectedProvider(provider.id);
-                      setAvailableModels([]);
-                      setSelectedModel('');
-                      setResult(null);
-                    }}
-                    className={`vintage-btn ${selectedProvider === provider.id ? 'vintage-btn--active' : ''}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '12px',
-                      textAlign: 'left',
-                      background: selectedProvider === provider.id ? 'var(--phosphor-green)' : 'transparent',
-                      color: selectedProvider === provider.id ? 'var(--terminal-black)' : 'var(--phosphor-green)',
-                      flexDirection: 'column',
-                      minHeight: '80px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
-                      <ProviderLogo provider={provider.id} size={24} />
-                      <div>
-                        <div style={{ fontWeight: 'bold', fontSize: '0.9em' }}>{provider.name}</div>
-                        <div style={{ fontSize: '0.75em', opacity: 0.8 }}>{provider.description}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
+      {error && (
+        <div className="rv4-error-banner" style={{ marginBottom: 14 }}>{error}</div>
+      )}
 
-            {/* API Key Input */}
-            <div>
-              <label className="terminal-text--dim" style={{ fontSize: '0.85em', display: 'block', marginBottom: '8px' }}>
-                YOUR API KEY
-              </label>
+      {/* ── 1. Provider ─────────────────────────────────────────────── */}
+      <div className="rv4-panel" style={{ marginBottom: 14 }}>
+        <div className="rv4-panel-header"><span className="rv4-panel-title">1 · Provider</span></div>
+        <div className="rv4-panel-body">
+          <div className="rv4-provider-grid">
+            {PROVIDERS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => { setProvider(p.id); setModels([]); setModel(''); setResult(null); }}
+                className={`rv4-provider-card ${provider === p.id ? 'active' : ''}`}
+              >
+                <ProviderLogo provider={p.id} size={20} />
+                <div className="rv4-provider-card-name">{p.name}</div>
+                <div className="rv4-provider-card-desc">{p.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 2. Key + model ──────────────────────────────────────────── */}
+      <div className="rv4-panel" style={{ marginBottom: 14 }}>
+        <div className="rv4-panel-header"><span className="rv4-panel-title">2 · Your API key</span></div>
+        <div className="rv4-panel-body">
+          <div className="rv4-form-group">
+            <label className="rv4-input-label">{PROVIDERS.find(p => p.id === provider)?.name} API key</label>
+            <div className="rv4-form-row">
               <input
                 type="password"
                 value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={getApiKeyPlaceholder(selectedProvider)}
-                className="mobile-form-input"
-                style={{ width: '100%' }}
+                onChange={e => setApiKey(e.target.value)}
+                placeholder="Paste your key"
+                className="rv4-input"
+                style={{ flex: 1 }}
+                autoComplete="off"
               />
-              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
-                Your key is only used for this test - not stored
-              </div>
+              <button onClick={discover} disabled={!apiKey.trim() || discovering} className="rv4-ctrl-btn">
+                {discovering ? 'Checking…' : 'Find my models'}
+              </button>
             </div>
+            <div className="rv4-input-hint">
+              Sent once, used for this test, never written to disk.
+            </div>
+          </div>
 
-            {/* Model Discovery */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                  MODEL SELECTION
-                </label>
-                <button
-                  onClick={discoverModels}
-                  disabled={!apiKey.trim() || discoveringModels}
-                  className="vintage-btn vintage-btn--sm"
-                  style={{ fontSize: '0.75em' }}
-                >
-                  {discoveringModels ? 'SCANNING...' : 'DISCOVER MODELS'}
-                </button>
-              </div>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                disabled={availableModels.length === 0}
-                className="mobile-form-select"
-                style={{ width: '100%' }}
-              >
-                {availableModels.length === 0 ? (
-                  <option>Click "Discover Models" first</option>
-                ) : (
-                  availableModels.map(model => (
-                    <option key={model} value={model}>{model.toUpperCase()}</option>
-                  ))
-                )}
+          {models.length > 0 && (
+            <div className="rv4-form-group" style={{ marginTop: 12 }}>
+              <label className="rv4-input-label">Model ({models.length} available on this key)</label>
+              <select value={model} onChange={e => { setModel(e.target.value); setResult(null); }} className="rv4-select">
+                {models.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
-
-            {/* Test Type Selection */}
-            <div>
-              <label className="terminal-text--dim" style={{ fontSize: '0.85em', display: 'block', marginBottom: '8px' }}>
-                TEST TYPE
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setTestType('chat')}
-                  className={`vintage-btn ${testType === 'chat' ? 'vintage-btn--active' : ''}`}
-                  style={{ flex: 1 }}
-                >
-                  QUICK CHAT TEST
-                </button>
-                <button
-                  onClick={() => setTestType('benchmark')}
-                  className={`vintage-btn ${testType === 'benchmark' ? 'vintage-btn--active' : ''}`}
-                  style={{ flex: 1 }}
-                >
-                  FULL BENCHMARK
-                </button>
-              </div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '4px' }}>
-                {testType === 'chat' ? 
-                  'Quick validation test - checks if your API key works' :
-                  'Comprehensive 9-axis performance evaluation - results saved to rankings'
-                }
-              </div>
-            </div>
-          </div>
+          )}
         </div>
+      </div>
 
-        {/* Run Test Button */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
-          <button
-            onClick={runTest}
-            disabled={testing || !apiKey.trim() || !selectedModel}
-            className={`vintage-btn ${testing ? 'vintage-btn--warning' : 'vintage-btn--active'}`}
-            style={{ padding: '16px 32px', fontSize: '1.1em' }}
-          >
-            {testing ? (
-              <>TESTING<span className="vintage-loading"></span></>
-            ) : (
-              `RUN ${testType.toUpperCase()} TEST`
+      {/* ── 3. What to test, with the price up front ────────────────── */}
+      {model && (
+        <div className="rv4-panel" style={{ marginBottom: 14 }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">3 · What to test</span>
+            <span style={{ fontSize: 10, opacity: 0.6 }}>costs are charged by your provider, not by us</span>
+          </div>
+          <div className="rv4-panel-body">
+            <div className="rv4-strategy-grid">
+              {SUITE_ORDER.map(s => {
+                const est = estimates.find(e => e.suite === s);
+                return (
+                  <button key={s} onClick={() => setSuite(s)} className={`rv4-strategy-card ${suite === s ? 'active' : ''}`}>
+                    <div className="rv4-strategy-card-header">
+                      <span className="rv4-strategy-card-name">{est?.label ?? s}</span>
+                      {suite === s && <span className="rv4-strategy-checkmark">✓</span>}
+                    </div>
+                    <div className="rv4-strategy-card-desc">{est?.description ?? ''}</div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                      <span className={`rv4-badge ${est?.estimatedUsd === null ? 'dim' : est && est.estimatedUsd > 0.2 ? 'amber' : 'green'}`}>
+                        {est ? money(est.estimatedUsd) : '—'}
+                      </span>
+                      <span className="rv4-badge dim">{est?.apiCalls ?? '—'} calls</span>
+                      <span className="rv4-badge dim">~{est ? Math.round(est.typicalSeconds / 60) || 1 : '—'} min</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {chosen && (
+              <div className="rv4-info-banner" style={{ marginTop: 12 }}>
+                <div className="rv4-info-banner-icon">💰</div>
+                <div className="rv4-info-banner-content">
+                  <div className="rv4-info-banner-title">
+                    Estimated {money(chosen.estimatedUsd)}
+                    {chosen.estimatedRangeUsd && ` (typically ${money(chosen.estimatedRangeUsd[0])}–${money(chosen.estimatedRangeUsd[1])})`}
+                    {chosen.basis === 'measured' && ' · based on this model’s real usage'}
+                    {chosen.basis === 'typical' && ' · typical usage, we have not benchmarked this model'}
+                  </div>
+                  <div className="rv4-info-banner-text">
+                    {chosen.notes.join(' ')}
+                  </div>
+                </div>
+              </div>
             )}
-          </button>
-        </div>
 
-        {/* Consent Modal for Benchmark Tests */}
-        {showConsentModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}>
-            <div className="section-card" style={{
-              maxWidth: '500px',
-              width: '100%',
-              background: 'linear-gradient(135deg, #1a1a1a, #f6f8fc)',
-              border: '2px solid var(--phosphor-green)'
-            }}>
-              <div className="terminal-text">
-                <div style={{ fontSize: '1.2em', marginBottom: '16px', textAlign: 'center' }}>
-                  <span className="terminal-text--amber">⚠️ PRIVACY NOTICE</span>
-                </div>
-                
-                <div style={{ marginBottom: '20px', lineHeight: '1.6' }}>
-                  <div className="terminal-text--green" style={{ marginBottom: '12px' }}>
-                    🔐 Your Privacy is Protected:
-                  </div>
-                  <ul style={{ marginLeft: '20px', marginBottom: '16px' }}>
-                    <li className="terminal-text--dim" style={{ marginBottom: '8px' }}>
-                      ✓ Your API key is <span className="terminal-text--green">NEVER stored</span> - used only for this test session
-                    </li>
-                    <li className="terminal-text--dim" style={{ marginBottom: '8px' }}>
-                      ✓ Test results <span className="terminal-text--amber">will be saved</span> to our database
-                    </li>
-                    <li className="terminal-text--dim" style={{ marginBottom: '8px' }}>
-                      ✓ Your score becomes the <span className="terminal-text--amber">latest reference</span> for this model
-                    </li>
-                    <li className="terminal-text--dim">
-                      ✓ Results <span className="terminal-text--amber">will appear</span> in live rankings
-                    </li>
-                  </ul>
-                  
-                  <div className="terminal-text--dim" style={{ fontSize: '0.9em', fontStyle: 'italic' }}>
-                    By proceeding, you help improve our detection accuracy and contribute to the community's understanding of AI model performance.
+            <button
+              onClick={run}
+              disabled={running || !apiKey.trim() || !model}
+              className="rv4-ctrl-btn primary"
+              style={{ marginTop: 12, width: '100%', padding: '12px' }}
+            >
+              {running ? `Running ${chosen?.label ?? ''} test…` : `Run ${chosen?.label ?? ''} test`}
+            </button>
+            {running && (
+              <div className="rv4-loading" style={{ marginTop: 10 }}>
+                <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
+                <span>This can take a few minutes. Leave the tab open.</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 4. Result, against our published number ─────────────────── */}
+      {result && (
+        <div className="rv4-panel" style={{ marginBottom: 14 }}>
+          <div className="rv4-panel-header">
+            <span className="rv4-panel-title">Result · {model}</span>
+            <span className={`rv4-badge ${result.success ? 'green' : 'red'}`}>{result.success ? 'Completed' : 'Failed'}</span>
+          </div>
+          <div className="rv4-panel-body">
+            {result.error && <div className="rv4-error-banner" style={{ marginBottom: 12 }}>{result.error}</div>}
+
+            <div className="rv4-metrics-grid">
+              <div className="rv4-metric-card">
+                <div className="rv4-metric-content">
+                  <div className="rv4-metric-label">Your score</div>
+                  <div className="rv4-metric-value">{result.score ?? '—'}</div>
+                  <div className="rv4-metric-sub">
+                    {result.tasksPassed !== null && result.tasksTotal !== null
+                      ? `${result.tasksPassed} of ${result.tasksTotal} passed`
+                      : 'connectivity check'}
                   </div>
                 </div>
-                
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                  <button 
-                    onClick={() => {
-                      setShowConsentModal(false);
-                      executeTest();
-                    }}
-                    className="vintage-btn vintage-btn--active"
-                    style={{ padding: '8px 24px' }}
-                  >
-                    ACCEPT & RUN TEST
-                  </button>
-                  <button 
-                    onClick={() => setShowConsentModal(false)}
-                    className="vintage-btn"
-                    style={{ padding: '8px 24px' }}
-                  >
-                    CANCEL
-                  </button>
+              </div>
+              <div className="rv4-metric-card">
+                <div className="rv4-metric-content">
+                  <div className="rv4-metric-label">Our published score</div>
+                  <div className="rv4-metric-value">{result.referenceScore != null ? Math.round(result.referenceScore) : '—'}</div>
+                  <div className="rv4-metric-sub">
+                    {result.referenceScore != null && result.score != null
+                      ? `${result.score >= result.referenceScore ? '+' : ''}${Math.round(result.score - result.referenceScore)} vs ours`
+                      : 'no comparable public score'}
+                  </div>
+                </div>
+              </div>
+              <div className="rv4-metric-card">
+                <div className="rv4-metric-content">
+                  <div className="rv4-metric-label">What it cost you</div>
+                  <div className="rv4-metric-value">{money(result.estCostUsd)}</div>
+                  <div className="rv4-metric-sub">{result.apiCalls} calls · {result.tokensIn + result.tokensOut} tokens</div>
+                </div>
+              </div>
+              <div className="rv4-metric-card">
+                <div className="rv4-metric-content">
+                  <div className="rv4-metric-label">Avg latency</div>
+                  <div className="rv4-metric-value">{result.avgLatencyMs ? `${(result.avgLatencyMs / 1000).toFixed(1)}s` : '—'}</div>
+                  <div className="rv4-metric-sub">{(result.latencyMs / 1000).toFixed(0)}s total</div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Live Test Logs */}
-        {testLogs.length > 0 && (
-          <div className="section-card" style={{ marginBottom: 'var(--space-lg)' }}>
-            <div className="section-header">
-              <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold' }}>
-                📝 LIVE TEST LOGS
-              </span>
-            </div>
-            <div style={{
-              backgroundColor: 'rgba(0,0,0,0.04)',
-              padding: '12px',
-              borderRadius: '4px',
-              maxHeight: '300px',
-              overflowY: 'auto',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '0.85em',
-              lineHeight: '1.5'
-            }}>
-              {testLogs.map((log, index) => (
-                <div key={index} className="terminal-text--dim" style={{ marginBottom: '4px' }}>
-                  <span className="terminal-text--green">[{new Date().toLocaleTimeString()}]</span> {log}
+            {result.referenceScore != null && result.score != null && Math.abs(result.score - result.referenceScore) >= 8 && (
+              <div className="rv4-info-banner" style={{ marginTop: 12 }}>
+                <div className="rv4-info-banner-icon">ℹ️</div>
+                <div className="rv4-info-banner-content">
+                  <div className="rv4-info-banner-title">Why your number can differ from ours</div>
+                  <div className="rv4-info-banner-text">
+                    This is one run on your key. Ours is a median over repeated runs on a fixed schedule. Rate
+                    limits, account tier and ordinary run-to-run variance all move a single sample.
+                  </div>
                 </div>
-              ))}
-              {testing && (
-                <div className="terminal-text--amber">
-                  Processing…
+              </div>
+            )}
+
+            {result.axes && (
+              <div style={{ marginTop: 14 }}>
+                <div className="rv4-stat-label" style={{ marginBottom: 8 }}>Per-axis breakdown</div>
+                {Object.entries(result.axes).map(([k, v]) => (
+                  <div key={k} style={{ marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
+                      <span style={{ textTransform: 'capitalize' }}>{k.replace(/([A-Z])/g, ' $1')}</span>
+                      <span>{Math.round(v * 100)}%</span>
+                    </div>
+                    <div className="rv4-progress"><div className="rv4-progress-fill" style={{ width: `${Math.min(100, v * 100)}%` }} /></div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {result.breakdown && result.breakdown.length > 0 && (
+              <div className="rv4-table-wrapper" style={{ marginTop: 14 }}>
+                <table className="rv4-table">
+                  <thead><tr><th>Task</th><th>Result</th><th>Detail</th><th style={{ textAlign: 'right' }}>Time</th></tr></thead>
+                  <tbody>
+                    {result.breakdown.map((b, i) => (
+                      <tr key={i}>
+                        <td>{b.label}</td>
+                        <td><span className={`rv4-badge ${b.passed ? 'green' : 'red'}`}>{b.passed ? 'pass' : 'fail'}</span></td>
+                        <td style={{ opacity: 0.75 }}>{b.detail || '—'}</td>
+                        <td style={{ textAlign: 'right' }}>{b.latencyMs ? `${(b.latencyMs / 1000).toFixed(1)}s` : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── 5. History ──────────────────────────────────────────────── */}
+      <div className="rv4-panel">
+        <div className="rv4-panel-header">
+          <span className="rv4-panel-title">Your test history</span>
+          {history.length > 0 && <span className="rv4-badge dim">{history.length} runs</span>}
+        </div>
+        <div className="rv4-panel-body" style={{ padding: history.length ? 0 : undefined }}>
+          {history.length === 0 ? (
+            <div className="rv4-empty" style={{ padding: 32 }}>
+              <div className="rv4-empty-icon">📊</div>
+              <div className="rv4-empty-title">No tests yet</div>
+              <div className="rv4-empty-text">Run one above and it will appear here, with what it scored and what it cost.</div>
+            </div>
+          ) : (
+            <>
+              {model && modelHistory.length > 1 && (
+                <div style={{ padding: '10px 14px', fontSize: 12, opacity: 0.75 }}>
+                  You have tested <strong>{model}</strong> {modelHistory.length} times — scores{' '}
+                  {modelHistory.filter(h => h.score != null).map(h => Math.round(h.score!)).join(', ')}.
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* Results Display */}
-        {result && (
-          <div className="section-card">
-            <div className="section-header">
-              <span className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold' }}>
-                📊 TEST RESULTS
-              </span>
-            </div>
-
-            {result.success ? (
-              <div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-md)', marginBottom: 'var(--space-md)' }}>
-                  <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(26, 115, 232, 0.1)', borderRadius: '6px' }}>
-                    <div className="terminal-text--green" style={{ fontSize: '2em', fontWeight: 'bold' }}>
-                      {testType === 'chat' ? '✅' : result.performance?.displayScore || 'N/A'}
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      {testType === 'chat' ? 'CHAT TEST PASSED' : 'OVERALL SCORE'}
-                    </div>
-                  </div>
-                  
-                  <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(26, 115, 232, 0.05)', borderRadius: '6px' }}>
-                    <div className="terminal-text" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
-                      {result.latency || result.metrics?.avgLatency || 'N/A'}ms
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                      RESPONSE TIME
-                    </div>
-                  </div>
-
-                  {testType === 'benchmark' && result.metrics && (
-                    <div style={{ textAlign: 'center', padding: 'var(--space-md)', background: 'rgba(26, 115, 232, 0.05)', borderRadius: '6px' }}>
-                      <div className="terminal-text" style={{ fontSize: '1.5em', fontWeight: 'bold' }}>
-                        {result.metrics.tasksCompleted}
-                      </div>
-                      <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                        TASKS COMPLETED
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 7-Axis Breakdown for Benchmark Tests */}
-                {testType === 'benchmark' && result.performance?.axes && (
-                  <div style={{ marginTop: 'var(--space-lg)' }}>
-                    <div className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: 'var(--space-md)' }}>
-                      🎯 7-AXIS PERFORMANCE BREAKDOWN
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-sm)' }}>
-                      {Object.entries(result.performance.axes).map(([axis, value]) => {
-                        const numericValue = typeof value === 'number' ? value : parseFloat(value) || 0;
-                        const axisLabels: Record<string, string> = {
-                          correctness: 'CORRECTNESS',
-                          spec: 'SPEC COMPLIANCE',
-                          codeQuality: 'CODE QUALITY',
-                          efficiency: 'EFFICIENCY',
-                          stability: 'STABILITY',
-                          refusal: 'REFUSAL RATE',
-                          recovery: 'RECOVERY'
-                        };
-                        
-                        return (
-                          <div key={axis} style={{ marginBottom: '8px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', alignItems: 'center' }}>
-                              <span className="terminal-text--dim" style={{ fontSize: '0.85em' }}>
-                                {axisLabels[axis] || axis.toUpperCase()}
+              <div className="rv4-table-wrapper">
+                <table className="rv4-table">
+                  <thead>
+                    <tr>
+                      <th>When</th><th>Model</th><th>Test</th>
+                      <th style={{ textAlign: 'right' }}>Score</th>
+                      <th style={{ textAlign: 'right' }}>vs ours</th>
+                      <th style={{ textAlign: 'right' }}>Cost</th>
+                      <th style={{ textAlign: 'right' }}>Avg latency</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map(h => {
+                      const delta = h.score != null && h.reference_score != null ? h.score - h.reference_score : null;
+                      return (
+                        <tr key={h.id}>
+                          <td style={{ whiteSpace: 'nowrap' }}>{when(h.ts)}</td>
+                          <td>{h.model_name}</td>
+                          <td><span className="rv4-badge dim">{h.suite}</span></td>
+                          <td style={{ textAlign: 'right' }}>
+                            {h.success ? (h.score != null ? Math.round(h.score) : '✓')
+                              : <span className="rv4-badge red" title={h.error || ''}>failed</span>}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            {delta === null ? '—' : (
+                              <span className={`rv4-badge ${delta >= 0 ? 'green' : 'amber'}`}>
+                                {delta >= 0 ? '+' : ''}{Math.round(delta)}
                               </span>
-                              <span className={
-                                numericValue >= 80 ? 'terminal-text--green' : 
-                                numericValue >= 60 ? 'terminal-text--amber' : 'terminal-text--red'
-                              } style={{ fontWeight: 'bold', fontSize: '0.9em' }}>
-                                {numericValue.toFixed(0)}%
-                              </span>
-                            </div>
-                            <div style={{ width: '100%', height: '8px', background: 'rgba(0,0,0,0.04)', borderRadius: '4px', overflow: 'hidden' }}>
-                              <div style={{ 
-                                width: `${numericValue}%`, 
-                                height: '100%', 
-                                background: numericValue >= 80 ? 'var(--phosphor-green)' : 
-                                           numericValue >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)', 
-                                borderRadius: '4px', 
-                                transition: 'width 0.5s ease'
-                              }} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Chat Test Response */}
-                {testType === 'chat' && result.response && (
-                  <div style={{ marginTop: 'var(--space-lg)' }}>
-                    <div className="terminal-text--green" style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: 'var(--space-md)' }}>
-                      💬 MODEL RESPONSE
-                    </div>
-                    <div style={{
-                      backgroundColor: 'rgba(0,0,0,0.04)',
-                      padding: '12px',
-                      borderRadius: '4px',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.85em',
-                      lineHeight: '1.5',
-                      maxHeight: '200px',
-                      overflowY: 'auto'
-                    }}>
-                      {result.response.text}
-                    </div>
-                    <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
-                      Tokens: {result.response.tokensIn} in, {result.response.tokensOut} out
-                    </div>
-                  </div>
-                )}
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>{money(h.est_cost_usd)}</td>
+                          <td style={{ textAlign: 'right' }}>{h.avg_latency_ms ? `${(h.avg_latency_ms / 1000).toFixed(1)}s` : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: 'var(--space-lg)' }}>
-                <div className="terminal-text--red" style={{ fontSize: '2em', marginBottom: '16px' }}>
-                  ❌ TEST FAILED
-                </div>
-                <div className="terminal-text--dim" style={{ marginBottom: '16px' }}>
-                  {result.error}
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-                  Please check your API key and model selection, then try again.
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </RouterLayout>
   );

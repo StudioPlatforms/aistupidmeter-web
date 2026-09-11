@@ -19,9 +19,21 @@ const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
  * untouched — it belongs to them, we never store it, and it is what pays for
  * whatever the test runs.
  */
+/**
+ * Paths that are deliberately public.
+ *
+ * The community aggregate renders on the PUBLIC model detail pages, so requiring a session
+ * for it would silently blank the panel for every signed-out visitor. It is anonymous
+ * aggregate data — counts, median, range — with no key, no user and no prompt in it.
+ * Everything else here spends or reveals something and stays behind the session.
+ */
+const PUBLIC_PREFIXES = ['community'];
+
 async function proxy(request: NextRequest, path: string[], method: string) {
+  const isPublic = method === 'GET' && PUBLIC_PREFIXES.includes(path[0]);
+
   const session = await auth();
-  if (!session?.user?.id) {
+  if (!isPublic && !session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -35,10 +47,8 @@ async function proxy(request: NextRequest, path: string[], method: string) {
     const url = new URL(request.url);
     const backendUrl = `${API_URL}/test-adapters/${path.join('/')}${url.search}`;
 
-    const headers: Record<string, string> = {
-      'x-user-id': session.user.id,
-      'x-internal-token': internalToken,
-    };
+    const headers: Record<string, string> = { 'x-internal-token': internalToken };
+    if (session?.user?.id) headers['x-user-id'] = session.user.id;
     const providerKey = request.headers.get('x-user-api-key');
     if (providerKey) headers['x-user-api-key'] = providerKey;
 
