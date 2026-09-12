@@ -254,10 +254,19 @@ export default function AboutPage() {
 
           <div style={{ ...styles.text, ...styles.panel }}>
             The methodology is open to review by anyone who wants to check it — the scoring weights, the statistical
-            methods and the drift constants are all documented on the methodology page. The benchmark repository itself
-            is private, because when it was public we saw providers optimising against the specific tasks, and a test
-            you can study in advance stops measuring anything. Corrections are welcome. The web application is public:{' '}
-            <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer" style={styles.link}>Web</a>
+            methods and the drift constants are all documented on the{' '}
+            <Link href="/methodology" style={styles.link}>methodology page</Link>, and the full write-up is published as
+            a paper:{' '}
+            <a href="/asl-public-benchmark-methodology-2026.pdf" target="_blank" rel="noopener noreferrer" style={styles.link}>
+              Public Benchmark Methodology (2026, PDF) &rarr;
+            </a>
+            . The benchmark backend — the task definitions, the runners and the scoring code — is deliberately private,
+            because when it was public we saw providers optimising against the specific tasks, and a test you can study
+            in advance stops measuring anything. Corrections are welcome. The front end is open source, so the site you
+            are reading can be checked line by line:{' '}
+            <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer" style={styles.link}>
+              Frontend repository &rarr;
+            </a>
           </div>
 
           <hr style={styles.divider} />
