@@ -98,6 +98,15 @@ function updatedTitle(model: any): string | undefined {
   return parts.length ? parts.join(' · ') : undefined;
 }
 
+/**
+ * "2 of 3 suites (no deep); deep ran doc_memory, ..." -> "2/3", with the full sentence left
+ * to the tooltip. The previous `.replace(/ suites.*$/, '/3')` produced "2 of 3/3".
+ */
+function shortCoverage(note: string): string {
+  const m = /^(\d+) of (\d+)/.exec(note);
+  return m ? `${m[1]}/${m[2]}` : note;
+}
+
 function MiniSparkline({ history, modelId, modelHistoryData }: { history: any[]; modelId: string; modelHistoryData: Map<string, any[]> }) {
   const data = modelHistoryData.get(modelId) || history || [];
   if (!data || data.length === 0) return <span style={{ color: 'var(--phosphor-dim)', fontSize: '9px' }}>—</span>;
@@ -256,7 +265,7 @@ export default function V4Leaderboard({
                   <span className="v4-lb-score" style={{ color: held ? 'var(--phosphor-dim)' : scoreColor(score!) }}>{score}</span>
                   {held && <div className="v4-cov v4-cov-held">not ranked</div>}
                   {!held && coverageNote && !isReasoningView && (
-                    <div className="v4-cov v4-cov-partial" title={coverageNote}>{coverageNote.replace(/ suites.*$/, '/3')}</div>
+                    <div className="v4-cov v4-cov-partial" title={coverageNote}>{shortCoverage(coverageNote)}</div>
                   )}
                 </>
               )}
