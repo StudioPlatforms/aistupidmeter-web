@@ -43,7 +43,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
             <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{coverage}</span>
           </div>
           <div className="v4-info-row">
-            <span className="v4-info-label">Statistical Confidence</span>
+            <span className="v4-info-label" title="Share of ranked models on schedule, suite slots filled, and recent data volume. The statistical figure is the CI width below.">Data Completeness</span>
             <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{confidence}</span>
           </div>
           <div className="v4-info-row">
@@ -79,11 +79,11 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Deep reasoning</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Daily 3:00 AM CET</span>
+            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Daily 03:00 Europe/Berlin</span>
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Tool calling</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Daily 4:00 AM CET</span>
+            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Daily 04:00 Europe/Berlin</span>
           </div>
           <div className="v4-info-row">
             <span className="v4-info-label">Health monitoring</span>

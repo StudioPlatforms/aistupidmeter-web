@@ -12,20 +12,37 @@ export default function V4Footer({ visitorCount }: V4FooterProps) {
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      const hours = now.getHours();
-      const slots = [0, 4, 8, 12, 16, 20];
-      let next = slots.find(s => s > hours);
-      if (!next) next = slots[0];
-      
-      const nextRun = new Date(now);
-      if (next <= hours) nextRun.setDate(nextRun.getDate() + 1);
-      nextRun.setHours(next, 0, 0, 0);
-      
-      const diffMs = nextRun.getTime() - now.getTime();
-      const diffH = Math.floor(diffMs / 3600000);
-      const diffM = Math.floor((diffMs % 3600000) / 60000);
-      
-      setNextBenchTime(`${diffH}h ${diffM}m (${String(next).padStart(2, '0')}:00)`);
+
+      // The code sweep is cron '0 */4 * * *' in EUROPE/BERLIN. This used to read the
+      // VIEWER's clock (now.getHours()) and claim the next run was at their 00/04/08...,
+      // so everyone outside Berlin's offset saw a countdown that was wrong by their offset
+      // — six hours out in New York. Intl gives Berlin's real wall clock, DST included,
+      // without shipping a timezone library.
+      const berlin = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Berlin',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).formatToParts(now).reduce((acc: Record<string, string>, p) => {
+        acc[p.type] = p.value;
+        return acc;
+      }, {});
+
+      const bh = Number(berlin.hour) % 24;   // '24' is a legal formatting of midnight
+      const bm = Number(berlin.minute);
+      const bs = Number(berlin.second);
+
+      // Seconds remaining in the current 4-hour block, on Berlin's clock.
+      let secsLeft = (4 * 3600) - (((bh % 4) * 3600) + bm * 60 + bs);
+      if (secsLeft <= 0) secsLeft += 4 * 3600;
+
+      const nextRun = new Date(now.getTime() + secsLeft * 1000);
+      const diffH = Math.floor(secsLeft / 3600);
+      const diffM = Math.floor((secsLeft % 3600) / 60);
+
+      // Show the run in the VIEWER's local time: the countdown is the useful part, and a
+      // Berlin timestamp means nothing to someone reading this in another timezone.
+      const localTime = nextRun.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+      setNextBenchTime(`${diffH}h ${diffM}m (${localTime})`);
     };
     update();
     const timer = setInterval(update, 60000);
