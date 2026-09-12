@@ -183,7 +183,7 @@ export default function AboutPage() {
           <div style={styles.heroPanel}>
             We're an <strong style={{ color: 'var(--phosphor-green)' }}>independent watchdog platform</strong> monitoring
             AI model performance to protect developers and businesses from undisclosed capability reductions.
-            Built from frustration. Driven by transparency. Community-owned.
+            Built from frustration. Driven by transparency. Independent of every vendor we measure.
           </div>
 
           {/* Mission */}
@@ -280,7 +280,7 @@ export default function AboutPage() {
             ['No Vendor Relationships', 'Zero financial relationships with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu, or any AI model provider.'],
             ['No Affiliate Links', 'We don\'t earn commissions from API signups or referrals. All rankings are merit-based.'],
             ['Own Infrastructure', 'All benchmarks run on our servers using our API keys. No vendor influence whatsoever.'],
-            ['Transparent Methodology', 'Complete source code, benchmark tasks, and scoring algorithms are publicly auditable.'],
+            ['Published Methodology', 'The scoring weights, statistical tests and drift constants are published in full, and the front end is open source. The benchmark tasks are withheld so they cannot be trained against.'],
           ].map(([title, desc], i) => (
             <div key={i} style={styles.checkItem}>
               <span style={styles.check}>&rarr;</span>
@@ -316,8 +316,8 @@ export default function AboutPage() {
           </h2>
           <div style={styles.grid2}>
             {[
-              ['Open Source Since 2025', 'Community code reviews, public issue tracking, full transparency in implementation'],
-              ['Nothing Hidden', 'Scoring weights, the task list and the drift constants are all in the public repo. If you think a weight is wrong, you can point at the line.'],
+              ['Published Method', 'The scoring weights, the statistical tests and the drift constants are documented in full on the methodology page and in the 2026 methodology paper. If you think a weight is wrong, you can quote it back to us.'],
+              ['Tasks Held Back On Purpose', 'The benchmark tasks are the one thing we do not publish. When they were public, providers optimised against them \u2014 and a test that can be studied in advance, or scraped into training data, stops measuring anything.'],
               ['Config-Versioned', 'Every score records the benchmark configuration it ran under, so a change we made is never mistaken for a change the model made'],
               ['User Verifiable', '"Test Your Keys" runs the same tasks with your own API keys, so you can reproduce our numbers yourself'],
             ].map(([title, desc], i) => (
@@ -446,7 +446,7 @@ export default function AboutPage() {
               ['Scientific Rigor', 'We use established statistical methods — Page-Hinkley change detection, t-distribution confidence intervals — and publish the constants. No hand-waving, no marketing fluff.'],
               ['Radical Transparency', 'Every scoring decision is documented and every result is reproducible with your own keys. Trust through verification, not through claims.'],
               ['Independence', 'No vendor funding. No affiliate revenue. No conflicts of interest. Our only loyalty is to developers who need accurate data.'],
-              ['Community First', 'Built by developers, for developers. We listen to feedback, accept contributions, and evolve based on community needs.'],
+              ['Community First', 'Built by developers, for developers. The front end is open to contributions, feedback shapes what we measure next, and corrections to the method are welcome.'],
             ].map(([title, desc], i) => (
               <div key={i} style={styles.panel}>
                 <div style={styles.panelTitle}>{title}</div>
