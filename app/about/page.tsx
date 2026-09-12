@@ -222,31 +222,35 @@ export default function AboutPage() {
           <h2 style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> OUR TEAM
           </h2>
-          <div style={styles.panel}>
-            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '3px' }}>The Architect</div>
-            <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>Lead Researcher and Platform Engineer</div>
-            {[
-              '10+ years in AI/ML infrastructure and performance optimization',
-              'Former Senior Engineer at enterprise AI platforms',
-              'Expert in statistical analysis and algorithm design',
-              'Open source contributor to ML tooling ecosystem',
-            ].map((item, i) => (
-              <div key={i} style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '4px', display: 'flex', gap: '6px' }}>
-                <span style={{ color: 'var(--phosphor-green)', flexShrink: 0 }}>&rarr;</span>{item}
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-              <a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer" style={styles.link}>
-                Twitter/X &rarr;
-              </a>
-              <a href="https://github.com/studioplatforms" target="_blank" rel="noopener noreferrer" style={styles.link}>
-                GitHub &rarr;
-              </a>
-              <a href="https://www.linkedin.com/company/asl-aistupidlevel-info" target="_blank" rel="noopener noreferrer" style={styles.link}>
+          {[
+            {
+              name: 'Ionut Adrian Visan',
+              role: 'Founder & CEO',
+              bio: 'Ionut Adrian Visan is the Founder and CEO of AI Stupid Level. A technology entrepreneur and full-stack builder, he has spent his career building products across AI, software infrastructure, blockchain and real-time systems. At ASL, he leads the company\u2019s vision of creating an independent reliability and intelligence layer for AI \u2014 continuously measuring how models perform, detecting meaningful changes over time, and helping organizations make better decisions about the AI systems they depend on.',
+              linkedin: 'https://www.linkedin.com/in/ionut-visan-205ab01a5/',
+            },
+            {
+              name: 'Alexandra Chiril\u0103',
+              role: 'AI Evaluation & Epistemology',
+              bio: 'Alexandra Chiril\u0103, PhD, works at the intersection of philosophy, epistemology and AI evaluation. At AI Stupid Level, she contributes to the design and development of rigorous reasoning evaluations and to the broader question of how AI capabilities, reliability and risk should be measured and interpreted. Her work also spans Assurance 2.0 and safety-case review, bringing a critical perspective to how evidence about AI systems can support trustworthy real-world decisions.',
+              linkedin: 'https://www.linkedin.com/in/alexandraa-chirila/',
+            },
+            {
+              name: 'Marius R\u0103zvan Palimariu',
+              role: 'AI Infrastructure Lead',
+              bio: 'Marius R\u0103zvan Palimariu is the AI Infrastructure Lead at AI Stupid Level, bringing experience from IBM, NVIDIA and Nscale. He focuses on the infrastructure required to evaluate AI systems continuously and reliably at scale, from model execution and compute to the systems supporting ASL\u2019s benchmarking and intelligence platform. His experience across large-scale AI and infrastructure environments helps ASL turn rigorous model evaluation into a dependable production system.',
+              linkedin: 'https://www.linkedin.com/in/palimariumarius/',
+            },
+          ].map((member) => (
+            <div key={member.name} style={{ ...styles.panel, marginBottom: '10px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '3px' }}>{member.name}</div>
+              <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>{member.role}</div>
+              <p style={{ fontSize: '11px', lineHeight: 1.7, color: 'var(--phosphor-dim)', margin: '0 0 10px' }}>{member.bio}</p>
+              <a href={member.linkedin} target="_blank" rel="noopener noreferrer" style={styles.link}>
                 LinkedIn &rarr;
               </a>
             </div>
-          </div>
+          ))}
 
           <div style={{ ...styles.text, ...styles.panel }}>
             The methodology is open to review by anyone who wants to check it — the scoring weights, the statistical
@@ -453,6 +457,7 @@ export default function AboutPage() {
               <div style={styles.panelTitle}>For General Inquiries</div>
               {[
                 { label: 'Twitter/X: @AIStupidlevel \u2192', url: 'https://x.com/AIStupidlevel' },
+                { label: 'LinkedIn: AI Stupid Level \u2192', url: 'https://www.linkedin.com/company/asl-aistupidlevel-info' },
                 { label: 'GitHub: @studioplatforms \u2192', url: 'https://github.com/studioplatforms' },
                 { label: 'Reddit: r/aistupidlevel \u2192', url: 'https://www.reddit.com/r/aistupidlevel/' },
               ].map((l, i) => (
