@@ -276,7 +276,7 @@ export default function AboutPage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> FUNDING AND INDEPENDENCE
           </h2>
           {[
-            ['No Vendor Money', 'Funded by Pro subscriptions, paid API tiers, data licensing to non-vendor organisations, and out of pocket. Not a cent from any AI model provider.'],
+            ['No Vendor Money', 'Backed by venture funding, with revenue from Pro subscriptions, paid API tiers and data licensing to non-vendor organisations. No AI model provider funds us, and none of our investors is an AI model provider.'],
             ['No Vendor Relationships', 'Zero financial relationships with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu, or any AI model provider.'],
             ['No Affiliate Links', 'We don\'t earn commissions from API signups or referrals. All rankings are merit-based.'],
             ['Own Infrastructure', 'All benchmarks run on our servers using our API keys. No vendor influence whatsoever.'],
@@ -297,8 +297,7 @@ export default function AboutPage() {
               {[
                 ['Pro Subscriptions', 'Smart Router access, drift analytics and the higher Data API tiers'],
                 ['Data Licensing', 'Historical benchmark data for teams that need it in bulk, licensed to non-vendors only'],
-                ['Community Support', 'Donations from developers who value independent AI monitoring'],
-                ['Out of Pocket', 'The gap, which is most of it. Benchmarking every model every four hours is not cheap'],
+                ['Venture Funding', 'Our primary funding. It covers the gap revenue does not \u2014 benchmarking every model every four hours is not cheap \u2014 and none of it comes from a company we measure'],
               ].map(([title, desc], i) => (
                 <div key={i} style={{ padding: '10px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.1)', borderRadius: '2px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>

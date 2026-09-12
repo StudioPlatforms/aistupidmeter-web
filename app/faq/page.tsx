@@ -119,7 +119,7 @@ const faqs: FAQItem[] = [
   {
     category: "Trust & Independence",
     question: "How do you fund this platform?",
-    answer: "Mostly out of pocket, offset by Pro subscriptions to the Smart Router, paid tiers of the Data API, and data licensing to non-vendor organisations. Community donations and sponsorships help. We explicitly refuse funding from AI model providers — that is the one line we will not cross, because the whole point of the site is that nobody scoring well has paid us."
+    answer: "Venture funding, plus revenue from Pro subscriptions to the Smart Router, paid tiers of the Data API, and data licensing to non-vendor organisations. No AI model provider funds us and none of our investors is one — that is the one line we will not cross, because the whole point of the site is that nobody scoring well has paid us."
   },
   {
     category: "Trust & Independence",
