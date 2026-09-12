@@ -38,11 +38,26 @@ const trendIcon = (trend: string) =>
 const trendColor = (trend: string) =>
   trend === 'up' ? 'var(--good)' : trend === 'down' ? 'var(--bad)' : 'var(--phosphor-dim)';
 
-const regimeMap: Record<string, { label: string; cls: string }> = {
-  excellent: { label: 'STBL', cls: 'regime-st' },
-  good: { label: 'STBL', cls: 'regime-st' },
-  warning: { label: 'VOLA', cls: 'regime-vo' },
-  critical: { label: 'DEGR', cls: 'regime-de' },
+/**
+ * This is a SCORE BAND, not a drift regime, and the column header says so now.
+ *
+ * It reads `model.status`, a pure threshold on the score (getStatus in
+ * lib/model-scoring: <40 critical, <65 warning, <80 good, else excellent). It was
+ * labelled STBL/VOLA/DEGR under a "REGIME" heading, so claude-opus-5 showed as "VOLA"
+ * — a claim about variance — purely because it scored 64. That also contradicted the
+ * panel directly above it, which read "VOLATILE 0, all clear" from a different ad-hoc
+ * rule (trend === 'down' && score >= 50).
+ *
+ * The real classification (STABLE / VOLATILE / DEGRADED / RECOVERING) comes from
+ * lib/drift-detection and is served by /api/drift/batch, which this component does not
+ * fetch. Showing that here would be better than a score band; until it does, the column
+ * must not claim to be something it is not.
+ */
+const bandMap: Record<string, { label: string; cls: string }> = {
+  excellent: { label: 'HIGH', cls: 'regime-st' },
+  good: { label: 'GOOD', cls: 'regime-st' },
+  warning: { label: 'FAIR', cls: 'regime-vo' },
+  critical: { label: 'LOW', cls: 'regime-de' },
   unavailable: { label: '—', cls: '' },
 };
 
@@ -183,7 +198,7 @@ export default function V4Leaderboard({
         {/* A period view is the measured average over the window, and the header says so. */}
         <div style={{ textAlign: 'center' }}>{leaderboardPeriod === 'latest' ? 'SCORE' : `AVG ${({ '24h': '24H', '7d': '7D', '1m': '30D' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod.toUpperCase()}`}</div>
         <div style={{ textAlign: 'center' }}>TRND</div>
-        <div style={{ textAlign: 'center' }} className="v4-col-regime">REGIME</div>
+        <div style={{ textAlign: 'center' }} className="v4-col-regime">BAND</div>
         <div className="v4-col-upd">UPDATED</div>
         <div style={{ textAlign: 'center' }} className="v4-col-price">$/1M</div>
         <div style={{ textAlign: 'center' }} className="v4-col-tools">TOOLS</div>
@@ -196,7 +211,7 @@ export default function V4Leaderboard({
         const score = typeof model.currentScore === 'number' ? model.currentScore : null;
         const isUnavailable = score === null;
         const isHighlight = model.status === 'critical' || model.trend === 'down';
-        const regime = regimeMap[model.status] || regimeMap.good;
+        const band = bandMap[model.status] || bandMap.good;
 
         // SEO-friendly slug for crawlable model links (falls back to id).
         const modelHref = `/models/${slugifyModelName(model.name) || model.id}`;
@@ -280,8 +295,8 @@ export default function V4Leaderboard({
 
             {/* Regime */}
             <div style={{ textAlign: 'center' }} className="v4-col-regime">
-              {regime.cls && (
-                <span className={`regime-badge ${regime.cls}`}>{regime.label}</span>
+              {band.cls && (
+                <span className={`regime-badge ${band.cls}`} title="Score band, not the drift regime \u2014 the regime classification is on the drift monitor.">{band.label}</span>
               )}
             </div>
 
