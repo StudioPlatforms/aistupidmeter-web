@@ -236,13 +236,13 @@ export default function AboutPage() {
               </div>
             ))}
             <div style={{ display: 'flex', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
-              <a href="https://x.com/GOATGameDev" target="_blank" rel="noopener noreferrer" style={styles.link}>
+              <a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer" style={styles.link}>
                 Twitter/X &rarr;
               </a>
               <a href="https://github.com/studioplatforms" target="_blank" rel="noopener noreferrer" style={styles.link}>
                 GitHub &rarr;
               </a>
-              <a href="https://www.linkedin.com/in/ionut-visan-205ab01a5/" target="_blank" rel="noopener noreferrer" style={styles.link}>
+              <a href="https://www.linkedin.com/company/asl-aistupidlevel-info" target="_blank" rel="noopener noreferrer" style={styles.link}>
                 LinkedIn &rarr;
               </a>
             </div>
@@ -452,7 +452,7 @@ export default function AboutPage() {
             <div style={styles.panel}>
               <div style={styles.panelTitle}>For General Inquiries</div>
               {[
-                { label: 'Twitter/X: @GOATGameDev \u2192', url: 'https://x.com/GOATGameDev' },
+                { label: 'Twitter/X: @AIStupidlevel \u2192', url: 'https://x.com/AIStupidlevel' },
                 { label: 'GitHub: @studioplatforms \u2192', url: 'https://github.com/studioplatforms' },
                 { label: 'Reddit: r/aistupidlevel \u2192', url: 'https://www.reddit.com/r/aistupidlevel/' },
               ].map((l, i) => (
@@ -463,7 +463,6 @@ export default function AboutPage() {
               <div style={styles.panelTitle}>For Technical Questions</div>
               <Link href="/faq" style={{ ...styles.link, display: 'block', fontSize: '10px', marginBottom: '4px' }}>Read our FAQ &rarr;</Link>
               <Link href="/methodology" style={{ ...styles.link, display: 'block', fontSize: '10px', marginBottom: '4px' }}>Review methodology docs &rarr;</Link>
-              <a href="https://github.com/StudioPlatforms/aistupidmeter-web/discussions" target="_blank" rel="noopener noreferrer" style={{ ...styles.link, display: 'block', fontSize: '10px' }}>GitHub Discussions &rarr;</a>
             </div>
           </div>
 
@@ -503,7 +502,7 @@ export default function AboutPage() {
               "url": "https://aistupidlevel.info",
               "description": "Independent AI benchmarking platform",
               "foundingDate": "2025",
-              "sameAs": ["https://x.com/GOATGameDev", "https://github.com/StudioPlatforms", "https://www.reddit.com/r/aistupidlevel/"]
+              "sameAs": ["https://x.com/AIStupidlevel", "https://www.linkedin.com/company/asl-aistupidlevel-info", "https://github.com/StudioPlatforms", "https://www.reddit.com/r/aistupidlevel/"]
             })
           }}
         />
