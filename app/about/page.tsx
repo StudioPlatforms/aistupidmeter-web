@@ -345,7 +345,7 @@ export default function AboutPage() {
               {
                 title: 'Performance Time-Series',
                 desc: 'Every score we have ever recorded, per model, per axis, per suite, with the benchmark configuration each run used.',
-                items: ['173,000+ scored runs since August 2025', '9-axis breakdown, not just headline scores', 'Confidence intervals and per-trial variance'],
+                items: ['176,000+ scored runs since August 2025', '9-axis breakdown, not just headline scores', 'Confidence intervals and per-trial variance'],
               },
               {
                 title: 'Drift and Regression Dataset',
@@ -355,12 +355,12 @@ export default function AboutPage() {
               {
                 title: 'Tool-Calling Sessions',
                 desc: 'Full agent transcripts from real Docker sandbox executions: which tools were chosen, with what parameters, and what happened.',
-                items: ['60,000+ recorded sessions', 'Per-tool selection and parameter accuracy', 'Execution traces and error recovery behaviour'],
+                items: ['62,000+ recorded sessions', 'Per-tool selection and parameter accuracy', 'Execution traces and error recovery behaviour'],
               },
               {
                 title: 'Deep Reasoning Sessions',
                 desc: 'Multi-turn dialogues scored on 13 axes including memory retention, plan coherence and hallucination rate.',
-                items: ['4,200+ multi-turn sessions', 'Turn-by-turn scoring', 'Raw outputs retained where retention policy allows'],
+                items: ['4,400+ multi-turn sessions', 'Turn-by-turn scoring', 'Raw outputs retained where retention policy allows'],
               },
             ].map((dataset, i) => (
               <div key={i} style={styles.panel}>

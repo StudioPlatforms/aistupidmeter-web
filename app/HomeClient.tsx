@@ -3064,7 +3064,7 @@ export default function Dashboard() {
               "Real System Commands",
               "Multi-Step Task Chains", 
               "Sandbox Execution",
-              "61,000+ Recorded Sessions"
+              "62,000+ Recorded Sessions"
             ]}
             highlight={true}
             delay={0}

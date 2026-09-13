@@ -211,11 +211,15 @@ const styles = {
  * rows exist.
  */
 interface SuiteStat { total: number; last30Days: number; lastRun: string | null; enabled: boolean }
+interface CorpusTotals { runs: number; toolSessions: number; deepSessions: number; incidents: number }
+interface RankedModel { name: string; vendor: string }
 interface EnhancedStatus {
   adversarial: SuiteStat;
   robustness: SuiteStat;
   bias: SuiteStat;
   scoredPromptVariation: boolean;
+  corpus?: CorpusTotals;
+  rankedModels?: RankedModel[];
 }
 
 // Regenerate hourly. The page stays static — no per-request fetch.
@@ -332,7 +336,7 @@ export default async function MethodologyPage() {
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 repo debugging + 1 hard function + 2 floor checks<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 7 per task, median scored<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Fast performance tracking
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Debugging and coding capability
               </div>
             </div>
 
@@ -350,7 +354,7 @@ export default async function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>TOOL CALLING</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Daily at 4 AM<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 10, in real Docker sandboxes<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 9, in real Docker sandboxes<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 7-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Agent capability tests
               </div>
@@ -370,12 +374,20 @@ export default async function MethodologyPage() {
           <div style={styles.highlightPanel}>
             <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>OUTPUT TO DATE</div>
             <div style={styles.text}>
-              Measured, not projected &mdash; counted from our database since the first
-              benchmark on 8 August 2025:<br/>
-              &rarr; 173,000+ scored benchmark runs<br/>
-              &rarr; 60,000+ tool-calling sessions<br/>
-              &rarr; 4,200+ deep-reasoning sessions<br/>
-              &rarr; 900+ drift incidents and change points recorded
+              Counted from the database when this page was last generated, not written by hand
+              &mdash; the previous figures had drifted thousands of rows behind and stated two
+              different tool-session counts in the same paragraph. Since the first benchmark on
+              8 August 2025:<br/>
+              {status?.corpus ? (
+                <>
+                  &rarr; {status.corpus.runs.toLocaleString()} scored benchmark runs<br/>
+                  &rarr; {status.corpus.toolSessions.toLocaleString()} tool-calling sessions<br/>
+                  &rarr; {status.corpus.deepSessions.toLocaleString()} deep-reasoning sessions<br/>
+                  &rarr; {status.corpus.incidents.toLocaleString()} drift incidents and change points recorded
+                </>
+              ) : (
+                <>&rarr; counts unavailable &mdash; the API did not answer when this page was generated</>
+              )}
             </div>
           </div>
 
@@ -386,7 +398,7 @@ export default async function MethodologyPage() {
             <span style={{ fontFamily: 'var(--font-mono)' }}>[2]</span> 9-AXIS SCORING METHODOLOGY
           </h2>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
-            Each task is evaluated across 9 dimensions. Weights optimized for production relevance:
+            Each task is evaluated across 9 dimensions. The weight on each is set by how much it can actually distinguish one model from another, measured — see below the table:
           </div>
 
           <div style={styles.codeBlock}>
@@ -528,7 +540,7 @@ export default async function MethodologyPage() {
           </div>
 
           <div style={{ ...styles.panel, background: 'rgba(0,100,200,0.06)', borderColor: 'rgba(0,150,255,0.2)' }}>
-            <div style={styles.panelTitle}>WHY 5 TRIALS?</div>
+            <div style={styles.panelTitle}>WHY 7 TRIALS?</div>
             <div style={styles.text}>
               &rarr; AI models are <strong style={{ color: 'var(--amber-warning)' }}>stochastic</strong> (same prompt, different outputs)<br/>
               &rarr; Single measurements are unreliable<br/>
@@ -540,18 +552,18 @@ export default async function MethodologyPage() {
           <div style={styles.codeBlock}>
             <div style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '8px', fontSize: '10px' }}>EXAMPLE CALCULATION:</div>
             <div style={{ color: 'var(--phosphor-dim)', fontSize: '10px', lineHeight: '1.8' }}>
-              claude-opus-4-5-20251101 on binary_search:<br/>
-              Trial 1: 92 | Trial 2: 94 | Trial 3: 90 | Trial 4: 93 | Trial 5: 91<br/>
+              A model on py/eval_expr:<br/>
+              92 | 94 | 90 | 93 | 91 | 92 | 93&nbsp;&nbsp;(7 trials)<br/>
               <br/>
-              Mean = 92.0<br/>
-              Std Dev = 1.58<br/>
-              Std Error = 1.58 / sqrt(5) = 0.71<br/>
-              t-value = 2.776 (df=4, 95% CI)<br/>
-              Margin = 2.776 x 0.71 = 1.97<br/>
+              Mean = 92.1<br/>
+              Std Dev = 1.35<br/>
+              Std Error = 1.35 / sqrt(7) = 0.51<br/>
+              t-value = 2.447 (df=6, 95% CI)<br/>
+              Margin = 2.447 x 0.51 = 1.24<br/>
               <br/>
               <strong style={{ color: 'var(--amber-warning)' }}>
-                Final: 92.0 +/- 2.0<br/>
-                95% CI: [90.0, 94.0]
+                Final: 92.1 +/- 1.2<br/>
+                95% CI: [90.9, 93.4]
               </strong>
             </div>
           </div>
@@ -739,30 +751,23 @@ export default async function MethodologyPage() {
 
           {/* Current Models */}
           <h2 style={styles.sectionTitle}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> CURRENT MODELS TESTED (21 ACTIVE)
+            <span style={{ fontFamily: 'var(--font-mono)' }}>[&rarr;]</span> CURRENT MODELS TESTED
+            {status?.rankedModels?.length ? ` (${status.rankedModels.length} ACTIVE)` : ''}
           </h2>
           <div style={{ ...styles.panel, marginBottom: '12px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '6px', fontSize: '10px' }}>
-              {[
-                'claude-3-7-sonnet-20250219',
-                'claude-sonnet-4-5-20250929',
-                'claude-opus-4-5-20251101',
-                'gpt-5.2',
-                'gpt-5.1',
-                'gpt-5.1-codex',
-                'deepseek-chat',
-                'deepseek-reasoner',
-                'gemini-2.5-flash',
-                'gemini-3-pro-preview',
-                'grok-4-0709',
-                'grok-4-latest',
-                'kimi-latest',
-                'kimi-k2-turbo-preview',
-                'glm-4.6',
-              ].map((model, i) => (
-                <div key={i} style={{ color: 'var(--phosphor-green)' }}>{model}</div>
+              {/* Read from the models table, not typed by hand. The previous list named
+                  claude-3-7-sonnet, gpt-5.1, grok-4 and gemini-2.5 — none of which have been
+                  tested for months — under a heading claiming 21 active models. A list of what
+                  we test has to come from the table that decides what we test. */}
+              {(status?.rankedModels ?? []).map((m) => (
+                <div key={m.name} style={{ color: 'var(--phosphor-green)' }}>{m.name}</div>
               ))}
-              <div style={{ color: 'var(--phosphor-dim)' }}>...and 6 more</div>
+              {!status?.rankedModels?.length && (
+                <div style={{ color: 'var(--amber-warning)' }}>
+                  Roster unavailable &mdash; the API did not answer when this page was generated
+                </div>
+              )}
             </div>
             <div style={{ ...styles.text, marginTop: '12px', padding: '8px 10px', background: 'rgba(26, 115, 232,0.04)', borderRadius: '2px' }}>
               Scores update <strong style={{ color: 'var(--amber-warning)' }}>every 4 hours</strong>. Rankings shift based on continuous performance monitoring.
@@ -798,8 +803,12 @@ export default async function MethodologyPage() {
                 &rarr; 95% confidence intervals<br/>
                 &rarr; Continuous since August 2025<br/>
                 &rarr; 100% independent funding<br/>
-                &rarr; 175,000+ scores from 170,000+ runs<br/>
-                &rarr; 61,000+ tool-calling sessions<br/>
+                {status?.corpus ? (
+                  <>
+                    &rarr; {status.corpus.runs.toLocaleString()} scored runs<br/>
+                    &rarr; {status.corpus.toolSessions.toLocaleString()} tool-calling sessions<br/>
+                  </>
+                ) : null}
                 &rarr; Published methodology, live row counts
               </div>
             </div>
@@ -905,7 +914,7 @@ export default async function MethodologyPage() {
               EXPLORE THE RANKINGS
             </div>
             <div style={{ ...styles.text, marginBottom: '16px' }}>
-              See how the models actually perform, across 173,000+ scored benchmark runs<br/>
+              See how the models actually perform, across {status?.corpus ? status.corpus.runs.toLocaleString() : '176,000+'} scored benchmark runs<br/>
               Updated every 4 hours with statistical confidence intervals
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
