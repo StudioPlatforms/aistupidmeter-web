@@ -211,7 +211,8 @@ const styles = {
  * rows exist.
  */
 interface SuiteStat { total: number; last30Days: number; lastRun: string | null; enabled: boolean }
-interface CorpusTotals { runs: number; toolSessions: number; deepSessions: number; incidents: number }
+interface CodingCorpus { repoTasks: number; hardFunctionTasks: number; floorChecks: number; total: number }
+interface CorpusTotals { runs: number; toolSessions: number; deepSessions: number; incidents: number; coding?: CodingCorpus }
 interface RankedModel { name: string; vendor: string }
 interface EnhancedStatus {
   adversarial: SuiteStat;
@@ -333,7 +334,7 @@ export default async function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>CODING SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every 4 hours<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 repo debugging + 1 hard function + 2 floor checks<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: {status?.corpus?.coding ? `${status.corpus.coding.repoTasks} repo debugging + ${status.corpus.coding.hardFunctionTasks} hard function + ${status.corpus.coding.floorChecks} floor checks` : 'repo debugging, hard function and floor checks'}<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 7 per task, median scored<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Debugging and coding capability

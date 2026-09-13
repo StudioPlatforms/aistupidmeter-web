@@ -213,7 +213,7 @@ export default function ComparePage() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
-              '4 repo debugging tasks graded on hidden tests, executed not just graded',
+              'Repo debugging tasks graded on hidden tests, executed not just graded',
               'Standardized temperature (0.3) and parameters for consistent results',
               'Multiple test runs with median scoring to eliminate outliers',
               'Real production API calls with actual latency and token measurements',
