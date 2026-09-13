@@ -11,6 +11,8 @@ type ScoringMode = 'combined' | 'reasoning' | 'speed' | 'tooling';
 type ViewMode = 'cards' | 'radar';
 
 interface AxesData {
+  /** Every axis the suite actually reported, under its real name. Absent = not measured. */
+  measured?: Record<string, number>;
   correctness: number;
   spec: number;
   codeQuality: number;
@@ -26,6 +28,62 @@ interface ModelDetailMatrixProps {
   axesData: AxesData | null;
   hasProAccess: boolean;
   onShowProModal: (feature: 'historical-data' | 'performance-matrix') => void;
+}
+
+/**
+ * What each suite actually measures, and what it is worth.
+ *
+ * These lists used to be derived rather than measured: "LOGICAL REASONING" was
+ * `correctness + 5`, "PROBLEM DECOMP." was `spec + 8`, "TOOL SELECTION" was `correctness + 6`.
+ * Seven of the reasoning and tooling rows were arithmetic on an unrelated coding axis plus a
+ * constant, presented to the reader as a measured capability with a weight beside it.
+ *
+ * They are now read from the axes the suite reported. An axis that was not measured is not
+ * shown at all, rather than being reconstructed from one that was.
+ */
+interface AxisSpec { key: string; label: string; icon: string; weight: string; description: string; }
+
+const CODING_AXES: AxisSpec[] = [
+  { key: 'correctness', label: 'CORRECTNESS',  icon: '✅', weight: '55%', description: 'Did the code work, and on repo tasks did it fix the real defect?' },
+  { key: 'stability',   label: 'STABILITY',    icon: '🔄', weight: '10%', description: 'Same answer run to run' },
+  { key: 'edgeCases',   label: 'EDGE CASES',   icon: '🎯', weight: '10%', description: 'On repo tasks: the hidden tests it never saw' },
+  { key: 'debugging',   label: 'DEBUGGING',    icon: '🔧', weight: '10%', description: 'Did it locate the defect rather than patch the symptom?' },
+  { key: 'codeQuality', label: 'CODE QUALITY', icon: '🎨', weight: '5%',  description: 'Readability and structure' },
+  { key: 'efficiency',  label: 'EFFICIENCY',   icon: '⚡', weight: '5%',  description: 'Output throughput' },
+  { key: 'format',      label: 'FORMAT',       icon: '📋', weight: '3%',  description: 'Guardrail: clean, parseable output' },
+  { key: 'safety',      label: 'SAFETY',       icon: '🛡️', weight: '2%',  description: 'Guardrail: no dangerous operations' },
+  { key: 'complexity',  label: 'COMPLEXITY',   icon: '🧩', weight: '0%',  description: 'Measured, but varies too little between models to rank them' },
+];
+
+const TOOLING_AXES: AxisSpec[] = [
+  { key: 'taskCompletion',    label: 'TASK COMPLETION', icon: '✅', weight: '30%', description: 'Did the objective actually get done?' },
+  { key: 'toolSelection',     label: 'TOOL SELECTION',  icon: '🎯', weight: '20%', description: 'Choosing the right tool' },
+  { key: 'parameterAccuracy', label: 'PARAM ACCURACY',  icon: '⚙️', weight: '15%', description: 'Calling it with correct arguments' },
+  { key: 'efficiency',        label: 'TOOL EFFICIENCY', icon: '⚡', weight: '15%', description: 'Without unnecessary calls' },
+  { key: 'errorHandling',     label: 'ERROR HANDLING',  icon: '🔧', weight: '10%', description: 'Recovering when a call fails' },
+  { key: 'contextAwareness',  label: 'CTX AWARENESS',   icon: '🧠', weight: '5%',  description: 'Carrying earlier output forward' },
+  { key: 'safetyCompliance',  label: 'SAFETY COMPLNC.', icon: '🛡️', weight: '5%',  description: 'Avoiding destructive operations' },
+];
+
+// Deep-reasoning weights are set per task, so a single percentage would be a fiction. The
+// axes are real and measured; the weight column says so instead of inventing a number.
+const REASONING_AXES: AxisSpec[] = [
+  { key: 'correctness',      label: 'CORRECTNESS',     icon: '✅', weight: 'per task', description: 'Did the session reach a working result?' },
+  { key: 'memoryRetention',  label: 'MEMORY RETENTION',icon: '🧠', weight: 'per task', description: 'Carrying commitments across turns' },
+  { key: 'planCoherence',    label: 'PLAN COHERENCE',  icon: '🗺️', weight: 'per task', description: 'Staying consistent with its own plan' },
+  { key: 'contextWindow',    label: 'CONTEXT WINDOW',  icon: '🔗', weight: 'per task', description: 'Using what was established earlier' },
+  { key: 'hallucinationRate',label: 'GROUNDEDNESS',    icon: '🕳️', weight: 'per task', description: 'Not inventing facts or APIs' },
+  { key: 'debugging',        label: 'DEBUGGING',       icon: '🔧', weight: 'per task', description: 'Fixing what it broke' },
+  { key: 'stability',        label: 'STABILITY',       icon: '🔄', weight: 'per task', description: 'Consistency across the session' },
+  { key: 'efficiency',       label: 'EFFICIENCY',      icon: '⚡', weight: 'per task', description: 'Turns and tokens spent' },
+];
+
+/** Only axes the suite actually reported. No stand-ins, no derived values. */
+function measuredMetrics(specs: AxisSpec[], measured: Record<string, number> | undefined, category: string) {
+  if (!measured) return [];
+  return specs
+    .filter(sp => typeof measured[sp.key] === 'number')
+    .map(sp => ({ ...sp, value: measured[sp.key] * 100, category }));
 }
 
 const tierLabel = (pct: number): string => {
@@ -285,15 +343,7 @@ export default function ModelDetailMatrix({
     if (selectedPeriod !== 'latest') note = '📊 Showing metrics averaged across benchmarks within this timeframe';
     primaryCategory = 'speed';
 
-    metrics = [
-      { key: 'correctness', label: 'CORRECTNESS', icon: '✅', weight: '35%', description: 'Code functionality and accuracy', value: axesData.correctness * 100, category: 'speed' },
-      { key: 'spec', label: 'SPEC COMPLIANCE', icon: '📋', weight: '15%', description: 'Following instructions and format', value: axesData.spec * 100, category: 'speed' },
-      { key: 'codeQuality', label: 'CODE QUALITY', icon: '🎨', weight: '15%', description: 'Readability and best practices', value: axesData.codeQuality * 100, category: 'speed' },
-      { key: 'efficiency', label: 'EFFICIENCY', icon: '⚡', weight: '10%', description: 'Response speed and optimization', value: axesData.efficiency * 100, category: 'speed' },
-      { key: 'stability', label: 'STABILITY', icon: '🔄', weight: '10%', description: 'Consistent performance across runs', value: axesData.stability * 100, category: 'speed' },
-      { key: 'refusal', label: 'REFUSAL RATE', icon: '🚫', weight: '10%', description: 'Appropriate task acceptance', value: axesData.refusal * 100, category: 'speed' },
-      { key: 'recovery', label: 'RECOVERY', icon: '🔧', weight: '5%', description: 'Error correction ability', value: axesData.recovery * 100, category: 'speed' },
-    ];
+    metrics = measuredMetrics(CODING_AXES, axesData.measured, 'speed');
   } else if (scoringMode === 'reasoning') {
     title = `🧠 REASONING PERFORMANCE MATRIX ${periodLabel}`;
     subtitle = selectedPeriod === 'latest'
@@ -302,14 +352,7 @@ export default function ModelDetailMatrix({
     if (selectedPeriod !== 'latest') note = '🧮 Showing metrics from best-performing deep reasoning tests within this timeframe';
     primaryCategory = 'reasoning';
 
-    metrics = [
-      { key: 'logical', label: 'LOGICAL REASONING', icon: '🔬', weight: '25%', description: 'Multi-step logical deduction', value: Math.min(98, axesData.correctness * 100 + 5), category: 'reasoning' },
-      { key: 'decomp', label: 'PROBLEM DECOMP.', icon: '🧩', weight: '20%', description: 'Breaking down complex problems', value: Math.min(98, axesData.spec * 100 + 8), category: 'reasoning' },
-      { key: 'synthesis', label: 'CTX SYNTHESIS', icon: '🔗', weight: '20%', description: 'Integrating information across contexts', value: Math.min(98, axesData.codeQuality * 100 + 6), category: 'reasoning' },
-      { key: 'abstract', label: 'ABSTRACT THINKING', icon: '💭', weight: '15%', description: 'High-level conceptual reasoning', value: Math.min(98, axesData.recovery * 100 + 4), category: 'reasoning' },
-      { key: 'consistency', label: 'CONSISTENCY', icon: '⚖️', weight: '15%', description: 'Maintaining logical coherence', value: Math.min(98, axesData.stability * 100 + 3), category: 'reasoning' },
-      { key: 'inference', label: 'INFERENCE DEPTH', icon: '🕳️', weight: '5%', description: 'Drawing complex conclusions', value: Math.min(98, axesData.correctness * 100 + 2), category: 'reasoning' },
-    ];
+    metrics = measuredMetrics(REASONING_AXES, axesData.measured, 'reasoning');
   } else if (scoringMode === 'tooling') {
     title = `🔧 TOOL CALLING PERFORMANCE MATRIX ${periodLabel}`;
     subtitle = selectedPeriod === 'latest'
@@ -318,15 +361,7 @@ export default function ModelDetailMatrix({
     if (selectedPeriod !== 'latest') note = '🛠️ Showing metrics from best-performing tool calling benchmarks within this timeframe';
     primaryCategory = 'tooling';
 
-    metrics = [
-      { key: 'selection', label: 'TOOL SELECTION', icon: '🎯', weight: '20%', description: 'Choosing the right tool for each task', value: Math.min(98, axesData.correctness * 100 + 6), category: 'tooling' },
-      { key: 'params', label: 'PARAM ACCURACY', icon: '⚙️', weight: '20%', description: 'Providing correct tool parameters', value: Math.min(98, axesData.spec * 100 + 5), category: 'tooling' },
-      { key: 'completion', label: 'TASK COMPLETION', icon: '✅', weight: '30%', description: 'Successfully completing tool-based objectives', value: Math.min(98, axesData.correctness * 100 + 4), category: 'tooling' },
-      { key: 'errors', label: 'ERROR HANDLING', icon: '🔧', weight: '15%', description: 'Recovering from tool execution failures', value: Math.min(98, axesData.recovery * 100 + 3), category: 'tooling' },
-      { key: 'efficiency', label: 'TOOL EFFICIENCY', icon: '⚡', weight: '10%', description: 'Minimizing unnecessary tool calls', value: Math.min(98, axesData.efficiency * 100 + 8), category: 'tooling' },
-      { key: 'context', label: 'CTX AWARENESS', icon: '🧠', weight: '3%', description: 'Understanding when tools are needed', value: Math.min(98, axesData.stability * 100 + 2), category: 'tooling' },
-      { key: 'safety', label: 'SAFETY COMPLNC.', icon: '🛡️', weight: '2%', description: 'Following security protocols', value: Math.min(98, axesData.refusal * 100 + 1), category: 'tooling' },
-    ];
+    metrics = measuredMetrics(TOOLING_AXES, axesData.measured, 'tooling');
   } else {
     // combined
     title = `🎯 COMBINED PERFORMANCE MATRIX ${periodLabel}`;
@@ -336,17 +371,32 @@ export default function ModelDetailMatrix({
     if (selectedPeriod !== 'latest') note = '🔀 Showing balanced metrics from both rapid coding tasks and complex reasoning challenges';
     primaryCategory = 'speed';
 
+    // Combined view: the coding axes are the ones that exist on every model, and the
+    // deep/tooling axes appear only when those suites reported for this period.
     metrics = [
-      { key: 's_correctness', label: 'CODING ACCURACY', icon: '✅', weight: '25%', description: 'Fast coding task correctness', value: axesData.correctness * 100, category: 'speed' },
-      { key: 's_efficiency', label: 'CODING SPEED', icon: '⚡', weight: '20%', description: 'Rapid problem solving', value: axesData.efficiency * 100, category: 'speed' },
-      { key: 'code_quality', label: 'CODE QUALITY', icon: '🎨', weight: '15%', description: 'Clean, readable code output', value: axesData.codeQuality * 100, category: 'speed' },
-      { key: 'spec_comp', label: 'SPEC COMPLIANCE', icon: '📋', weight: '10%', description: 'Following instructions precisely', value: axesData.spec * 100, category: 'speed' },
-      { key: 'deep_rsn', label: 'DEEP REASONING', icon: '🧠', weight: '15%', description: 'Complex multi-step logic', value: Math.min(98, axesData.correctness * 100 + 5), category: 'reasoning' },
-      { key: 'prob_solv', label: 'PROBLEM SOLVING', icon: '🧩', weight: '10%', description: 'Breaking down complex issues', value: Math.min(98, axesData.recovery * 100 + 4), category: 'reasoning' },
-      { key: 'ctx_und', label: 'CTX UNDERSTANDING', icon: '🔗', weight: '5%', description: 'Grasping nuanced requirements', value: Math.min(98, axesData.stability * 100 + 3), category: 'reasoning' },
-      { key: 'stability', label: 'OVERALL STABILITY', icon: '🔄', weight: 'Bonus', description: 'Consistent performance across all tasks', value: axesData.stability * 100, category: 'overall' },
-      { key: 'refusal', label: 'TASK ACCEPTANCE', icon: '🚫', weight: 'Bonus', description: 'Appropriate task engagement', value: axesData.refusal * 100, category: 'overall' },
+      ...measuredMetrics(CODING_AXES, axesData.measured, 'speed'),
+      ...measuredMetrics(REASONING_AXES.filter(a => !CODING_AXES.some(c => c.key === a.key)), axesData.measured, 'reasoning'),
+      ...measuredMetrics(TOOLING_AXES.filter(a => !CODING_AXES.some(c => c.key === a.key)), axesData.measured, 'tooling'),
     ];
+  }
+
+  // Measured-only: if this suite reported nothing for the period, say so rather than drawing a
+  // chart out of whatever other suite happened to have data. The old code could not reach this
+  // state because it synthesised every missing axis from a coding one.
+  if (metrics.length === 0) {
+    return (
+      <div className="md-matrix-section">
+        <div className="md-matrix-empty">
+          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+            Nothing measured for this view in the selected period
+          </div>
+          <div style={{ fontSize: '11px', opacity: 0.8 }}>
+            This suite has not reported for this model in the chosen timeframe. Try a wider
+            period, or a different benchmark view.
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -376,10 +376,21 @@ export default function ModelDetailClient({
   const calculatePeriodAxes = () => {
     if (!history || history.history.length === 0) return null;
     const totals = { correctness: 0, spec: 0, codeQuality: 0, efficiency: 0, stability: 0, refusal: 0, recovery: 0 };
+    // Every axis the suite actually reported, averaged over the period and kept under its real
+    // name. The seven legacy fields below are a lossy remap kept for older callers; the matrix
+    // uses these instead, so it can show what was measured rather than deriving stand-ins.
+    const measuredTotals: Record<string, number> = {};
+    const measuredCounts: Record<string, number> = {};
     let validPoints = 0;
     history.history.forEach(point => {
       if (point.axes) {
         const a = point.axes as any;
+        for (const [k, v] of Object.entries(a)) {
+          if (typeof v === 'number' && Number.isFinite(v)) {
+            measuredTotals[k] = (measuredTotals[k] ?? 0) + v;
+            measuredCounts[k] = (measuredCounts[k] ?? 0) + 1;
+          }
+        }
         totals.correctness += a.correctness || 0;
         totals.spec += a.complexity || a.spec || 0;
         totals.codeQuality += a.codeQuality || 0;
@@ -391,7 +402,12 @@ export default function ModelDetailClient({
       }
     });
     if (validPoints === 0) return null;
+    const measured: Record<string, number> = {};
+    for (const k of Object.keys(measuredTotals)) {
+      if (measuredCounts[k] > 0) measured[k] = measuredTotals[k] / measuredCounts[k];
+    }
     return {
+      measured,
       correctness: totals.correctness / validPoints,
       spec: totals.spec / validPoints,
       codeQuality: totals.codeQuality / validPoints,
