@@ -65,15 +65,48 @@ interface HeatmapProps {
 const PERIOD_TEXT: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '1m': '30 days' };
 
 /** All seven axes the API scores. The old table showed four of them. */
-const AXES = [
-  { key: 'correctness', label: 'Correctness', short: 'Corr' },
-  { key: 'spec',        label: 'Spec',        short: 'Spec' },
-  { key: 'codeQuality', label: 'Code quality',short: 'Code' },
-  { key: 'efficiency',  label: 'Efficiency',  short: 'Effic' },
-  { key: 'stability',   label: 'Stability',   short: 'Stab' },
-  { key: 'refusal',     label: 'Refusal',     short: 'Ref' },
-  { key: 'recovery',    label: 'Recovery',    short: 'Recov' },
-] as const;
+type Suite = 'hourly' | 'tooling' | 'deep';
+interface Axis { key: string; label: string; short: string }
+// One column set per suite, read from that suite's own series. The leaderboard sort decides
+// which: Reasoning → the thirteen reasoning axes, Tooling → the seven tool-use axes, anything
+// else → the coding suite's seven canonical axes.
+const AXES_BY_SUITE: Record<Suite, readonly Axis[]> = {
+  hourly: [
+    { key: 'correctness', label: 'Correctness', short: 'Corr' },
+    { key: 'spec',        label: 'Spec',        short: 'Spec' },
+    { key: 'codeQuality', label: 'Code quality',short: 'Code' },
+    { key: 'efficiency',  label: 'Efficiency',  short: 'Effic' },
+    { key: 'stability',   label: 'Stability',   short: 'Stab' },
+    { key: 'refusal',     label: 'Refusal',     short: 'Ref' },
+    { key: 'recovery',    label: 'Recovery',    short: 'Recov' },
+  ],
+  deep: [
+    { key: 'correctness',       label: 'Correctness',     short: 'Corr' },
+    { key: 'complexity',        label: 'Complexity',      short: 'Cplx' },
+    { key: 'codeQuality',       label: 'Code quality',    short: 'Code' },
+    { key: 'efficiency',        label: 'Efficiency',      short: 'Effic' },
+    { key: 'stability',         label: 'Stability',       short: 'Stab' },
+    { key: 'edgeCases',         label: 'Edge cases',      short: 'Edge' },
+    { key: 'debugging',         label: 'Debugging',       short: 'Debug' },
+    { key: 'format',            label: 'Format',          short: 'Fmt' },
+    { key: 'safety',            label: 'Safety',          short: 'Safe' },
+    { key: 'memoryRetention',   label: 'Memory',          short: 'Mem' },
+    { key: 'hallucinationRate', label: 'No hallucination',short: 'Halluc' },
+    { key: 'planCoherence',     label: 'Plan coherence',  short: 'Plan' },
+    { key: 'contextWindow',     label: 'Context use',     short: 'Ctx' },
+  ],
+  tooling: [
+    { key: 'taskCompletion',    label: 'Task completion',   short: 'Done' },
+    { key: 'toolSelection',     label: 'Tool selection',    short: 'Select' },
+    { key: 'parameterAccuracy', label: 'Parameter accuracy',short: 'Params' },
+    { key: 'efficiency',        label: 'Efficiency',        short: 'Effic' },
+    { key: 'errorHandling',     label: 'Error handling',    short: 'Errors' },
+    { key: 'contextAwareness',  label: 'Context awareness', short: 'Ctx' },
+    { key: 'safetyCompliance',  label: 'Safety compliance', short: 'Safe' },
+  ],
+};
+const SUITE_NAME: Record<Suite, string> = { hourly: 'coding', deep: 'reasoning', tooling: 'tool-use' };
+const AXES = AXES_BY_SUITE.hourly;
 
 /**
  * Where the colour scale saturates. The observed spread is -21..+23 with p95 at 10,
@@ -91,6 +124,9 @@ const TINT_FLOOR = 2;
 const MIN_RUNS = 3;
 
 export default function DriftHeatmap({ models, period = 'latest', sortBy = 'combined' }: HeatmapProps) {
+  const suite: Suite = sortBy === 'reasoning' ? 'deep' : sortBy === 'tooling' ? 'tooling' : 'hourly';
+  const axes = AXES_BY_SUITE[suite];
+
   const router = useRouter();
   const [driftData, setDriftData] = useState<DriftStatus[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +146,9 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
     const modelIds = new Set(models.map(m => m.id));
     setLoading(true);
 
-    fetch(`${apiUrl}/api/drift/batch${period === 'latest' ? '' : `?period=${period}`}`)
+    // The suite travels in the PATH: the edge cache keys /api/drift on a fixed list of query
+    // arguments that does not include it. The hourly batch keeps the scheduler-cached path.
+    fetch(`${apiUrl}/api/drift/batch${suite === 'hourly' ? '' : `/${suite}`}${period === 'latest' ? '' : `?period=${period}`}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -139,7 +177,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
         setLoading(false);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelKey, period]);
+  }, [modelKey, period, suite]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const boardOrder = useMemo(() => new Map(models.map((m, i) => [String(m.id), i])), [modelKey]);
@@ -161,7 +199,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
     }
     if (sortKey === '__movement') {
       // Biggest mover first: a monitor should open on whatever needs attention.
-      return rows.sort((a, b) => biggestMove(b) - biggestMove(a));
+      return rows.sort((a, b) => biggestMove(b, axes) - biggestMove(a, axes));
     }
     if (sortKey === '__name') {
       return rows.sort((a, b) => a.modelName.localeCompare(b.modelName));
@@ -172,7 +210,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
 
   const summary = useMemo(() => {
     const moved = visible.reduce(
-      (n, m) => n + AXES.filter(a => measured(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE').length,
+      (n, m) => n + axes.filter(a => measured(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE').length,
       0
     );
     return {
@@ -184,12 +222,12 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       modelledCount: driftData.filter(d => d.axesSource !== 'measured').length,
       // Models whose every axis is still below the run threshold: real data, just not
       // enough of it yet. Worth stating, because they render as a row of "–".
-      warmingUp: visible.filter(m => AXES.every(a => !comparable(m.axes[a.key]))).length,
+      warmingUp: visible.filter(m => axes.every(a => !comparable(m.axes[a.key]))).length,
       // Median runs behind a cell. Movement is measured within one benchmark configuration,
       // so right after a configuration change every cell is comparable-but-flat: the matrix is
       // populated and reads as empty. Say so, with the number, instead of letting it look broken.
       typicalRuns: (() => {
-        const ns = visible.flatMap(m => AXES.map(a => m.axes[a.key]?.sampleSize).filter((n): n is number => typeof n === 'number' && n > 0)).sort((x, y) => x - y);
+        const ns = visible.flatMap(m => axes.map(a => m.axes[a.key]?.sampleSize).filter((n): n is number => typeof n === 'number' && n > 0)).sort((x, y) => x - y);
         return ns.length ? ns[Math.floor(ns.length / 2)] : 0;
       })(),
     };
@@ -217,10 +255,11 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
         <div>
           <h3 className="dm-title">Drift by dimension</h3>
           <p className="dm-sub">
-            {period === 'latest'
-              ? 'How far each model has moved from its own 28-day baseline on every scored dimension.'
-              : `How far each model has moved over the last ${PERIOD_TEXT[period]} on every scored dimension — its newest runs in that window against its oldest.`}
-            {' '}Positive is better than baseline, negative is worse.
+            Each cell is the model&rsquo;s current level on that dimension (0&ndash;100).
+            {' '}{period === 'latest'
+              ? 'The colour, and the small signed number, are how far it has moved from its own baseline on the current benchmark configuration'
+              : `The colour, and the small signed number, are how far it has moved over the last ${PERIOD_TEXT[period]} — its newest runs in that window against its oldest`}
+            ; positive is better than baseline, negative is worse. A level with no number is measured but too new to compare.
           </p>
         </div>
         <div className="dm-head-actions">
@@ -276,7 +315,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
 
       {summary.typicalRuns > 0 && summary.typicalRuns < 12 && (
         <p className="dm-note">
-          The coding suite&rsquo;s configuration changed recently: a typical cell has {summary.typicalRuns} run{summary.typicalRuns === 1 ? '' : 's'} on
+          The {SUITE_NAME[suite]} suite&rsquo;s configuration changed recently: a typical cell has {summary.typicalRuns} run{summary.typicalRuns === 1 ? '' : 's'} on
           it. Movement is measured within one configuration &mdash; comparing the newest runs with the oldest on the same
           tasks and scoring &mdash; so this matrix restarts from flat and colours in over the coming days. A flat cell
           here means &ldquo;no change measured yet&rdquo;, not &ldquo;no change&rdquo;.
@@ -300,7 +339,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                 </button>
               </th>
               <th className="dm-th-status">Status</th>
-              {AXES.map(a => (
+              {axes.map(a => (
                 <th key={a.key} className="dm-th-axis">
                   <button
                     type="button"
@@ -341,7 +380,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                     {regimeLabel(m.regime)}
                   </span>
                 </td>
-                {AXES.map(a => {
+                {axes.map(a => {
                   const axis = m.axes[a.key];
                   const ok = comparable(axis);
                   const change = ok ? Math.round(axis?.changeMagnitude ?? 0) : null;
@@ -352,9 +391,14 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                       style={ok ? tintFor(change as number) : undefined}
                       title={cellTitle(m.modelName, a.label, axis)}
                     >
-                      {ok
-                        ? (change === 0 ? <span className="dm-flat">0</span> : signed(change as number))
-                        : <span className="dm-none">{measured(axis) ? '–' : '·'}</span>}
+                      {measured(axis)
+                        ? (
+                          <span className="dm-reading">
+                            <span className={`dm-level${ok ? '' : ' dm-level-young'}`}>{Math.round(axis.value * 100)}</span>
+                            {ok && change !== 0 && <span className="dm-delta">{signed(change as number)}</span>}
+                          </span>
+                        )
+                        : <span className="dm-none">·</span>}
                     </td>
                   );
                 })}
@@ -369,11 +413,11 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
           actually moved - which is what the matrix is scanned for anyway. */}
       <div className="dm-cards">
         {sorted.map(m => {
-          const movers = AXES
+          const movers = axes
             .map(a => ({ ...a, axis: m.axes[a.key] }))
             .filter(x => comparable(x.axis) && Math.abs(Math.round(x.axis?.changeMagnitude ?? 0)) >= TINT_FLOOR)
             .sort((x, y) => Math.abs(y.axis?.changeMagnitude ?? 0) - Math.abs(x.axis?.changeMagnitude ?? 0));
-          const tooFew = AXES.every(a => !comparable(m.axes[a.key]));
+          const tooFew = axes.every(a => !comparable(m.axes[a.key]));
           return (
             <div
               className="dm-card"
@@ -462,8 +506,8 @@ function changeOf(m: DriftStatus, key: string): number {
   return comparable(axis) ? axis?.changeMagnitude ?? 0 : Infinity;
 }
 
-function biggestMove(m: DriftStatus): number {
-  return AXES.reduce((max, a) => {
+function biggestMove(m: DriftStatus, axes: readonly Axis[]): number {
+  return axes.reduce((max, a) => {
     const axis = m.axes[a.key];
     if (!comparable(axis)) return max;
     return Math.max(max, Math.abs(axis?.changeMagnitude ?? 0));

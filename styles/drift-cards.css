@@ -1235,6 +1235,12 @@
 .dm-cell.is-flagged { outline: 1.5px solid var(--warn); outline-offset: -1.5px; }
 .dm-flat { color: var(--phosphor-dim); font-weight: 400; }
 .dm-none { color: var(--phosphor-dim); opacity: .5; }
+/* level + movement in one cell: the level is the number, the movement is the tint and the small delta */
+.dm-reading { display: inline-flex; align-items: baseline; gap: 4px; font-variant-numeric: tabular-nums; }
+.dm-level { font-weight: 600; }
+.dm-level-young { font-weight: 400; color: var(--phosphor-dim); }
+.dm-delta { font-size: 0.8em; font-weight: 600; opacity: .9; }
+@media (max-width: 700px) { .dm-delta { display: none; } }
 
 /* ── Legend ───────────────────────────────────────────────────────── */
 .dm-legend { margin-top: 14px; }
