@@ -1219,3 +1219,12 @@
     box-shadow: 1px 0 0 var(--border-subtle, rgba(128,128,128,0.25));
   }
 }
+
+/* Volatility mark on the trend column. Pairs with the VOLATILE count in the summary bar so
+   the number above the board can be traced to the rows it is counting. */
+.v4-volatile-mark {
+  display: inline-block; margin-left: 3px;
+  font-size: 10px; font-weight: 700; line-height: 1;
+  color: var(--amber-warning, #ffb000); cursor: help;
+}
+@media (max-width: 640px) { .v4-volatile-mark { font-size: 9px; margin-left: 2px; } }

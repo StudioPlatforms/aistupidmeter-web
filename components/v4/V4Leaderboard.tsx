@@ -297,11 +297,23 @@ export default function V4Leaderboard({
               )}
             </div>
 
-            {/* Trend */}
+            {/* Trend, and whether that trend is worth believing.
+                The summary bar above counts VOLATILE models; without a mark here a reader is
+                told "3 are volatile" and has no way to find which three. A wide standard error
+                also means the arrow beside it is mostly noise, which is worth knowing before
+                acting on it. */}
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: '14px', color: trendColor(model.trend) }}>
                 {trendIcon(model.trend)}
               </span>
+              {typeof model.standardError === 'number' && model.standardError >= 8 && (
+                <span
+                  className="v4-volatile-mark"
+                  title={`High run-to-run variance: standard error ${model.standardError.toFixed(1)} points, against a fleet median near 3. Read the trend arrow with caution.`}
+                >
+                  &plusmn;
+                </span>
+              )}
             </div>
 
             {/* Regime */}

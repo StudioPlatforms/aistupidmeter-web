@@ -745,55 +745,72 @@
 }
 
 /* ---- Per-task coding breakdown -------------------------------------------
-   The panel that distinguishes "fixed the defect" from "silenced the symptom".
-   That difference is invisible in every aggregate on the site, so it is given
-   real colour weight here rather than being a subtle shade of the pass state. */
-.md-tb-intro {
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--phosphor-dim);
-  margin: 8px 0 14px;
+   Compact by default. The common case is a model that fixed everything, which
+   should cost one line rather than fifteen rows; the panel only grows when
+   there is a finding to explain. Sized in flex-wrap chips so it reflows to a
+   phone without a horizontal scrollbar. */
+.md-tb-count {
+  float: right; font-size: 9px; font-weight: 400; letter-spacing: 0.04em;
+  color: var(--phosphor-dim); opacity: 0.8;
 }
-.md-tb-list { display: flex; flex-direction: column; gap: 6px; }
-.md-tb-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) auto minmax(0, 1.6fr);
-  gap: 10px;
-  align-items: center;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.02);
+.md-tb-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 8px; }
+.md-tb-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; line-height: 1.2; padding: 3px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px;
+  text-transform: capitalize; white-space: nowrap;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis;
 }
-.md-tb-pass { border-left: 3px solid var(--phosphor-green, #35c46a); }
-.md-tb-fail { border-left: 3px solid rgba(255, 80, 80, 0.8); }
-.md-tb-silenced { border-left: 3px solid var(--amber-warning, #ffb000); background: rgba(255, 176, 0, 0.06); }
-.md-tb-name { display: flex; flex-direction: column; min-width: 0; }
-.md-tb-slug { font-size: 12px; font-weight: 600; text-transform: capitalize; }
-.md-tb-kind { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--phosphor-dim); }
-.md-tb-status { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; white-space: nowrap; }
-.md-tb-pass .md-tb-status { color: var(--phosphor-green, #35c46a); }
-.md-tb-fail .md-tb-status { color: rgba(255, 120, 120, 0.95); }
-.md-tb-silenced .md-tb-status { color: var(--amber-warning, #ffb000); }
-.md-tb-detail {
+.md-tb-dot { font-size: 6px; opacity: 0.85; }
+.md-tb-chip.md-tb-pass     { border-color: rgba(53, 196, 106, 0.45); color: var(--phosphor-green, #35c46a); }
+.md-tb-chip.md-tb-fail     { border-color: rgba(255, 80, 80, 0.5);  color: rgba(255, 120, 120, 0.95); }
+.md-tb-chip.md-tb-silenced { border-color: rgba(255, 176, 0, 0.65); color: var(--amber-warning, #ffb000);
+                             background: rgba(255, 176, 0, 0.08); font-weight: 600; }
+
+.md-tb-legend {
   display: flex; flex-wrap: wrap; gap: 4px 12px;
-  font-size: 10px; color: var(--phosphor-dim); justify-content: flex-end;
+  font-size: 9px; color: var(--phosphor-dim); margin-bottom: 8px;
 }
-.md-tb-hidden-ok { color: var(--phosphor-green, #35c46a); }
+.md-tb-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.md-tb-key { width: 8px; height: 8px; border-radius: 50%; border: 1px solid currentColor; display: inline-block; }
+.md-tb-key.md-tb-pass     { border-color: var(--phosphor-green, #35c46a); }
+.md-tb-key.md-tb-fail     { border-color: rgba(255, 120, 120, 0.95); }
+.md-tb-key.md-tb-silenced { border-color: var(--amber-warning, #ffb000); background: rgba(255, 176, 0, 0.35); }
+.md-tb-legend-note { opacity: 0.75; }
+
+.md-tb-finding {
+  font-size: 10.5px; line-height: 1.6; color: var(--phosphor-dim);
+  border-left: 3px solid var(--amber-warning, #ffb000);
+  background: rgba(255, 176, 0, 0.06);
+  padding: 8px 10px; border-radius: 0 4px 4px 0;
+}
+.md-tb-foot { font-size: 10px; line-height: 1.6; color: var(--phosphor-dim); opacity: 0.9; }
+
+.md-tb-locked-inline {
+  background: none; border: none; padding: 0 0 0 6px; cursor: pointer;
+  color: var(--amber-warning, #ffb000); font-size: 10px; text-decoration: underline;
+}
+
+.md-tb-details { margin-top: 10px; }
+.md-tb-details > summary {
+  cursor: pointer; font-size: 10px; letter-spacing: 0.04em;
+  color: var(--phosphor-dim); padding: 4px 0;
+}
+.md-tb-table { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.md-tb-trow {
+  display: grid; grid-template-columns: minmax(0, 1.2fr) auto auto minmax(0, 1fr);
+  gap: 8px; align-items: center; font-size: 10px; color: var(--phosphor-dim);
+  padding: 5px 8px; border-radius: 3px; background: rgba(255, 255, 255, 0.02);
+}
+.md-tb-tname { text-transform: capitalize; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.md-tb-hidden-ok  { color: var(--phosphor-green, #35c46a); }
 .md-tb-hidden-bad { color: var(--amber-warning, #ffb000); font-weight: 700; }
-.md-tb-file { opacity: 0.75; }
-.md-tb-foot {
-  margin-top: 12px; padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  font-size: 10px; line-height: 1.6; color: var(--phosphor-dim);
-}
+.md-tb-file { opacity: 0.7; overflow: hidden; text-overflow: ellipsis; font-size: 9.5px; }
+
 @media (max-width: 640px) {
-  .md-tb-row { grid-template-columns: 1fr auto; }
-  .md-tb-detail { grid-column: 1 / -1; justify-content: flex-start; }
+  .md-tb-count { float: none; display: block; margin-top: 2px; }
+  .md-tb-chip { font-size: 9.5px; padding: 3px 6px; }
+  .md-tb-trow { grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+  .md-tb-tname { grid-column: 1 / -1; }
+  .md-tb-file  { grid-column: 1 / -1; }
 }
-.md-tb-locked {
-  background: none; border: 1px dashed rgba(255,255,255,0.18); border-radius: 4px;
-  color: var(--phosphor-dim); font-size: 9.5px; letter-spacing: 0.04em;
-  padding: 4px 8px; cursor: pointer; justify-self: end; white-space: nowrap;
-}
-.md-tb-locked:hover { border-color: var(--amber-warning, #ffb000); color: var(--amber-warning, #ffb000); }

@@ -69,76 +69,72 @@ export default function ModelDetailTaskBreakdown({
 
   return (
     <div className="md-chart-section">
-      <div className="md-chart-title">CODING TASKS &mdash; MOST RECENT SWEEP</div>
-
-      <div className="md-tb-intro">
-        Repo tasks hand the model a small working project and a bug report written as a user
-        complaint. No file is named — it has to find the defect itself. Grading runs the
-        project&rsquo;s own test suite, <strong>including tests the model never sees</strong>.
-        {silenced > 0 && (
-          <>
-            {' '}This model silenced the reported symptom without fixing the defect on{' '}
-            <strong style={{ color: 'var(--amber-warning, #ffb000)' }}>
-              {silenced} {silenced === 1 ? 'task' : 'tasks'}
-            </strong>.
-          </>
-        )}
+      <div className="md-chart-title">
+        CODING TASKS &mdash; LAST SWEEP
+        <span className="md-tb-count">{tasks.length} tasks</span>
       </div>
 
-      <div className="md-tb-list">
+      {/* One compact row of chips. A model that fixed everything is the common case and should
+          take one line, not fifteen; the panel only grows when there is something to explain. */}
+      <div className="md-tb-chips">
         {tasks.map(t => {
           const r = t.repo;
           const state = r?.silencedSymptom ? 'silenced' : t.passed ? 'pass' : 'fail';
-          const label = r?.silencedSymptom
-            ? 'SYMPTOM SILENCED'
-            : t.passed ? 'FIXED' : 'NOT FIXED';
+          const detail = r
+            ? `${prettySlug(t.slug)} — visible ${r.visible.passed}/${r.visible.passed + r.visible.failed}, hidden ${r.hidden.passed}/${r.hidden.passed + r.hidden.failed}${r.editedFile ? `, edited ${r.editedFile}` : ''}`
+            : `${prettySlug(t.slug)} — ${t.passed ? 'passed' : 'failed'}${t.tokensOut != null ? `, ${t.tokensOut} tokens` : ''}`;
           return (
-            <div key={t.slug} className={`md-tb-row md-tb-${state}`}>
-              <div className="md-tb-name">
-                <span className="md-tb-slug">{prettySlug(t.slug)}</span>
-                <span className="md-tb-kind">{t.kind === 'repo' ? 'repo debugging' : 'function'}</span>
-              </div>
-
-              <div className="md-tb-status">{label}</div>
-
-              {r ? (
-                hasProAccess ? (
-                  <div className="md-tb-detail">
-                    <span title="Tests the model was shown">
-                      visible {r.visible.passed}/{r.visible.passed + r.visible.failed}
-                    </span>
-                    <span
-                      title="Tests the model never saw — three quarters of this task's grade"
-                      className={r.hidden.failed > 0 ? 'md-tb-hidden-bad' : 'md-tb-hidden-ok'}
-                    >
-                      hidden {r.hidden.passed}/{r.hidden.passed + r.hidden.failed}
-                    </span>
-                    {r.editedFile && <span className="md-tb-file">edited {r.editedFile}</span>}
-                  </div>
-                ) : (
-                  // The verdict above is public on purpose — a benchmark that hides its own
-                  // adverse findings is not worth trusting. What Pro adds is the forensics:
-                  // the test counts either side of the line, and which file it chose to edit.
-                  <button type="button" className="md-tb-locked" onClick={onShowProModal}>
-                    test-level detail &amp; edited file &middot; Pro
-                  </button>
-                )
-              ) : (
-                <div className="md-tb-detail">
-                  <span>{t.tokensOut != null ? `${t.tokensOut} tokens` : '—'}</span>
-                  {t.latencyMs != null && <span>{(t.latencyMs / 1000).toFixed(1)}s</span>}
-                </div>
-              )}
-            </div>
+            <span key={t.slug} className={`md-tb-chip md-tb-${state}`} title={hasProAccess ? detail : prettySlug(t.slug)}>
+              {t.kind === 'repo' && <span className="md-tb-dot" aria-hidden="true">&#9679;</span>}
+              {prettySlug(t.slug)}
+            </span>
           );
         })}
       </div>
 
-      <div className="md-tb-foot">
-        &ldquo;Symptom silenced&rdquo; means every visible test passed and at least one hidden test
-        did not: the reported complaint went away, the underlying defect did not. It scores
-        well below a real fix because the hidden tests carry three quarters of the grade.
+      <div className="md-tb-legend">
+        <span><span className="md-tb-key md-tb-pass" /> fixed</span>
+        <span><span className="md-tb-key md-tb-fail" /> not fixed</span>
+        <span><span className="md-tb-key md-tb-silenced" /> symptom silenced</span>
+        <span className="md-tb-legend-note">&#9679; = repo debugging task</span>
       </div>
+
+      {/* The finding, stated only when there is one. */}
+      {silenced > 0 ? (
+        <div className="md-tb-finding">
+          On {silenced} {silenced === 1 ? 'task' : 'tasks'} this model passed every test it was
+          shown and failed hidden ones: the reported symptom went away, the defect did not.
+          {!hasProAccess && (
+            <button type="button" className="md-tb-locked-inline" onClick={onShowProModal}>
+              see which tests &middot; Pro
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="md-tb-foot">
+          Repo tasks (&#9679;) hand the model a small project and a bug report written as a user
+          complaint &mdash; no file is named, so it has to find the defect itself. Grading runs the
+          project&rsquo;s own test suite, including tests the model never sees.
+        </div>
+      )}
+
+      {hasProAccess && repoTasks.length > 0 && (
+        <details className="md-tb-details">
+          <summary>Per-task detail</summary>
+          <div className="md-tb-table">
+            {repoTasks.map(t => (
+              <div key={t.slug} className="md-tb-trow">
+                <span className="md-tb-tname">{prettySlug(t.slug)}</span>
+                <span>visible {t.repo!.visible.passed}/{t.repo!.visible.passed + t.repo!.visible.failed}</span>
+                <span className={t.repo!.hidden.failed > 0 ? 'md-tb-hidden-bad' : 'md-tb-hidden-ok'}>
+                  hidden {t.repo!.hidden.passed}/{t.repo!.hidden.passed + t.repo!.hidden.failed}
+                </span>
+                <span className="md-tb-file">{t.repo!.editedFile ?? '—'}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

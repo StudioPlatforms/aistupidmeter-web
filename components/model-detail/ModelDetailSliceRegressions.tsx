@@ -65,6 +65,9 @@ export default function ModelDetailSliceRegressions({
   const [rows, setRows] = useState<SliceRegression[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // How much of this model the detector could actually test. Without it, "nothing found"
+  // and "nothing was testable" render identically and mean opposite things.
+  const [coverage, setCoverage] = useState<{ tasksSeen: number; tasksTestable: number; minBaselineRuns: number; baselineDays: number } | null>(null);
 
   useEffect(() => {
     // Client component: an empty base means a same-origin request through nginx,
@@ -81,6 +84,7 @@ export default function ModelDetailSliceRegressions({
     )
       .then(res => res.json())
       .then(data => {
+        setCoverage(data?.coverage ?? null);
         if (cancelled) return;
         if (data?.success) setRows(Array.isArray(data.data) ? data.data : []);
         else setError(data?.error || 'Failed to load task-level regressions');
@@ -121,11 +125,34 @@ export default function ModelDetailSliceRegressions({
       {!loading && !error && rows.length === 0 && (
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            <div style={{ marginBottom: 6 }}>No task-level regressions detected.</div>
-            <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
-              Every benchmark task is passing at its usual rate for this model. This check runs
-              nightly and compares each task against its own recent history.
-            </div>
+            {coverage && coverage.tasksTestable === 0 ? (
+              // Nothing could be tested. Saying "every task is passing at its usual rate" here
+              // would be a reassurance nobody measured -- the same phantom the rest of this
+              // codebase spends its time removing. The detector needs a run of history per
+              // task before it will look at that task at all, and eight coding tasks were
+              // retired and four added on 2026-09-13, so most of the corpus is legitimately
+              // too new to have one yet.
+              <>
+                <div style={{ marginBottom: 6 }}>Not enough history to test yet.</div>
+                <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                  This check compares each task against its own past, and needs at least{' '}
+                  {coverage.minBaselineRuns} runs of it within {coverage.baselineDays} days before
+                  it will judge one. None of this model&rsquo;s {coverage.tasksSeen || 'current'} tasks
+                  has reached that yet, so there is nothing to report either way &mdash; not an
+                  all-clear.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ marginBottom: 6 }}>No task-level regressions detected.</div>
+                <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
+                  {coverage
+                    ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test, and all are passing at their usual rate.`
+                    : 'Every benchmark task is passing at its usual rate for this model.'}{' '}
+                  This check runs nightly and compares each task against its own recent history.
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
