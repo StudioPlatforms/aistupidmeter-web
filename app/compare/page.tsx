@@ -188,10 +188,10 @@ export default function ComparePage() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
             {[
-              { metric: 'Correctness (40%)', desc: 'Generated code is executed against 35 test cases across 10 tasks, 175 executions per model per cycle' },
+              { metric: 'Correctness (55%)', desc: 'Code is executed against the task\u2019s tests \u2014 including, on repo tasks, tests the model never sees' },
               { metric: 'Complexity (20%)', desc: 'Whether the model actually grasped the algorithmic problem' },
               { metric: 'Code Quality (15%)', desc: 'Static analysis, structure, maintainability' },
-              { metric: 'Stability (10%)', desc: 'Consistency across the 5 trials of each task' },
+              { metric: 'Stability (10%)', desc: 'Consistency across the 7 trials of each task' },
               { metric: 'Efficiency (5%)', desc: 'Algorithmic complexity of the solution produced' },
               { metric: 'Edge Cases, Debugging, Format, Safety', desc: 'The remaining 10%: boundary handling, fixing broken code, output discipline, and avoiding dangerous operations' },
             ].map((item, i) => (
@@ -213,7 +213,7 @@ export default function ComparePage() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
-              '10 Python tasks covering 35 test cases, executed not just graded',
+              '4 repo debugging tasks graded on hidden tests, executed not just graded',
               'Standardized temperature (0.3) and parameters for consistent results',
               'Multiple test runs with median scoring to eliminate outliers',
               'Real production API calls with actual latency and token measurements',

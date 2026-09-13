@@ -330,7 +330,7 @@ export default async function MethodologyPage() {
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every 4 hours<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 repo debugging + 1 hard function + 2 floor checks<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 5 per task, median scored<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 7 per task, median scored<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Fast performance tracking
               </div>
@@ -532,7 +532,7 @@ export default async function MethodologyPage() {
             <div style={styles.text}>
               &rarr; AI models are <strong style={{ color: 'var(--amber-warning)' }}>stochastic</strong> (same prompt, different outputs)<br/>
               &rarr; Single measurements are unreliable<br/>
-              &rarr; 5 trials = optimal balance of cost vs statistical power<br/>
+              &rarr; 7 trials = optimal balance of cost vs statistical power<br/>
               &rarr; Provides 95% confidence intervals using t-distribution
             </div>
           </div>
@@ -794,7 +794,7 @@ export default async function MethodologyPage() {
                 OUR APPROACH:
               </div>
               <div style={styles.text}>
-                &rarr; 5 trials per task (statistical power)<br/>
+                &rarr; 7 trials per task (statistical power)<br/>
                 &rarr; 95% confidence intervals<br/>
                 &rarr; Continuous since August 2025<br/>
                 &rarr; 100% independent funding<br/>
@@ -876,7 +876,7 @@ export default async function MethodologyPage() {
           </h2>
           <div style={styles.grid4}>
             {[
-              { name: 'vs. HumanEval', them: 'Single-shot, pass/fail', us: '5 trials, nuanced scoring, CI' },
+              { name: 'vs. HumanEval', them: 'Single-shot, pass/fail', us: '7 trials, nuanced scoring, CI' },
               { name: 'vs. MMLU', them: 'Multiple choice', us: 'Real code execution' },
               { name: 'vs. Chatbot Arena', them: 'Human voting', us: 'Objective execution' },
               { name: 'vs. Vendor Benchmarks', them: 'Marketing-optimized', us: 'Independent, unbiased' },
@@ -973,7 +973,7 @@ export default async function MethodologyPage() {
                 {
                   "@type": "HowToStep",
                   "name": "Execute Benchmark Tasks",
-                  "text": "Run 5 trials of each coding task with different random seeds"
+                  "text": "Run 7 trials of each coding task with different random seeds"
                 },
                 {
                   "@type": "HowToStep",

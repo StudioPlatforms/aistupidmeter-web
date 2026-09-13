@@ -53,8 +53,8 @@ const faqs: FAQItem[] = [
   },
   {
     category: "Methodology",
-    question: "Why do you run 5 trials instead of just 1?",
-    answer: "AI models are stochastic (probabilistic), meaning the same prompt can produce different outputs. A single measurement could be a lucky or unlucky result. Running 5 trials lets us: (1) capture natural variance, (2) calculate confidence intervals, (3) use the median to avoid outlier bias, and (4) estimate true performance more accurately. It's a balance between statistical rigor and computational cost."
+    question: "Why do you run 7 trials instead of just 1?",
+    answer: "AI models are stochastic (probabilistic), meaning the same prompt can produce different outputs. A single measurement could be a lucky or unlucky result. Running 7 trials lets us: (1) capture natural variance, (2) calculate confidence intervals, (3) use the median to avoid outlier bias, and (4) estimate true performance more accurately. It's a balance between statistical rigor and computational cost."
   },
   {
     category: "Methodology",
@@ -64,7 +64,7 @@ const faqs: FAQItem[] = [
   {
     category: "Methodology",
     question: "What tasks do you use for benchmarking?",
-    answer: "The main suite is 10 Python tasks covering algorithms (palindrome check, primality, binary search, merge intervals, Dijkstra, word break, regex matching), data structures (LRU cache), debugging a broken sort, and optimising a naive Fibonacci. Every submission is executed, not pattern-matched \u2014 it either passes the tests or it does not. The tool-calling suite runs 10 further tasks in real Docker sandboxes, and the deep-reasoning suite runs 4 multi-turn scenarios. The tasks are in our public GitHub repo, so you can read exactly what we ask and reproduce it with your own keys via Test Your Keys. We rotate prompt envelopes between runs so a model cannot benefit from having memorised one exact phrasing."
+    answer: "The coding suite hands a model a small working project and a bug report written as a user complaint \u2014 no file is named, so it has to find the defect itself \u2014 and grades the fix by running the project's own test suite, including tests the model never sees. Four of those repo debugging tasks run each cycle, alongside one hard single-function task and two trivial ones kept purely as a floor check. Everything is executed, not pattern-matched. We retired eight single-function tasks in September 2026 after they hit 99-100% pass rates across all 24 models: a task everybody passes ranks nobody. The tool-calling suite runs 10 further tasks in real Docker sandboxes, and the deep-reasoning suite runs 4 multi-turn scenarios. The hidden tests are the one thing we keep back \u2014 without them, a fix that silences the reported symptom and leaves the defect in place scores full marks."
   },
   {
     category: "Methodology",
@@ -139,7 +139,7 @@ const faqs: FAQItem[] = [
   {
     category: "Limitations & Future",
     question: "What are the current limitations?",
-    answer: "Being straight about these: (1) the main suite is 10 Python tasks, so it measures coding ability, not general capability, and not other languages; (2) 5 trials catches ordinary variance but not rare tail behaviour; (3) everything is English-only; (4) scores measure the model as served through its public API, so a provider-side routing or quantisation change looks the same to us as a weights change — we can tell you performance moved, not always why; (5) the adversarial-safety, bias and prompt-robustness suites are running but their datasets are still young, so we do not draw conclusions from them yet — one day's result on any of the three is noise, and the methodology page shows their live row counts rather than our word for it."
+    answer: "Being straight about these: (1) the coding suite is seven Python tasks a cycle, so it measures debugging and coding ability, not general capability, and not other languages; (2) 7 trials catches ordinary variance but not rare tail behaviour, and a model that solves a task about half the time will still move a few points between runs; (3) everything is English-only; (4) scores measure the model as served through its public API, so a provider-side routing or quantisation change looks the same to us as a weights change \u2014 we can tell you performance moved, not always why; (5) some providers decline some prompts, including entirely benign ones; we drop the declined task rather than scoring it zero, but that means such a model was measured on a narrower and on average easier corpus, and those rows are marked PARTIAL; (6) the adversarial-safety, bias and prompt-robustness suites are running but their datasets are still young, so we do not draw conclusions from them yet."
   },
   {
     category: "Limitations & Future",
