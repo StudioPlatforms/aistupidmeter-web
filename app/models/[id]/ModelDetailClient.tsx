@@ -567,7 +567,11 @@ export default function ModelDetailClient({
           composite moved and a task changed — what did the model DO on that task? For repo
           debugging tasks it is also the only place on the site where "fixed the defect" and
           "silenced the symptom it was shown" are told apart. */}
-      <ModelDetailTaskBreakdown modelId={modelId} />
+      <ModelDetailTaskBreakdown
+        modelId={modelId}
+        hasProAccess={hasProAccess}
+        onShowProModal={() => { setProModalFeature('performance-matrix'); setShowProModal(true); }}
+      />
 
       {/* Runs other people made with their own API keys. Deliberately placed AFTER every
           measured panel and clearly labelled: these are individual samples on individual

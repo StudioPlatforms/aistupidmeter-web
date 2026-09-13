@@ -791,3 +791,9 @@
   .md-tb-row { grid-template-columns: 1fr auto; }
   .md-tb-detail { grid-column: 1 / -1; justify-content: flex-start; }
 }
+.md-tb-locked {
+  background: none; border: 1px dashed rgba(255,255,255,0.18); border-radius: 4px;
+  color: var(--phosphor-dim); font-size: 9.5px; letter-spacing: 0.04em;
+  padding: 4px 8px; cursor: pointer; justify-self: end; white-space: nowrap;
+}
+.md-tb-locked:hover { border-color: var(--amber-warning, #ffb000); color: var(--amber-warning, #ffb000); }

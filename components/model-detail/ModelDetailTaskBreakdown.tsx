@@ -37,7 +37,15 @@ function prettySlug(slug: string) {
   return slug.replace(/^py\//, '').replace(/^repo_/, '').replace(/_/g, ' ');
 }
 
-export default function ModelDetailTaskBreakdown({ modelId }: { modelId: string | number }) {
+export default function ModelDetailTaskBreakdown({
+  modelId,
+  hasProAccess = false,
+  onShowProModal,
+}: {
+  modelId: string | number;
+  hasProAccess?: boolean;
+  onShowProModal?: () => void;
+}) {
   const [tasks, setTasks] = useState<TaskRow[] | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -94,18 +102,27 @@ export default function ModelDetailTaskBreakdown({ modelId }: { modelId: string 
               <div className="md-tb-status">{label}</div>
 
               {r ? (
-                <div className="md-tb-detail">
-                  <span title="Tests the model was shown">
-                    visible {r.visible.passed}/{r.visible.passed + r.visible.failed}
-                  </span>
-                  <span
-                    title="Tests the model never saw — three quarters of this task's grade"
-                    className={r.hidden.failed > 0 ? 'md-tb-hidden-bad' : 'md-tb-hidden-ok'}
-                  >
-                    hidden {r.hidden.passed}/{r.hidden.passed + r.hidden.failed}
-                  </span>
-                  {r.editedFile && <span className="md-tb-file">edited {r.editedFile}</span>}
-                </div>
+                hasProAccess ? (
+                  <div className="md-tb-detail">
+                    <span title="Tests the model was shown">
+                      visible {r.visible.passed}/{r.visible.passed + r.visible.failed}
+                    </span>
+                    <span
+                      title="Tests the model never saw — three quarters of this task's grade"
+                      className={r.hidden.failed > 0 ? 'md-tb-hidden-bad' : 'md-tb-hidden-ok'}
+                    >
+                      hidden {r.hidden.passed}/{r.hidden.passed + r.hidden.failed}
+                    </span>
+                    {r.editedFile && <span className="md-tb-file">edited {r.editedFile}</span>}
+                  </div>
+                ) : (
+                  // The verdict above is public on purpose — a benchmark that hides its own
+                  // adverse findings is not worth trusting. What Pro adds is the forensics:
+                  // the test counts either side of the line, and which file it chose to edit.
+                  <button type="button" className="md-tb-locked" onClick={onShowProModal}>
+                    test-level detail &amp; edited file &middot; Pro
+                  </button>
+                )
               ) : (
                 <div className="md-tb-detail">
                   <span>{t.tokensOut != null ? `${t.tokensOut} tokens` : '—'}</span>
