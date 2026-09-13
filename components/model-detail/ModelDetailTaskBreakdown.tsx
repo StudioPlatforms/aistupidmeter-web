@@ -65,7 +65,12 @@ export default function ModelDetailTaskBreakdown({
   if (failed || !tasks || tasks.length === 0) return null;
 
   const repoTasks = tasks.filter(t => t.kind === 'repo');
-  const silenced = repoTasks.filter(t => t.repo?.silencedSymptom).length;
+  // Only the ones carrying a grade. Runs recorded before repo grades were persisted have
+  // repo === null, and the detail table below dereferences it — which crashed the whole model
+  // page client-side for every model whose last sweep predated that change. `t.repo!` is an
+  // assertion, not a check, and this is what it costs when the data is older than the code.
+  const gradedRepoTasks = repoTasks.filter((t): t is TaskRow & { repo: RepoDetail } => t.repo != null);
+  const silenced = gradedRepoTasks.filter(t => t.repo.silencedSymptom).length;
 
   return (
     <div className="md-chart-section">
@@ -118,18 +123,18 @@ export default function ModelDetailTaskBreakdown({
         </div>
       )}
 
-      {hasProAccess && repoTasks.length > 0 && (
+      {hasProAccess && gradedRepoTasks.length > 0 && (
         <details className="md-tb-details">
           <summary>Per-task detail</summary>
           <div className="md-tb-table">
-            {repoTasks.map(t => (
+            {gradedRepoTasks.map(t => (
               <div key={t.slug} className="md-tb-trow">
                 <span className="md-tb-tname">{prettySlug(t.slug)}</span>
-                <span>visible {t.repo!.visible.passed}/{t.repo!.visible.passed + t.repo!.visible.failed}</span>
-                <span className={t.repo!.hidden.failed > 0 ? 'md-tb-hidden-bad' : 'md-tb-hidden-ok'}>
-                  hidden {t.repo!.hidden.passed}/{t.repo!.hidden.passed + t.repo!.hidden.failed}
+                <span>visible {t.repo.visible.passed}/{t.repo.visible.passed + t.repo.visible.failed}</span>
+                <span className={t.repo.hidden.failed > 0 ? 'md-tb-hidden-bad' : 'md-tb-hidden-ok'}>
+                  hidden {t.repo.hidden.passed}/{t.repo.hidden.passed + t.repo.hidden.failed}
                 </span>
-                <span className="md-tb-file">{t.repo!.editedFile ?? '—'}</span>
+                <span className="md-tb-file">{t.repo.editedFile ?? '—'}</span>
               </div>
             ))}
           </div>

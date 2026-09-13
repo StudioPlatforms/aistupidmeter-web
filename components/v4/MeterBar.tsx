@@ -11,22 +11,21 @@ interface MeterBarProps {
 export default function MeterBar({ globalIndex, modelScores, loading }: MeterBarProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
 
+  // The same number as GLOBAL INDEX directly above: a plain mean of the models listed below,
+  // for whatever period and benchmark is selected.
+  //
+  // It used to be a top-weighted mean — the best quarter of the fleet counted double, the next
+  // quarter one and a half — which put 80 on this meter while the index a few pixels above read
+  // 78 and the board beneath averaged 78. Three fleet numbers on one screen, none of them
+  // wrong on its own terms and no way for a reader to tell why they differed. A weighting that
+  // flatters the leaders is also the wrong summary for a page whose subject is models getting
+  // worse.
   const calculateScore = (): number => {
-    if (modelScores && modelScores.length > 0) {
-      const valid = modelScores
-        .filter(m => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number')
-        .map(m => m.currentScore as number);
-      if (valid.length > 0) {
-        const sorted = [...valid].sort((a, b) => b - a);
-        let wSum = 0, wTotal = 0;
-        sorted.forEach((score, i) => {
-          const pct = i / sorted.length;
-          const w = pct <= 0.25 ? 2.0 : pct <= 0.5 ? 1.5 : 1.0;
-          wSum += score * w;
-          wTotal += w;
-        });
-        return Math.max(0, Math.min(100, Math.round(wSum / wTotal)));
-      }
+    const valid = modelScores
+      .filter(m => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number')
+      .map(m => m.currentScore as number);
+    if (valid.length > 0) {
+      return Math.max(0, Math.min(100, Math.round(valid.reduce((a, b) => a + b, 0) / valid.length)));
     }
     if (globalIndex?.current?.globalScore) {
       return Math.max(0, Math.min(100, globalIndex.current.globalScore));
@@ -37,7 +36,22 @@ export default function MeterBar({ globalIndex, modelScores, loading }: MeterBar
   const currentScore = calculateScore();
   const available = modelScores.filter(m => typeof m.currentScore === 'number').length;
   const total = modelScores.length;
-  const trend = globalIndex?.trend || 'stable';
+
+  // "24/24 OK" counted models that returned a number, so a fleet with two declining models
+  // still read OK. Report what the summary bar reports: how many are not currently declining.
+  const declining = modelScores.filter(m => m.trend === 'down').length;
+  const healthLabel = declining > 0
+    ? `${available - declining}/${total} steady · ${declining} declining`
+    : `${available}/${total} steady`;
+  // Trend of what is on screen, not of a fixed 24-hour combined window.
+  //
+  // This came from /global-index, which takes no period or sort parameter, so the arrow said
+  // "declining" while the user was looking at a tooling board where sixteen models had moved
+  // up. Derived from the rows instead: more falling than rising is declining, and vice versa.
+  const risers = modelScores.filter(m => m.trend === 'up').length;
+  const fallers = modelScores.filter(m => m.trend === 'down').length;
+  const derivedTrend = fallers > risers ? 'declining' : risers > fallers ? 'improving' : 'stable';
+  const trend = derivedTrend;
   const trendSymbol = trend === 'improving' ? '↗' : trend === 'declining' ? '↘' : '→';
 
   useEffect(() => {
@@ -75,7 +89,7 @@ export default function MeterBar({ globalIndex, modelScores, loading }: MeterBar
       </div>
       <div className="v4-meter-trend">
         {trendSymbol} {trend.toUpperCase()}<br />
-        <span style={{ fontSize: '9px' }}>{available}/{total} OK</span>
+        <span style={{ fontSize: '9px' }}>{healthLabel}</span>
       </div>
     </div>
   );

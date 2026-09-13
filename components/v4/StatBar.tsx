@@ -44,7 +44,15 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
     ? Math.round(availableModels.reduce((sum: number, m: any) => sum + (m.currentScore as number), 0) / availableModels.length)
     : 0;
 
-  const globalTrend = globalIndex?.trend || 'stable';
+  // Trend of what is on screen, not of a fixed 24-hour combined window.
+  //
+  // This came from /global-index, which takes no period or sort parameter, so the arrow said
+  // "declining" while the user was looking at a tooling board where sixteen models had moved
+  // up. Derived from the rows instead: more falling than rising is declining, and vice versa.
+  const risers = modelScores.filter(m => m.trend === 'up').length;
+  const fallers = modelScores.filter(m => m.trend === 'down').length;
+  const derivedTrend = fallers > risers ? 'declining' : risers > fallers ? 'improving' : 'stable';
+  const globalTrend = derivedTrend;
   const trendSymbol = globalTrend === 'improving' ? '↗' : globalTrend === 'declining' ? '↘' : '→';
 
   const totalModels = modelScores.length;
