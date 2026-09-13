@@ -372,6 +372,12 @@ export default async function MethodologyPage() {
                   Until 13 September 2026 this suite raised an incident on any 10% fall in a 24-hour
                   mean, with no test of significance, on answers cut off at 500 tokens. The 446
                   incidents it produced are retracted and excluded from every count on this site.
+                  The per-model drift signature had a related fault: its series interleaved the
+                  coding, reasoning and tool-use suites (three different scales) across
+                  configuration changes, so a reasoning run landing at 01:00 UTC read as a fall of
+                  thirty points. Since 13 September 2026 it reads the coding suite on its current
+                  configuration only; the 46 provider-wide incidents and 1,145 change points recorded
+                  before then came from the old series.
                 </span>
               </div>
             </div>
