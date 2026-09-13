@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { bucketOf, fleetTrend } from '../../lib/fleet-buckets';
 
 interface MeterBarProps {
   globalIndex: any;
@@ -39,19 +40,11 @@ export default function MeterBar({ globalIndex, modelScores, loading }: MeterBar
 
   // "24/24 OK" counted models that returned a number, so a fleet with two declining models
   // still read OK. Report what the summary bar reports: how many are not currently declining.
-  const declining = modelScores.filter(m => m.trend === 'down').length;
+  const declining = modelScores.filter(m => bucketOf(m) === 'degraded').length;
   const healthLabel = declining > 0
     ? `${available - declining}/${total} steady · ${declining} declining`
     : `${available}/${total} steady`;
-  // Trend of what is on screen, not of a fixed 24-hour combined window.
-  //
-  // This came from /global-index, which takes no period or sort parameter, so the arrow said
-  // "declining" while the user was looking at a tooling board where sixteen models had moved
-  // up. Derived from the rows instead: more falling than rising is declining, and vice versa.
-  const risers = modelScores.filter(m => m.trend === 'up').length;
-  const fallers = modelScores.filter(m => m.trend === 'down').length;
-  const derivedTrend = fallers > risers ? 'declining' : risers > fallers ? 'improving' : 'stable';
-  const trend = derivedTrend;
+  const trend = fleetTrend(modelScores);
   const trendSymbol = trend === 'improving' ? '↗' : trend === 'declining' ? '↘' : '→';
 
   useEffect(() => {

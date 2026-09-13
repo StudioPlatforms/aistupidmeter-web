@@ -1,5 +1,7 @@
 'use client';
 
+import { isVolatile, VOLATILE_STANDARD_ERROR } from '../../lib/fleet-buckets';
+
 import { useRouter } from 'next/navigation';
 import WatchStar from '../WatchStar';
 import ProviderLogo from '../ProviderLogo';
@@ -306,10 +308,10 @@ export default function V4Leaderboard({
               <span style={{ fontSize: '14px', color: trendColor(model.trend) }}>
                 {trendIcon(model.trend)}
               </span>
-              {typeof model.standardError === 'number' && model.standardError >= 8 && (
+              {isVolatile(model) && (
                 <span
                   className="v4-volatile-mark"
-                  title={`High run-to-run variance: standard error ${model.standardError.toFixed(1)} points, against a fleet median near 3. Read the trend arrow with caution.`}
+                  title={`High run-to-run variance: standard error ${Number(model.standardError).toFixed(1)} points, against a fleet median near 3. Counted under VOLATILE above; the trend arrow on this row is mostly noise.`}
                 >
                   &plusmn;
                 </span>

@@ -1,5 +1,7 @@
 'use client';
 
+import { bucketOf, fleetTrend, VOLATILE_STANDARD_ERROR } from '../../lib/fleet-buckets';
+
 interface StatBarProps {
   globalIndex: any;
   modelScores: any[];
@@ -12,47 +14,18 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
     m => m.currentScore !== 'unavailable' && typeof m.currentScore === 'number'
   );
   
-  // These four buckets used to overlap and mislabel.
-  //
-  // "Stable" counted trend 'stable' OR 'up', and "recovering" counted trend 'up' again, so a
-  // model that was improving was counted twice: 21 stable + 3 volatile + 3 recovering on a
-  // fleet of 24. "Volatile" meant trend === 'down', while the caption under it read "high
-  // variance" — a different thing entirely, and one we actually measure.
-  //
-  // Now: one model, one bucket, and the words mean what they say. Ordered by what a reader
-  // needs to see first, so a model that is both declining and noisy is reported as declining.
-  const VOLATILE_SE = 8;   // Fleet median standard error is ~3; this is the noisy tail.
-
-  const bucketOf = (m: any): 'degraded' | 'volatile' | 'improving' | 'stable' => {
-    if (m.trend === 'down') return 'degraded';
-    if (typeof m.standardError === 'number' && m.standardError >= VOLATILE_SE) return 'volatile';
-    if (m.trend === 'up') return 'improving';
-    return 'stable';
-  };
-
+  // One definition, shared with the meter and the leaderboard mark. See lib/fleet-buckets.
   const buckets = availableModels.map(bucketOf);
   const degradedCount   = buckets.filter(b => b === 'degraded').length;
   const volatileCount   = buckets.filter(b => b === 'volatile').length;
   const recoveringCount = buckets.filter(b => b === 'improving').length;
   const stableCount     = buckets.filter(b => b === 'stable').length;
 
-  // The headline must be the mean of the rows actually shown. It used to come from
-  // /global-index, which takes no period or sort parameter and always reports the same
-  // 24-hour combined figure — so selecting "tooling" moved every row on the board while the
-  // number above it did not, and the two disagreed by six points.
   const globalScore = availableModels.length > 0
     ? Math.round(availableModels.reduce((sum: number, m: any) => sum + (m.currentScore as number), 0) / availableModels.length)
     : 0;
 
-  // Trend of what is on screen, not of a fixed 24-hour combined window.
-  //
-  // This came from /global-index, which takes no period or sort parameter, so the arrow said
-  // "declining" while the user was looking at a tooling board where sixteen models had moved
-  // up. Derived from the rows instead: more falling than rising is declining, and vice versa.
-  const risers = modelScores.filter(m => m.trend === 'up').length;
-  const fallers = modelScores.filter(m => m.trend === 'down').length;
-  const derivedTrend = fallers > risers ? 'declining' : risers > fallers ? 'improving' : 'stable';
-  const globalTrend = derivedTrend;
+  const globalTrend = fleetTrend(availableModels);
   const trendSymbol = globalTrend === 'improving' ? '↗' : globalTrend === 'declining' ? '↘' : '→';
 
   const totalModels = modelScores.length;
