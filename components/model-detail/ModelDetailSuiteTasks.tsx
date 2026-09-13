@@ -161,12 +161,14 @@ export default function ModelDetailSuiteTasks({
     let alive = true;
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
     suites.forEach(suite => {
-      fetch(`${apiUrl}/dashboard/model-tasks/${modelId}?suite=${suite}`)
+      // Suite in the PATH: the edge cache keys /dashboard on a fixed set of query args, so a
+      // query-string suite can be served another suite's cached body.
+      fetch(`${apiUrl}/dashboard/model-tasks/${modelId}/${suite}`)
         .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
         .then(j => { if (alive) setData(prev => ({ ...prev, [suite]: j?.data ?? null })); })
         .catch(() => { if (alive) setData(prev => ({ ...prev, [suite]: null })); });
       if (proDetail) {
-        fetch(`${apiUrl}/dashboard/model-task-history/${modelId}?suite=${suite}&days=14`)
+        fetch(`${apiUrl}/dashboard/model-task-history/${modelId}/${suite}?days=14`)
           .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
           .then(j => { if (alive) setHist(prev => ({ ...prev, [suite]: j?.data?.tasks ?? {} })); })
           .catch(() => { /* the trend column simply stays empty */ });
