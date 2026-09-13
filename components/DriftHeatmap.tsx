@@ -185,6 +185,13 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       // Models whose every axis is still below the run threshold: real data, just not
       // enough of it yet. Worth stating, because they render as a row of "–".
       warmingUp: visible.filter(m => AXES.every(a => !comparable(m.axes[a.key]))).length,
+      // Median runs behind a cell. Movement is measured within one benchmark configuration,
+      // so right after a configuration change every cell is comparable-but-flat: the matrix is
+      // populated and reads as empty. Say so, with the number, instead of letting it look broken.
+      typicalRuns: (() => {
+        const ns = visible.flatMap(m => AXES.map(a => m.axes[a.key]?.sampleSize).filter((n): n is number => typeof n === 'number' && n > 0)).sort((x, y) => x - y);
+        return ns.length ? ns[Math.floor(ns.length / 2)] : 0;
+      })(),
     };
   }, [visible, driftData]);
 
@@ -267,6 +274,14 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
         </div>
       </div>
 
+      {summary.typicalRuns > 0 && summary.typicalRuns < 12 && (
+        <p className="dm-note">
+          The coding suite&rsquo;s configuration changed recently: a typical cell has {summary.typicalRuns} run{summary.typicalRuns === 1 ? '' : 's'} on
+          it. Movement is measured within one configuration &mdash; comparing the newest runs with the oldest on the same
+          tasks and scoring &mdash; so this matrix restarts from flat and colours in over the coming days. A flat cell
+          here means &ldquo;no change measured yet&rdquo;, not &ldquo;no change&rdquo;.
+        </p>
+      )}
       {summary.warmingUp > 0 && (
         <p className="dm-note">
           {summary.warmingUp} {summary.warmingUp === 1 ? 'model has' : 'models have'} fewer than {MIN_RUNS} benchmark

@@ -16,7 +16,8 @@ import MobileNav from '../../../components/v4/MobileNav';
 // Model-detail specific components
 import ModelDetailHeader from '../../../components/model-detail/ModelDetailHeader';
 import ModelDetailStatBar from '../../../components/model-detail/ModelDetailStatBar';
-import ModelDetailTaskBreakdown from '../../../components/model-detail/ModelDetailTaskBreakdown';
+import ModelDetailSuiteTasks from '../../../components/model-detail/ModelDetailSuiteTasks';
+import { isPlan, type Plan } from '../../../lib/entitlements';
 import ModelDetailControls from '../../../components/model-detail/ModelDetailControls';
 import TrackModelButton from '../../../components/TrackModelButton';
 import ModelDetailMeter from '../../../components/model-detail/ModelDetailMeter';
@@ -25,6 +26,7 @@ import ModelDetailQuickStats from '../../../components/model-detail/ModelDetailQ
 import ModelDetailPricing from '../../../components/model-detail/ModelDetailPricing';
 import ModelDetailMatrix from '../../../components/model-detail/ModelDetailMatrix';
 import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum';
+import ModelDetailDriftStatus from '../../../components/model-detail/ModelDetailDriftStatus';
 import ModelDetailSliceRegressions from '../../../components/model-detail/ModelDetailSliceRegressions';
 import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
 
@@ -200,6 +202,9 @@ export default function ModelDetailClient({
   const { data: session } = useSession();
   const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active'
     || (session?.user as any)?.subscriptionStatus === 'trialing';
+  // The plan ladder (free / pro / developer / teams / enterprise) decides what the suite panels
+  // unlock beyond the Pro boolean — exports, for one.
+  const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : (hasProAccess ? 'pro' : 'free');
 
   // Fetch visitor count on mount
   useEffect(() => {
@@ -566,25 +571,32 @@ export default function ModelDetailClient({
         onSwitchPeriod={setSelectedPeriod}
       />
 
+      {/* Where each suite's detector stands — armed with its statistic, or still warming up (free) */}
+      <ModelDetailDriftStatus modelId={modelId} focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null} />
+
       {/* Page-Hinkley CUSUM drift curve (Pro) */}
       <ModelDetailCusum
         modelId={modelId}
+        initialSuite={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : 'hourly'}
         hasProAccess={hasProAccess}
         onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
       />
 
-      {/* Per-task regressions. Sits directly under the CUSUM curve because it
+      {/* Per-task regressions (coding suite). Sits directly under the CUSUM curve because it
           answers the question that curve raises but cannot resolve: the composite
           moved (or did not) — which task actually changed? */}
-      <ModelDetailSliceRegressions modelId={modelId} includeResolved />
+      {(selectedScoringMode === 'combined' || selectedScoringMode === 'speed') && (
+        <ModelDetailSliceRegressions modelId={modelId} includeResolved />
+      )}
 
-      {/* What the model was actually asked in its last coding sweep, and what happened.
-          Placed after the regression panel because it answers the next question down: the
-          composite moved and a task changed — what did the model DO on that task? For repo
-          debugging tasks it is also the only place on the site where "fixed the defect" and
-          "silenced the symptom it was shown" are told apart. */}
-      <ModelDetailTaskBreakdown
+      {/* What the model was asked in each suite's last run, and what happened — per task,
+          following the scoring mode (COMBINED shows all three suites). For repo debugging
+          tasks it is the only place on the site where "fixed the defect" and "silenced the
+          symptom it was shown" are told apart. */}
+      <ModelDetailSuiteTasks
         modelId={modelId}
+        mode={selectedScoringMode}
+        plan={plan}
         hasProAccess={hasProAccess}
         onShowProModal={() => { setProModalFeature('performance-matrix'); setShowProModal(true); }}
       />

@@ -202,7 +202,7 @@ export default function AboutPage() {
             </div>
             {[
               ['AI vendors don\'t disclose model changes', 'Silent updates, capability reductions, and performance shifts happen without warning'],
-              ['Existing benchmarks are incomplete', 'Single measurements, no confidence intervals, no drift detection'],
+              ['Existing benchmarks are incomplete', 'Single measurements, no standard errors, ranks that separate models by less than their noise, no drift detection'],
               ['Developers deserve transparency', 'You need reliable data to choose AI providers and build production systems'],
               ['The industry needs accountability', 'Independent monitoring keeps vendors honest'],
             ].map(([title, desc], i) => (
@@ -350,7 +350,7 @@ export default function AboutPage() {
               {
                 title: 'Drift and Regression Dataset',
                 desc: 'Detected change points, drift incidents and the Page-Hinkley statistic behind each one, correlated with provider announcements where we have them.',
-                items: ['900+ recorded incidents and change points', 'Per-model detector state and thresholds', 'Benchmark-config versioning, so methodology changes are separable from model changes'],
+                items: ['1,400+ recorded incidents and change points \u2014 and the 492 incidents retracted in September 2026 are kept, flagged and excluded, not deleted', 'Per-model, per-suite detector state and thresholds', 'Benchmark-config versioning, so methodology changes are separable from model changes'],
               },
               {
                 title: 'Tool-Calling Sessions',
@@ -442,7 +442,7 @@ export default function AboutPage() {
           </h2>
           <div style={styles.grid2}>
             {[
-              ['Scientific Rigor', 'We use established statistical methods — Page-Hinkley change detection, t-distribution confidence intervals — and publish the constants. No hand-waving, no marketing fluff.'],
+              ['Scientific Rigor', 'We use established statistical methods — Page-Hinkley change detection on each suite\'s own series, Welch\'s t-test for the hourly canary, standard errors measured from run-to-run repeatability, ranks that tie when a lead is inside the noise — and publish the constants and the measured false-alarm rates behind them. No hand-waving, no marketing fluff.'],
               ['Radical Transparency', 'Every scoring decision is documented and every result is reproducible with your own keys. Trust through verification, not through claims.'],
               ['Independence', 'No vendor funding. No affiliate revenue. No conflicts of interest. Our only loyalty is to developers who need accurate data.'],
               ['Community First', 'Built by developers, for developers. The front end is open to contributions, feedback shapes what we measure next, and corrections to the method are welcome.'],

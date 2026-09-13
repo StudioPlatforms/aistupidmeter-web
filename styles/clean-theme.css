@@ -301,6 +301,9 @@ a:hover { color: var(--accent-ink); }
   width: 24px; height: 24px; border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
 }
+/* a tie is shown as "=N"; the top-three pill widens to fit it */
+.v4-lb-rank.v4-lb-rank-tied { letter-spacing: -0.02em; }
+.v4-lb-rank.top.v4-lb-rank-tied { width: auto; min-width: 24px; padding: 0 7px; border-radius: 12px; }
 
 /* keep the model cell a horizontal row (override the base column layout) */
 .v4-lb-row > div:nth-child(2) {

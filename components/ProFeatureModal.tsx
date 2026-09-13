@@ -40,10 +40,10 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
     },
     'drift-cusum': {
       title: 'Unlock drift detection',
-      description: 'See the full Page-Hinkley CUSUM curve behind every drift alert — the running evidence that a model has quietly changed.',
+      description: 'See the full Page-Hinkley curve behind every drift alert — the running evidence that a model has quietly changed — one curve per suite.',
       benefits: [
-        'Historical CUSUM curve for every tracked model',
-        'Change-points marked on the exact day they were detected',
+        'Three curves per model: coding, tool use and reasoning, never blended',
+        'Detections marked on the exact day they fired, with warm-up and re-arm windows shown',
         'The alert threshold plotted alongside the statistic',
         'Read a degradation building before it trips an alert',
       ],

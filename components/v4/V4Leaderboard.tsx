@@ -186,6 +186,23 @@ export default function V4Leaderboard({
   const unavailable = modelScores.filter(m => m.currentScore === 'unavailable');
   const sorted = [...available, ...unavailable];
 
+  // Rank = 1 + the number of models measurably better: those whose score exceeds this one by
+  // more than 1.96 × the combined standard error of the pair (a two-sample z-test at 95%).
+  // Two models inside each other's noise share a rank instead of being separated by a place
+  // the measurement cannot support — on a board spanning ten points with run-to-run standard
+  // errors of 2–3, most adjacent places were noise. (Non-overlapping intervals would be the
+  // same idea at roughly p < 0.005, which is stricter than the 95% the page promises.)
+  const hasSE = (m: any) => m.rankable !== false && typeof m.standardError === 'number' && typeof m.currentScore === 'number';
+  const measurablyBetter = (o: any, m: any) =>
+    o.currentScore - m.currentScore > 1.96 * Math.sqrt(o.standardError * o.standardError + m.standardError * m.standardError);
+  const statRank = new Map<string, number>();
+  for (const m of sorted) {
+    if (!hasSE(m)) continue;
+    const better = sorted.filter(o => o !== m && hasSE(o) && measurablyBetter(o, m)).length;
+    statRank.set(String(m.id), 1 + better);
+  }
+  const tiedCount = (rank: number) => Array.from(statRank.values()).filter(r => r === rank).length - 1;
+
   return (
     <div style={{ position: 'relative' }}>
       {/*
@@ -206,7 +223,7 @@ export default function V4Leaderboard({
 
       {/* Table Header */}
       <div className={`v4-lb-header${isLoading ? ' v4-lb-dimmed' : ''}`}>
-        <div style={{ textAlign: 'center' }}>RK</div>
+        <div style={{ textAlign: 'center' }} title="Rank = 1 + the number of models measurably better: a lead larger than 1.96 × the combined standard error of the pair (95%). Equal ranks are statistical ties.">RK</div>
         <div style={{ textAlign: 'left', paddingLeft: '10px' }}>MODEL</div>
         {/* A period view is the measured average over the window, and the header says so. */}
         <div style={{ textAlign: 'center' }}>{leaderboardPeriod === 'latest' ? 'SCORE' : `AVG ${({ '24h': '24H', '7d': '7D', '1m': '30D' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod.toUpperCase()}`}</div>
@@ -220,7 +237,8 @@ export default function V4Leaderboard({
 
       {/* Table Rows */}
       {sorted.map((model, index) => {
-        const rank = index + 1;
+        const rank = statRank.get(String(model.id)) ?? index + 1;
+        const tied = statRank.has(String(model.id)) ? tiedCount(rank) : 0;
         const score = typeof model.currentScore === 'number' ? model.currentScore : null;
         const isUnavailable = score === null;
         const isHighlight = model.status === 'critical' || model.trend === 'down';
@@ -256,7 +274,10 @@ export default function V4Leaderboard({
             <div style={{ textAlign: 'center' }}>
               {held
                 ? <span className="v4-lb-rank" style={{ color: 'var(--phosphor-dim)' }}>–</span>
-                : <span className={`v4-lb-rank ${rank <= 3 ? 'top' : ''}`}>{rank}</span>}
+                : <span className={`v4-lb-rank ${rank <= 3 ? 'top' : ''}${tied > 0 ? ' v4-lb-rank-tied' : ''}`}
+                        title={tied > 0 ? `Tied with ${tied} other model${tied === 1 ? '' : 's'}: no model in this group leads another by more than its measurement noise (95%)` : undefined}>
+                    {tied > 0 ? '=' : ''}{rank}
+                  </span>}
             </div>
 
             {/* Model Name + Provider */}

@@ -18,6 +18,7 @@ import { auth } from '@/auth';
 export const dynamic = 'force-dynamic';
 
 const VALID_PERIODS = new Set(['24h', '7d', '1m', 'all']);
+const VALID_SUITES = new Set(['hourly', 'tooling', 'deep']);
 
 export async function GET(
   request: NextRequest,
@@ -57,6 +58,14 @@ export async function GET(
       { status: 400 }
     );
   }
+  // One curve per suite — coding, tool use or reasoning — never a blend of them.
+  const suite = request.nextUrl.searchParams.get('suite') || 'hourly';
+  if (!VALID_SUITES.has(suite)) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid suite' },
+      { status: 400 }
+    );
+  }
 
   const token = process.env.PRO_API_TOKEN;
   if (!token) {
@@ -72,7 +81,7 @@ export async function GET(
 
   try {
     const upstream = await fetch(
-      `${apiBase}/api/drift/cusum/${modelId}?period=${encodeURIComponent(period)}`,
+      `${apiBase}/api/drift/cusum/${modelId}?period=${encodeURIComponent(period)}&suite=${encodeURIComponent(suite)}`,
       {
         headers: { 'x-pro-token': token },
         cache: 'no-store',

@@ -345,7 +345,7 @@ export default async function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>DEEP REASONING</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Daily at 3 AM<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 multi-turn scenarios<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 multi-turn scenarios, all four every day (one rotating task a day until 13 September 2026; the daily score is the mean over the four)<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 13-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Complex reasoning tests
               </div>
@@ -588,6 +588,26 @@ export default async function MethodologyPage() {
 
           <hr style={styles.divider} />
 
+          <div style={styles.panel}>
+            <div style={styles.panelTitle}>HOW A RANK IS ASSIGNED</div>
+            <div style={styles.text}>
+              A model&rsquo;s rank is <strong style={{ color: 'var(--phosphor-dim)' }}>1 + the number of
+              models measurably better than it</strong>: those whose score leads it by more than
+              1.96&thinsp;&times;&thinsp;&radic;(SE&sub1;&sup2; + SE&sub2;&sup2;), a two-sample test at 95%.
+              Two models inside each other&rsquo;s noise share a rank, shown as &ldquo;=N&rdquo;,
+              instead of being separated by a place the measurement cannot support. The standard error
+              is the run-to-run repeatability of the number on the board: each suite&rsquo;s last five
+              measured runs on its current configuration, combined with the composite&rsquo;s weights
+              (SE&sup2; = &Sigma; (w&#7522;/W)&sup2; SE&#7522;&sup2;); the interval shown is
+              &plusmn;1.96&thinsp;SE around the displayed score. When a suite has fewer than two runs on
+              its current configuration &mdash; the day after any configuration change &mdash; its
+              typical run-to-run spread is used instead (coding 2, tool use 1.5, reasoning 8 points).
+              Until 13 September 2026 the interval was computed over the last five rows of <em>any</em>
+              suite, so it measured how far apart the three suites sit rather than how repeatable the
+              score is &mdash; a model scoring 90 carried an interval of 93.7&ndash;97.1.
+            </div>
+          </div>
+
           {/* Section 4: Drift Detection */}
           <h2 id="drift" style={styles.sectionTitle}>
             <span style={{ fontFamily: 'var(--font-mono)' }}>[4]</span> DRIFT DETECTION (PAGE-HINKLEY TEST)
@@ -625,19 +645,21 @@ export default async function MethodologyPage() {
             <div style={styles.panelTitle}>WHAT THE DETECTOR CAN AND CANNOT SEE &mdash; MEASURED</div>
             <div style={{ ...styles.text, marginBottom: '10px' }}>
               <strong style={{ color: 'var(--phosphor-dim)' }}>Scope, stated plainly:</strong> the
-              Page-Hinkley detector described here runs on the <strong>coding suite&rsquo;s</strong> daily
-              medians, where there are six measurements a day to take a median of. The deep-reasoning
-              and tool-calling suites produce one measurement a day and are monitored by the 28-day
-              baseline and confidence-interval comparison in the alerting layer, not by this
-              change-point test. Extending it to them is not a flag to flip, and the reason is
-              measured: on the same day-to-day basis the coding score moves 1.5&ndash;3 points, the
-              deep-reasoning score about 10, and the tool-calling score about <strong>26</strong> &mdash;
-              because each tool task is run once per day in a live sandbox, so a single failed session
-              moves a model&rsquo;s daily figure by a ninth of its range. A change-point detector fed
-              that series would fire constantly or, tuned quiet enough not to, would be deaf. The
-              honest fix is more sessions per task per day, which is a cost decision, not a code one;
-              until then those two suites are drift-monitored on a 28-day baseline, and their daily
-              movement should be read as noise unless it persists.
+              Page-Hinkley detector runs on <strong>each suite&rsquo;s own daily series</strong>,
+              never on a blend of them &mdash; coding (six sweeps a day, daily median), tool use (nine
+              sessions a day) and reasoning (four multi-turn tasks a day) each carry their own
+              statistic, and a model&rsquo;s status takes the largest. Until 13 September 2026 only the
+              coding suite was watched, and this paragraph said the other two were too noisy: tool use
+              was moving 26 points day to day. That number was wrong about the instrument. Measured on
+              days when the sessions actually completed, on one configuration, the tool-use score moves
+              <strong>1.4 points</strong> a day across all 24 models &mdash; the 26 was a credit outage, its
+              modelled filler and two scoring changes, all inside one window. The reasoning suite was
+              genuinely noisier (6&ndash;8 points), and the cause was structural: it ran one task a day,
+              rotating through four, so consecutive days compared different tasks. It now runs all four
+              every day and the daily figure is their mean; from the per-session spread (8 points) that
+              puts its day-to-day noise near 4, inside the range the detector was validated on. Each
+              suite&rsquo;s statistic restarts on its own configuration change and needs ten days of history
+              before it can fire.
               <br/><br/>
               A drift detector is only worth trusting if two numbers are known: how often it
               fires when nothing changed, and how reliably it fires when something did. Both are

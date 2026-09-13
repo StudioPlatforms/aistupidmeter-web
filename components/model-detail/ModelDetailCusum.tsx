@@ -16,6 +16,8 @@ import {
 } from 'recharts';
 
 type CusumPeriod = '7d' | '1m' | 'all';
+// One curve per suite, never a blend: each suite has its own scale, noise and configuration.
+type CusumSuite = 'hourly' | 'tooling' | 'deep';
 type Provenance = 'real' | 'synthetic' | 'mixed';
 
 interface CusumPoint {
@@ -55,6 +57,8 @@ interface CusumSeries {
 
 interface ModelDetailCusumProps {
   modelId: number;
+  /** the suite the page is currently in; the chips can still switch */
+  initialSuite?: CusumSuite;
   hasProAccess: boolean;
   onShowProModal: (feature: 'drift-cusum') => void;
 }
@@ -69,16 +73,24 @@ const PERIOD_LABEL: Record<CusumPeriod, string> = {
   '1m': '30D',
   'all': 'ALL',
 };
+const SUITE_LABEL: Record<CusumSuite, string> = {
+  hourly: 'CODING',
+  tooling: 'TOOL USE',
+  deep: 'REASONING',
+};
 
 const fmtDay = (ts: string) =>
   new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 export default function ModelDetailCusum({
   modelId,
+  initialSuite = 'hourly',
   hasProAccess,
   onShowProModal,
 }: ModelDetailCusumProps) {
   const [period, setPeriod] = useState<CusumPeriod>('1m');
+  const [suite, setSuite] = useState<CusumSuite>(initialSuite);
+  useEffect(() => { setSuite(initialSuite); }, [initialSuite]);
   const [series, setSeries] = useState<CusumSeries | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +109,7 @@ export default function ModelDetailCusum({
         // NextAuth session server-side before touching the API. The check below
         // is only a UX affordance — the real gate is on the server, because the
         // browser can lie about everything it sends.
-        const res = await fetch(`/api/pro/drift-cusum/${modelId}?period=${period}`);
+        const res = await fetch(`/api/pro/drift-cusum/${modelId}?period=${period}&suite=${suite}`);
         if (res.status === 401 || res.status === 403) {
           throw new Error('This chart requires an active Pro subscription');
         }
@@ -115,7 +127,7 @@ export default function ModelDetailCusum({
 
     load();
     return () => { cancelled = true; };
-  }, [modelId, period, hasProAccess]);
+  }, [modelId, period, suite, hasProAccess]);
 
   const Section = ({ children }: { children: React.ReactNode }) => (
     <div className="md-chart-section">
@@ -297,6 +309,28 @@ export default function ModelDetailCusum({
 
   return (
     <Section>
+      {/* Suite selector — the detector runs one series per suite (coding, tool use, reasoning) */}
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+        {(Object.keys(SUITE_LABEL) as CusumSuite[]).map((sName) => (
+          <button
+            key={sName}
+            onClick={() => setSuite(sName)}
+            title={sName === 'hourly' ? 'Coding suite: six sweeps a day, daily median' : sName === 'tooling' ? 'Tool-use suite: nine sessions a day' : 'Reasoning suite: four multi-turn tasks a day'}
+            style={{
+              padding: '4px 12px',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderRadius: 4,
+              border: `1px solid ${suite === sName ? LINE : 'var(--metal-silver)'}`,
+              background: suite === sName ? 'var(--accent-bg)' : 'transparent',
+              color: suite === sName ? LINE : 'var(--phosphor-dim)',
+            }}
+          >
+            {SUITE_LABEL[sName]}
+          </button>
+        ))}
+      </div>
       {/* Period selector */}
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
         {(Object.keys(PERIOD_LABEL) as CusumPeriod[]).map((p) => (

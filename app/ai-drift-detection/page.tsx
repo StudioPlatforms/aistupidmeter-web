@@ -79,7 +79,7 @@ const FAQ = [
   },
   {
     q: 'How often do you check for model drift?',
-    a: 'The code suite runs every four hours, the reasoning and tool-use suites once a day, and a small canary every hour. The Page-Hinkley statistic is computed on daily medians, so it confirms a sustained shift over days rather than reacting to one bad hour; a separate regime check compares recent scores with the model\'s 28-day baseline and flags a sharp drop sooner. If a suite could not run — a provider outage, or a prompt the provider declined — that suite is left out of the score and the gap is shown next to it rather than filled in.',
+    a: 'The code suite runs every four hours, the reasoning suite (all four tasks) and the tool-use suite (nine sessions) once a day, and a two-probe canary every hour. The Page-Hinkley statistic is computed per suite on daily medians, so it confirms a sustained shift over days rather than reacting to one bad hour; the canary\'s Welch test catches a sharp drop within the hour it lands. If a suite could not run — a provider outage, or a prompt the provider declined — that suite is left out of the score and the gap is shown next to it rather than filled in.',
   },
   {
     q: 'Which models do you monitor for degradation?',
@@ -277,11 +277,15 @@ export default function AiDriftDetectionPage() {
           <p style={styles.text}>
             The threshold is what trades false alarms against detection lag. The tolerance and threshold were chosen
             by sweeping them against the full history of real benchmark scores, so ordinary day-to-day fluctuation
-            stays quiet while a real shift is confirmed over days rather than hours; a separate regime check against
-            the model&apos;s 28-day baseline flags a sharp drop sooner. Every score is also published with a
-            confidence interval, so you can see how much of a gap between two models is meaningful and how much is
-            noise, and a composite score is labelled with how many suites actually contributed to it. The full
-            statistical approach, including the constants, is documented on our{' '}
+            stays quiet while a real shift is confirmed over days rather than hours. The statistic runs on each
+            suite&apos;s own daily series &mdash; coding, tool use and reasoning are never blended, because they sit on
+            different scales &mdash; and restarts whenever a suite&apos;s configuration changes. For sharp drops there is
+            a second, faster instrument: an hourly canary of two fixed probes, tested over the last 6 and 24 hours
+            against the prior week with Welch&apos;s t-test, which raises an incident at a 12-point fall with p &lt; 0.01
+            and closes it when the gap closes. Every score is also published with a standard error measured from its
+            own run-to-run repeatability, the leaderboard ties models whose lead is inside that noise, and a composite
+            score is labelled with how many suites actually contributed to it. The full statistical approach,
+            including the constants and the measured false-alarm rates, is documented on our{' '}
             <Link href="/methodology" style={styles.link}>benchmarking methodology page</Link>.
           </p>
 

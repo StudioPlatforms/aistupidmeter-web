@@ -39,7 +39,7 @@ const faqs: FAQItem[] = [
   {
     category: "General",
     question: "How is this different from other AI benchmarks?",
-    answer: "Most benchmarks (HumanEval, MMLU) show single measurements without uncertainty quantification. We run multiple trials (n=5) per model, calculate confidence intervals, and use statistical tests to distinguish real changes from noise. We also provide continuous monitoring with drift detection, not just one-time snapshots. Every scoring weight, threshold and statistical method is published, and you can reproduce our scoring with your own API keys."
+    answer: "Most benchmarks (HumanEval, MMLU) show single measurements without uncertainty quantification. We run seven trials per coding task, publish a standard error for every number on the board, and rank by a two-sample test so that two models inside each other's noise share a rank instead of being separated by a place the measurement cannot support. We also provide continuous monitoring with change-point drift detection on each suite's own daily series, not just one-time snapshots. Every scoring weight, threshold and statistical method is published, and you can reproduce our scoring with your own API keys."
   },
   {
     category: "General",
@@ -49,7 +49,7 @@ const faqs: FAQItem[] = [
   {
     category: "Methodology",
     question: "How do you score AI models?",
-    answer: "The main coding suite uses a 9-axis scoring system: Correctness (40%), Complexity (20%), Code Quality (15%), Stability (10%), Efficiency (5%), Edge Cases (3%), Debugging (3%), Format (2%), and Safety (2%). Each model runs every task 5 times. We take the median and provide 95% confidence intervals using the t-distribution. Other suites score differently: the deep-reasoning suite adds four axes on top of those nine (memory retention, hallucination rate, plan coherence, context window) for 13 total, and the tool-calling suite uses its own 7 axes (task completion, tool selection, parameter accuracy, efficiency, error handling, context awareness, safety compliance)."
+    answer: "The coding suite scores nine axes and combines them as a plain weighted mean: Correctness (55%), Stability (10%), Edge Cases (10%), Debugging (10%), Code Quality (5%), Efficiency (5%), Format (3%), Safety (2%) and Complexity (0% — measured and shown, but it moved nobody's rank, so it no longer pretends to). Correctness on the repo-debugging tasks is graded by running the project's own test suite, including tests the model never sees. Each model runs every task 7 times. There is no exponent, gate or penalty curve anywhere in the formula — every one that used to be there was removed in September 2026 after two identical sweeps showed the curve, not the models, was producing 47-point swings. Other suites score differently: the deep-reasoning suite adds four axes on top of those nine (memory retention, hallucination rate, plan coherence, context window) for 13 total, and the tool-calling suite uses its own 7 axes (task completion, tool selection, parameter accuracy, efficiency, error handling, context awareness, safety compliance)."
   },
   {
     category: "Methodology",
@@ -59,17 +59,17 @@ const faqs: FAQItem[] = [
   {
     category: "Methodology",
     question: "What is drift detection and how does it work?",
-    answer: "Drift detection identifies sustained performance changes over time. We use the Page-Hinkley test, a cumulative-sum (CUSUM-family) change detector, on each model's daily median score: it accumulates how far each day falls below the running mean, less a small tolerance, so daily noise cancels out while a real sustained decline builds up until it crosses the alarm threshold. That threshold is global and was calibrated against the full score history; the regime classifier that labels a model DEGRADED or VOLATILE uses thresholds scaled to that model's own historical variance, so noisy models need a bigger drop to flag. The constants are published on the methodology page."
+    answer: "Two detectors, and we are explicit about what each can see. For sustained change we use the Page-Hinkley test, a cumulative-sum (CUSUM-family) change detector, on each suite's own daily series — coding, tool use and reasoning each carry their own statistic, never a blend of them, and a model's status takes the largest. It accumulates how far each day falls below the running mean, less a small tolerance, so daily noise cancels out while a real sustained decline builds up until it crosses the alarm threshold; it restarts whenever a suite's configuration changes and needs ten days of history before it can fire. For fast change we run an hourly canary — two fixed probes, two trials each — and test the last 6 hours and the last 24 hours against the prior week on the same configuration with Welch's t-test; an incident needs a fall of at least 12 points at p < 0.01, and closes itself when the gap does. Every constant, and the measured false-alarm and detection rates behind each, is on the methodology page."
   },
   {
     category: "Methodology",
     question: "What tasks do you use for benchmarking?",
-    answer: "The coding suite hands a model a small working project and a bug report written as a user complaint \u2014 no file is named, so it has to find the defect itself \u2014 and grades the fix by running the project's own test suite, including tests the model never sees. The repo debugging tasks run every cycle, alongside a hard single-function task and two trivial ones kept purely as a floor check; the current count is on the methodology page, read from the corpus itself. Everything is executed, not pattern-matched. We retired eight single-function tasks in September 2026 after they hit 99-100% pass rates across all 24 models: a task everybody passes ranks nobody. The tool-calling suite runs 10 further tasks in real Docker sandboxes, and the deep-reasoning suite runs 4 multi-turn scenarios. The hidden tests are the one thing we keep back \u2014 without them, a fix that silences the reported symptom and leaves the defect in place scores full marks."
+    answer: "The coding suite hands a model a small working project and a bug report written as a user complaint — no file is named, so it has to find the defect itself — and grades the fix by running the project's own test suite, including tests the model never sees. All nine coding tasks run every sweep: six repo debugging tasks, one hard single-function task and two trivial ones kept purely as a floor check (until 13 September 2026 a stratified seven of the nine ran, so consecutive sweeps compared slightly different work). Everything is executed, not pattern-matched. We retired eight single-function tasks in September 2026 after they hit 99-100% pass rates across all 24 models: a task everybody passes ranks nobody. The tool-calling suite runs nine further tasks in real Docker sandboxes, nine sessions per model per day, and the deep-reasoning suite runs four multi-turn scenarios — all four every day since 13 September 2026, so consecutive days compare the same work. The hidden tests are the one thing we keep back — without them, a fix that silences the reported symptom and leaves the defect in place scores full marks."
   },
   {
     category: "Methodology",
     question: "How accurate are your benchmarks?",
-    answer: "We use 5-trial median scoring with 95% confidence intervals calculated using t-distribution (df=4). Our standard error is typically +/-1-3 points on a 100-point scale. For example, a score of \"24.8 +/- 1.3\" means we're 95% confident the true score is between 23.5 and 26.1. This is far more rigorous than single-shot benchmarks that show no uncertainty."
+    answer: "Every number on the board carries a standard error measured from its own run-to-run repeatability: each suite's last five measured runs on its current configuration, combined with the composite's weights. On the coding suite alone, two identical sweeps of the whole fleet differ by 1.5 points on average; the composite's standard error is typically 2–3 points on a 100-point scale, and the interval shown is ±1.96 standard errors. So \"86 ± 4.5\" means the same model re-measured tomorrow would land in that range 95% of the time. The day after any configuration change there are not yet five runs to measure, and the suite's typical spread is used instead — the methodology page says which. This is far more rigorous than single-shot benchmarks that show no uncertainty, and it is why adjacent places on the leaderboard are often ties."
   },
   {
     category: "Methodology",
@@ -89,12 +89,12 @@ const faqs: FAQItem[] = [
   {
     category: "Technical",
     question: "What are confidence intervals and why do they matter?",
-    answer: "Confidence intervals show the range where we're 95% confident the true score lies. For example, \"24.8 +/- 1.3\" means [23.5, 26.1]. This matters because: (1) AI is probabilistic, (2) single measurements are unreliable, (3) you need to know measurement uncertainty to make decisions, and (4) overlapping intervals mean differences might not be statistically significant."
+    answer: "Confidence intervals show the range where we're 95% confident the true score lies. For example, \"86 ± 4.5\" means [81.5, 90.5]. This matters because: (1) AI is probabilistic, (2) single measurements are unreliable, (3) you need to know measurement uncertainty to make decisions, and (4) a difference smaller than the noise is not a difference. The leaderboard applies that last point to the ranks themselves: a model's rank is 1 + the number of models that lead it by more than 1.96 × the combined standard error of the pair, so models inside each other's noise share a rank, shown as \"=N\"."
   },
   {
     category: "Technical",
     question: "How often do you update benchmarks?",
-    answer: "Continuously, and every tracked model gets the same treatment \u2014 there is no priority list. The main coding suite runs every 4 hours, a fast 2-task canary suite runs every hour for rapid drift detection, the deep-reasoning suite runs daily at 03:00 UTC and the tool-calling suite daily at 04:00 UTC. Drift detection runs on every new score. All history is preserved, going back to our first benchmark in August 2025."
+    answer: "Continuously, and every tracked model gets the same treatment — there is no priority list. The main coding suite runs every 4 hours; a canary (two fixed probes, two trials each) runs every hour; the deep-reasoning suite runs daily at 03:00 and the tool-calling suite daily at 04:00 Berlin time (01:00 and 02:00 UTC). Drift detection runs on every new score. All history is preserved, going back to our first benchmark in August 2025."
   },
   {
     category: "Comparisons",
@@ -134,7 +134,7 @@ const faqs: FAQItem[] = [
   {
     category: "Using the Platform",
     question: "What do the different status alerts mean?",
-    answer: "NORMAL = Performance within expected variance. WARNING = Slight decline detected, monitoring closely. DEGRADED = Sustained decline confirmed, statistically significant. CRITICAL = Major performance drop, immediate attention needed. Alerts are based on CUSUM drift detection calibrated per model."
+    answer: "NORMAL = every suite's drift statistic is below its warning line. WARNING = a suite's Page-Hinkley statistic is more than halfway to its alarm threshold, or the model's recent scores are unusually spread. ALERT = a suite's statistic crossed the alarm threshold, or the model is measurably below its own baseline on its current configuration. Those come from the per-suite Page-Hinkley test; separately, the hourly canary raises an incident when a model's probe mean falls by at least 12 points against the prior week at p < 0.01, and resolves it when the gap closes. Incidents raised before 13 September 2026 by an earlier detector with no significance test were retracted and are excluded from every count on the site; the methodology page says how many and why."
   },
   {
     category: "Limitations & Future",
@@ -144,7 +144,7 @@ const faqs: FAQItem[] = [
   {
     category: "Limitations & Future",
     question: "What features are coming next?",
-    answer: "In rough order: (1) expanding the task set beyond Python, (2) adaptive sampling — more trials when a result is uncertain, (3) email and webhook drift alerts, (4) error bars drawn directly on the charts, (5) statistical significance markers between adjacent models, (6) publishing the adversarial-safety, bias and robustness data once each dataset is large enough to mean something, (7) provider hub pages. No dates promised — this is a small operation and the benchmark bill is real."
+    answer: "In rough order: (1) expanding the task set beyond Python, (2) adaptive sampling — more trials when a result is uncertain, (3) email and webhook drift alerts, (4) error bars drawn directly on the charts, (5) publishing the adversarial-safety, bias and robustness data once each dataset is large enough to mean something, (6) provider hub pages. Statistical ties between adjacent models, which used to be on this list, shipped in September 2026. No dates promised — this is a small operation and the benchmark bill is real."
   }
 ];
 
