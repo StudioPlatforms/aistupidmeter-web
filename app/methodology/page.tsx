@@ -502,7 +502,7 @@ export default async function MethodologyPage() {
           <div style={styles.highlightPanel}>
             <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>WHAT MAKES A TASK DISCRIMINATE</div>
             <div style={styles.text}>
-              Thirteen repo candidates were built to ship four. The ones that failed taught the
+              Nineteen repo candidates were built to ship six. The ones that failed taught the
               rule: a <strong>mechanical slip</strong> &mdash; a wrong comparison, a swapped
               argument, an off-by-one &mdash; gets fixed by every model, every time. Pagination,
               cache keys, penny rounding and rate-limiter refill were all solved 18/18.
