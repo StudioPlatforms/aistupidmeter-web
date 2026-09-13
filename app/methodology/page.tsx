@@ -365,9 +365,14 @@ export default async function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>CANARY SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every hour<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 2 fast tests, 1 trial<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Rapid drift detection<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Response Time</strong>: &lt;5 minutes
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 2 fixed probes (is_prime, merge_intervals), 1 trial, 4,000-token answer budget<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Detection</strong>: last 24 h against the prior 7 days on the same configuration, Welch&rsquo;s t-test; an incident needs a fall of at least 15 points at p &lt; 0.01, and closes itself when the gap does<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Response Time</strong>: within the hour<br/>
+                <span style={{ opacity: 0.8 }}>
+                  Until 13 September 2026 this suite raised an incident on any 10% fall in a 24-hour
+                  mean, with no test of significance, on answers cut off at 500 tokens. The 446
+                  incidents it produced are retracted and excluded from every count on this site.
+                </span>
               </div>
             </div>
           </div>

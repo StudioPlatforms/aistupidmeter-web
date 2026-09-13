@@ -33,6 +33,14 @@ interface TaskRow {
   repo: RepoDetail | null;
 }
 
+interface Refusals {
+  count: number;
+  bySuite: Record<string, number>;
+  latest: { suite: string; task: string | null; ts: string; category: string | null } | null;
+}
+
+const SUITE_LABEL: Record<string, string> = { hourly: 'coding', tooling: 'tool use', deep: 'reasoning' };
+
 function prettySlug(slug: string) {
   return slug.replace(/^py\//, '').replace(/^repo_/, '').replace(/_/g, ' ');
 }
@@ -47,6 +55,7 @@ export default function ModelDetailTaskBreakdown({
   onShowProModal?: () => void;
 }) {
   const [tasks, setTasks] = useState<TaskRow[] | null>(null);
+  const [refusals, setRefusals] = useState<Refusals | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
@@ -56,13 +65,38 @@ export default function ModelDetailTaskBreakdown({
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
     fetch(`${apiUrl}/dashboard/model-tasks/${modelId}`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then(j => { if (alive) setTasks(j?.data?.tasks ?? []); })
+      .then(j => {
+        if (!alive) return;
+        setTasks(j?.data?.tasks ?? []);
+        setRefusals(j?.data?.refusals ?? null);
+      })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
   }, [modelId]);
 
-  // Render nothing rather than an empty shell when there is no coding run to describe.
-  if (failed || !tasks || tasks.length === 0) return null;
+  // Render nothing rather than an empty shell when there is nothing to describe.
+  const declined = refusals?.count ?? 0;
+  if (failed || !tasks || (tasks.length === 0 && declined === 0)) return null;
+
+  // A refusal is the provider's decision, not a measurement. The task leaves the score entirely
+  // (numerator and denominator) — which is exactly why it has to be said out loud somewhere.
+  const refusalLine = declined > 0 && refusals ? (
+    <div className="md-tb-refusals">
+      Declined {declined} {declined === 1 ? 'task' : 'tasks'} in the last 7 days
+      {' ('}
+      {Object.entries(refusals.bySuite).map(([suite, n]) => `${SUITE_LABEL[suite] ?? suite} ${n}`).join(', ')}
+      {')'}. Refusals are not scored as failures &mdash; each one drops out of the score instead.
+    </div>
+  ) : null;
+
+  if (tasks.length === 0) {
+    return (
+      <div className="md-chart-section">
+        <div className="md-chart-title">CODING TASKS &mdash; LAST SWEEP</div>
+        {refusalLine}
+      </div>
+    );
+  }
 
   const repoTasks = tasks.filter(t => t.kind === 'repo');
   // Only the ones carrying a grade. Runs recorded before repo grades were persisted have
@@ -96,6 +130,8 @@ export default function ModelDetailTaskBreakdown({
           );
         })}
       </div>
+
+      {refusalLine}
 
       <div className="md-tb-legend">
         <span><span className="md-tb-key md-tb-pass" /> fixed</span>
