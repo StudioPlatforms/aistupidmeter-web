@@ -613,6 +613,21 @@ export default async function MethodologyPage() {
           <div style={styles.panel}>
             <div style={styles.panelTitle}>WHAT THE DETECTOR CAN AND CANNOT SEE &mdash; MEASURED</div>
             <div style={{ ...styles.text, marginBottom: '10px' }}>
+              <strong style={{ color: 'var(--phosphor-dim)' }}>Scope, stated plainly:</strong> the
+              Page-Hinkley detector described here runs on the <strong>coding suite&rsquo;s</strong> daily
+              medians, where there are six measurements a day to take a median of. The deep-reasoning
+              and tool-calling suites produce one measurement a day and are monitored by the 28-day
+              baseline and confidence-interval comparison in the alerting layer, not by this
+              change-point test. Extending it to them is not a flag to flip, and the reason is
+              measured: on the same day-to-day basis the coding score moves 1.5&ndash;3 points, the
+              deep-reasoning score about 10, and the tool-calling score about <strong>26</strong> &mdash;
+              because each tool task is run once per day in a live sandbox, so a single failed session
+              moves a model&rsquo;s daily figure by a ninth of its range. A change-point detector fed
+              that series would fire constantly or, tuned quiet enough not to, would be deaf. The
+              honest fix is more sessions per task per day, which is a cost decision, not a code one;
+              until then those two suites are drift-monitored on a 28-day baseline, and their daily
+              movement should be read as noise unless it persists.
+              <br/><br/>
               A drift detector is only worth trusting if two numbers are known: how often it
               fires when nothing changed, and how reliably it fires when something did. Both are
               measured against the exact production code path by injecting a sustained drop of
