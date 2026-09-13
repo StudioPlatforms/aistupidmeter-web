@@ -43,7 +43,7 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
       </div>
 
       <div className="v4-stat-cell color-green"
-           title="Neither trending, nor noisy enough to flag. One model counts in exactly one of these four.">
+           title="Neither trending, nor noisy enough to flag. One model counts in exactly one of these four, for the period and benchmark currently selected. This is a summary of the board below — the formal drift regime, computed from a model's own history, is on the drift monitor.">
         <div className="v4-stat-label">STABLE</div>
         <div className="v4-stat-value" style={{ color: 'var(--phosphor-green)' }}>{stableCount}</div>
         <div className="v4-stat-detail">{stablePercent}% of fleet</div>
