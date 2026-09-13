@@ -118,6 +118,17 @@ function updatedTitle(model: any): string | undefined {
  * to the tooltip. The previous `.replace(/ suites.*$/, '/3')` produced "2 of 3/3".
  */
 function shortCoverage(note: string): string {
+  // Two different kinds of partial live in this string and they must not read the same.
+  // "2 of 3 suites" means a whole suite is missing; "5 of 7 coding tasks" means the model's
+  // provider declined some tasks, so it was scored on a narrower corpus than its rivals.
+  // Rendering both as a bare "5/7" would let the second pass for the first.
+  const suites = /^(\d+) of (\d+) suites/.exec(note);
+  if (suites) {
+    const tasks = /(\d+) of (\d+) coding tasks/.exec(note);
+    return tasks ? `${suites[1]}/${suites[2]} · ${tasks[1]}/${tasks[2]} tasks` : `${suites[1]}/${suites[2]}`;
+  }
+  const tasks = /^(\d+) of (\d+) coding tasks/.exec(note);
+  if (tasks) return `${tasks[1]}/${tasks[2]} tasks`;
   const m = /^(\d+) of (\d+)/.exec(note);
   return m ? `${m[1]}/${m[2]}` : note;
 }

@@ -3088,7 +3088,7 @@ export default function Dashboard() {
             title="DUAL-BENCHMARK SYSTEM"
             description="Two distinct evaluation suites: 9-axis code tests (every 4 hours) and deep reasoning challenges (daily) for comprehensive assessment."
             details={[
-              "10 Python Tasks, 35 Test Cases",
+              "4 Repo Debugging Tasks + Hidden Tests",
               "Complex Multi-Step Tasks",
               "70/30 Weight Distribution",
               "Real-Time Updates"

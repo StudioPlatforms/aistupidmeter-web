@@ -16,6 +16,7 @@ import MobileNav from '../../../components/v4/MobileNav';
 // Model-detail specific components
 import ModelDetailHeader from '../../../components/model-detail/ModelDetailHeader';
 import ModelDetailStatBar from '../../../components/model-detail/ModelDetailStatBar';
+import ModelDetailTaskBreakdown from '../../../components/model-detail/ModelDetailTaskBreakdown';
 import ModelDetailControls from '../../../components/model-detail/ModelDetailControls';
 import TrackModelButton from '../../../components/TrackModelButton';
 import ModelDetailMeter from '../../../components/model-detail/ModelDetailMeter';
@@ -560,6 +561,13 @@ export default function ModelDetailClient({
           answers the question that curve raises but cannot resolve: the composite
           moved (or did not) — which task actually changed? */}
       <ModelDetailSliceRegressions modelId={modelId} includeResolved />
+
+      {/* What the model was actually asked in its last coding sweep, and what happened.
+          Placed after the regression panel because it answers the next question down: the
+          composite moved and a task changed — what did the model DO on that task? For repo
+          debugging tasks it is also the only place on the site where "fixed the defect" and
+          "silenced the symptom it was shown" are told apart. */}
+      <ModelDetailTaskBreakdown modelId={modelId} />
 
       {/* Runs other people made with their own API keys. Deliberately placed AFTER every
           measured panel and clearly labelled: these are individual samples on individual

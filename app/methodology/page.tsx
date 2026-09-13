@@ -326,11 +326,11 @@ export default async function MethodologyPage() {
           </h2>
           <div style={styles.grid2}>
             <div style={styles.suiteCard('rgba(26, 115, 232,0.3)', 'rgba(26, 115, 232,0.05)')}>
-              <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>HOURLY SUITE</div>
+              <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>CODING SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every 4 hours<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 10 Python challenges<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 5 per task<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 repo debugging + 1 hard function + 2 floor checks<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 5 per task, median scored<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Fast performance tracking
               </div>
@@ -392,15 +392,15 @@ export default async function MethodologyPage() {
           <div style={styles.codeBlock}>
             <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto 1fr', gap: '6px 14px', alignItems: 'center' }}>
               {[
-                ['CORRECTNESS', '40%', 'Does code work? All tests pass?'],
-                ['COMPLEXITY', '20%', 'Handles algorithm complexity?'],
-                ['CODE QUALITY', '15%', 'Clean, maintainable code?'],
-                ['STABILITY', '10%', 'Edge cases, no crashes?'],
-                ['EFFICIENCY', '5%', 'Optimal complexity?'],
-                ['EDGE CASES', '3%', 'Null, empty, boundaries?'],
-                ['DEBUGGING', '3%', 'Can fix broken code?'],
-                ['FORMAT', '2%', 'Clean output, follows spec?'],
-                ['SAFETY', '2%', 'No dangerous operations?'],
+                ['CORRECTNESS', '55%', 'Does the code actually work?'],
+                ['STABILITY', '10%', 'Same answer run to run?'],
+                ['EDGE CASES', '10%', 'The hidden tests it never saw'],
+                ['DEBUGGING', '10%', 'Did it find the real defect?'],
+                ['CODE QUALITY', '5%', 'Clean, maintainable code?'],
+                ['EFFICIENCY', '5%', 'Output throughput'],
+                ['FORMAT', '3%', 'Guardrail: clean, parseable output'],
+                ['SAFETY', '2%', 'Guardrail: no dangerous operations'],
+                ['COMPLEXITY', '0%', 'Measured and shown, but cannot rank (see below)'],
               ].map(([name, weight, desc], i) => (
                 <div key={i} style={{ display: 'contents' }}>
                   <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', fontSize: '10px' }}>{name}</span>
@@ -416,6 +416,105 @@ export default async function MethodologyPage() {
             <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--amber-warning, #ffb000)' }}>
               Formula: FinalScore = Sum(axis_score x axis_weight)
             </span>
+          </div>
+
+          <div style={{ ...styles.text, marginTop: '14px' }}>
+            <strong style={{ color: 'var(--phosphor-dim)' }}>Why these weights.</strong> They are set
+            from what each axis can actually distinguish, not from how important it sounds. We
+            measure it by averaging each model over several sweeps and then taking the spread
+            <em> between</em> models &mdash; a single sweep cannot tell you this, because every model
+            answers the same tasks, so an easy batch makes every axis look identical.
+            <br/><br/>
+            Measured over four days: stability 0.086, efficiency 0.061, correctness 0.018, edge
+            cases 0.018, debugging 0.017, code quality 0.008, complexity 0.004. Complexity varies
+            by four thousandths across all 24 ranked models. It cannot move anyone&rsquo;s rank, so it
+            carries no weight &mdash; we still measure it, store it and show it, but it does not
+            pretend to rank you. It previously carried 20%.
+            <br/><br/>
+            <strong style={{ color: 'var(--phosphor-dim)' }}>Format and safety are guardrails, not
+            discriminators.</strong> They sit near 1.000 for every model by design. Their job is to
+            cost a model points if it ever starts emitting malformed or dangerous code. A guardrail
+            reading the same for everyone is the outcome you want, not a defect.
+          </div>
+
+          <hr style={styles.divider} />
+
+          {/* Section 2b: What the coding suite actually asks */}
+          <h2 id="repotasks" style={styles.sectionTitle}>
+            <span style={{ fontFamily: 'var(--font-mono)' }}>[2b]</span> WHAT THE CODING SUITE ASKS
+          </h2>
+          <div style={{ ...styles.text, marginBottom: '14px' }}>
+            Until September 2026 the coding suite asked models to write single functions. That
+            stopped working, and we can say exactly when: eight of its tasks were passing at
+            99&ndash;100% across all 24 ranked models over hundreds of trials each. A task everybody
+            passes does not rank anybody &mdash; it only dilutes the tasks that still do. Those
+            eight were retired.
+          </div>
+          <div style={{ ...styles.text, marginBottom: '14px' }}>
+            Writing harder functions did not fix it either. Nine deliberately difficult candidates
+            were built and tested against the live fleet; eight were solved perfectly by every
+            model down to the cheapest. Recall of a well-known specification &mdash; SemVer
+            precedence, RFC 4180 quoting, calendar clamping, cron scheduling, first-order
+            unification &mdash; no longer separates anything in 2026.
+          </div>
+
+          <div style={styles.grid2}>
+            <div style={styles.suiteCard('rgba(26, 115, 232,0.3)', 'rgba(26, 115, 232,0.05)')}>
+              <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>REPO DEBUGGING TASKS</div>
+              <div style={styles.text}>
+                The model is handed a small working project and a <strong>bug report written as a
+                user complaint</strong> &mdash; not a diagnosis. No file is named. It must locate
+                the defect itself and return one corrected file. Grading runs the project&rsquo;s own
+                test suite.
+                <br/><br/>
+                The cause sits a module away from where the symptom appears, with a plausible
+                decoy in between.
+              </div>
+            </div>
+
+            <div style={styles.suiteCard('rgba(255,150,0,0.3)', 'rgba(200,100,0,0.08)')}>
+              <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>HIDDEN TESTS</div>
+              <div style={styles.text}>
+                Every repo task is graded on tests the model <strong>never sees</strong>, weighted
+                at three quarters of that task&rsquo;s score.
+                <br/><br/>
+                This is not a difficulty knob, it is an honesty one. On one task, deduplicating
+                payments by amount makes every visible test pass and is still wrong &mdash; it
+                stops a customer legitimately buying the same item twice. Eight of eighteen fleet
+                runs took exactly that shortcut. Without hidden tests all eight score full marks.
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.highlightPanel}>
+            <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>WHAT MAKES A TASK DISCRIMINATE</div>
+            <div style={styles.text}>
+              Thirteen repo candidates were built to ship four. The ones that failed taught the
+              rule: a <strong>mechanical slip</strong> &mdash; a wrong comparison, a swapped
+              argument, an off-by-one &mdash; gets fixed by every model, every time. Pagination,
+              cache keys, penny rounding and rate-limiter refill were all solved 18/18.
+              <br/><br/>
+              What separates models is a bug whose correct repair requires a <strong>judgement
+              about intended behaviour</strong>, paired with a cheaper fix that satisfies the
+              reported symptom and is wrong. That is what the hidden tests are there to catch.
+            </div>
+          </div>
+
+          <div style={styles.warningPanel}>
+            <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>WHEN A MODEL DECLINES A TASK</div>
+            <div style={styles.text}>
+              Some models refuse to answer some prompts. We have measured it on entirely benign
+              ones &mdash; a script that buckets sales figures by date, a price-cache fixture, and
+              in one case a function that checks whether a number is prime.
+              <br/><br/>
+              A refusal is a provider&rsquo;s content decision, not a fact about the model&rsquo;s ability,
+              so we <strong>do not score it as a zero</strong>. The task drops out and the model is
+              scored over what it attempted. That is the fair treatment but it is not a neutral
+              one: declined tasks are disproportionately the hard ones, so such a score covers an
+              easier corpus than its rivals. Those rows are marked <strong>PARTIAL</strong> with the
+              count and the task names, and should not be read as directly comparable. We do not
+              impute a value for work that was never done.
+            </div>
           </div>
 
           <hr style={styles.divider} />

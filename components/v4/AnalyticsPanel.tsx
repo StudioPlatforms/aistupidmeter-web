@@ -19,6 +19,32 @@ interface AnalyticsPanelProps {
 // Combined/Speed benchmark: 9 axes (suite=combined & suite=hourly)
 const combinedAxisLabels = ['CORR', 'CMPL', 'QUAL', 'EFF', 'STBL', 'EDGE', 'DBG', 'FMT', 'SAFE'];
 const combinedAxisFullNames = ['Correctness', 'Complexity', 'Code Quality', 'Efficiency', 'Stability', 'Edge Cases', 'Debugging', 'Format', 'Safety'];
+
+/**
+ * How much each axis actually moves the published score, so a reader can tell what they are
+ * looking at. Two of these need saying out loud rather than being inferred from a radar shape:
+ *
+ *   Complexity carries NO weight. It varies by four thousandths across all 24 ranked models,
+ *   which means it cannot change anyone's position. It is still measured and still shown --
+ *   it just does not pretend to rank you. It used to carry 20%.
+ *
+ *   Format and Safety are guardrails. They sit near 100% for everybody by design; their job is
+ *   to cost a model points if it ever starts emitting malformed or dangerous code. Reading the
+ *   same for everyone is the intended outcome, not a broken axis.
+ */
+const combinedAxisWeights: Record<string, number> = {
+  Correctness: 55, Stability: 10, 'Edge Cases': 10, Debugging: 10,
+  'Code Quality': 5, Efficiency: 5, Format: 3, Safety: 2, Complexity: 0,
+};
+
+/** Label for a tooltip: "Correctness — 55% of score" / "Complexity — measured, not scored". */
+export function axisWeightLabel(fullName: string): string {
+  const w = combinedAxisWeights[fullName];
+  if (w === undefined) return fullName;
+  if (w === 0) return `${fullName} — measured, not scored (cannot separate models)`;
+  if (fullName === 'Format' || fullName === 'Safety') return `${fullName} — ${w}% of score (guardrail)`;
+  return `${fullName} — ${w}% of score`;
+}
 const combinedAxKeys = ['correctness', 'complexity', 'codeQuality', 'efficiency', 'stability', 'edgeCases', 'debugging', 'format', 'safety'];
 
 // Reasoning benchmark: 13 axes (suite=deep) — same 9 + 4 reasoning-specific
@@ -219,7 +245,7 @@ export default function AnalyticsPanel({
             <div
               key={i}
               className="v4-hm-hdr"
-              title={axisFullNames[i]}
+              title={axisWeightLabel(axisFullNames[i])}
               style={config.highlightIndices.includes(config.axisIndices[i]) ? {
                 color: 'var(--phosphor-green)',
                 textShadow: '0 0 2px var(--phosphor-green)',
@@ -249,7 +275,7 @@ export default function AnalyticsPanel({
                       color: val === 0 ? 'var(--red-alert)' : scoreColor(val),
                       textShadow: val === 0 ? 'none' : `0 0 2px ${scoreColor(val)}`,
                       ...(isHighlighted ? { fontWeight: 'bold', borderBottom: `1px solid ${scoreColor(val)}` } : {}),
-                    }} title={`${axisFullNames[i]}: ${val}%`}>
+                    }} title={`${axisWeightLabel(axisFullNames[i])} · this model: ${val}%`}>
                       {val}
                     </div>
                   );
