@@ -317,8 +317,9 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
         <p className="dm-note">
           The {SUITE_NAME[suite]} suite&rsquo;s configuration changed recently: a typical cell has {summary.typicalRuns} run{summary.typicalRuns === 1 ? '' : 's'} on
           it. Movement is measured within one configuration &mdash; comparing the newest runs with the oldest on the same
-          tasks and scoring &mdash; so this matrix restarts from flat and colours in over the coming days. A flat cell
-          here means &ldquo;no change measured yet&rdquo;, not &ldquo;no change&rdquo;.
+          tasks and scoring &mdash; so the &plusmn;point movement and its colour return once a model has {MIN_RUNS} runs on
+          it: {suite === 'hourly' ? 'about twelve hours for the coding suite, which runs every four hours' : 'three days for this suite, which runs once a day'}.
+          Until then a cell shows the current level alone &mdash; &ldquo;no change measured yet&rdquo;, not &ldquo;no change&rdquo;.
         </p>
       )}
       {summary.warmingUp > 0 && (

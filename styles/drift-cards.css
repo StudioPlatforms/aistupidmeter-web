@@ -1240,7 +1240,7 @@
 .dm-level { font-weight: 600; }
 .dm-level-young { font-weight: 400; color: var(--phosphor-dim); }
 .dm-delta { font-size: 0.8em; font-weight: 600; opacity: .9; }
-@media (max-width: 700px) { .dm-delta { display: none; } }
+/* the signed movement stays visible at every width — the table scrolls sideways anyway */
 
 /* ── Legend ───────────────────────────────────────────────────────── */
 .dm-legend { margin-top: 14px; }
