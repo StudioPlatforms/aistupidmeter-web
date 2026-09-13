@@ -601,11 +601,73 @@ export default async function MethodologyPage() {
               <br/>
               <span style={{ color: 'var(--phosphor-green)' }}>
                 Parameters (lib/page-hinkley.ts):<br/>
-                &rarr; Tolerance (delta): 0.02<br/>
-                &rarr; Threshold (lambda): 0.30<br/>
+                &rarr; Tolerance (delta): 0.01 &mdash; one point of the 0&ndash;100 score<br/>
+                &rarr; Threshold (lambda): 0.30 &mdash; thirty points of accumulated shortfall<br/>
                 &rarr; Cold start: 10 observations before it may fire<br/>
                 &rarr; Rolling baseline for alerting: 28 days
               </span>
+            </div>
+          </div>
+
+          <div style={styles.panel}>
+            <div style={styles.panelTitle}>WHAT THE DETECTOR CAN AND CANNOT SEE &mdash; MEASURED</div>
+            <div style={{ ...styles.text, marginBottom: '10px' }}>
+              A drift detector is only worth trusting if two numbers are known: how often it
+              fires when nothing changed, and how reliably it fires when something did. Both are
+              measured against the exact production code path by injecting a sustained drop of
+              known size into a stationary series (400 repetitions per cell) and by running the
+              detector on a series with no change at all. &ldquo;Detected&rdquo; means it fired
+              within 30 days; the delay is the median number of days to the first alert.
+            </div>
+            <div style={styles.codeBlock}>
+              <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '6px' }}>
+                sustained drop of&hellip; &rarr; detected (median delay), by day-to-day noise of the score
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto repeat(5, 1fr)', gap: '4px 12px', alignItems: 'center', fontSize: '10px' }}>
+                {[
+                  ['noise', '3 pts', '5 pts', '8 pts', '10 pts', 'false alarms'],
+                  ['sd 1.5', '91% (18d)', '100% (8d)', '100% (4d)', '100% (3d)', '0 in 44,000 days'],
+                  ['sd 3',   '88% (15d)', '100% (7d)', '100% (4d)', '100% (3d)', '1 per ~4,400 days'],
+                  ['sd 5',   '84% (11d)', '98% (5d)',  '99% (3d)',  '99% (2d)',  '1 per ~180 days'],
+                ].map((row, i) => row.map((cell, j) => (
+                  <span key={`${i}-${j}`} style={{
+                    color: i === 0 ? 'var(--phosphor-dim)' : j === 0 ? 'var(--phosphor-green)' : 'var(--phosphor-dim)',
+                    fontWeight: i === 0 || j === 0 ? 'bold' : 'normal',
+                  }}>{cell}</span>
+                )))}
+              </div>
+            </div>
+            <div style={{ ...styles.text, marginTop: '10px' }}>
+              <strong style={{ color: 'var(--phosphor-dim)' }}>How to read it.</strong> Twenty of the
+              24 ranked models sit at a day-to-day noise of 1.5&ndash;3 points on the current
+              score; the noisiest few sit near 5. So for most of the fleet a 5-point sustained
+              regression is caught essentially every time within about a week, a 3-point one
+              nine times in ten within about two weeks, and a spurious alert on an unchanged
+              model happens somewhere between never and once every twelve years. On the
+              noisiest models the price of that sensitivity is one false alert per roughly six
+              months.
+              <br/><br/>
+              <strong style={{ color: 'var(--phosphor-dim)' }}>What it will miss.</strong> A
+              sustained drop of about 2 points or less. A one-day dip of any size, by design
+              &mdash; the detector runs on daily medians and asks about sustained change, so a
+              single bad day cannot fire it and neither can a single bad run.
+              <br/><br/>
+              <strong style={{ color: 'var(--phosphor-dim)' }}>Why the tolerance moved from 0.02 to
+              0.01.</strong> It was set as a quarter of the day-to-day noise when that noise was
+              8.4 points on an earlier, steeper score curve. The score is now a plain weighted
+              mean with a fraction of that noise, and a 2-point tolerance had become most of it
+              &mdash; a 3-point sustained regression was being caught only one time in five.
+              Halving it made that nine in ten at no measurable cost on the quiet majority.
+              <br/><br/>
+              <strong style={{ color: 'var(--phosphor-dim)' }}>Checked against real history
+              too.</strong> Each model&rsquo;s actual daily history under one benchmark version,
+              block-resampled to destroy any genuine change points while keeping its own noise,
+              gives a fleet false-alarm rate of about one per model every 86 days &mdash; but that
+              history predates the current score curve and is dominated by two models that were
+              far noisier under it, so it bounds the worst case rather than describing today.
+              <br/><br/>
+              Reproduce it: <span style={{ fontFamily: 'var(--font-mono)' }}>node dist/jobs/validate-drift-detector.js</span> in
+              the API repository. Deterministic seed; the table above is its output.
             </div>
           </div>
 
