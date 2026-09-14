@@ -44,6 +44,8 @@ interface TestRun {
   tasksPassed: number | null;
   estCostUsd: number | null;
   referenceScore?: number | null;
+  /** What the reference number is — e.g. the same reasoning scenario, not the four-task mean. */
+  referenceBasis?: string | null;
   error?: string;
   breakdown?: Array<{ label: string; passed: boolean; detail?: string; latencyMs?: number }>;
 }
@@ -358,6 +360,9 @@ export default function TestKeysPage() {
                 <div className="rv4-metric-content">
                   <div className="rv4-metric-label">Our published score</div>
                   <div className="rv4-metric-value">{result.referenceScore != null ? Math.round(result.referenceScore) : '—'}</div>
+                  {result.referenceBasis && (
+                    <div className="rv4-metric-sub" title={result.referenceBasis}>{result.referenceBasis}</div>
+                  )}
                   <div className="rv4-metric-sub">
                     {result.referenceScore != null && result.score != null
                       ? `${result.score >= result.referenceScore ? '+' : ''}${Math.round(result.score - result.referenceScore)} vs ours`
