@@ -226,6 +226,23 @@ export default function V4Leaderboard({
 
   const tiedCount = (rank: number) => Array.from(statRank.values()).filter(r => r === rank).length - 1;
 
+  // One legend, rendered in two places and shown in exactly one: above the rows on a wide
+  // screen, below them on a phone. On a phone the board is the reason you came — pushing the
+  // first row down by four lines of explanation is the wrong trade — but the explanation still
+  // has to be somewhere you will meet it, so it sits at the end of the list instead of behind
+  // a hover you cannot perform. The hidden copy is `display: none`, so it is not announced twice.
+  const rankLegend = statisticalTies && rankedCount > 0 ? (
+    <>
+      <strong>=</strong> marks a statistical tie: those models are not separated by more than their
+      measurement noise, so they share a rank. A rank without <strong>=</strong> is a model on its own.
+      Ranks count position on the board, so the group after fourteen tied models starts at 15.
+      {rankGroups <= 3 && rankedCount >= 8 && (
+        <> Only {rankGroups} groups resolve today because every suite is early in a new benchmark
+        configuration and the error bars are still at their default width; they narrow as runs accumulate.</>
+      )}
+    </>
+  ) : null;
+
   return (
     <div style={{ position: 'relative' }}>
       {/*
@@ -260,17 +277,7 @@ export default function V4Leaderboard({
         <div style={{ textAlign: 'center' }} className="v4-col-spark">7-DAY</div>
       </div>
 
-      {statisticalTies && rankedCount > 0 && (
-        <div className="v4-lb-rank-legend">
-          <strong>=</strong> marks a statistical tie: those models are not separated by more than their
-          measurement noise, so they share a rank. A rank without <strong>=</strong> is a model on its own.
-          Ranks count position on the board, so the group after fourteen tied models starts at 15.
-          {rankGroups <= 3 && rankedCount >= 8 && (
-            <> Only {rankGroups} groups resolve today because every suite is early in a new benchmark
-            configuration and the error bars are still at their default width; they narrow as runs accumulate.</>
-          )}
-        </div>
-      )}
+      {rankLegend && <div className="v4-lb-rank-legend v4-lb-rank-legend--top">{rankLegend}</div>}
 
       {/* Table Rows */}
       {sorted.map((model, index) => {
@@ -414,6 +421,8 @@ export default function V4Leaderboard({
           </div>
         );
       })}
+
+      {rankLegend && <div className="v4-lb-rank-legend v4-lb-rank-legend--bottom">{rankLegend}</div>}
     </div>
   );
 }

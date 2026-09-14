@@ -1292,4 +1292,16 @@
   border-bottom: 1px solid rgba(192, 192, 192, 0.12);
 }
 .v4-lb-rank-legend strong { color: var(--phosphor-green); font-weight: 700; }
-@media (max-width: 640px) { .v4-lb-rank-legend { padding: 7px 10px; font-size: 10px; } }
+
+/* Above the rows on a wide screen; below them on a phone, where four lines of explanation
+   ahead of the first row would push the board itself off the fold. */
+.v4-lb-rank-legend--bottom { display: none; }
+@media (max-width: 640px) {
+  .v4-lb-rank-legend { padding: 8px 10px; font-size: 10px; }
+  .v4-lb-rank-legend--top { display: none; }
+  .v4-lb-rank-legend--bottom {
+    display: block;
+    border-bottom: none;
+    border-top: 1px solid rgba(192, 192, 192, 0.12);
+  }
+}
