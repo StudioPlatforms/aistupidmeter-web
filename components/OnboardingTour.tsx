@@ -69,8 +69,8 @@ const STEPS: TourStep[] = [
     eyebrow: 'Coding',
     title: 'We test code by running it',
     body: [
-      'Every few hours, each model gets the same set of programming problems.',
-      'We don’t judge the answer by reading it. We execute it, feed it the awkward inputs people forget about, and check it still works. We also look at whether the code is tidy and how long the model took.',
+      'Every four hours, each model gets the same nine programming jobs. Most of them work like a real bug report: here is a small working project, and here is a customer complaining that something is wrong. Nobody tells the model which file to look in.',
+      'We never judge the answer by reading it — we run it. And we check it against tests the model was never shown, because the easy way to "fix" a bug is to make the complaint go away while leaving the fault in place. That distinction is the whole point, and when a model does it we say so on its page.',
     ],
     icon: ICON.code,
   },
@@ -79,7 +79,7 @@ const STEPS: TourStep[] = [
     title: 'We test thinking across several turns',
     body: [
       'Real work is never one question.',
-      'We drop each model into a debugging session: find the bug, fix it, read the real test output, then handle the next problem - while remembering what it already changed. Models that ace quick questions often come apart here.',
+      'Every day each model works through four long sessions: debugging a shopping cart, building something to a written spec, answering chained questions about a document, and splitting a tangled app into parts. Each turn builds on the last, and when its work fails it is told so the way a colleague would — without being handed the error. Models that ace quick questions often come apart here.',
     ],
     icon: ICON.steps,
   },
@@ -96,8 +96,8 @@ const STEPS: TourStep[] = [
     eyebrow: 'The score',
     title: 'One number, plus a watch for drift',
     body: [
-      'Those results roll into a single 0–100 score for each model.',
-      'Separately, we compare every model against its own past. A sustained, statistically real drop raises a drift alert - the thing you can never see from a launch-day benchmark. A brand-new model needs about 10 days of history before that baseline means anything.',
+      'Those results roll into a single 0–100 score for each model — half from coding, a quarter each from reasoning and tool use.',
+      'Separately, two watchers compare every model against its own past. A slow one confirms a real decline over days and is deliberately hard to set off. A fast one runs every hour and is there to catch a model falling over this afternoon. Both need about 10 days of settled history before they will say anything — and that clock restarts whenever we change how we test, which we would rather admit than paper over.',
     ],
     icon: ICON.gauge,
   },
@@ -106,7 +106,8 @@ const STEPS: TourStep[] = [
     title: 'What the top of the list means',
     body: [
       'The model in first place is not "the smartest AI". It is the one that came out best across those three suites in the most recent runs, and stayed steady while doing it.',
-      'Positions move. Everything is re-tested every few hours, so today\u2019s #1 can sit at #4 tomorrow without anything dramatic happening - the gap between neighbours is often a point or two. Read the direction of a model\u2019s line before you read its rank, and click any row for the full history.',
+      'You will see several models sharing the same rank, marked with an “=”. That is deliberate and it is the honest answer: when the gap between them is smaller than our own measuring error, we will not pretend one is ahead. A rank without an “=” is a model standing on its own.',
+      'Positions still move — everything is re-tested every few hours — so read the direction of a model’s line before you read its place, and click any row for the full history.',
     ],
     icon: ICON.board,
   },
