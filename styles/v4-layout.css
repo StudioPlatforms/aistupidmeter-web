@@ -1280,3 +1280,16 @@
   .v4-stat-pop-list li { grid-template-columns: 1fr auto; }
   .v4-stat-pop-note { display: none; }
 }
+
+
+/* Rank legend under the leaderboard header — explains "=" without needing a hover. */
+.v4-lb-rank-legend {
+  padding: 7px 12px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: var(--phosphor-dim);
+  background: var(--terminal-dark);
+  border-bottom: 1px solid rgba(192, 192, 192, 0.12);
+}
+.v4-lb-rank-legend strong { color: var(--phosphor-green); font-weight: 700; }
+@media (max-width: 640px) { .v4-lb-rank-legend { padding: 7px 10px; font-size: 10px; } }

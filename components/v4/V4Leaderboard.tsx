@@ -219,6 +219,11 @@ export default function V4Leaderboard({
       statRank.set(String(m.id), leaderRank);
     }
   }
+  // How many statistical groups the board resolves into. When it is very few, the reason is
+  // that the standard errors are wide — worth saying, rather than leaving it to look coarse.
+  const rankGroups = new Set(Array.from(statRank.values())).size;
+  const rankedCount = statRank.size;
+
   const tiedCount = (rank: number) => Array.from(statRank.values()).filter(r => r === rank).length - 1;
 
   return (
@@ -254,6 +259,18 @@ export default function V4Leaderboard({
         <div style={{ textAlign: 'center' }} className="v4-col-tools">TOOLS</div>
         <div style={{ textAlign: 'center' }} className="v4-col-spark">7-DAY</div>
       </div>
+
+      {statisticalTies && rankedCount > 0 && (
+        <div className="v4-lb-rank-legend">
+          <strong>=</strong> marks a statistical tie: those models are not separated by more than their
+          measurement noise, so they share a rank. A rank without <strong>=</strong> is a model on its own.
+          Ranks count position on the board, so the group after fourteen tied models starts at 15.
+          {rankGroups <= 3 && rankedCount >= 8 && (
+            <> Only {rankGroups} groups resolve today because every suite is early in a new benchmark
+            configuration and the error bars are still at their default width; they narrow as runs accumulate.</>
+          )}
+        </div>
+      )}
 
       {/* Table Rows */}
       {sorted.map((model, index) => {
