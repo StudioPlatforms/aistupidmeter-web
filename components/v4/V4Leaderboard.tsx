@@ -244,7 +244,7 @@ export default function V4Leaderboard({
       measurement noise, so they share a rank. A rank without <strong>=</strong> is a model on its own.
       Ranks count position on the board, so the group after fourteen tied models starts at 15.
       A model whose provider declined some tasks shows its coverage under the score and is never
-      called tied: a score over seven tasks and one over nine are not the same measurement.
+      called tied: a score over fewer tasks is not the same measurement as one over all of them.
       {rankGroups <= 3 && rankedCount >= 8 && (
         <> Only {rankGroups} groups resolve today because every suite is early in a new benchmark
         configuration and the error bars are still at their default width; they narrow as runs accumulate.</>
