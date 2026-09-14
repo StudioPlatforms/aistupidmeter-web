@@ -1228,3 +1228,55 @@
   color: var(--amber-warning, #ffb000); cursor: help;
 }
 @media (max-width: 640px) { .v4-volatile-mark { font-size: 9px; margin-left: 2px; } }
+
+
+/* ── stat-cell detail panels (components/v4/StatCellDetail.tsx) ──────────
+   Which models are behind a headline number. Hover on a mouse, tap on touch.
+   No motion: the panel is present or it is not. */
+.v4-stat-has-detail { cursor: pointer; position: relative; }
+.v4-stat-has-detail:focus-visible { outline: 2px solid var(--accent, #1a73e8); outline-offset: -2px; }
+.v4-stat-more { margin-left: 4px; opacity: 0.5; font-weight: 700; }
+.v4-stat-has-detail.is-open .v4-stat-more { opacity: 1; }
+
+.v4-stat-pop {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  z-index: 40;
+  min-width: 232px;
+  max-width: 300px;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--terminal-black, #0d0d0d);
+  border: 1px solid var(--metal-silver, rgba(192, 192, 192, 0.35));
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  cursor: default;
+}
+.v4-stat-pop.is-flipped { left: auto; right: 0; }
+.v4-stat-pop-caption {
+  font-size: 10px; line-height: 1.45; color: var(--phosphor-dim);
+  padding-bottom: 6px; margin-bottom: 6px;
+  border-bottom: 1px solid rgba(192, 192, 192, 0.14);
+}
+.v4-stat-pop-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.v4-stat-pop-list li {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 8px;
+  align-items: baseline; font-size: 11px; line-height: 1.4;
+}
+.v4-stat-pop-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v4-stat-pop-note { font-size: 9.5px; color: var(--phosphor-dim); opacity: 0.75; text-transform: lowercase; }
+.v4-stat-pop-val { font-variant-numeric: tabular-nums; font-weight: 600; }
+.v4-stat-pop-more, .v4-stat-pop-empty {
+  font-size: 10px; color: var(--phosphor-dim); opacity: 0.85;
+}
+.v4-stat-pop-more { display: block !important; padding-top: 3px; }
+
+/* Phone: the bar is a 2-column grid, so anchor the panel to the cell's own width
+   and let it grow downward instead of sideways off the screen. */
+@media (max-width: 640px) {
+  .v4-stat-pop { left: 0; right: 0; min-width: 0; max-width: none; }
+  .v4-stat-pop.is-flipped { left: 0; right: 0; }
+  .v4-stat-pop-list li { grid-template-columns: 1fr auto; }
+  .v4-stat-pop-note { display: none; }
+}

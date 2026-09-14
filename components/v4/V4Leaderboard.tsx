@@ -186,20 +186,38 @@ export default function V4Leaderboard({
   const unavailable = modelScores.filter(m => m.currentScore === 'unavailable');
   const sorted = [...available, ...unavailable];
 
-  // Rank = 1 + the number of models measurably better: those whose score exceeds this one by
-  // more than 1.96 × the combined standard error of the pair (a two-sample z-test at 95%).
-  // Two models inside each other's noise share a rank instead of being separated by a place
-  // the measurement cannot support — on a board spanning ten points with run-to-run standard
-  // errors of 2–3, most adjacent places were noise. (Non-overlapping intervals would be the
-  // same idea at roughly p < 0.005, which is stricter than the 95% the page promises.)
+  // RANK FOLLOWS THE BOARD. Walk the rows in displayed order and give standard competition
+  // numbering (1, 1, 1, 4, 4, 6 …): a row joins the group above it when it is not measurably
+  // worse than that group's LEADER — the highest-scoring member — and otherwise opens a new
+  // group at its own position.
+  //
+  // The first version computed each row's rank independently as "1 + models measurably better
+  // than me". That is defensible in isolation and unreadable on a board, because the threshold
+  // depends on BOTH models' standard errors: a noisy model has fewer models that beat it
+  // decisively, so it earned a smaller rank number while sitting lower down. Users saw rank 14
+  // printed above rank 10, and three models on 82 ranked 2, =4 and =4. Comparing against the
+  // group leader rather than pairwise also stops a chain of individually-indistinguishable
+  // rows from merging into one group whose ends are far apart.
+  //
+  // Only score-ordered views get statistical ties. Sorting by price orders the board by price,
+  // so there the rank is simply the position.
+  const SCORE_ORDERED = new Set(['combined', 'reasoning', 'tooling', 'speed', '7axis', 'coding']);
+  const statisticalTies = SCORE_ORDERED.has(leaderboardSortBy);
   const hasSE = (m: any) => m.rankable !== false && typeof m.standardError === 'number' && typeof m.currentScore === 'number';
   const measurablyBetter = (o: any, m: any) =>
     o.currentScore - m.currentScore > 1.96 * Math.sqrt(o.standardError * o.standardError + m.standardError * m.standardError);
   const statRank = new Map<string, number>();
-  for (const m of sorted) {
-    if (!hasSE(m)) continue;
-    const better = sorted.filter(o => o !== m && hasSE(o) && measurablyBetter(o, m)).length;
-    statRank.set(String(m.id), 1 + better);
+  {
+    let leader: any = null;
+    let leaderRank = 1;
+    let position = 0;
+    for (const m of sorted) {
+      if (!hasSE(m)) continue;
+      position++;
+      if (!statisticalTies) { statRank.set(String(m.id), position); continue; }
+      if (leader === null || measurablyBetter(leader, m)) { leader = m; leaderRank = position; }
+      statRank.set(String(m.id), leaderRank);
+    }
   }
   const tiedCount = (rank: number) => Array.from(statRank.values()).filter(r => r === rank).length - 1;
 
@@ -223,7 +241,9 @@ export default function V4Leaderboard({
 
       {/* Table Header */}
       <div className={`v4-lb-header${isLoading ? ' v4-lb-dimmed' : ''}`}>
-        <div style={{ textAlign: 'center' }} title="Rank = 1 + the number of models measurably better: a lead larger than 1.96 × the combined standard error of the pair (95%). Equal ranks are statistical ties.">RK</div>
+        <div style={{ textAlign: 'center' }} title={statisticalTies
+          ? 'Rank follows the board. A model shares the rank above it when its score is not measurably lower — a gap smaller than 1.96 × the combined standard error of the pair (95%). Equal ranks marked = are statistical ties, and the next rank resumes at the row number, so 1,1,1,4 is expected. Wide tie groups mean the measurement is not yet precise enough to separate those models.'
+          : 'Position in the current sort.'}>RK</div>
         <div style={{ textAlign: 'left', paddingLeft: '10px' }}>MODEL</div>
         {/* A period view is the measured average over the window, and the header says so. */}
         <div style={{ textAlign: 'center' }}>{leaderboardPeriod === 'latest' ? 'SCORE' : `AVG ${({ '24h': '24H', '7d': '7D', '1m': '30D' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod.toUpperCase()}`}</div>
@@ -275,7 +295,7 @@ export default function V4Leaderboard({
               {held
                 ? <span className="v4-lb-rank" style={{ color: 'var(--phosphor-dim)' }}>–</span>
                 : <span className={`v4-lb-rank ${rank <= 3 ? 'top' : ''}${tied > 0 ? ' v4-lb-rank-tied' : ''}`}
-                        title={tied > 0 ? `Tied with ${tied} other model${tied === 1 ? '' : 's'}: no model in this group leads another by more than its measurement noise (95%)` : undefined}>
+                        title={tied > 0 ? `Statistical tie with ${tied} other model${tied === 1 ? '' : 's'} — the score differences inside this group are smaller than the measurement can resolve at 95% confidence. The scores themselves are still shown.` : undefined}>
                     {tied > 0 ? '=' : ''}{rank}
                   </span>}
             </div>
