@@ -206,6 +206,12 @@ export default function V4Leaderboard({
   const hasSE = (m: any) => m.rankable !== false && typeof m.standardError === 'number' && typeof m.currentScore === 'number';
   const measurablyBetter = (o: any, m: any) =>
     o.currentScore - m.currentScore > 1.96 * Math.sqrt(o.standardError * o.standardError + m.standardError * m.standardError);
+  // A row graded on fewer tasks than the rest (a provider declined some) is not the same
+  // measurement as its neighbours, so it neither joins a tie group nor anchors one. It keeps
+  // its position on the board and shows the coverage badge under its score, which is the
+  // honest statement: here is where it sorts, and here is why it is not called "tied". Same
+  // condition the badge itself uses, so the two can never disagree.
+  const partialRow = (m: any) => !!m.coverage && leaderboardSortBy !== 'reasoning';
   const statRank = new Map<string, number>();
   {
     let leader: any = null;
@@ -215,6 +221,7 @@ export default function V4Leaderboard({
       if (!hasSE(m)) continue;
       position++;
       if (!statisticalTies) { statRank.set(String(m.id), position); continue; }
+      if (partialRow(m)) { statRank.set(String(m.id), position); continue; }
       if (leader === null || measurablyBetter(leader, m)) { leader = m; leaderRank = position; }
       statRank.set(String(m.id), leaderRank);
     }
@@ -236,6 +243,8 @@ export default function V4Leaderboard({
       <strong>=</strong> marks a statistical tie: those models are not separated by more than their
       measurement noise, so they share a rank. A rank without <strong>=</strong> is a model on its own.
       Ranks count position on the board, so the group after fourteen tied models starts at 15.
+      A model whose provider declined some tasks shows its coverage under the score and is never
+      called tied: a score over seven tasks and one over nine are not the same measurement.
       {rankGroups <= 3 && rankedCount >= 8 && (
         <> Only {rankGroups} groups resolve today because every suite is early in a new benchmark
         configuration and the error bars are still at their default width; they narrow as runs accumulate.</>
