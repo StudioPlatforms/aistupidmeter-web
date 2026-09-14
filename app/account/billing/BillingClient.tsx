@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { monthlyLong } from '@/lib/pricing-display';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -31,6 +32,47 @@ interface Usage {
   retention: { decisionLogDays: number; historyDays: number | null };
   seats: number; projects: number;
 }
+
+/**
+ * Stripe's hosted portal login page.
+ *
+ * The in-app "Manage billing" button mints a portal session for the signed-in
+ * customer, which is the better experience — no second sign-in. This is the
+ * fallback for when that cannot work: an account with no Stripe customer
+ * attached, or a portal call that failed. The customer enters their email and
+ * Stripe sends them a one-time link.
+ */
+const PORTAL_LOGIN_URL = process.env.NEXT_PUBLIC_STRIPE_PORTAL_LOGIN_URL || '';
+
+/**
+ * /api/stripe/portal redirects BACK here with ?error= when it cannot open the
+ * portal. Nothing rendered that, so every failure looked like a dead button —
+ * the click navigated, bounced, and left the page looking untouched. To a
+ * customer trying to cancel, a billing page that silently refuses is the worst
+ * possible failure: it reads as being trapped in a subscription.
+ */
+const PORTAL_ERRORS: Record<string, { title: string; body: string; showFallback: boolean }> = {
+  no_subscription: {
+    title: 'We could not open your billing portal',
+    body:
+      'This account is not linked to a Stripe customer record, which usually means the ' +
+      'subscription was set up under a different email address. Use the Stripe portal below ' +
+      'with the address you paid from, and you will be able to cancel or update your card there.',
+    showFallback: true,
+  },
+  portal_failed: {
+    title: 'The billing portal did not open',
+    body:
+      'Something went wrong on our side rather than yours. You can reach the portal directly ' +
+      'with the link below, or email us and we will sort it out.',
+    showFallback: true,
+  },
+  user_not_found: {
+    title: 'We could not find your account',
+    body: 'Please sign out and back in, then try again. If it keeps happening, email us.',
+    showFallback: true,
+  },
+};
 
 const card: React.CSSProperties = {
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6,
@@ -58,6 +100,9 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<SellablePlan | null>(null);
+  const params = useSearchParams();
+  const portalError = params.get('error');
+  const portalProblem = portalError ? (PORTAL_ERRORS[portalError] ?? PORTAL_ERRORS.portal_failed) : null;
 
   /**
    * Change an existing subscription rather than starting a second one.
@@ -128,6 +173,29 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
     <div className="acct-page">
       <h1 style={{ fontSize: '1.4em', margin: '0 0 20px' }}>Plan &amp; billing</h1>
 
+      {portalProblem && (
+        <div style={{
+          marginBottom: 18, padding: '14px 16px', borderRadius: 6, lineHeight: 1.6,
+          border: '1px solid var(--amber-warning, #f9ab00)', background: 'rgba(249,171,0,0.07)',
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>{portalProblem.title}</div>
+          <div style={{ fontSize: '0.88em', color: 'var(--phosphor-dim)' }}>{portalProblem.body}</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+            {portalProblem.showFallback && PORTAL_LOGIN_URL && (
+              <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer"
+                className="vintage-btn vintage-btn--primary"
+                style={{ padding: '8px 16px', textDecoration: 'none', fontSize: '0.86em' }}>
+                Open the Stripe portal
+              </a>
+            )}
+            <Link href="/contact?topic=support" className="vintage-btn"
+              style={{ padding: '8px 16px', textDecoration: 'none', fontSize: '0.86em' }}>
+              Email us instead
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="acct-grid">
       {/* Current plan */}
       <section style={card}>
@@ -143,6 +211,23 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
               : <a href="/api/stripe/portal" className="md-ctrl-btn" style={{ padding: '9px 16px', textDecoration: 'none', fontSize: '0.86em' }}>Manage billing</a>}
           </div>
         </div>
+
+        {/* A second route to the portal, always present for a paying customer.
+            "Manage billing" mints a session for them and needs no second
+            sign-in, but if it ever fails the customer must not be left without
+            a way to cancel — being unable to stop paying is the one failure
+            that is never acceptable on a billing page. */}
+        {plan !== 'free' && PORTAL_LOGIN_URL && (
+          <p style={{ margin: '12px 0 0', fontSize: '0.8em', color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
+            Cancel, change your card or download invoices from the billing portal. If the button
+            above does not open it,{' '}
+            <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer"
+              style={{ color: 'var(--accent, #1a73e8)' }}>
+              sign in to Stripe directly
+            </a>{' '}
+            with the email you pay from.
+          </p>
+        )}
 
         {isLegacy && (
           <p style={{
