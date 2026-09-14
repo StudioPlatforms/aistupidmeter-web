@@ -40,6 +40,10 @@ interface AxisReading {
   trend?: 'up' | 'down' | 'stable';
   /** 0 means the API had no observation for this axis. */
   sampleSize?: number;
+  /** Whether changeMagnitude compares two disjoint windows. False = cannot tell yet. */
+  comparable?: boolean;
+  /** Runs needed before a change can be measured at all. */
+  runsForComparison?: number;
 }
 
 interface DriftStatus {
@@ -121,7 +125,7 @@ const TINT_FLOOR = 2;
  * changeMagnitude 0. Rendering that as a measured "0" claims we looked and found no
  * movement, when the truth is that we cannot tell yet - so these cells render as "–".
  */
-const MIN_RUNS = 3;
+const MIN_RUNS = 6;
 
 export default function DriftHeatmap({ models, period = 'latest', sortBy = 'combined' }: HeatmapProps) {
   const suite: Suite = sortBy === 'reasoning' ? 'deep' : sortBy === 'tooling' ? 'tooling' : 'hourly';
@@ -316,9 +320,9 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       {summary.typicalRuns > 0 && summary.typicalRuns < 12 && (
         <p className="dm-note">
           The {SUITE_NAME[suite]} suite&rsquo;s configuration changed recently: a typical cell has {summary.typicalRuns} run{summary.typicalRuns === 1 ? '' : 's'} on
-          it. Movement is measured within one configuration &mdash; comparing the newest runs with the oldest on the same
-          tasks and scoring &mdash; so the &plusmn;point movement and its colour return once a model has {MIN_RUNS} runs on
-          it: {suite === 'hourly' ? 'about twelve hours for the coding suite, which runs every four hours' : 'three days for this suite, which runs once a day'}.
+          it. Movement is measured within one configuration, comparing a model&rsquo;s newest runs against its
+          oldest on the same tasks and scoring &mdash; which needs {MIN_RUNS} runs, two windows of three. So the
+          &plusmn;point movement and its colour return {suite === 'hourly' ? 'about a day after a configuration change, since the coding suite runs every four hours' : 'six days after a configuration change, since this suite runs once a day'}.
           Until then a cell shows the current level alone &mdash; &ldquo;no change measured yet&rdquo;, not &ldquo;no change&rdquo;.
         </p>
       )}
@@ -497,6 +501,8 @@ function measured(axis?: AxisReading): axis is AxisReading {
  * false branch would make the "not enough runs yet" copy unwritable.
  */
 function comparable(axis?: AxisReading): boolean {
+  // The API knows whether it had two disjoint windows; trust it when it says.
+  if (axis && typeof axis.comparable === 'boolean') return axis.comparable;
   if (!measured(axis)) return false;
   return axis.sampleSize === undefined || axis.sampleSize >= MIN_RUNS;
 }
@@ -520,7 +526,7 @@ function cellTitle(model: string, label: string, axis?: AxisReading): string {
   const n = axis.sampleSize ?? 0;
   if (!comparable(axis)) {
     return `${model} · ${label}\nNow ${Math.round(axis.value * 100)}%, from ${n} run${n === 1 ? '' : 's'}.\n` +
-      `Needs ${MIN_RUNS} before a change can be measured.`;
+      `Needs ${axis.runsForComparison ?? MIN_RUNS} on this configuration before a change can be measured.`;
   }
   return `${model} · ${label}\n` +
     `${signed(Math.round(axis.changeMagnitude ?? 0))}% vs baseline · now ${Math.round(axis.value * 100)}%\n` +
