@@ -69,7 +69,7 @@ const STEPS: TourStep[] = [
     eyebrow: 'Coding',
     title: 'We test code by running it',
     body: [
-      'Every four hours, each model gets the same nine programming jobs. Most of them work like a real bug report: here is a small working project, and here is a customer complaining that something is wrong. Nobody tells the model which file to look in.',
+      'Every four hours, each model gets the same seven programming jobs. Most of them work like a real bug report: here is a small working project, and here is a customer complaining that something is wrong. Nobody tells the model which file to look in.',
       'We never judge the answer by reading it — we run it. And we check it against tests the model was never shown, because the easy way to "fix" a bug is to make the complaint go away while leaving the fault in place. That distinction is the whole point, and when a model does it we say so on its page.',
     ],
     icon: ICON.code,
