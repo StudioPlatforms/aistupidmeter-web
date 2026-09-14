@@ -334,7 +334,7 @@ export default async function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>CODING SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every 4 hours<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: {status?.corpus?.coding ? `${status.corpus.coding.repoTasks} repo debugging + ${status.corpus.coding.hardFunctionTasks} hard function + ${status.corpus.coding.floorChecks} floor checks` : 'repo debugging, hard function and floor checks'}<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: {status?.corpus?.coding ? [[status.corpus.coding.repoTasks, 'repo debugging'], [status.corpus.coding.hardFunctionTasks, 'hard function'], [status.corpus.coding.floorChecks, 'floor check']].filter(([n]) => (n as number) > 0).map(([n, label]) => `${n} ${label}`).join(' + ') + `, all ${status.corpus.coding.total} every sweep` : 'six repo debugging tasks and one hard function task, all every sweep'}<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 7 per task, median scored<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Debugging and coding capability
@@ -365,8 +365,8 @@ export default async function MethodologyPage() {
               <div style={{ ...styles.panelTitle, marginBottom: '10px' }}>CANARY SUITE</div>
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Every hour<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 2 fixed probes (is_prime, merge_intervals), 2 trials each, 4,000-token answer budget; a trial that errors is not measured, not zero<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Detection</strong>: Welch&rsquo;s t-test on two windows &mdash; the last 6 h (a severe drop shows within the hour it lands) and the last 24 h (a moderate one six probes cannot separate from noise) &mdash; each against the prior 7 days on the same configuration; an incident needs a fall of at least 15 points at p &lt; 0.01, and closes itself when the gap does<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 2 fixed probes (prime_check, merge_intervals), 2 trials each, 4,000-token answer budget; a trial that errors is not measured, not zero<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Detection</strong>: Welch&rsquo;s t-test on two windows &mdash; the last 6 h (a severe drop shows within the hour it lands) and the last 24 h (a moderate one six probes cannot separate from noise) &mdash; each against the prior 7 days on the same configuration; an incident needs a fall of at least 12 points at p &lt; 0.01, and closes itself when the gap does<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Response Time</strong>: within the hour<br/>
                 <span style={{ opacity: 0.8 }}>
                   Until 13 September 2026 this suite raised an incident on any 10% fall in a 24-hour
@@ -472,7 +472,10 @@ export default async function MethodologyPage() {
             stopped working, and we can say exactly when: eight of its tasks were passing at
             99&ndash;100% across all 24 ranked models over hundreds of trials each. A task everybody
             passes does not rank anybody &mdash; it only dilutes the tasks that still do. Those
-            eight were retired.
+            eight were retired. On 14 September 2026 the two trivial floor checks and one repo task
+            followed them, each passed by every model in every sweep, and one new repo task was
+            added after failing 79% of the fleet across three validation rounds. The corpus is seven
+            tasks, all run every sweep.
           </div>
           <div style={{ ...styles.text, marginBottom: '14px' }}>
             Writing harder functions did not fix it either. Nine deliberately difficult candidates
@@ -513,14 +516,22 @@ export default async function MethodologyPage() {
           <div style={styles.highlightPanel}>
             <div style={{ ...styles.panelTitle, marginBottom: '6px' }}>WHAT MAKES A TASK DISCRIMINATE</div>
             <div style={styles.text}>
-              Nineteen repo candidates were built to ship six. The ones that failed taught the
-              rule: a <strong>mechanical slip</strong> &mdash; a wrong comparison, a swapped
-              argument, an off-by-one &mdash; gets fixed by every model, every time. Pagination,
-              cache keys, penny rounding and rate-limiter refill were all solved 18/18.
+              Thirty-six repo candidates have been built to ship seven. The ones that failed taught
+              the rule: a <strong>mechanical slip</strong> &mdash; a wrong comparison, a swapped
+              argument, an off-by-one &mdash; gets fixed by every model, every time, and so is
+              any bug whose <strong>rule is stated in the report</strong>. Pagination, cache keys,
+              penny rounding, rate-limiter refill, timezone handling across a clock change, CIDR
+              matching, partial updates with explicit nulls, locale number parsing, currency minor
+              units and single-use expiring tokens were all solved by the whole fleet.
               <br/><br/>
               What separates models is a bug whose correct repair requires a <strong>judgement
-              about intended behaviour</strong>, paired with a cheaper fix that satisfies the
-              reported symptom and is wrong. That is what the hidden tests are there to catch.
+              about intended behaviour that the report supports but does not spell out</strong>,
+              paired with a cheaper fix that satisfies the reported symptom and is wrong. That is
+              what the hidden tests are there to catch, and it is a fairness judgement every time:
+              a task ships only if every hidden assertion traces to the bug report and at least a
+              fifth of the fleet fails it across three independent runs. One of our own assertions
+              failed that test in September 2026 &mdash; it graded a correct fix as wrong for not
+              refetching a cache &mdash; and was corrected.
             </div>
           </div>
 
@@ -535,9 +546,10 @@ export default async function MethodologyPage() {
               so we <strong>do not score it as a zero</strong>. The task drops out and the model is
               scored over what it attempted. That is the fair treatment but it is not a neutral
               one: declined tasks are disproportionately the hard ones, so such a score covers an
-              easier corpus than its rivals. Those rows are marked <strong>PARTIAL</strong> with the
-              count and the task names, and should not be read as directly comparable. We do not
-              impute a value for work that was never done.
+              easier corpus than its rivals. Those rows show their coverage under the score
+              (<strong>&ldquo;5/7 tasks&rdquo;</strong>), name the declined tasks on the model page, and are
+              never called tied with a model measured on all of them. We do not impute a value for
+              work that was never done.
             </div>
           </div>
 
@@ -557,15 +569,17 @@ export default async function MethodologyPage() {
               &rarr; AI models are <strong style={{ color: 'var(--amber-warning)' }}>stochastic</strong> (same prompt, different outputs)<br/>
               &rarr; Single measurements are unreliable<br/>
               &rarr; 7 trials = optimal balance of cost vs statistical power<br/>
-              &rarr; Provides 95% confidence intervals using t-distribution
+              &rarr; The seven trials of a task collapse to one outcome by median, so a single
+              unlucky sample cannot move a task; the interval on the board comes from run-to-run
+              repeatability (below), not from the trials
             </div>
           </div>
 
           <div style={styles.codeBlock}>
             <div style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '8px', fontSize: '10px' }}>EXAMPLE CALCULATION:</div>
             <div style={{ color: 'var(--phosphor-dim)', fontSize: '10px', lineHeight: '1.8' }}>
-              A model on py/eval_expr:<br/>
-              92 | 94 | 90 | 93 | 91 | 92 | 93&nbsp;&nbsp;(7 trials)<br/>
+              A model&rsquo;s seven per-task scores in one sweep:<br/>
+              92 | 94 | 90 | 93 | 91 | 92 | 93&nbsp;&nbsp;(7 tasks)<br/>
               <br/>
               Mean = 92.1<br/>
               Std Dev = 1.35<br/>
@@ -733,10 +747,9 @@ export default async function MethodologyPage() {
           <div style={styles.panel}>
             <div style={styles.panelTitle}>ALERT SEVERITY LEVELS</div>
             <div style={styles.text}>
-              <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>NORMAL</span> — Performance within expected variance<br/>
-              <span style={{ color: 'var(--amber-warning)', fontWeight: 'bold' }}>WARNING</span> — Slight decline, monitoring closely<br/>
-              <span style={{ color: '#ff8c00', fontWeight: 'bold' }}>DEGRADATION</span> — Sustained decline confirmed<br/>
-              <span style={{ color: 'var(--red-alert, #d93025)', fontWeight: 'bold' }}>CRITICAL</span> — Major drop, immediate attention needed
+              <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>NORMAL</span> — every suite&rsquo;s drift statistic is below its warning line<br/>
+              <span style={{ color: 'var(--amber-warning)', fontWeight: 'bold' }}>WARNING</span> — a suite&rsquo;s Page-Hinkley statistic is more than halfway to its alarm threshold, or recent scores are unusually spread<br/>
+              <span style={{ color: 'var(--red-alert, #d93025)', fontWeight: 'bold' }}>ALERT</span> — a suite&rsquo;s statistic crossed the alarm threshold, or the model is measurably below its own 28-day baseline on its current configuration
             </div>
           </div>
 
@@ -1093,7 +1106,7 @@ export default async function MethodologyPage() {
                 {
                   "@type": "HowToStep",
                   "name": "Execute Benchmark Tasks",
-                  "text": "Run 7 trials of each coding task with different random seeds"
+                  "text": "Run 7 trials of each coding task and take the median outcome per task"
                 },
                 {
                   "@type": "HowToStep",
@@ -1103,7 +1116,7 @@ export default async function MethodologyPage() {
                 {
                   "@type": "HowToStep",
                   "name": "Calculate Statistics",
-                  "text": "Compute mean, standard deviation, and 95% confidence intervals using t-distribution"
+                  "text": "Measure each score's standard error from its run-to-run repeatability and publish a 95% interval; rank by a two-sample test so models inside each other's noise share a rank"
                 },
                 {
                   "@type": "HowToStep",
