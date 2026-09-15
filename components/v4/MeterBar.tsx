@@ -40,10 +40,17 @@ export default function MeterBar({ globalIndex, modelScores, loading }: MeterBar
 
   // "24/24 OK" counted models that returned a number, so a fleet with two declining models
   // still read OK. Report what the summary bar reports: how many are not currently declining.
+  // Count the SAME four buckets the summary bar shows, so the two cannot print different
+  // numbers for the same fleet. Reporting "available - declining" as steady quietly folded
+  // improving and volatile models into steady: the bar read STABLE 22 while this read 23.
   const declining = modelScores.filter(m => bucketOf(m) === 'degraded').length;
-  const healthLabel = declining > 0
-    ? `${available - declining}/${total} steady · ${declining} declining`
-    : `${available}/${total} steady`;
+  const steady = modelScores.filter(m => bucketOf(m) === 'stable').length;
+  const rising = modelScores.filter(m => bucketOf(m) === 'improving').length;
+  const healthLabel = [
+    `${steady}/${total} steady`,
+    rising > 0 ? `${rising} improving` : null,
+    declining > 0 ? `${declining} declining` : null,
+  ].filter(Boolean).join(' · ');
   const trend = fleetTrend(modelScores);
   const trendSymbol = trend === 'improving' ? '↗' : trend === 'declining' ? '↘' : '→';
 

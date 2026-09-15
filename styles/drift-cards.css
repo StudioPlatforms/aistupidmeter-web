@@ -1324,3 +1324,11 @@
 .dm-kpi.v4-stat-has-detail.is-open { border-color: var(--phosphor-dim); }
 .dm-kpi.v4-stat-has-detail:focus-visible { outline: 2px solid var(--phosphor-green); outline-offset: 2px; }
 .dm-kpi-more { margin-left: 4px; opacity: 0.45; }
+
+/* A model whose detector is still in cold start has not been tested, so it gets its own
+   neutral pill rather than borrowing the green of a real "steady" verdict. */
+.dm-pill--warming {
+  background: rgba(148, 163, 184, .12);
+  color: var(--phosphor-dim);
+  border: 1px solid rgba(148, 163, 184, .28);
+}

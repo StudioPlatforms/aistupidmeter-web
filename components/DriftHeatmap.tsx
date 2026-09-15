@@ -56,6 +56,8 @@ interface DriftStatus {
   axes: { [key: string]: AxisReading };
   dataSource?: 'measured' | 'synthetic' | 'unknown';
   axesSource?: 'measured' | 'synthetic' | 'none';
+  /** Page-Hinkley state for THIS suite. `armed: false` means the detector cannot fire yet. */
+  ph?: { days?: number; armed?: boolean; coldStart?: number };
 }
 
 interface HeatmapProps {
@@ -173,6 +175,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                 axes: item.data.axes || {},
                 dataSource: item.data.dataSource,
                 axesSource: item.data.axesSource,
+                ph: (item.data.pageHinkleyBySuite || {})[suite],
               });
             }
           }
@@ -278,6 +281,24 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
 
   // Zero has two very different meanings here, and saying the wrong one is how a monitor
   // gets trusted when it should not be: nothing has moved, versus nothing can be compared yet.
+  // Is the change detector actually able to fire for this suite? After a configuration
+  // change it sits in cold start for ten days, during which `regime` falls through to
+  // STABLE for every model — a default, not a finding. Reporting that as "holding steady"
+  // is a clean bill of health nobody has earned, and it is the same error as counting
+  // readings off a baseline that does not exist yet.
+  const detector = useMemo(() => {
+    const armed = visible.filter(m => m.ph?.armed).length;
+    const days = visible.map(m => m.ph?.days).filter((n): n is number => typeof n === 'number');
+    const coldStart = visible.map(m => m.ph?.coldStart).filter((n): n is number => typeof n === 'number');
+    return {
+      armed,
+      anyArmed: armed > 0,
+      days: days.length ? Math.max(...days) : 0,
+      coldStart: coldStart.length ? Math.max(...coldStart) : 10,
+      known: visible.some(m => m.ph !== undefined),
+    };
+  }, [visible]);
+
   const nothingComparable = useMemo(
     () => visible.length > 0 && visible.every(m => axes.every(a => !comparable(m.axes[a.key]))),
     [visible, axes]
@@ -373,12 +394,18 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
           className="dm-kpi"
           valueFirst
           classes={KPI_CLASSES}
-          label="Holding steady"
-          value={summary.stable}
-          title="Models whose own history shows no sustained change."
-          caption="No sustained change against their own past"
-          entries={kpiEntries.stable}
-          emptyText="No model is in a steady regime right now."
+          label={detector.known && !detector.anyArmed ? 'Detector warming up' : 'Holding steady'}
+          value={detector.known && !detector.anyArmed ? summary.total : summary.stable}
+          title={detector.known && !detector.anyArmed
+            ? `The change detector needs ${detector.coldStart} days of history on this configuration before it can report anything, and has ${detector.days}. Until then no model can be called steady, because nothing has been tested.`
+            : 'Models whose own history shows no sustained change.'}
+          caption={detector.known && !detector.anyArmed
+            ? `Waiting for ${detector.coldStart} days on this configuration — ${detector.days} so far`
+            : 'No sustained change against their own past'}
+          entries={detector.known && !detector.anyArmed ? [] : kpiEntries.stable}
+          emptyText={detector.known && !detector.anyArmed
+            ? `Every model's detector is still in cold start after the last configuration change. "Steady" is not a finding yet, it is the absence of one.`
+            : 'No model is in a steady regime right now.'}
           {...kpiCell('stable')}
         />
         <StatCellDetail
@@ -388,10 +415,16 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
           classes={KPI_CLASSES}
           label="Need watching"
           value={summary.watch}
-          title="Models in a volatile, degraded or recovering regime."
-          caption="In a volatile, degraded or recovering regime"
+          title={detector.known && !detector.anyArmed
+            ? 'Nothing can be flagged yet: the change detector is in cold start after the last configuration change.'
+            : 'Models in a volatile, degraded or recovering regime.'}
+          caption={detector.known && !detector.anyArmed
+            ? 'Nothing can be flagged while the detector is warming up'
+            : 'In a volatile, degraded or recovering regime'}
           entries={kpiEntries.watch}
-          emptyText="Every model is holding steady."
+          emptyText={detector.known && !detector.anyArmed
+            ? 'Zero here means the detector has not been able to look yet, not that everything is fine.'
+            : 'Every model is holding steady.'}
           {...kpiCell('watch')}
         />
         <StatCellDetail
@@ -475,9 +508,21 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                   </span>
                 </td>
                 <td className="dm-status-cell">
-                  <span className={`dm-pill dm-pill--${m.regime.toLowerCase()}`}>
-                    {regimeLabel(m.regime)}
-                  </span>
+                  {/* Same rule as the headline tiles: while this model's detector is in cold
+                      start, `regime` is a fall-through default and "Steady" would be a verdict
+                      nobody reached. Say what is actually true — it has not been tested yet. */}
+                  {m.ph && m.ph.armed === false ? (
+                    <span
+                      className="dm-pill dm-pill--warming"
+                      title={`Not tested yet. The detector needs ${m.ph.coldStart ?? MIN_RUNS} days of history on this configuration and has ${m.ph.days ?? 0}.`}
+                    >
+                      Warming up
+                    </span>
+                  ) : (
+                    <span className={`dm-pill dm-pill--${m.regime.toLowerCase()}`}>
+                      {regimeLabel(m.regime)}
+                    </span>
+                  )}
                 </td>
                 {axes.map(a => {
                   const axis = m.axes[a.key];
@@ -531,7 +576,18 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                     {m.axesSource !== 'measured' && <span className="dm-modelled">modelled</span>}
                   </span>
                 </div>
-                <span className={`dm-pill dm-pill--${m.regime.toLowerCase()}`}>{regimeLabel(m.regime)}</span>
+                {/* The phone card is a second render path for the same row; it must not say
+                    "Steady" when the table says "Warming up". Same rule, one condition. */}
+                {m.ph && m.ph.armed === false ? (
+                  <span
+                    className="dm-pill dm-pill--warming"
+                    title={`Not tested yet. The detector needs ${m.ph.coldStart ?? MIN_RUNS} days of history on this configuration and has ${m.ph.days ?? 0}.`}
+                  >
+                    Warming up
+                  </span>
+                ) : (
+                  <span className={`dm-pill dm-pill--${m.regime.toLowerCase()}`}>{regimeLabel(m.regime)}</span>
+                )}
               </div>
               {tooFew ? (
                 <div className="dm-card-none">Not enough runs yet to measure change</div>

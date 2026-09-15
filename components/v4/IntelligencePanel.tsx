@@ -7,6 +7,7 @@ import { SAVINGS_PCT } from '@/lib/savings-estimate';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { getModelPricing } from '../../lib/model-pricing';
+import { isVolatile } from '../../lib/fleet-buckets';
 
 interface IntelligencePanelProps {
   recommendations: any;
@@ -119,12 +120,17 @@ export default function IntelligencePanel({
   if (recommendations?.avoidNow && Array.isArray(recommendations.avoidNow)) {
     recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
       if (model?.name) {
+        // The API builds this list from RANK and PRICE (routes/analytics.ts), not from any
+        // degradation finding — its own reason text says so: "Ranked #16 of 24 • Expensive
+        // at $17.00/1M tokens". Badging that DEGR claimed the model had got worse, which the
+        // drift monitor was simultaneously denying for the same model on the same screen.
+        // It is a value judgement, and the badge now says that instead.
         recoItems.push({
-          type: '⚠ AVOID NOW',
+          type: '⚠ POOR VALUE',
           name: getCompactName(model.name),
-          detail: model.reason || 'Poor performance detected',
+          detail: model.reason || 'Low rank for the price',
           score: model.score || 0,
-          status: 'DEGR',
+          status: 'COST',
           danger: true,
           providerDot: model.provider,
         });
@@ -132,12 +138,18 @@ export default function IntelligencePanel({
     });
   }
 
-  // Unreliable — volatile models from real scores (high variance / volatile status)
+  // Genuinely noisy models, measured by the SAME standard error the front-page VOLATILE
+  // count uses (lib/fleet-buckets), so the two cannot disagree in public again.
+  //
+  // This used to fire on `trend === 'down'` and label the result "UNRELIABLE · High
+  // variance detected". Direction is not variance: on 15 September 2026 it called
+  // gpt-5.6-terra unreliable for high variance while that model had one of the LOWEST
+  // standard errors on the board and the stat bar's VOLATILE count read 0.
   const volatileModels = modelScores
     .filter(m =>
       typeof m.currentScore === 'number' &&
-      (m.status === 'warning' || m.trend === 'down') &&
-      !recoItems.some(ri => ri.name === getCompactName(m.name)) // avoid duplicates
+      isVolatile(m) &&
+      !recoItems.some(ri => ri.name === getCompactName(m.name))
     )
     .slice(0, 1);
 
@@ -145,7 +157,9 @@ export default function IntelligencePanel({
     recoItems.push({
       type: '⚠ UNRELIABLE',
       name: getCompactName(m.name),
-      detail: m.stability ? `σ=${m.stability.toFixed(1)} | volatile` : 'High variance detected',
+      detail: typeof m.standardError === 'number'
+        ? `±${m.standardError.toFixed(1)} pts between identical runs`
+        : 'High variance between identical runs',
       score: m.currentScore,
       status: 'VOLA',
       danger: true,
