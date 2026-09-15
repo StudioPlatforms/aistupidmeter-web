@@ -856,7 +856,11 @@
 .md-st-export:hover { color: var(--accent, #1a73e8); border-color: var(--accent, #1a73e8); }
 .md-st-rows { display: flex; flex-direction: column; gap: 4px; }
 .md-st-head, .md-st-row {
-  display: grid; grid-template-columns: minmax(120px, 1.4fr) 92px minmax(90px, 1fr) minmax(140px, 1.3fr) 92px 44px;
+  /* Outcome column is 130px: wide enough for its widest pill, "SYMPTOM SILENCED" (129px
+     measured). At 92px that pill and "DID NOT RUN" overflowed into the score bar. A fixed
+     width rather than max-content because each row is its own grid, and a content-sized
+     column left the score bars misaligned between rows with and without the long pill. */
+  display: grid; grid-template-columns: minmax(120px, 1.4fr) 130px minmax(90px, 1fr) minmax(140px, 1.3fr) 92px 44px;
   align-items: center; gap: 6px 10px; font-size: 11px;
 }
 .md-st-head { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--phosphor-dim); padding: 0 8px 4px; border-bottom: 1px solid rgba(192,192,192,0.12); }
@@ -867,6 +871,7 @@
 .md-st-diff { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 5px; border-radius: 8px; border: 1px solid currentColor; opacity: 0.7; font-weight: 600; }
 .md-st-diff-hard, .md-st-diff-expert { color: var(--amber-warning, #ffb000); }
 .md-st-pill { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 9px; border: 1px solid currentColor; white-space: nowrap; }
+.md-st-pill-silenced, .md-st-pill-error { letter-spacing: 0.02em; }
 .md-st-pill-pass     { color: var(--phosphor-green, #35c46a); }
 .md-st-pill-fail     { color: rgba(255, 120, 120, 0.95); }
 .md-st-pill-partial  { color: var(--amber-warning, #ffb000); }
