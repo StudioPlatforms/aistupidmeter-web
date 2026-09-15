@@ -27,8 +27,9 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import StatCellDetail, { DetailEntry } from './v4/StatCellDetail';
 import { slugifyModelName } from '../lib/model-slug';
 import '../styles/drift-cards.css';
 
@@ -111,6 +112,9 @@ const AXES_BY_SUITE: Record<Suite, readonly Axis[]> = {
 };
 const SUITE_NAME: Record<Suite, string> = { hourly: 'coding', deep: 'reasoning', tooling: 'tool-use' };
 const AXES = AXES_BY_SUITE.hourly;
+
+/** The drift tiles keep their own look; only the reveal is shared with the stat bar. */
+const KPI_CLASSES = { value: 'dm-kpi-val', label: 'dm-kpi-lab', more: 'dm-kpi-more' } as const;
 
 /**
  * Where the colour scale saturates. The observed spread is -21..+23 with p95 at 10,
@@ -237,6 +241,45 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
     };
   }, [visible, driftData]);
 
+  // The names behind each headline number. Same reveal as the home page's stat bar:
+  // the reader's next question after "3 need watching" is always "which three", and the
+  // rows are already on the client.
+  const kpiEntries = useMemo(() => {
+    const row = (m: DriftStatus, value?: string | number | null): DetailEntry => ({
+      label: m.modelName,
+      note: m.provider || null,
+      value: value ?? null,
+    });
+    const regime = (m: DriftStatus) => m.regime.charAt(0) + m.regime.slice(1).toLowerCase();
+    const movedRows: DetailEntry[] = [];
+    for (const m of visible) {
+      const off = axes.filter(a => measured(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE');
+      if (off.length === 0) continue;
+      movedRows.push({
+        label: m.modelName,
+        note: off.map(a => a.label).join(', '),
+        value: off.length,
+      });
+    }
+    movedRows.sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
+    return {
+      total: visible.map(m => row(m, regime(m))),
+      stable: visible.filter(m => m.regime === 'STABLE').map(m => row(m)),
+      watch: visible.filter(m => m.regime !== 'STABLE').map(m => row(m, regime(m))),
+      moved: movedRows,
+    };
+  }, [visible, axes]);
+
+  const [kpiPinned, setKpiPinned] = useState<string | null>(null);
+  const [kpiHovered, setKpiHovered] = useState<string | null>(null);
+  const kpiCloseAll = useCallback(() => { setKpiPinned(null); setKpiHovered(null); }, []);
+  const kpiCell = (key: string) => ({
+    open: kpiPinned === key || kpiHovered === key,
+    onHover: (v: boolean) => setKpiHovered(v ? key : null),
+    onToggle: () => { setKpiPinned(p => (p === key ? null : key)); setKpiHovered(null); },
+    onClose: kpiCloseAll,
+  });
+
   if (loading) {
     return (
       <div className="drift-heatmap">
@@ -299,22 +342,58 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       {/* Headline numbers first - the panel should answer "is anything wrong?" before
           asking anyone to read a grid. */}
       <div className="dm-kpis">
-        <div className="dm-kpi">
-          <div className="dm-kpi-val">{summary.total}</div>
-          <div className="dm-kpi-lab">Models tracked</div>
-        </div>
-        <div className="dm-kpi">
-          <div className="dm-kpi-val">{summary.stable}</div>
-          <div className="dm-kpi-lab">Holding steady</div>
-        </div>
-        <div className={`dm-kpi${summary.watch ? ' is-watch' : ''}`}>
-          <div className="dm-kpi-val">{summary.watch}</div>
-          <div className="dm-kpi-lab">Need watching</div>
-        </div>
-        <div className={`dm-kpi${summary.moved ? ' is-watch' : ''}`}>
-          <div className="dm-kpi-val">{summary.moved}</div>
-          <div className="dm-kpi-lab">Readings off baseline</div>
-        </div>
+        <StatCellDetail
+          id="dm-kpi-total"
+          className="dm-kpi"
+          valueFirst
+          classes={KPI_CLASSES}
+          label="Models tracked"
+          value={summary.total}
+          title="Every model on the board that has a drift reading for this suite."
+          caption={`All ${summary.total} tracked, with the regime each is in`}
+          entries={kpiEntries.total}
+          emptyText="No model has a drift reading in this view."
+          {...kpiCell('total')}
+        />
+        <StatCellDetail
+          id="dm-kpi-stable"
+          className="dm-kpi"
+          valueFirst
+          classes={KPI_CLASSES}
+          label="Holding steady"
+          value={summary.stable}
+          title="Models whose own history shows no sustained change."
+          caption="No sustained change against their own past"
+          entries={kpiEntries.stable}
+          emptyText="No model is in a steady regime right now."
+          {...kpiCell('stable')}
+        />
+        <StatCellDetail
+          id="dm-kpi-watch"
+          className={`dm-kpi${summary.watch ? ' is-watch' : ''}`}
+          valueFirst
+          classes={KPI_CLASSES}
+          label="Need watching"
+          value={summary.watch}
+          title="Models in a volatile, degraded or recovering regime."
+          caption="In a volatile, degraded or recovering regime"
+          entries={kpiEntries.watch}
+          emptyText="Every model is holding steady."
+          {...kpiCell('watch')}
+        />
+        <StatCellDetail
+          id="dm-kpi-moved"
+          className={`dm-kpi${summary.moved ? ' is-watch' : ''}`}
+          valueFirst
+          classes={KPI_CLASSES}
+          label="Readings off baseline"
+          value={summary.moved}
+          title="Individual dimension readings that have moved away from their own baseline. One model can contribute several."
+          caption="Which dimensions moved, and on which model"
+          entries={kpiEntries.moved}
+          emptyText="Every dimension is sitting on its baseline."
+          {...kpiCell('moved')}
+        />
       </div>
 
       {summary.typicalRuns > 0 && summary.typicalRuns < 12 && (

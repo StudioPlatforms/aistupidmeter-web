@@ -24,12 +24,28 @@ export interface DetailEntry {
   note?: string | null;
 }
 
+/**
+ * Class names for the cell's own three lines. Defaults are the home page's stat bar.
+ * The drift monitor passes its own so the tiles keep their existing look while gaining
+ * the same reveal — the popover itself is deliberately NOT overridable, because the two
+ * pages should show the detail identically.
+ */
+export interface StatCellClasses {
+  label?: string;
+  value?: string;
+  detail?: string;
+  more?: string;
+}
+
 interface Props {
   id: string;
   className: string;
   label: string;
   value: React.ReactNode;
-  detail: React.ReactNode;
+  detail?: React.ReactNode;
+  /** Big number above its caption, as the drift tiles read. Default is caption first. */
+  valueFirst?: boolean;
+  classes?: StatCellClasses;
   /** Native tooltip text — kept, because it explains what the number MEANS. */
   title?: string;
   /** The rows revealed on hover/tap. Empty or undefined leaves the cell inert. */
@@ -47,9 +63,15 @@ interface Props {
 const MAX_ROWS = 12;
 
 export default function StatCellDetail({
-  id, className, label, value, detail, title,
+  id, className, label, value, detail, title, valueFirst, classes,
   entries, emptyText, caption, open, onHover, onToggle, onClose,
 }: Props) {
+  const cls = {
+    label: classes?.label ?? 'v4-stat-label',
+    value: classes?.value ?? 'v4-stat-value',
+    detail: classes?.detail ?? 'v4-stat-detail',
+    more: classes?.more ?? 'v4-stat-more',
+  };
   const ref = useRef<HTMLDivElement>(null);
   const [flip, setFlip] = useState(false);
   const interactive = !!entries || !!emptyText;
@@ -95,12 +117,13 @@ export default function StatCellDetail({
       aria-expanded={interactive ? open : undefined}
       aria-controls={interactive ? `${id}-detail` : undefined}
     >
-      <div className="v4-stat-label">
+      {valueFirst && <div className={cls.value}>{value}</div>}
+      <div className={cls.label}>
         {label}
-        {interactive && <span className="v4-stat-more" aria-hidden="true">·</span>}
+        {interactive && <span className={cls.more} aria-hidden="true">·</span>}
       </div>
-      <div className="v4-stat-value">{value}</div>
-      <div className="v4-stat-detail">{detail}</div>
+      {!valueFirst && <div className={cls.value}>{value}</div>}
+      {detail != null && <div className={cls.detail}>{detail}</div>}
 
       {interactive && open && (
         <div

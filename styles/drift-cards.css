@@ -1315,3 +1315,12 @@
   .dm-legend-scale { flex-wrap: wrap; }
   .dm-ramp { max-width: none; }
 }
+
+/* The headline tiles reveal the models behind each number, the same way the home
+   page's stat bar does. The popover itself is styled in v4-layout.css and shared —
+   the tiles only need to become a positioning context and to look clickable. */
+.dm-kpi.v4-stat-has-detail { position: relative; cursor: pointer; }
+.dm-kpi.v4-stat-has-detail:hover,
+.dm-kpi.v4-stat-has-detail.is-open { border-color: var(--phosphor-dim); }
+.dm-kpi.v4-stat-has-detail:focus-visible { outline: 2px solid var(--phosphor-green); outline-offset: 2px; }
+.dm-kpi-more { margin-left: 4px; opacity: 0.45; }

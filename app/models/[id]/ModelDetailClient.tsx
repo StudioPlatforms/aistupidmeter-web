@@ -625,6 +625,7 @@ export default function ModelDetailClient({
           modelName={modelDetails.name}
           provider={modelDetails.vendor}
           currentScore={currentScore}
+          modelId={modelDetails.id}
         />
       </div>
 
