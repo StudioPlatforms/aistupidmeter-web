@@ -119,6 +119,34 @@ function updatedTitle(model: any): string | undefined {
  * "2 of 3 suites (no deep); deep ran doc_memory, ..." -> "2/3", with the full sentence left
  * to the tooltip. The previous `.replace(/ suites.*$/, '/3')` produced "2 of 3/3".
  */
+/** "repo_bounce_retry" -> "Bounce Retry", the name the model page uses for the same task. */
+function prettyTask(slug: string): string {
+  return slug.replace(/^(py\/)?repo_/, '').replace(/^py\//, '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+/**
+ * What the hover on a partial-coverage label says. The label alone ("5/7 tasks") tells a
+ * reader the corpus was narrower; it does not say why, and the why matters: the provider
+ * refused those tasks at the API, the platform drops a refused task rather than scoring
+ * it zero, and a score over fewer tasks is never called tied with one over all of them.
+ */
+function coverageTitle(note: string, declined: string[] | null | undefined): string {
+  const tasks = /(\d+) of (\d+) coding tasks/.exec(note);
+  const suites = /^(\d+) of (\d+) suites \(no ([^)]+)\)/.exec(note);
+  const parts: string[] = [];
+  if (suites) parts.push(`Scored over ${suites[1]} of 3 suites: no ${suites[3]} measurement is fresh enough to count.`);
+  if (tasks) {
+    const n = Number(tasks[2]) - Number(tasks[1]);
+    const names = declined && declined.length ? declined.map(prettyTask).join(', ') : null;
+    parts.push(
+      `Coding score covers ${tasks[1]} of ${tasks[2]} tasks. The provider declined ${n === 1 ? 'one task' : `${n} tasks`}` +
+      (names ? ` (${names})` : '') +
+      `: its API returned a refusal, not a wrong answer. A declined task is dropped rather than scored zero, so this score is over a narrower and on average easier set of tasks than a ${tasks[2]}-of-${tasks[2]} score, and it is never called tied with one. The model page lists the declined tasks.`
+    );
+  }
+  return parts.length ? parts.join(' ') : note;
+}
+
 function shortCoverage(note: string): string {
   // Two different kinds of partial live in this string and they must not read the same.
   // "2 of 3 suites" means a whole suite is missing; "5 of 7 coding tasks" means the model's
@@ -367,7 +395,7 @@ export default function V4Leaderboard({
                   <span className="v4-lb-score" style={{ color: held ? 'var(--phosphor-dim)' : scoreColor(score!) }}>{score}</span>
                   {held && <div className="v4-cov v4-cov-held">not ranked</div>}
                   {!held && coverageNote && !isReasoningView && (
-                    <div className="v4-cov v4-cov-partial" title={coverageNote}>{shortCoverage(coverageNote)}</div>
+                    <div className="v4-cov v4-cov-partial" title={coverageTitle(coverageNote, model.declinedTasks)} aria-label={coverageTitle(coverageNote, model.declinedTasks)}>{shortCoverage(coverageNote)}</div>
                   )}
                 </>
               )}
