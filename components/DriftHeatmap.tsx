@@ -217,8 +217,14 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
   }, [visible, sortKey, boardOrder]);
 
   const summary = useMemo(() => {
+    // Count a reading as off baseline ONLY if it is comparable — the same gate the cell
+    // itself uses before it will flag, tint or put a number on anything. Counting merely
+    // `measured` readings meant the tile could claim "5 readings off baseline" while every
+    // cell below showed no colour and no delta, because a status can be VOLATILE from
+    // variance alone before there are two windows to compare against. The matrix was right
+    // and the headline was wrong; they now ask the same question.
     const moved = visible.reduce(
-      (n, m) => n + axes.filter(a => measured(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE').length,
+      (n, m) => n + axes.filter(a => comparable(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE').length,
       0
     );
     return {
@@ -253,7 +259,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
     const regime = (m: DriftStatus) => m.regime.charAt(0) + m.regime.slice(1).toLowerCase();
     const movedRows: DetailEntry[] = [];
     for (const m of visible) {
-      const off = axes.filter(a => measured(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE');
+      const off = axes.filter(a => comparable(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE');
       if (off.length === 0) continue;
       movedRows.push({
         label: m.modelName,
@@ -269,6 +275,13 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       moved: movedRows,
     };
   }, [visible, axes]);
+
+  // Zero has two very different meanings here, and saying the wrong one is how a monitor
+  // gets trusted when it should not be: nothing has moved, versus nothing can be compared yet.
+  const nothingComparable = useMemo(
+    () => visible.length > 0 && visible.every(m => axes.every(a => !comparable(m.axes[a.key]))),
+    [visible, axes]
+  );
 
   const [kpiPinned, setKpiPinned] = useState<string | null>(null);
   const [kpiHovered, setKpiHovered] = useState<string | null>(null);
@@ -389,9 +402,11 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
           label="Readings off baseline"
           value={summary.moved}
           title="Individual dimension readings that have moved away from their own baseline. One model can contribute several."
-          caption="Which dimensions moved, and on which model"
+          caption={nothingComparable ? 'Nothing is comparable yet on this configuration' : 'Which dimensions moved, and on which model'}
           entries={kpiEntries.moved}
-          emptyText="Every dimension is sitting on its baseline."
+          emptyText={nothingComparable
+            ? `No dimension has enough runs on this configuration yet to compare against a baseline, so nothing can be off it. Readings return after ${MIN_RUNS} runs.`
+            : 'Every dimension is sitting on its baseline.'}
           {...kpiCell('moved')}
         />
       </div>
