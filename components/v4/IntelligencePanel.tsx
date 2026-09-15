@@ -58,11 +58,13 @@ export default function IntelligencePanel({
 
   if (recommendations?.bestForCode?.name) {
     const b = recommendations.bestForCode;
-    const acc = b.correctness ? `${Math.round(b.correctness)}%` : b.score ? `${Math.round(b.score)}%` : 'High';
+    // Only claim a correctness figure when one was measured. The API used to send
+    // `score * 0.9` here and this printed it as "78% correct" for a model measured at 100%.
+    const acc = typeof b.correctness === 'number' ? `${Math.round(b.correctness)}% correct` : 'top ranked';
     recoItems.push({
       type: 'BEST FOR CODE',
       name: getCompactName(b.name),
-      detail: `${acc} correct | ${b.provider || ''}`,
+      detail: `${acc}${b.provider ? ` | ${b.provider}` : ''}`,
       score: b.score || b.correctness || 0,
       status: 'STBL',
       providerDot: b.provider,
