@@ -47,10 +47,12 @@ export function axisWeightLabel(fullName: string): string {
 }
 const combinedAxKeys = ['correctness', 'complexity', 'codeQuality', 'efficiency', 'stability', 'edgeCases', 'debugging', 'format', 'safety'];
 
-// Reasoning benchmark: 13 axes (suite=deep) — same 9 + 4 reasoning-specific
-const reasoningAxisLabels = ['CORR', 'CMPL', 'QUAL', 'EFF', 'STBL', 'EDGE', 'DBG', 'FMT', 'SAFE', 'CTX', 'HALL', 'MEM', 'PLAN'];
-const reasoningAxisFullNames = ['Correctness', 'Complexity', 'Code Quality', 'Efficiency', 'Stability', 'Edge Cases', 'Debugging', 'Format', 'Safety', 'Context Window', 'Hallucination Rate', 'Memory Retention', 'Plan Coherence'];
-const reasoningAxKeys = ['correctness', 'complexity', 'codeQuality', 'efficiency', 'stability', 'edgeCases', 'debugging', 'format', 'safety', 'contextWindow', 'hallucinationRate', 'memoryRetention', 'planCoherence'];
+// Reasoning benchmark: 9 axes (suite=deep) — six shared with coding + three continuity axes.
+// complexity, efficiency, format and hallucinationRate were retracted on 2026-09-15: the first
+// two were constants across the fleet and the other two were response-length counters.
+const reasoningAxisLabels = ['CORR', 'QUAL', 'STBL', 'EDGE', 'DBG', 'SAFE', 'CTX', 'MEM', 'PLAN'];
+const reasoningAxisFullNames = ['Correctness', 'Code Quality', 'Stability', 'Edge Cases', 'Debugging', 'Safety', 'Context Window', 'Memory Retention', 'Plan Coherence'];
+const reasoningAxKeys = ['correctness', 'codeQuality', 'stability', 'edgeCases', 'debugging', 'safety', 'contextWindow', 'memoryRetention', 'planCoherence'];
 
 // Tooling benchmark: 7 different axes (suite=tooling)
 const toolingAxisLabels = ['TOOL', 'PARAM', 'ERR', 'TASK', 'EFF', 'CTX', 'SAFE'];
@@ -76,10 +78,10 @@ const modeConfig: Record<string, {
   },
   reasoning: {
     title: 'DEEP REASONING RADAR',
-    subtitle: 'All 13 reasoning axes incl. context, hallucination, memory',
+    subtitle: 'All 9 reasoning axes incl. context, memory, plan coherence',
     heatmapTitle: 'DEEP REASONING HEATMAP',
-    axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // 13 reasoning axes
-    highlightIndices: [9, 10, 11, 12], // reasoning-specific: contextWindow, hallucination, memory, plan
+    axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8], // 9 reasoning axes
+    highlightIndices: [6, 7, 8], // continuity axes: contextWindow, memory, plan
     showHeatmap: true,
   },
   speed: {

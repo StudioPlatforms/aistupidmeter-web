@@ -72,10 +72,8 @@ const REASONING_AXES: AxisSpec[] = [
   { key: 'memoryRetention',  label: 'MEMORY RETENTION',icon: '🧠', weight: 'per task', description: 'Carrying commitments across turns' },
   { key: 'planCoherence',    label: 'PLAN COHERENCE',  icon: '🗺️', weight: 'per task', description: 'Staying consistent with its own plan' },
   { key: 'contextWindow',    label: 'CONTEXT WINDOW',  icon: '🔗', weight: 'per task', description: 'Using what was established earlier' },
-  { key: 'hallucinationRate',label: 'GROUNDEDNESS',    icon: '🕳️', weight: 'per task', description: 'Not inventing facts or APIs' },
   { key: 'debugging',        label: 'DEBUGGING',       icon: '🔧', weight: 'per task', description: 'Fixing what it broke' },
   { key: 'stability',        label: 'STABILITY',       icon: '🔄', weight: 'per task', description: 'Consistency across the session' },
-  { key: 'efficiency',       label: 'EFFICIENCY',      icon: '⚡', weight: 'per task', description: 'Turns and tokens spent' },
 ];
 
 /** Only axes the suite actually reported. No stand-ins, no derived values. */

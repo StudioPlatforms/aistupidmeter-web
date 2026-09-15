@@ -75,7 +75,7 @@ const PERIOD_TEXT: Record<string, string> = { '24h': '24 hours', '7d': '7 days',
 type Suite = 'hourly' | 'tooling' | 'deep';
 interface Axis { key: string; label: string; short: string }
 // One column set per suite, read from that suite's own series. The leaderboard sort decides
-// which: Reasoning → the thirteen reasoning axes, Tooling → the seven tool-use axes, anything
+// which: Reasoning → the nine reasoning axes, Tooling → the seven tool-use axes, anything
 // else → the coding suite's seven canonical axes.
 const AXES_BY_SUITE: Record<Suite, readonly Axis[]> = {
   hourly: [
@@ -89,16 +89,12 @@ const AXES_BY_SUITE: Record<Suite, readonly Axis[]> = {
   ],
   deep: [
     { key: 'correctness',       label: 'Correctness',     short: 'Corr' },
-    { key: 'complexity',        label: 'Complexity',      short: 'Cplx' },
     { key: 'codeQuality',       label: 'Code quality',    short: 'Code' },
-    { key: 'efficiency',        label: 'Efficiency',      short: 'Effic' },
     { key: 'stability',         label: 'Stability',       short: 'Stab' },
     { key: 'edgeCases',         label: 'Edge cases',      short: 'Edge' },
     { key: 'debugging',         label: 'Debugging',       short: 'Debug' },
-    { key: 'format',            label: 'Format',          short: 'Fmt' },
     { key: 'safety',            label: 'Safety',          short: 'Safe' },
     { key: 'memoryRetention',   label: 'Memory',          short: 'Mem' },
-    { key: 'hallucinationRate', label: 'No hallucination',short: 'Halluc' },
     { key: 'planCoherence',     label: 'Plan coherence',  short: 'Plan' },
     { key: 'contextWindow',     label: 'Context use',     short: 'Ctx' },
   ],

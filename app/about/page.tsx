@@ -359,7 +359,7 @@ export default function AboutPage() {
               },
               {
                 title: 'Deep Reasoning Sessions',
-                desc: 'Multi-turn dialogues scored on 13 axes including memory retention, plan coherence and hallucination rate.',
+                desc: 'Multi-turn dialogues scored on 9 axes including memory retention, plan coherence and context use.',
                 items: ['4,400+ multi-turn sessions', 'Turn-by-turn scoring', 'Raw outputs retained where retention policy allows'],
               },
             ].map((dataset, i) => (

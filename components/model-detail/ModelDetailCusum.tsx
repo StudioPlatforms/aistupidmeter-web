@@ -206,10 +206,11 @@ export default function ModelDetailCusum({
               Not enough history yet
             </div>
             <div style={{ color: 'var(--phosphor-dim)', fontSize: 12, maxWidth: 460, margin: '0 auto' }}>
-              Change detection needs at least {series.minObservations} days of history to
-              establish a baseline before a curve means anything. This model has{' '}
-              {series.totalDays} {series.totalDays === 1 ? 'day' : 'days'}{' '}
-              ({series.totalRuns} runs) — about {series.daysUntilAvailable} more to go.
+              Change detection needs at least {series.minObservations} days on the current
+              benchmark configuration to establish a baseline before a curve means anything.
+              Earlier days were measured on a previous configuration and are not comparable.
+              This model has {series.totalDays} {series.totalDays === 1 ? 'day' : 'days'} on
+              the current one — about {series.daysUntilAvailable} more to go.
             </div>
           </div>
         </div>
