@@ -37,6 +37,8 @@ interface TaskRow {
   // coding
   kind?: 'repo' | 'function';
   repo?: CodingRepo | null;
+  /** Present when status is 'declined': what the provider's API sent instead of an answer. */
+  refusal?: { signal?: string | null; category?: string | null; explanation?: string | null } | null;
   // reasoning
   turns?: number | null;
   plannedTurns?: number | null;
@@ -106,7 +108,7 @@ function ago(ts: string | null) {
   return `${Math.round(h / 24)} d ago`;
 }
 const STATUS_LABEL: Record<TaskRow['status'], string> = {
-  pass: 'passed', fail: 'failed', partial: 'partial', declined: 'declined', silenced: 'symptom silenced', error: 'did not run',
+  pass: 'passed', fail: 'failed', partial: 'partial', declined: 'refused', silenced: 'symptom silenced', error: 'did not run',
 };
 
 /** Tiny inline sparkline — no chart library for a 14-point line. */
@@ -224,7 +226,7 @@ export default function ModelDetailSuiteTasks({
               {suite === 'deep' && <div className="md-st-stat"><span className="md-st-stat-v">{tasks.reduce((a, t) => a + (t.turns ?? 0), 0)}</span><span className="md-st-stat-k">turns</span></div>}
               {suite === 'tooling' && <div className="md-st-stat"><span className="md-st-stat-v">{tasks.reduce((a, t) => a + (t.toolCalls?.total ?? 0), 0)}</span><span className="md-st-stat-k">tool calls</span></div>}
               {totalTokens > 0 && <div className="md-st-stat"><span className="md-st-stat-v">{fmtK(totalTokens)}</span><span className="md-st-stat-k">tokens out</span></div>}
-              {declined > 0 && <div className="md-st-stat md-st-stat-warn"><span className="md-st-stat-v">{declined}</span><span className="md-st-stat-k">declined</span></div>}
+              {declined > 0 && <div className="md-st-stat md-st-stat-warn" title="The model's API returned a refusal instead of an answer. Left out of the score, not counted as zero."><span className="md-st-stat-v">{declined}</span><span className="md-st-stat-k">refused</span></div>}
               {silenced > 0 && <div className="md-st-stat md-st-stat-warn"><span className="md-st-stat-v">{silenced}</span><span className="md-st-stat-k">symptom silenced</span></div>}
               {canExport && <button type="button" className="md-st-export" onClick={() => exportRun(suite)} title="Download this run as JSON">Export JSON</button>}
             </div>
@@ -248,9 +250,11 @@ export default function ModelDetailSuiteTasks({
                 } else {
                   detail = <>{t.toolCalls ? <><span className={t.toolCalls.failed > 0 ? 'md-st-bad' : ''}>{t.toolCalls.ok}</span>/{t.toolCalls.total} ok</> : '—'} · {t.turns ?? '—'} turns · {fmtMs(t.latencyMs)}</>;
                 }
-                const hasMore = proDetail && (
+                // Why a task was refused is not a Pro detail: anyone reading a 5-of-7 row is owed it.
+                const refused = t.status === 'declined';
+                const hasMore = refused || (proDetail && (
                   (suite === 'hourly' && t.repo) || (suite === 'deep' && t.steps && t.steps.length > 0) || (suite === 'tooling' && ((t.tools && t.tools.length > 0) || (t.errors ?? 0) > 0))
-                );
+                ));
                 return (
                   <div key={key} className={`md-st-row md-st-${t.status}${isOpen ? ' is-open' : ''}`} role="row">
                     <span className="md-st-name" title={t.label}>
@@ -261,7 +265,7 @@ export default function ModelDetailSuiteTasks({
                     <span className="md-st-status"><span className={`md-st-pill md-st-pill-${t.status}`}>{STATUS_LABEL[t.status]}</span></span>
                     <span className="md-st-score"><ScoreBar value={t.score} /><span className="md-st-score-n">{t.score == null ? '—' : Math.round(t.score)}</span></span>
                     <span className="md-st-col-detail md-st-detail">
-                      {proDetail ? detail : <button type="button" className="md-st-lock" onClick={onShowProModal}>details · Pro</button>}
+                      {refused ? <span className="md-st-bad">refused by the model&rsquo;s API</span> : proDetail ? detail : <button type="button" className="md-st-lock" onClick={onShowProModal}>details · Pro</button>}
                     </span>
                     <span className="md-st-col-spark">
                       {proDetail ? <Spark points={h[t.slug] ?? []} /> : <button type="button" className="md-st-lock" onClick={onShowProModal} aria-label="14-day trend is a Pro feature">◆</button>}
@@ -273,6 +277,14 @@ export default function ModelDetailSuiteTasks({
                     )}
                     {isOpen && hasMore && (
                       <div className="md-st-expand">
+                        {refused && (
+                          <div className="md-st-bad">
+                            Refused by the model: its API returned a refusal instead of an answer
+                            {t.refusal?.signal ? ` (${t.refusal.signal})` : ''}{t.refusal?.category ? `, category ${t.refusal.category}` : ''}.
+                            The task was left out of this score rather than counted as zero, which is why the score covers {measured.length} of {tasks.length} tasks.
+                            {t.refusal?.explanation && <div className="md-st-muted">{t.refusal.explanation}</div>}
+                          </div>
+                        )}
                         {suite === 'hourly' && t.repo && (
                           <>
                             <div><b>Edited:</b> {t.repo.editedFile ?? 'no file recorded'}</div>

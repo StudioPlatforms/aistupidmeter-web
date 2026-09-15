@@ -82,10 +82,10 @@ export default function ModelDetailTaskBreakdown({
   // (numerator and denominator) — which is exactly why it has to be said out loud somewhere.
   const refusalLine = declined > 0 && refusals ? (
     <div className="md-tb-refusals">
-      Declined {declined} {declined === 1 ? 'task' : 'tasks'} in the last 7 days
+      Refused by the model: {declined} {declined === 1 ? 'task' : 'tasks'} in the last 7 days
       {' ('}
       {Object.entries(refusals.bySuite).map(([suite, n]) => `${SUITE_LABEL[suite] ?? suite} ${n}`).join(', ')}
-      {')'}. Refusals are not scored as failures &mdash; each one drops out of the score instead.
+      {')'}. Its API returned a refusal instead of an answer. A refusal is not scored as a failure &mdash; each one drops out of the score instead.
     </div>
   ) : null;
 
