@@ -36,6 +36,11 @@ interface CostData {
   perSuite: SuiteCost[];
   dailyTotalUsd: number | null;
   monthlyTotalUsd: number | null;
+  partialDailyUsd: number | null;
+  suitesMeasured: number;
+  suitesTotal: number;
+  suitesMissing: string[];
+  complete: boolean;
   anyMeasured: boolean;
 }
 
@@ -68,9 +73,10 @@ export default function ModelDetailPricing({ modelName, provider, currentScore, 
     return () => { cancelled = true; };
   }, [modelId]);
 
-  // Value per dollar is now anchored to what a benchmark run of this model really costs,
-  // not to a guessed token blend. Falls back to the list-price blend until a run is priced.
-  const perDay = cost?.dailyTotalUsd ?? null;
+  // Value per dollar is anchored to what a benchmark run of this model really costs —
+  // but ONLY once every suite has been priced. Dividing by a partial sum inflates the
+  // score by exactly the factor the cost is short by, which on the first day was 25x.
+  const perDay = cost?.complete ? cost.dailyTotalUsd : null;
   const blended = (pricing.input * 0.4) + (pricing.output * 0.6);
   const valueBasis = perDay && perDay > 0 ? perDay : blended;
   const valueScore = currentScore > 0 && valueBasis > 0 ? (currentScore / valueBasis) : 0;
@@ -118,16 +124,26 @@ export default function ModelDetailPricing({ modelName, provider, currentScore, 
             </div>
           ))}
           <div className="md-info-row">
-            <span className="md-info-label">Total to benchmark</span>
+            <span className="md-info-label">
+              {cost?.complete ? 'Total to benchmark' : `Priced so far (${cost?.suitesMeasured}/${cost?.suitesTotal} suites)`}
+            </span>
             <span className="md-info-value" style={{ color: 'var(--amber-warning)' }}>
-              {usd(perDay as number)}/day
-              {cost?.monthlyTotalUsd ? (
+              {usd((cost?.complete ? cost.dailyTotalUsd : cost?.partialDailyUsd) as number)}/day
+              {cost?.complete && cost?.monthlyTotalUsd ? (
                 <span style={{ opacity: 0.55, marginLeft: 5 }}>
                   ≈ ${cost.monthlyTotalUsd.toFixed(0)}/mo
                 </span>
               ) : null}
             </span>
           </div>
+          {cost && !cost.complete && (
+            <div style={{ marginTop: 6, fontSize: '9px', color: 'var(--phosphor-dim)', lineHeight: 1.4 }}>
+              Not the full cost: {cost.suitesMissing.join(', ')}{' '}
+              {cost.suitesMissing.length === 1 ? 'has' : 'have'} not run since cost capture
+              began, so {cost.suitesMissing.length === 1 ? 'it is' : 'they are'} not counted
+              here. Coding runs every four hours; reasoning and tooling once a day.
+            </div>
+          )}
         </>
       ) : (
         <div className="md-info-row">
@@ -144,6 +160,9 @@ export default function ModelDetailPricing({ modelName, provider, currentScore, 
         <span className="md-info-label">Value Score</span>
         <span className="md-info-value" style={{ color: valueColor }}>
           {valueScore.toFixed(1)} pts/$
+          {!cost?.complete && (
+            <span style={{ opacity: 0.55, marginLeft: 5 }}>vs list price</span>
+          )}
         </span>
       </div>
 
