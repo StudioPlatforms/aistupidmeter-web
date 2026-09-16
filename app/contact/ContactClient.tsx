@@ -19,6 +19,7 @@ const TOPICS: Array<{ id: string; label: string; blurb: string }> = [
   { id: 'general', label: 'General', blurb: 'Anything that does not fit the others.' },
   { id: 'enterprise', label: 'Enterprise', blurb: 'Contracted scope, SSO, SCIM, audit trail, invoicing.' },
   { id: 'sales', label: 'Sales & pricing', blurb: 'Which plan fits, volume pricing, annual terms.' },
+  { id: 'custom-benchmark', label: 'Custom benchmarking', blurb: 'Continuous measurement of your own workload, built and run by us.' },
   { id: 'support', label: 'Support', blurb: 'Something is not working the way it should.' },
   { id: 'security', label: 'Security', blurb: 'Vulnerability reports and security questions.' },
   { id: 'press', label: 'Press', blurb: 'Questions about the benchmark or our methodology.' },
@@ -166,7 +167,9 @@ export default function ContactClient() {
               onChange={e => setMessage(e.target.value)}
               style={{ ...input, resize: 'vertical', lineHeight: 1.6 }}
               placeholder={
-                topic === 'enterprise'
+                topic === 'custom-benchmark'
+                  ? 'What the model does for you, what a good and a bad answer look like, roughly how many example tasks you could supply, and which models you run today.'
+                  : topic === 'enterprise'
                   ? 'How many people would use it, which identity provider you use, and what you need to sign off on.'
                   : topic === 'security'
                     ? 'What you found, how to reproduce it, and how you would like to be credited.'

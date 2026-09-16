@@ -30,7 +30,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { PLANS, SELLABLE_PLANS, isUnlimited, type Plan } from '@/lib/entitlements';
+import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, isUnlimited, type Plan } from '@/lib/entitlements';
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 import { upgradeHref } from '@/lib/checkout-url';
 
@@ -45,7 +45,8 @@ const ROWS: Array<{ label: string; get: (p: Plan) => string; note?: string }> = 
   { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels) },
   { label: 'Comparable history',    get: p => PLANS[p].historyDays === null ? 'Everything we hold' : `${PLANS[p].historyDays} days` },
   { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : 'No', note: 'Coding, reasoning, tool-calling and price sorts' },
-  { label: 'Data API',              get: p => `${PLANS[p].dataApiTier} tier` },
+  { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
+    note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
   { label: 'Routed requests / mo',  get: p => fmt(PLANS[p].routerRequestsPerMonth), note: 'You bring your own provider keys; providers bill you for inference directly' },
   { label: 'Decision-log history',  get: p => `${PLANS[p].routerDiagnosticDays} days` },
   { label: 'Editor seats',          get: p => fmt(PLANS[p].seats), note: 'Viewers are unlimited on plans with projects' },
@@ -226,6 +227,81 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
         })}
       </div>
 
+      {/* Bespoke work sits outside the plan ladder on purpose: it is contracted and
+          human-operated, so it has no entitlement row and nothing here is self-serve.
+          Saying that plainly is the point — the evaluation-units row was removed from
+          the table above for advertising an allowance no customer could spend, and a
+          custom benchmark described as though it were a feature toggle would repeat it. */}
+      <h2 style={{ fontSize: '1.05em', margin: '32px 0 4px' }}>Beyond the plans</h2>
+      <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: '0 0 14px', maxWidth: 720 }}>
+        The plans above measure the models everyone can see. These two measure <em>your</em> workload
+        instead. Both are contracted and run by us rather than switched on in the product, and both
+        start with a scoping conversation in which we will tell you if your workload is not one we
+        can measure reliably.
+      </p>
+
+      <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginBottom: 34 }}>
+        <div style={{
+          padding: '18px 17px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 10,
+          border: '1px solid var(--accent, #1a73e8)', background: 'rgba(26,115,232,0.04)',
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1.02em' }}>Custom continuous benchmarking</div>
+            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 3 }}>Contracted · priced on scope</div>
+          </div>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            A public benchmark measures general capability. If you use a model for one specific job —
+            triaging claims, reviewing code, pulling fields out of your own documents — a general
+            score only tells you so much. We build a benchmark out of your workload and run it on the
+            same schedule as the public suites, so you learn when a model gets worse at{' '}
+            <em>your</em> job rather than at ours.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.83em', lineHeight: 1.75, color: 'var(--phosphor-dim)' }}>
+            <li>A task set built from your real work, with the answer keys held out of the prompt</li>
+            <li>Run repeatedly against the models you actually use, scored on the median of several trials</li>
+            <li>The same change detection the public board runs, with a baseline for your suite alone</li>
+            <li>Results reach you through the alerts, webhooks, exports and Data API your plan already has</li>
+            <li>A scheduled review of what moved, and whether it is worth changing model</li>
+            <li>Your tasks stay yours: never published, never folded into the public corpus</li>
+          </ul>
+          <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', lineHeight: 1.55, margin: 0, opacity: 0.85 }}>
+            Provider inference runs on your own keys under a cap you agree first, so the measurement
+            bill is yours to see and cap. We charge for building and running the suite, never a markup
+            on tokens.
+          </p>
+          <Link href="/contact?topic=custom-benchmark" className="vintage-btn vintage-btn--primary"
+            style={{ padding: '9px 10px', textAlign: 'center', textDecoration: 'none', fontSize: '0.85em', marginTop: 'auto' }}>
+            Talk to us about your workload
+          </Link>
+        </div>
+
+        <div style={{
+          padding: '18px 17px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 10,
+          border: '1px solid var(--border-subtle, #2a2a2a)',
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1.02em' }}>Workload assessment</div>
+            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 3 }}>$490 · one-off, fixed scope</div>
+          </div>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            The smaller first step, and the usual way into continuous benchmarking. One workload,
+            measured once, against three candidate models — using your tasks rather than ours — with a
+            decision report at the end. Including, where the evidence supports it, a recommendation to
+            change nothing.
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.83em', lineHeight: 1.75, color: 'var(--phosphor-dim)' }}>
+            <li>Up to 20 tasks you supply, three candidate models</li>
+            <li>A decision report within seven business days of us having what we need</li>
+            <li>Credited in full against an annual plan bought within 30 days</li>
+            <li>Refunded if we cannot deliver the agreed report</li>
+          </ul>
+          <Link href="/assessment" className="vintage-btn"
+            style={{ padding: '9px 10px', textAlign: 'center', textDecoration: 'none', fontSize: '0.85em', marginTop: 'auto' }}>
+            See what an assessment covers
+          </Link>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h2 style={{ fontSize: '1.05em', margin: '0 0 12px' }}>What each plan includes</h2>
         {/* On a phone the table is wider than the viewport and the paid columns sit
@@ -259,7 +335,58 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
         </table>
       </div>
 
+      {/* Cadence and trial counts only. No fleet size: the number of tracked models
+          changes whenever a model is retired — seven went on one day — and a hard-coded
+          count on a pricing page is the drift this file exists to prevent. */}
+      <h2 style={{ fontSize: '1.05em', margin: '32px 0 4px' }}>What you are actually buying</h2>
+      <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: '0 0 14px', maxWidth: 720 }}>
+        Every plan reads the same measurement. What you pay for is how much of it you can see, how far
+        back, and what you can wire it into.
+      </p>
+      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', marginBottom: 6 }}>
+        <section>
+          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Four suites, on a fixed schedule</h3>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            Coding runs every four hours on real repository defects, graded by the project&rsquo;s own test
+            suite including tests the model never sees. Multi-turn reasoning and tool-calling run daily.
+            A small probe runs hourly to catch a sudden change between full runs.
+          </p>
+        </section>
+        <section>
+          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Repeated, then taken as a median</h3>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            Each coding task runs seven times and the median is scored, because one sample cannot tell a
+            model getting worse from a model having a bad afternoon. That repetition is most of what the
+            benchmark costs to run, and it is why an alert is worth believing.
+          </p>
+        </section>
+        <section>
+          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Gaps are shown, not filled</h3>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            If a provider declines a task or a session does not finish, that task drops out rather than
+            being scored zero. The row says how much of the set it covers, and a score measured over
+            fewer tasks is never called tied with one measured over all of them.
+          </p>
+        </section>
+        <section>
+          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Free is a real tier</h3>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            Current scores, every category ranking, seven days of history and the full methodology cost
+            nothing and need no account. A benchmark nobody can check is not worth reading, so the
+            evidence is not the paid part. Depth and workflow are.
+          </p>
+        </section>
+      </div>
+
       <div style={{ marginTop: 28, display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+        <section>
+          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>What happens at a limit</h3>
+          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
+            Nothing breaks silently. Routing stops at your monthly allowance unless you choose in billing
+            settings to continue and be charged for the overage. Data API calls beyond the ceiling are
+            refused with a clear error rather than throttled into a timeout.
+          </p>
+        </section>
         <section>
           <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Why annual is cheaper</h3>
           <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
