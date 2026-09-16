@@ -265,9 +265,10 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
             <li>Your tasks stay yours: never published, never folded into the public corpus</li>
           </ul>
           <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', lineHeight: 1.55, margin: 0, opacity: 0.85 }}>
-            Provider inference runs on your own keys under a cap you agree first, so the measurement
-            bill is yours to see and cap. We charge for building and running the suite, never a markup
-            on tokens.
+            We run your suite on our own provider accounts. You do not share API keys with us, and you
+            do not carry the inference bill — it is ours, and it is included in the contracted price.
+            That is also what scope means here: how many tasks, how many models and how often they run
+            is precisely what the measurement costs us to produce, so it is what sets the price.
           </p>
           <Link href="/contact?topic=custom-benchmark" className="vintage-btn vintage-btn--primary"
             style={{ padding: '9px 10px', textAlign: 'center', textDecoration: 'none', fontSize: '0.85em', marginTop: 'auto' }}>
@@ -398,9 +399,11 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
         <section>
           <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>What we do not charge for</h3>
           <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            Provider inference. You connect your own OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM
-            keys, and those providers bill you directly at their rates. We charge for the software and
-            the measurement, never a markup on tokens.
+            On every plan above, provider inference. You connect your own OpenAI, Anthropic, Google,
+            DeepSeek, Kimi or GLM keys, and those providers bill you directly at their rates. We charge
+            for the software and the measurement, never a markup on tokens. Custom continuous
+            benchmarking works the other way round and says so on its card: we run it on our accounts
+            and the inference is in the price.
           </p>
         </section>
         <section>
