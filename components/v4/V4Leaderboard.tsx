@@ -130,7 +130,7 @@ function prettyTask(slug: string): string {
  * refused those tasks at the API, the platform drops a refused task rather than scoring
  * it zero, and a score over fewer tasks is never called tied with one over all of them.
  */
-function coverageTitle(note: string, declined: string[] | null | undefined): string {
+function coverageTitle(note: string, declined: string[] | null | undefined, missingDeep?: Array<{ task: string; reason: string }> | null): string {
   const tasks = /(\d+) of (\d+) coding tasks/.exec(note);
   const suites = /^(\d+) of (\d+) suites \(no ([^)]+)\)/.exec(note);
   const parts: string[] = [];
@@ -144,6 +144,16 @@ function coverageTitle(note: string, declined: string[] | null | undefined): str
       `: its API returned a refusal, not a wrong answer. A declined task is dropped rather than scored zero, so this score is over a narrower and on average easier set of tasks than a ${tasks[2]}-of-${tasks[2]} score, and it is never called tied with one. The model page lists the declined tasks.`
     );
   }
+  const rs = /(\d+) of (\d+) reasoning tasks/.exec(note);
+  if (rs) {
+    const n = Number(rs[2]) - Number(rs[1]);
+    const why = missingDeep && missingDeep.length ? missingDeep.map(x => `${prettyTask(x.task)} ${x.reason}`).join('; ') : null;
+    parts.push(
+      `Reasoning score covers ${rs[1]} of ${rs[2]} tasks. ${n === 1 ? 'One session was' : `${n} sessions were`} not measured` +
+      (why ? ` (${why})` : '') +
+      `. A session that is not measured is left out rather than scored zero, so this score is over fewer tasks than a ${rs[2]}-of-${rs[2]} score and is never called tied with one.`
+    );
+  }
   return parts.length ? parts.join(' ') : note;
 }
 
@@ -153,12 +163,13 @@ function shortCoverage(note: string): string {
   // provider declined some tasks, so it was scored on a narrower corpus than its rivals.
   // Rendering both as a bare "5/7" would let the second pass for the first.
   const suites = /^(\d+) of (\d+) suites/.exec(note);
+  const coding = /(\d+) of (\d+) coding tasks/.exec(note);
+  const reasoning = /(\d+) of (\d+) reasoning tasks/.exec(note);
+  const taskBits = [coding && `${coding[1]}/${coding[2]}`, reasoning && `${reasoning[1]}/${reasoning[2]}`].filter(Boolean) as string[];
   if (suites) {
-    const tasks = /(\d+) of (\d+) coding tasks/.exec(note);
-    return tasks ? `${suites[1]}/${suites[2]} · ${tasks[1]}/${tasks[2]} tasks` : `${suites[1]}/${suites[2]}`;
+    return taskBits.length ? `${suites[1]}/${suites[2]} · ${taskBits.join(' · ')} tasks` : `${suites[1]}/${suites[2]}`;
   }
-  const tasks = /^(\d+) of (\d+) coding tasks/.exec(note);
-  if (tasks) return `${tasks[1]}/${tasks[2]} tasks`;
+  if (taskBits.length) return `${taskBits.join(' · ')} tasks`;
   const m = /^(\d+) of (\d+)/.exec(note);
   return m ? `${m[1]}/${m[2]}` : note;
 }
@@ -239,7 +250,11 @@ export default function V4Leaderboard({
   // its position on the board and shows the coverage badge under its score, which is the
   // honest statement: here is where it sorts, and here is why it is not called "tied". Same
   // condition the badge itself uses, so the two can never disagree.
-  const partialRow = (m: any) => !!m.coverage && leaderboardSortBy !== 'reasoning';
+  // Any coverage note marks a narrower measurement — a missing suite, declined coding tasks,
+  // or an unmeasured reasoning session — and such a row is never called tied. The
+  // reasoning view used to be exempt because its coverage field carried the rotation task
+  // name; it now carries "3 of 4 reasoning tasks" and must be treated like the rest.
+  const partialRow = (m: any) => !!m.coverage;
   const statRank = new Map<string, number>();
   {
     let leader: any = null;
@@ -394,8 +409,8 @@ export default function V4Leaderboard({
                 <>
                   <span className="v4-lb-score" style={{ color: held ? 'var(--phosphor-dim)' : scoreColor(score!) }}>{score}</span>
                   {held && <div className="v4-cov v4-cov-held">not ranked</div>}
-                  {!held && coverageNote && !isReasoningView && (
-                    <div className="v4-cov v4-cov-partial" title={coverageTitle(coverageNote, model.declinedTasks)} aria-label={coverageTitle(coverageNote, model.declinedTasks)}>{shortCoverage(coverageNote)}</div>
+                  {!held && coverageNote && (
+                    <div className="v4-cov v4-cov-partial" title={coverageTitle(coverageNote, model.declinedTasks, model.missingDeepTasks)} aria-label={coverageTitle(coverageNote, model.declinedTasks, model.missingDeepTasks)}>{shortCoverage(coverageNote)}</div>
                   )}
                 </>
               )}
