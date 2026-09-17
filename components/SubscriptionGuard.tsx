@@ -165,6 +165,11 @@ const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: s
     { title: 'Timing breakdowns', description: 'Hour-of-day performance so you can schedule around a provider’s bad windows.' },
     { title: 'Exports', description: 'Take the analysis into your own spreadsheets and dashboards.' },
   ],
+  calibration: [
+    { title: 'Fabrication rate', description: 'How often a model answers a question that has no answer — an invented library, a company that does not exist, a fact it cannot observe.' },
+    { title: 'Confidence you can use', description: 'Expected Calibration Error: whether a stated 90% actually comes out right about 90% of the time, or is a reassuring round number.' },
+    { title: 'The questions behind the number', description: 'Per-item results for the latest sweep, so the figure can be checked rather than taken on trust.' },
+  ],
   'api-monitoring': [
     { title: 'Per-key request logs', description: 'See exactly how each key is used, by which model, at what cost and latency.' },
     { title: 'Prompt auditing', description: 'Opt-in prompt retention with automatic secret scrubbing.' },

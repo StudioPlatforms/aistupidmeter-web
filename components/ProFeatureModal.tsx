@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
@@ -48,6 +48,16 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         'Read a degradation building before it trips an alert',
       ],
     },
+    calibration: {
+      title: 'Unlock calibration and known-unknowns',
+      description: 'Every other score on the site asks whether a model can do the task. This one asks whether it knows when it cannot — and whether the confidence it states means anything.',
+      benefits: [
+        'Fabrication rate: how often it answers a question that has no answer',
+        'Expected Calibration Error — does a stated 90% actually come out right 90% of the time',
+        'Abstention behaviour on non-existent entities, withheld details and unobservable facts',
+        'Per-question detail, so you can see what produced the number',
+      ],
+    },
     'api-monitoring': {
       title: 'Unlock API monitoring',
       description: 'One dashboard for every request across all your provider keys — usage, cost, prompts and budgets.',
@@ -65,7 +75,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
   /**
    * Quote the cheapest plan that actually unlocks THIS feature.
    *
-   * Three of the four are analytics and come with Pro. API monitoring is a
+   * Four of the five are analytics and come with Pro. API monitoring is a
    * routing surface and does not — telling someone $9 buys it would be a
    * promise the checkout could not keep.
    */

@@ -919,3 +919,61 @@
   .md-st-export { margin-left: 0; }
   .md-st-stat-v { font-size: 16px; }
 }
+
+/* ── Calibration & known-unknowns ──────────────────────────────────────────
+   Mirrors .md-st-summary rather than inventing a second stat style: this panel
+   sits directly below the suite tables and a different metric strip on the same
+   page reads as a different kind of measurement. */
+.md-cal-intro {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--phosphor-dim);
+  margin: 0 0 14px 0;
+  max-width: 78ch;
+}
+.md-cal-when { opacity: 0.8; }
+
+.md-cal-stats { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 26px; margin: 0 0 14px; }
+.md-cal-stat { display: inline-flex; flex-direction: column; line-height: 1.15; cursor: help; }
+.md-cal-stat-v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--phosphor-bright, inherit); }
+.md-cal-stat-k { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--phosphor-dim); margin-top: 2px; }
+
+.md-cal-fleet { font-size: 11.5px; color: var(--phosphor-dim); margin: 0 0 10px; }
+
+/* Only rendered when the model actually fabricated something, so it never
+   becomes decorative chrome the eye learns to skip. */
+.md-cal-flag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border-left: 3px solid var(--red-alert, #e4574c);
+  background: rgba(228, 87, 76, 0.08);
+  margin: 0 0 12px;
+}
+
+.md-cal-toggle {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 4px;
+  border: 1px solid var(--metal-silver, rgba(192,192,192,0.35));
+  background: transparent; color: var(--phosphor-dim); cursor: pointer;
+}
+.md-cal-toggle:hover { color: var(--accent, #1a73e8); border-color: var(--accent, #1a73e8); }
+
+.md-cal-table-wrap { overflow-x: auto; margin-top: 12px; }
+.md-cal-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.md-cal-table th {
+  text-align: left; padding: 6px 12px 6px 0; font-size: 9.5px;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--phosphor-dim); font-weight: 600;
+}
+.md-cal-table td { padding: 7px 12px 7px 0; border-top: 1px solid var(--metal-silver, rgba(192,192,192,0.18)); }
+.md-cal-td-id { font-family: var(--font-mono, ui-monospace, monospace); color: var(--phosphor-dim); white-space: nowrap; }
+.md-cal-td-kind { color: var(--phosphor-dim); white-space: nowrap; }
+.md-cal-td-conf { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.md-cal-note { font-size: 11px; line-height: 1.5; color: var(--phosphor-dim); margin-top: 10px; max-width: 72ch; }
+
+@media (max-width: 640px) {
+  .md-cal-stats { gap: 10px 18px; }
+  .md-cal-stat-v { font-size: 16px; }
+  .md-cal-table { font-size: 11px; }
+}

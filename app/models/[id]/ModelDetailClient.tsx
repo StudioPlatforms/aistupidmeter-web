@@ -28,6 +28,7 @@ import ModelDetailMatrix from '../../../components/model-detail/ModelDetailMatri
 import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum';
 import ModelDetailDriftStatus from '../../../components/model-detail/ModelDetailDriftStatus';
 import ModelDetailSliceRegressions from '../../../components/model-detail/ModelDetailSliceRegressions';
+import ModelDetailCalibration from '../../../components/model-detail/ModelDetailCalibration';
 import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
 
 // Shared components
@@ -192,7 +193,7 @@ export default function ModelDetailClient({
 
   // Pro modal
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration'>('historical-data');
 
   // Visitor counts (same as main page TopBar)
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
@@ -599,6 +600,16 @@ export default function ModelDetailClient({
         plan={plan}
         hasProAccess={hasProAccess}
         onShowProModal={() => { setProModalFeature('performance-matrix'); setShowProModal(true); }}
+      />
+
+      {/* Calibration and known-unknowns. Sits after the suite tables because it answers
+          the question they cannot: the model did or did not solve the task — but when it
+          has no way of knowing, does it say so, or invent something and sound sure? */}
+      <ModelDetailCalibration
+        modelId={modelId}
+        plan={plan}
+        hasProAccess={hasProAccess}
+        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
       />
 
       {/* Runs other people made with their own API keys. Deliberately placed AFTER every

@@ -35,6 +35,8 @@ export type Capability =
   | 'routing-analytics'
   /** Per-key request logs, prompt auditing, budget controls. */
   | 'api-monitoring'
+  /** Calibration and known-unknowns: confidence accuracy and abstention behaviour. */
+  | 'calibration'
   /** Shared workspace, seats, projects, webhooks. */
   | 'team'
   /** SSO, SCIM and the audit trail. */
@@ -49,6 +51,11 @@ export const REQUIRED_PLAN: Record<Capability, Plan> = {
   // Prompt auditing and budget enforcement are production concerns, and the
   // decision-log retention that makes them useful starts at Developer.
   'api-monitoring': 'developer',
+  // Every sweep behind this panel is inference we pay for, and it answers a
+  // production question — will this model invent an answer rather than decline —
+  // that the free board does not. Pro is the floor, so the cheapest paid plan
+  // still reaches it.
+  calibration: 'pro',
   team: 'teams',
   governance: 'teams',
 };
@@ -60,6 +67,7 @@ export const CAPABILITY_LABEL: Record<Capability, string> = {
   analysis: 'Deeper analysis',
   'routing-analytics': 'Routing analytics',
   'api-monitoring': 'API monitoring',
+  calibration: 'Calibration and known-unknowns',
   team: 'Shared workspace',
   governance: 'Security and governance',
 };

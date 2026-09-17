@@ -30,7 +30,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, isUnlimited, type Plan } from '@/lib/entitlements';
+import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 import { upgradeHref } from '@/lib/checkout-url';
 
@@ -45,6 +46,8 @@ const ROWS: Array<{ label: string; get: (p: Plan) => string; note?: string }> = 
   { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels) },
   { label: 'Comparable history',    get: p => PLANS[p].historyDays === null ? 'Everything we hold' : `${PLANS[p].historyDays} days` },
   { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : 'No', note: 'Coding, reasoning, tool-calling and price sorts' },
+  { label: 'Calibration & known-unknowns', get: p => planMeets(p, REQUIRED_PLAN.calibration) ? 'Yes' : '—',
+    note: 'Per model: how often it invents an answer to a question that has none, and whether its stated confidence is worth anything' },
   { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
     note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
   { label: 'Routed requests / mo',  get: p => fmt(PLANS[p].routerRequestsPerMonth), note: 'You bring your own provider keys; providers bill you for inference directly' },
@@ -60,7 +63,7 @@ const ROWS: Array<{ label: string; get: (p: Plan) => string; note?: string }> = 
 /** One-line summary of what a plan is for. */
 const PITCH: Record<Plan, string> = {
   free: 'Track three models and get a weekly summary of what changed.',
-  pro: 'Full history, the diagnosis behind every change, exports and custom alerts.',
+  pro: 'Full history, the diagnosis behind every change, calibration data, exports and custom alerts.',
   developer: 'Production routing volume, 30-day decision logs and your own workspace.',
   teams: 'Five editors, shared watchlists, webhooks, SSO and the audit trail.',
   enterprise: 'Contracted scope, unlimited seats, 365-day retention and invoicing.',
