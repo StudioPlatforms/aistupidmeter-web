@@ -4,7 +4,7 @@ import PricingClient from './PricingClient';
 import { priceIdFor, type SellablePlan } from '@/lib/stripe-plans';
 
 export const metadata: Metadata = {
-  title: 'Pricing | AI Stupid Level',
+  title: 'Pricing',
   description:
     'Free public benchmarks and seven-day history. Paid plans add longer comparable history, diagnosis, more tracked models, routing and team workflows. Provider inference is billed by your provider, not by us.',
   alternates: { canonical: '/pricing' },

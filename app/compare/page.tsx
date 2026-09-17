@@ -272,7 +272,7 @@ export default function ComparePage() {
 
         {/* Footer */}
         <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: '1px solid rgba(192,192,192,0.15)', fontSize: '10px', color: 'var(--phosphor-dim)', textAlign: 'center' }}>
-          AI Stupid Meter • Continuous benchmarking since 2025 • <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none' }}>View Full Rankings</Link>
+          AI Stupid Level • Continuous benchmarking since 2025 • <Link href="/" style={{ color: 'var(--phosphor-green)', textDecoration: 'none' }}>View Full Rankings</Link>
         </div>
 
       </div>

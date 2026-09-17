@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: {
     default: 'AI Smart Router — Intelligent API Gateway for All AI Models',
-    template: '%s | AI Smart Router — AI Stupid Meter',
+    template: '%s | Smart Router — AI Stupid Level',
   },
   description: 'AI Smart Router: one universal API key for OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM. Automatic model selection based on live benchmarks, prompt auditing, budget controls, cost analytics. Works with Cursor, Windsurf, Aider, Continue.dev, Cline, and more.',
   keywords: [
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title: 'AI Smart Router — One API Key for All AI Models',
     description: 'Intelligent AI API gateway with automatic model selection, prompt auditing, budget controls, and cost analytics. Works with Cursor, Windsurf, Aider, and 10+ tools.',
     url: 'https://aistupidlevel.info/router',
-    siteName: 'AI Stupid Meter — Smart Router',
+    siteName: 'AI Stupid Level — Smart Router',
   },
   twitter: {
     card: 'summary_large_image',

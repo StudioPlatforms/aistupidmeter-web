@@ -99,7 +99,7 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
       {/* System description */}
       <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(192,192,192,.06)', fontSize: '12px' }}>
         <div style={{ fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '6px', textShadow: '0 0 2px var(--phosphor-green)' }}>
-          &gt; WHAT IS STUPID METER?
+          &gt; WHAT IS CONTINUOUS EVALUATION?
         </div>
         <div style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
           Continuous, independent measurement of whether AI models degrade behind a stable API name. We benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.

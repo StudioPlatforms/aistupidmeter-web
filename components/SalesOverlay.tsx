@@ -167,7 +167,7 @@ export default function SalesOverlay() {
       </div>
 
       <div className="rv4-footer">
-        Powered by AI Stupid Meter • Real-time intelligence from 24 models • <a href="/">View Live Rankings</a>
+        Powered by AI Stupid Level • Real-time intelligence from 24 models • <a href="/">View Live Rankings</a>
       </div>
       </div>{/* /rv4-upgrade-container */}
     </div>

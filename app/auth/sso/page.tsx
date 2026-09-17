@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { SsoForm } from './SsoForm';
 
 export const metadata: Metadata = {
-  title: 'Single sign-on | AI Stupid Level',
+  title: 'Single sign-on',
   robots: { index: false, follow: false },
 };
 

@@ -1741,7 +1741,7 @@ export default function Dashboard() {
 
   // State for ticker content with fun messages - use useRef to avoid re-renders
   const [tickerContent, setTickerContent] = useState<string[]>([
-    '🚀 STUPID METER INITIALIZING...',
+    '🚀 CONTINUOUS EVALUATION INITIALIZING...',
     '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
     '📊 LOADING STUPIDITY METRICS...'
   ]);
@@ -2091,7 +2091,7 @@ export default function Dashboard() {
           setTickerIfChanged(basicContent);
         } else {
           const fallbackContent = [
-            '🚀 STUPID METER INITIALIZING...',
+            '🚀 CONTINUOUS EVALUATION INITIALIZING...',
             '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
             '📊 LOADING STUPIDITY METRICS...',
             '🔄 SYNCHRONIZING WITH MODEL INTELLIGENCE CENTER...'
@@ -2101,7 +2101,7 @@ export default function Dashboard() {
       } else {
         // Fallback when no data is available yet
         const fallbackContent = [
-          '🚀 STUPID METER INITIALIZING...',
+          '🚀 CONTINUOUS EVALUATION INITIALIZING...',
           '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
           '📊 LOADING STUPIDITY METRICS...',
           '🔄 SYNCHRONIZING WITH MODEL INTELLIGENCE CENTER...'
@@ -2113,7 +2113,7 @@ export default function Dashboard() {
       console.error('Error generating ticker content:', error);
       // Fallback to loading state (using throttled version)
       const fallbackContent = [
-        '🚀 STUPID METER INITIALIZING...',
+        '🚀 CONTINUOUS EVALUATION INITIALIZING...',
         '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
         '📊 LOADING STUPIDITY METRICS...'
       ];
@@ -2974,7 +2974,7 @@ export default function Dashboard() {
         <div className="crt-monitor" style={{ marginBottom: '24px' }}>
           <div className="terminal-text">
             <div style={{ fontSize: '1.8em', marginBottom: '16px', textAlign: 'center' }}>
-              <span className="terminal-text--green">ABOUT STUPID METER</span>
+              <span className="terminal-text--green">ABOUT THE PLATFORM</span>
               <span className="blinking-cursor"></span>
             </div>
             <div className="terminal-text--dim" style={{ fontSize: '1.1em', textAlign: 'center', marginBottom: '24px' }}>
@@ -3560,7 +3560,7 @@ export default function Dashboard() {
               marginBottom: 'var(--space-lg)',
               wordWrap: 'break-word'
             }}>
-              <span className="terminal-text--green">STUPID METER</span>
+              <span className="terminal-text--green">AI STUPID LEVEL</span>
               <span className="blinking-cursor"></span>
             </div>
             
@@ -4432,10 +4432,10 @@ export default function Dashboard() {
           <div style={{ fontSize: '0.9em', lineHeight: '1.6' }}>
             <div style={{ marginBottom: '16px' }}>
               <div className="terminal-text--green" style={{ fontSize: '1.1em', marginBottom: '8px' }}>
-                » WHAT IS STUPID METER?
+                » WHAT IS CONTINUOUS EVALUATION?
               </div>
               <div className="terminal-text--dim">
-                Stupid Meter continuously measures whether AI models degrade behind a stable API name. 
+                AI Stupid Level continuously evaluates whether models degrade behind a stable API name. 
                 We monitor <span className="terminal-text--green">OpenAI GPT models</span> (including the GPT-5.x line and Codex), 
                 <span className="terminal-text--green"> Anthropic Claude</span> (Opus, Sonnet and Fable), 
                 <span className="terminal-text--green"> Google Gemini</span>, 

@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import CompleteClient from './CompleteClient';
 
 export const metadata: Metadata = {
-  title: 'Signing you in | AI Stupid Level',
+  title: 'Signing you in',
   robots: { index: false, follow: false },
 };
 

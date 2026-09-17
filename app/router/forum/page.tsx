@@ -51,7 +51,7 @@ export default function ForumHomePage() {
   }, [status]);
 
   return (
-    <ForumLayout title="FORUM" subtitle="AI Stupid Meter Community — Discuss, share, and connect">
+    <ForumLayout title="FORUM" subtitle="AI Stupid Level Community — Discuss, share, and connect">
       <ForumBreadcrumbs items={[]} />
       <ForumSearch />
 

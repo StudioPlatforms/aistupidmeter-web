@@ -3,7 +3,7 @@ import AccountShell from '@/components/AccountShell';
 import SettingsClient from './SettingsClient';
 
 export const metadata: Metadata = {
-  title: 'Settings | AI Stupid Level',
+  title: 'Settings',
   description: 'Manage your account, email notifications and which models email you.',
   robots: { index: false, follow: false },
 };

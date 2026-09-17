@@ -4,7 +4,7 @@ import SubpageLayout from '@/components/SubpageLayout';
 import ContactClient from './ContactClient';
 
 export const metadata: Metadata = {
-  title: 'Contact us | AI Stupid Level',
+  title: 'Contact us',
   description:
     'Talk to us about plans, enterprise terms, support or security. A small team that answers its own email.',
   alternates: { canonical: '/contact' },

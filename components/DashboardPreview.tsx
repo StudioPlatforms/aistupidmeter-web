@@ -71,7 +71,7 @@ export default function DashboardPreview() {
         <button onClick={handleStartTrial} className="rv4-upgrade-cta">
           Start Free Trial →
         </button>
-        <div className="rv4-upgrade-fine-print">Cancel anytime • Instant access • Powered by AI Stupid Meter benchmarks</div>
+        <div className="rv4-upgrade-fine-print">Cancel anytime • Instant access • Powered by AI Stupid Level benchmarks</div>
       </div>
 
       {/* Pain points */}
@@ -101,7 +101,7 @@ export default function DashboardPreview() {
           <div className="rv4-upgrade-benefits">
             {[
               { icon: '→', title: 'Cost-Aware Routing', desc: `Prefers a cheaper model when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements.` },
-              { icon: '→', title: 'Best Model Always', desc: 'Real-time benchmarks from AI Stupid Meter prevent degraded models.' },
+              { icon: '→', title: 'Best Model Always', desc: 'Real-time benchmarks from AI Stupid Level prevent degraded models.' },
               { icon: '→', title: 'Zero Downtime', desc: 'Auto-failover ensures your apps keep running if a model goes down.' },
               { icon: '→', title: 'One Universal Key', desc: 'Replace all provider keys with one key for GPT, Claude, Gemini, DeepSeek, Kimi and GLM.' },
               { icon: '→', title: 'Full Analytics', desc: 'See every request, cost, latency, and provider breakdown in real-time.' },
@@ -212,7 +212,7 @@ export default function DashboardPreview() {
       </div>
 
       <div className="rv4-footer">
-        Powered by AI Stupid Meter • Real-time intelligence from 24 models • <a href="/">View Live Rankings</a>
+        Powered by AI Stupid Level • Real-time intelligence from 24 models • <a href="/">View Live Rankings</a>
       </div>
       </div>{/* /rv4-upgrade-container */}
     </div>

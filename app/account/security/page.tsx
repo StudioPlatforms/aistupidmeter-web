@@ -3,7 +3,7 @@ import AccountShell from '@/components/AccountShell';
 import SecurityClient from './SecurityClient';
 
 export const metadata: Metadata = {
-  title: 'Security & governance | AI Stupid Level',
+  title: 'Security & governance',
   description: 'Single sign-on, SCIM provisioning and the audit trail for your workspace.',
   robots: { index: false, follow: false },
 };

@@ -3,7 +3,7 @@ import AccountShell from '@/components/AccountShell';
 import AccountOverview from './AccountOverview';
 
 export const metadata: Metadata = {
-  title: 'Your account | AI Stupid Level',
+  title: 'Your account',
   description: 'Your plan, tracked models and usage in one place.',
   robots: { index: false, follow: false },
 };

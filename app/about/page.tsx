@@ -3,7 +3,7 @@ import Link from 'next/link';
 import SubpageLayout from '@/components/SubpageLayout';
 
 export const metadata: Metadata = {
-  title: 'About AI Stupid Level | Independent AI Benchmarking Platform',
+  title: 'Independent AI Benchmarking',
   description: 'Learn about our mission to provide transparent, independent AI model benchmarking. Meet our team, explore enterprise data licensing, and see how we keep the measurement honest.',
   keywords: [
     'About AI benchmarking platform', 'Independent AI testing', 'AI model drift dataset',

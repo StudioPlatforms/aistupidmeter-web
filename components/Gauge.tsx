@@ -26,7 +26,7 @@ export default function Gauge({ value, model, stupidScore, driftDetected }: Gaug
 
   return (
     <div style={{ textAlign: 'center', margin: '20px 0' }}>
-      <h3>🧠 Stupid Meter for {model}</h3>
+      <h3>🧠 Evaluation score for {model}</h3>
 
       <div style={{ position: 'relative', width: '200px', height: '120px', margin: '0 auto' }}>
         {/* Semi-circle gauge */}

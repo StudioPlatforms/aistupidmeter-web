@@ -3,7 +3,7 @@ import AccountShell from '@/components/AccountShell';
 import WatchlistClient from './WatchlistClient';
 
 export const metadata: Metadata = {
-  title: 'Your watchlist | AI Stupid Level',
+  title: 'Your watchlist',
   description:
     'Track the AI models your product depends on. Get a weekly summary of what changed, what stayed stable, and how much evidence sits behind each number.',
   alternates: { canonical: '/watchlist' },

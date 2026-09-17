@@ -3,7 +3,7 @@ import AccountShell from '@/components/AccountShell';
 import TeamClient from './TeamClient';
 
 export const metadata: Metadata = {
-  title: 'Team | AI Stupid Level',
+  title: 'Team',
   description: 'Your shared workspace: members, projects and webhooks.',
   robots: { index: false, follow: false },
 };

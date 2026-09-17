@@ -4,7 +4,7 @@ import BillingClient from './BillingClient';
 import { priceIdFor, type SellablePlan } from '@/lib/stripe-plans';
 
 export const metadata: Metadata = {
-  title: 'Plan & billing | AI Stupid Level',
+  title: 'Plan & billing',
   description: 'Your plan, what it includes, how much of it you are using, and how to change it.',
   robots: { index: false, follow: false },
 };

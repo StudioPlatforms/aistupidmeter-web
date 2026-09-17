@@ -171,7 +171,7 @@ export default function PreferencesPreview() {
       </div>
 
       <div className="rv4-footer">
-        Powered by AI Stupid Meter • Real-time benchmarks • <a href="/">View Live Rankings</a>
+        Powered by AI Stupid Level • Real-time benchmarks • <a href="/">View Live Rankings</a>
       </div>
       </div>{/* /rv4-upgrade-container */}
     </div>

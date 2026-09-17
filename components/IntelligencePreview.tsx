@@ -232,7 +232,7 @@ export default function IntelligencePreview() {
       </div>
 
       <div className="rv4-footer">
-        Data sourced from AI Stupid Meter • Real-time benchmarks • <a href="/">View Main Site</a>
+        Data sourced from AI Stupid Level • Real-time benchmarks • <a href="/">View Main Site</a>
       </div>
       </div>{/* /rv4-upgrade-container */}
     </div>

@@ -209,7 +209,7 @@ export default function RouterPreferencesPage() {
         <div className="rv4-page-header-left">
           <div>
             <div className="rv4-page-title">SMART ROUTER PREFERENCES<span className="blinking-cursor"></span></div>
-            <div className="rv4-page-title-sub">Configure intelligent model selection powered by real-time benchmarks from AI Stupid Meter</div>
+            <div className="rv4-page-title-sub">Configure intelligent model selection powered by real-time benchmarks from AI Stupid Level</div>
           </div>
         </div>
         <div className="rv4-page-header-right">
@@ -233,7 +233,7 @@ export default function RouterPreferencesPage() {
           <div className="rv4-info-banner-content">
             <div className="rv4-info-banner-title">HOW SMART ROUTING WORKS</div>
             <div className="rv4-info-banner-text">
-              Your router uses live benchmark data from AI Stupid Meter to make intelligent decisions.
+              Your router uses live benchmark data from AI Stupid Level to make intelligent decisions.
               Choose a strategy below, and the router will pick models matching your priorities within your constraints.
             </div>
           </div>

@@ -11,7 +11,7 @@ import '../styles/clean-theme.css'
 export const metadata: Metadata = {
   title: {
     default: 'AI Benchmarks & Drift Detection 2026 | Live AI Model Rankings & Degradation Tracking',
-    template: '%s | AI Stupid Meter — Benchmarks & Smart Router'
+    template: '%s | AI Stupid Level — Continuous LLM Evaluation'
   },
   // Leads with drift detection / degradation: it is the platform's actual
   // differentiator and the query cluster the site was invisible for.
@@ -169,7 +169,7 @@ export const metadata: Metadata = {
     url: 'https://aistupidlevel.info',
     title: 'AI Benchmark & Smart Router 2026 | Compare GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3',
     description: 'The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models, route requests through the smartest model, monitor API usage, audit prompts, and control budgets. One API key for all providers.',
-    siteName: 'AI Stupid Meter — Benchmarks, Smart Router & API Monitoring',
+    siteName: 'AI Stupid Level — Continuous LLM Evaluation, Routing & Monitoring',
     // One image, the dynamic one. There used to be a second entry pointing at
     // /stupidmetermeta.png as a "fallback", but no crawler ever reached it:
     // X reads twitter:image, and Telegram/Slack/LinkedIn/Discord/Facebook all
@@ -290,8 +290,8 @@ export default function RootLayout({
               "@graph": [
                 {
                   "@type": ["WebApplication", "SoftwareApplication"],
-                  "name": "AI Stupid Meter — Benchmarks, Smart Router & API Monitoring",
-                  "alternateName": ["AI Benchmarking Tool", "AI Smart Router", "AI API Gateway", "AI Performance Test", "AI Model Comparison Tool", "AI Prompt Monitor"],
+                  "name": "AI Stupid Level — Continuous LLM Evaluation, Routing & Monitoring",
+                  "alternateName": ["ASL", "AI Stupid Level", "aistupidlevel.info", "asl.info", "AI Benchmarking Tool", "AI Smart Router", "AI API Gateway", "AI Performance Test", "AI Model Comparison Tool", "AI Prompt Monitor"],
                   "applicationCategory": ["DeveloperApplication", "ProductivityApplication", "BusinessApplication"],
                   "operatingSystem": "Web",
                   "description": "AI benchmarking platform and intelligent API router. Compare 20+ AI models (GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3, DeepSeek V4, GLM 5.2), route requests through the smartest model automatically, monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider.",
@@ -365,7 +365,13 @@ export default function RootLayout({
                 },
                 {
                   "@type": "WebSite",
-                  "name": "AI Stupid Meter",
+                  "name": "AI Stupid Level",
+                  /* The brand answers to several names — the domain says "Stupid Level",
+                     the logo and the short domain say "ASL", the schema name says "Stupid
+                     Meter". Listing them as alternates is what lets a search engine treat
+                     a query for any one of them as a query for this site, which matters
+                     now that asl.info exists and people will type it. */
+                  "alternateName": ["ASL", "AI Stupid Level", "asl.info", "aistupidlevel.info"],
                   "url": "https://aistupidlevel.info",
                   "potentialAction": {
                     "@type": "SearchAction",
