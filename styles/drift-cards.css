@@ -1175,7 +1175,13 @@
   border-bottom: 1px solid var(--metal-silver);
 }
 .dm-th-model { text-align: left !important; width: 20%; }
-.dm-th-status { width: 80px; }
+/* Wide enough for the longest status pill. At 80px the pill did not fit and, because
+   the table is `table-layout: fixed` and the pill is `white-space: nowrap`, it did not
+   wrap or clip — it simply drew over the neighbour. Measured: "Warming up" renders 92px
+   against an 80px cell, overflowing 16px and landing 14px inside the Correctness cell,
+   on top of that cell's tint. "Recovering" is the same length. 104px covers the widest
+   pill plus the cell's 8px of horizontal padding, with a little headroom. */
+.dm-th-status { width: 104px; }
 /* Slightly smaller and allowed to wrap, so real words fit instead of "Corr / Effic /
    Recov" - abbreviations defeat the point of the panel being readable. */
 .dm-th-axis { width: auto; font-size: 11px; }
