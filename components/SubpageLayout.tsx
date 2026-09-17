@@ -18,6 +18,7 @@ export default function SubpageLayout({ children }: SubpageLayoutProps): React.J
     : pathname === '/faq' ? 'faq'
     : pathname === '/pricing' ? 'pricing'
     : pathname === '/watchlist' ? 'watchlist'
+    : pathname === '/contact' ? 'contact'
     : 'dashboard';
 
   const handleViewChange = (view: 'dashboard' | 'about' | 'faq') => {

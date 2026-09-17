@@ -111,6 +111,35 @@ h1, h2, h3, h4,
   border-bottom: none !important;
 }
 .v4-nav-btn:hover { color: var(--phosphor-green) !important; background: var(--terminal-black) !important; }
+
+/* THEME in the top bar must read as one of the header's buttons, not a control
+   borrowed from the dashboard toolbar.
+   ThemeButton renders `.vintage-btn`, which in this theme is a bordered white
+   pill with a mono face and 1px letter-spacing. Measured beside its neighbours
+   at 768px it was 44px tall against their 27px, 10.8px text against their 13px,
+   with a border and a filled background they do not have — the odd one out in
+   the row. Restyled here rather than in ThemeButton itself, because the same
+   component is also used inside the mobile drawer, where the bordered look is
+   correct and should stay. */
+.v4-topbar-theme .vintage-btn {
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  padding: 6px 14px !important;
+  min-height: 0 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  background: none !important;
+  color: var(--phosphor-dim) !important;
+  box-shadow: none !important;
+}
+.v4-topbar-theme .vintage-btn:hover {
+  color: var(--phosphor-green) !important;
+  background: var(--terminal-black) !important;
+  border-color: transparent !important;
+}
 .v4-nav-btn.active { color: var(--accent) !important; background: var(--accent-bg) !important; }
 .v4-nav-btn.pro-btn {
   color: #fff !important; background: var(--accent) !important;

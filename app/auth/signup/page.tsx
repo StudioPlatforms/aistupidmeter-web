@@ -141,7 +141,7 @@ export default function SignUpPage() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="you@company.com"
+                placeholder="your@email.com"
                 required
                 disabled={loading}
                 style={{

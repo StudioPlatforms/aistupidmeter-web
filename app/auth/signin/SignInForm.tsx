@@ -96,7 +96,7 @@ export function SignInForm() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="you@company.com"
+                placeholder="your@email.com"
                 required
                 disabled={loading}
                 style={{

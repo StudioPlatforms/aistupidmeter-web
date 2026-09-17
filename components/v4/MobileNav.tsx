@@ -81,6 +81,9 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
             <button className="v4-drawer-item" onClick={() => { setDrawer(false); onViewChange('about'); }}>About</button>
             <button className="v4-drawer-item" onClick={() => go('/compare')}>Compare models</button>
             <button className="v4-drawer-item" onClick={() => go('/methodology')}>Methodology</button>
+            {/* The bottom bar stays at four items — a fifth shrinks every label, which is
+                why it was cut from six. Contact sits with the other header links instead. */}
+            <button className="v4-drawer-item" onClick={() => go('/contact')}>Contact</button>
             <button className="v4-drawer-item" onClick={() => go('/router/forum')} style={{ color: 'var(--amber-warning)' }}>Forum</button>
 
             {authed ? (

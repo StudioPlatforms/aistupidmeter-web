@@ -72,7 +72,7 @@ interface Episode {
 }
 interface StatusPayload {
   generatedAt: string;
-  meta: { checkIntervalMinutes: number; retentionDays: number; degradedAboveMs: number; probe: string };
+  meta: { checkIntervalMinutes: number; retentionDays: number; degradedAboveMs: number; probe: string; ourFaultSince?: string | null };
   providers: ProviderStatus[];
   episodes: Episode[];
 }
@@ -320,7 +320,7 @@ export default async function StatusPage() {
               {outages.map((e, i) => (
                 <li key={i}>
                   <span className="status-episode-provider">{LABEL[e.provider] ?? e.provider}</span>
-                  <span className="status-episode-dur">{duration(e.minutes)}</span>
+                  <span className="status-episode-dur">lasted {duration(e.minutes)}</span>
                   <span className="status-episode-when">
                     {e.startedAt.replace(' ', ' · ')} UTC{e.ongoing ? ' — ongoing' : ''}
                   </span>
@@ -336,9 +336,17 @@ export default async function StatusPage() {
           <p className="status-note">
             These are our failures, not the providers&rsquo;. We publish them because leaving them out would
             turn our own expired keys, unpaid invoices and broken probes into somebody else&rsquo;s downtime —
-            and because a gap in the record is a fact about the record. Each line says when it last
-            happened: anything not marked ongoing is over, and stays listed only until it falls out of
-            the {data.meta.retentionDays}-day window.
+            and because a gap in the record is a fact about the record. Each line says how long it
+            lasted and when it last happened: anything not marked ongoing is over, and stays listed
+            only until it falls out of the {data.meta.retentionDays}-day window.
+            {data.meta.ourFaultSince && (
+              <> This list starts from{' '}
+              {new Date(data.meta.ourFaultSince).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
+              Before that the provider accounts were unfunded and every provider returned a billing
+              error; those checks are still recorded and still count against our uptime, but
+              republishing a resolved funding gap for a week alongside live figures said something
+              about today that was not true.</>
+            )}
           </p>
           {notMeasured.length === 0 ? (
             <p className="status-empty">None in the last {data.meta.retentionDays} days.</p>
@@ -347,7 +355,7 @@ export default async function StatusPage() {
               {groupEpisodes(notMeasured).map((g, i) => (
                 <li key={i}>
                   <span className="status-episode-provider">{LABEL[g.provider] ?? g.provider}</span>
-                  <span className="status-episode-dur">{duration(g.minutes)}</span>
+                  <span className="status-episode-dur">lasted {duration(g.minutes)}</span>
                   <span className="status-episode-when">
                     {CAUSE_TEXT[g.cause]} · {g.episodes} episode{g.episodes === 1 ? '' : 's'}
                     {g.ongoing
@@ -375,7 +383,7 @@ export default async function StatusPage() {
               {groupEpisodes(slow).map((g, i) => (
                 <li key={i}>
                   <span className="status-episode-provider">{LABEL[g.provider] ?? g.provider}</span>
-                  <span className="status-episode-dur">{duration(g.minutes)}</span>
+                  <span className="status-episode-dur">lasted {duration(g.minutes)}</span>
                   <span className="status-episode-when">
                     {g.episodes} episode{g.episodes === 1 ? '' : 's'} in the last {data.meta.retentionDays} days
                   </span>

@@ -85,7 +85,9 @@ export default function ContactClient() {
       }
       setSent(true);
     } catch {
-      setError('Could not reach us. Please try again, or email support@aistupidlevel.info.');
+      // Deliberately no address and no link back here: this fires when THIS form failed,
+      // so sending the reader to the contact form would be a circle.
+      setError('Could not reach us just now — this is on our side, not yours. Please try again in a moment.');
       setSending(false);
     }
   };
@@ -148,7 +150,7 @@ export default function ContactClient() {
             <div>
               <label style={label} htmlFor="contact-email">Email <span style={{ color: 'var(--red-alert, #d93025)' }}>*</span></label>
               <input id="contact-email" style={input} type="email" required value={email}
-                onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
+                onChange={e => setEmail(e.target.value)} placeholder="your@email.com" autoComplete="email" />
             </div>
           </div>
 

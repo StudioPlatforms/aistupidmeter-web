@@ -56,7 +56,7 @@ export function SsoForm() {
               <input
                 type="email" name="email" required value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@company.com" autoComplete="email"
+                placeholder="your@email.com" autoComplete="email"
                 style={{
                   width: '100%', padding: '8px', background: 'var(--terminal-black)',
                   border: '1px solid var(--metal-silver)', borderRadius: '4px',

@@ -80,7 +80,7 @@ export default function AssessmentClient() {
           <label style={label}>
             Your email
             <input name="email" type="email" required style={field}
-              defaultValue={session?.user?.email ?? ''} placeholder="you@company.com" />
+              defaultValue={session?.user?.email ?? ''} placeholder="your@email.com" />
           </label>
           <label style={label}>
             Company <span style={{ opacity: 0.6 }}>(optional)</span>

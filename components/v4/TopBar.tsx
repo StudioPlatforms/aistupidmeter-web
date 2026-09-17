@@ -86,6 +86,15 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
           >
             FORUM
           </button>
+          {/* Last, which is where people look for it. The site publishes no email
+              address anywhere: anyone wanting to reach us is sent to the form, which
+              routes by topic and cannot be harvested by a scraper. */}
+          <button
+            className={`v4-nav-btn ${selectedView === 'contact' ? 'active' : ''}`}
+            onClick={() => router.push('/contact')}
+          >
+            CONTACT
+          </button>
         </div>
       </div>
       <div className="v4-topbar-right">

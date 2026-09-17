@@ -933,6 +933,20 @@
   .v4-quick-info-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* Between the phone breakpoint and a real desktop the full nav appears but the
+   ambient right-hand items (visit count, clock, ONLINE) leave it no room: measured
+   at 768px the bar held 1076px of content in a 768px box and simply overflowed.
+   Those three are decoration; the nav is the thing people came for. Drop them until
+   the window is wide enough to carry both. */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .v4-topbar-right .visitors-count { display: none; }
+  .v4-topbar-right .v4-clock { display: none; }
+  .v4-topbar-right > span:not([class]) { display: none; }   /* the ONLINE label */
+  .v4-topbar-right .v4-live-dot { display: none; }
+  .v4-nav { gap: 2px; }
+  .v4-nav-btn { padding: 6px 9px !important; }
+}
+
 /* Tablet & phone */
 @media (max-width: 767px) {
   .v4-nav { display: none; }
@@ -943,6 +957,7 @@
   .v4-logo-img { height: 19px; }
   .v4-topbar-right { gap: 6px; font-size: 10px; }
   .v4-topbar-right .visitors-count { display: none; }
+  .v4-topbar-right .v4-clock { display: none; }
   /* Hide theme button from header on mobile — it's in MobileNav */
   .v4-topbar-theme { display: none !important; }
 

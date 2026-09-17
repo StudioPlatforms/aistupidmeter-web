@@ -39,7 +39,8 @@ const ERRORS: Record<string, ErrorCopy> = {
   },
   Configuration: {
     title: 'Sign-in is temporarily unavailable',
-    body: 'This one is on us, not on you — the sign-in service is misconfigured. Please try again shortly, and email support@aistupidlevel.info if it persists.',
+    body: 'This one is on us, not on you — the sign-in service is misconfigured. Please try again shortly, and get in touch through the contact form if it persists.',
+    action: { label: 'Contact us', href: '/contact?topic=support' },
   },
   OAuthCallback: {
     title: 'The provider did not complete sign-in',
@@ -51,7 +52,8 @@ const ERRORS: Record<string, ErrorCopy> = {
   },
   Default: {
     title: 'Sign-in did not go through',
-    body: 'Something interrupted the process. Trying again usually resolves it; if it keeps happening, email support@aistupidlevel.info and we will look into it.',
+    body: 'Something interrupted the process. Trying again usually resolves it; if it keeps happening, tell us through the contact form and we will look into it.',
+    action: { label: 'Contact us', href: '/contact?topic=support' },
   },
 };
 
