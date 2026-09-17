@@ -167,16 +167,30 @@ function barTitle(h: HourBucket & { known: boolean }): string {
 }
 
 /** One line per provider+cause, rather than one line per episode. */
-interface GroupedEpisodes { provider: string; cause: Episode['cause']; episodes: number; minutes: number; error: string | null }
+interface GroupedEpisodes { provider: string; cause: Episode['cause']; episodes: number; minutes: number; error: string | null; lastEndedAt: string | null; ongoing: boolean }
+/**
+ * Grouping used to drop the timestamps, so this list showed a duration and nothing else.
+ * "DeepSeek 7h 20m — our key or our bill" reads as happening now; it was seven days old and
+ * long resolved. The outage list above has always shown when an episode started, and the
+ * omission here is the whole reason a settled record looked like a live incident. Keep the
+ * most recent end so the line can say when it was, and whether it is still going.
+ */
 function groupEpisodes(list: Episode[]): GroupedEpisodes[] {
   const by = new Map<string, GroupedEpisodes>();
   for (const e of list) {
     const key = `${e.provider}:${e.cause}`;
     const g = by.get(key);
-    if (g) { g.episodes++; g.minutes += e.minutes; if (!g.error) g.error = e.error; }
-    else by.set(key, { provider: e.provider, cause: e.cause, episodes: 1, minutes: e.minutes, error: e.error });
+    const end = e.endedAt ?? e.startedAt ?? null;
+    if (g) {
+      g.episodes++; g.minutes += e.minutes;
+      if (!g.error) g.error = e.error;
+      if (end && (!g.lastEndedAt || end > g.lastEndedAt)) g.lastEndedAt = end;
+      g.ongoing = g.ongoing || !!e.ongoing;
+    } else {
+      by.set(key, { provider: e.provider, cause: e.cause, episodes: 1, minutes: e.minutes, error: e.error, lastEndedAt: end, ongoing: !!e.ongoing });
+    }
   }
-  return Array.from(by.values()).sort((a, b) => b.minutes - a.minutes);
+  return Array.from(by.values()).sort((a, b) => (b.lastEndedAt ?? '').localeCompare(a.lastEndedAt ?? ''));
 }
 
 const CAUSE_TEXT: Record<Episode['cause'], string> = {
@@ -322,7 +336,9 @@ export default async function StatusPage() {
           <p className="status-note">
             These are our failures, not the providers&rsquo;. We publish them because leaving them out would
             turn our own expired keys, unpaid invoices and broken probes into somebody else&rsquo;s downtime —
-            and because a gap in the record is a fact about the record.
+            and because a gap in the record is a fact about the record. Each line says when it last
+            happened: anything not marked ongoing is over, and stays listed only until it falls out of
+            the {data.meta.retentionDays}-day window.
           </p>
           {notMeasured.length === 0 ? (
             <p className="status-empty">None in the last {data.meta.retentionDays} days.</p>
@@ -334,6 +350,11 @@ export default async function StatusPage() {
                   <span className="status-episode-dur">{duration(g.minutes)}</span>
                   <span className="status-episode-when">
                     {CAUSE_TEXT[g.cause]} · {g.episodes} episode{g.episodes === 1 ? '' : 's'}
+                    {g.ongoing
+                      ? ' — ongoing'
+                      : g.lastEndedAt
+                        ? ` · last seen ${ago(g.lastEndedAt)}, since resolved`
+                        : ''}
                   </span>
                   {g.error && <span className="status-episode-err">{g.error}</span>}
                 </li>

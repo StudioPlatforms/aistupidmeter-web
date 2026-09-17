@@ -29,7 +29,7 @@ interface TaskRow {
   slug: string;
   label: string;
   difficulty?: string | number | null;
-  status: 'pass' | 'fail' | 'partial' | 'declined' | 'silenced' | 'error';
+  status: 'pass' | 'fail' | 'partial' | 'declined' | 'silenced' | 'error' | 'incomplete';
   score: number | null;          // 0–100
   latencyMs?: number | null;
   tokensIn?: number | null;
@@ -39,6 +39,8 @@ interface TaskRow {
   repo?: CodingRepo | null;
   /** Present when status is 'declined': what the provider's API sent instead of an answer. */
   refusal?: { signal?: string | null; category?: string | null; explanation?: string | null } | null;
+  /** Why a session stopped without being graded, when status is 'incomplete' or 'error'. */
+  failureReason?: string | null;
   // reasoning
   turns?: number | null;
   plannedTurns?: number | null;
@@ -108,7 +110,7 @@ function ago(ts: string | null) {
   return `${Math.round(h / 24)} d ago`;
 }
 const STATUS_LABEL: Record<TaskRow['status'], string> = {
-  pass: 'passed', fail: 'failed', partial: 'partial', declined: 'refused', silenced: 'symptom silenced', error: 'did not run',
+  pass: 'passed', fail: 'failed', partial: 'partial', declined: 'refused', silenced: 'symptom silenced', error: 'did not run', incomplete: 'cut short',
 };
 
 /** Tiny inline sparkline — no chart library for a 14-point line. */
@@ -202,7 +204,7 @@ export default function ModelDetailSuiteTasks({
         const meta = SUITE_META[suite];
         const tasks = payload.tasks;
         const passed = tasks.filter(t => t.status === 'pass').length;
-        const measured = tasks.filter(t => t.status !== 'declined' && t.status !== 'error');
+        const measured = tasks.filter(t => t.status !== 'declined' && t.status !== 'error' && t.status !== 'incomplete');
         const scored = measured.filter(t => typeof t.score === 'number');
         const meanScore = scored.length ? scored.reduce((a, t) => a + (t.score as number), 0) / scored.length : null;
         const declined = tasks.filter(t => t.status === 'declined').length;
@@ -252,7 +254,8 @@ export default function ModelDetailSuiteTasks({
                 }
                 // Why a task was refused is not a Pro detail: anyone reading a 5-of-7 row is owed it.
                 const refused = t.status === 'declined';
-                const hasMore = refused || (proDetail && (
+                const cutShort = t.status === 'incomplete';
+                const hasMore = refused || cutShort || (proDetail && (
                   (suite === 'hourly' && t.repo) || (suite === 'deep' && t.steps && t.steps.length > 0) || (suite === 'tooling' && ((t.tools && t.tools.length > 0) || (t.errors ?? 0) > 0))
                 ));
                 return (
@@ -265,7 +268,9 @@ export default function ModelDetailSuiteTasks({
                     <span className="md-st-status"><span className={`md-st-pill md-st-pill-${t.status}`}>{STATUS_LABEL[t.status]}</span></span>
                     <span className="md-st-score"><ScoreBar value={t.score} /><span className="md-st-score-n">{t.score == null ? '—' : Math.round(t.score)}</span></span>
                     <span className="md-st-col-detail md-st-detail">
-                      {refused ? <span className="md-st-bad">refused by the model&rsquo;s API</span> : proDetail ? detail : <button type="button" className="md-st-lock" onClick={onShowProModal}>details · Pro</button>}
+                      {refused ? <span className="md-st-bad">refused by the model&rsquo;s API</span>
+                        : cutShort ? <span className="md-st-bad">{t.turns ?? 0}/{t.plannedTurns ?? '?'} turns · {fmtK(t.tokensOut)} tok · {fmtMs(t.latencyMs)}</span>
+                        : proDetail ? detail : <button type="button" className="md-st-lock" onClick={onShowProModal}>details · Pro</button>}
                     </span>
                     <span className="md-st-col-spark">
                       {proDetail ? <Spark points={h[t.slug] ?? []} /> : <button type="button" className="md-st-lock" onClick={onShowProModal} aria-label="14-day trend is a Pro feature">◆</button>}
@@ -277,6 +282,14 @@ export default function ModelDetailSuiteTasks({
                     )}
                     {isOpen && hasMore && (
                       <div className="md-st-expand">
+                        {cutShort && (
+                          <div className="md-st-bad">
+                            Cut short before it could be graded{t.failureReason ? `: ${t.failureReason}` : ''}.
+                            It completed {t.turns ?? 0} of {t.plannedTurns ?? '?'} turns and produced{' '}
+                            {fmtK(t.tokensOut)} output tokens, so the work happened — it simply never reached a
+                            score. The task is left out of this run rather than counted as zero.
+                          </div>
+                        )}
                         {refused && (
                           <div className="md-st-bad">
                             Refused by the model: its API returned a refusal instead of an answer
