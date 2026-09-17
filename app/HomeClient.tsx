@@ -1217,31 +1217,35 @@ export default function Dashboard() {
     return modelsWithValidScores.length >= 3;
   };
 
-  // Fun and educational loading messages
+  /**
+   * Shown while the first payload loads.
+   *
+   * These used to be jokes — models "juggling and dropping the balls", "rehearsing their
+   * excuses", a "stupidity diagnostic". They also carried three claims that had gone
+   * stale: five runs per model (it is seven), twenty-plus models (the fleet changes), and
+   * four providers (there are six). A loading state is read by someone deciding whether to
+   * trust the numbers underneath it, so it now says what the platform is doing and how the
+   * measurement works, and states only facts that are part of the instrument rather than
+   * counts that drift.
+   */
   const loadingMessages = [
-    // Funny messages
-    "Teaching AI models to count to 10... They're stuck at 7",
-    "Asking ChatGPT if it remembers being smarter yesterday...",
-    "Running stupidity diagnostics... Results pending",
-    "Measuring how many paperclips each AI wants to make",
-    "Checking if AI can still spell 'intelligence' correctly",
-    "Testing if models know they're being tested (they don't)",
-    "Watching AI models juggle... They dropped all the balls",
-    "Rolling dice to see which model forgot how to code today",
-    "AI models are rehearsing their excuses for poor performance",
-    "Painting a picture of AI confusion... It's abstract",
-    
-    // Did you know? Facts
-    "Did you know? AI models can lose 30% capability overnight!",
-    "Did you know? We re-run every benchmark suite around the clock!",
-    "Did you know? 'AI lobotomy' = companies reducing model intelligence",
-    "Did you know? We've completed over 61,000 tool-calling benchmark sessions!",
-    "Did you know? Our system detects degradation using Page-Hinkley change detection!",
-    "Did you know? We track 9 performance axes for each model!",
-    "Did you know? We monitor 20+ AI models across 4 major providers!",
-    "Did you know? Models are tested with 5 runs for statistical accuracy!",
-    "Did you know? We use 95% confidence intervals for reliability!",
-    "Did you know? Our benchmarks run in secure sandbox environments!"
+    // What is happening right now
+    "Loading the most recent benchmark sweep…",
+    "Reading measured scores across every tracked model…",
+    "Checking which measurements are fresh enough to rank…",
+    "Rebuilding drift baselines for the current benchmark configuration…",
+    "Collecting per-suite results: coding, reasoning, tool-calling…",
+
+    // How the measurement works
+    "Every coding task runs seven times and the median is scored, so one bad afternoon is not a verdict.",
+    "Change detection uses the Page-Hinkley test on daily medians, not a percentage threshold.",
+    "A task a provider declines is dropped rather than scored zero, and the row shows its reduced coverage.",
+    "Ranks are shown as statistical ties when two models are not separated by more than the measurement noise.",
+    "Models are measured through each provider's public API — the same way you would call them.",
+    "Coding tasks are graded by running each project's own test suite, including tests the model never sees.",
+    "A scoring change resets the drift baseline, because scores either side of it are not comparable.",
+    "Results are reproduced from stored runs before any scoring change ships.",
+    "Benchmark code executes in a sandbox with no network access.",
   ];
 
   // Rotate loading message every 5-8 seconds with random intervals
@@ -1741,9 +1745,9 @@ export default function Dashboard() {
 
   // State for ticker content with fun messages - use useRef to avoid re-renders
   const [tickerContent, setTickerContent] = useState<string[]>([
-    '🚀 CONTINUOUS EVALUATION INITIALIZING...',
+    '🚀 CONTINUOUS EVALUATION STARTING…',
     '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
-    '📊 LOADING STUPIDITY METRICS...'
+    '📊 LOADING BENCHMARK DATA…'
   ]);
   
   // Use ref to track ticker content to prevent unnecessary updates
@@ -1908,7 +1912,7 @@ export default function Dashboard() {
           
           // Worst performers with stupidity awards (mode-specific) - FIXED: Use addUniqueContent
           if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 30) {
-            addUniqueContent(`🤡 ${leaderboardSortBy.toUpperCase()} STUPIDITY WINNER: ${getCompactName(sorted[0].name)} - ${sorted[0].currentScore} pts!`);
+            addUniqueContent(`🏆 ${leaderboardSortBy.toUpperCase()} LEADER: ${getCompactName(sorted[0].name)} - ${sorted[0].currentScore} pts!`);
           } else if (sorted[0] && typeof sorted[0].currentScore === 'number' && sorted[0].currentScore < 40) {
             addUniqueContent(`🥇 WORST ${leaderboardSortBy.toUpperCase()}: ${getCompactName(sorted[0].name)} (${sorted[0].currentScore} pts)`);
           }
@@ -1957,7 +1961,7 @@ export default function Dashboard() {
           }
           
           if (declining.length > 0) {
-            addUniqueContent(`📉 TRENDING STUPID: ${declining.length} models losing brain cells`);
+            addUniqueContent(`📉 TRENDING DOWN: ${declining.length} model${declining.length === 1 ? '' : 's'} below their recent baseline`);
           }
           
           // Provider trends (consistent with actual provider performance) - FIXED: Use addUniqueContent
@@ -2015,7 +2019,7 @@ export default function Dashboard() {
             if (alert.severity === 'critical') {
               content.push(`💀 CRITICAL: ${getCompactName(alert.name)} - ${alert.issue}`);
             } else {
-              content.push(`⚠️ WARNING: ${getCompactName(alert.name)} showing signs of stupidity`);
+              content.push(`⚠️ ${getCompactName(alert.name)}: measured decline against its own baseline`);
             }
           }
         });
@@ -2025,11 +2029,11 @@ export default function Dashboard() {
       if (globalIndex) {
         const score = globalIndex.current.globalScore;
         if (score < 50) {
-          content.push(`🌡️ GLOBAL STUPIDITY INDEX: ${score}/100 - AI intelligence at concerning levels`);
+          content.push(`🌡️ FLEET PERFORMANCE INDEX: ${score}/100 — several models below their baselines`);
         } else if (score >= 70) {
-          content.push(`🌡️ GLOBAL STUPIDITY INDEX: ${score}/100 - AI models performing well today`);
+          content.push(`🌡️ FLEET PERFORMANCE INDEX: ${score}/100 — models holding their baselines`);
         } else {
-          content.push(`🌡️ GLOBAL STUPIDITY INDEX: ${score}/100 - Mixed AI performance across models`);
+          content.push(`🌡️ FLEET PERFORMANCE INDEX: ${score}/100 — mixed movement across the fleet`);
         }
         
         if (globalIndex.trend === 'declining') {
@@ -2091,9 +2095,9 @@ export default function Dashboard() {
           setTickerIfChanged(basicContent);
         } else {
           const fallbackContent = [
-            '🚀 CONTINUOUS EVALUATION INITIALIZING...',
+            '🚀 CONTINUOUS EVALUATION STARTING…',
             '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
-            '📊 LOADING STUPIDITY METRICS...',
+            '📊 LOADING BENCHMARK DATA…',
             '🔄 SYNCHRONIZING WITH MODEL INTELLIGENCE CENTER...'
           ];
           setTickerIfChanged(fallbackContent);
@@ -2101,9 +2105,9 @@ export default function Dashboard() {
       } else {
         // Fallback when no data is available yet
         const fallbackContent = [
-          '🚀 CONTINUOUS EVALUATION INITIALIZING...',
+          '🚀 CONTINUOUS EVALUATION STARTING…',
           '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
-          '📊 LOADING STUPIDITY METRICS...',
+          '📊 LOADING BENCHMARK DATA…',
           '🔄 SYNCHRONIZING WITH MODEL INTELLIGENCE CENTER...'
         ];
         setTickerIfChanged(fallbackContent);
@@ -2113,9 +2117,9 @@ export default function Dashboard() {
       console.error('Error generating ticker content:', error);
       // Fallback to loading state (using throttled version)
       const fallbackContent = [
-        '🚀 CONTINUOUS EVALUATION INITIALIZING...',
+        '🚀 CONTINUOUS EVALUATION STARTING…',
         '🧠 MEASURING AI INTELLIGENCE DEGRADATION...',
-        '📊 LOADING STUPIDITY METRICS...'
+        '📊 LOADING BENCHMARK DATA…'
       ];
       setTickerIfChanged(fallbackContent);
     }
@@ -2875,7 +2879,7 @@ export default function Dashboard() {
                     TESTS RUN: {userBenchmarkResult.metrics?.testsRun}<br/>
                     ─────────────────────────<br/>
                     COMPOSITE SCORE: {userBenchmarkResult.performance.displayScore}/100<br/>
-                    STUPID SCORE: {userBenchmarkResult.performance.stupidScore}<br/>
+                    SCORE: {userBenchmarkResult.performance.stupidScore}<br/>
                     PERFORMANCE: {
                       userBenchmarkResult.performance.displayScore >= 80 ? 'EXCELLENT' : 
                       userBenchmarkResult.performance.displayScore >= 60 ? 'GOOD' :
@@ -4332,14 +4336,14 @@ export default function Dashboard() {
       </div>
 
 
-      {/* 24-Hour AI Stupidity Overview */}
+      {/* 24-hour aggregate performance across the fleet */}
       <div className="crt-monitor">
         <div className="terminal-text" style={{ marginBottom: '16px', textAlign: 'center' }}>
           <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>
-            🌡️ 24-HOUR AI STUPIDITY INDEX
+            🌡️ 24-HOUR FLEET PERFORMANCE INDEX
           </div>
           <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-            General intelligence level across all monitored models
+            Aggregate measured performance across every tracked model
           </div>
         </div>
 

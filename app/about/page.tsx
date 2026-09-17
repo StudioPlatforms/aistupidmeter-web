@@ -197,7 +197,7 @@ export default function AboutPage() {
               But no one was systematically tracking these changes.
             </div>
             <div style={{ ...styles.text, marginTop: '10px' }}>
-              <strong style={{ color: 'var(--phosphor-dim)' }}>AI Stupid Level was born from frustration.</strong> We
+              <strong style={{ color: 'var(--phosphor-dim)' }}>AI Stupid Level exists to close that gap.</strong> We
               started benchmarking in August 2025 and have not stopped since. We built this platform because:
             </div>
             {[
