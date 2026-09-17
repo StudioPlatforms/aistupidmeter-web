@@ -106,7 +106,7 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
   const unlocked = hasProAccess || planMeets(plan, required);
 
   const [data, setData] = useState<CalibrationData | null>(null);
-  const [fleet, setFleet] = useState<{ measured: number; percentile: number | null } | null>(null);
+  const [fleet, setFleet] = useState<{ measured: number; percentile: number | null; median: number | null; min: number | null; max: number | null } | null>(null);
   const [measured, setMeasured] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -275,12 +275,30 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
         />
       </div>
 
-      {fleet && fleet.percentile !== null && (
-        <div className="md-cal-fleet">
-          Better calibrated than {fleet.percentile}% of the {fleet.measured} models measured on
-          this same question set.
-        </div>
-      )}
+      {/* Fleet context, stated against the pack rather than as a rank.
+          A percentile alone misleads badly: almost every model scores 99 or 100, so a
+          model on 99 is "better than 6% of the fleet" — true, and a slander. Distance
+          from the median is used instead, and a min/max spread is deliberately not the
+          test, because one outlier widens it and pushes everything else into a
+          comparison that reads as failure. Within a few points of the median is a tie
+          and is said to be one. */}
+      {fleet && fleet.measured >= 3 && fleet.median !== null && data.calibrationScore !== null && (() => {
+        const gap = data.calibrationScore - fleet.median;
+        const range = fleet.min !== null && fleet.max !== null
+          ? ` The ${fleet.measured} models measured on this question set run from ${Math.round(fleet.min)} to ${Math.round(fleet.max)}.`
+          : '';
+        return (
+          <div className="md-cal-fleet">
+            {Math.abs(gap) <= 3 ? (
+              <>In line with the rest of the fleet, which has a median of {Math.round(fleet.median)}. A difference this small is a tie, not a ranking.{range}</>
+            ) : gap < 0 ? (
+              <>{Math.round(-gap)} points below the fleet median of {Math.round(fleet.median)} — this model is behaving differently from the others on the same questions.{range}</>
+            ) : (
+              <>{Math.round(gap)} points above the fleet median of {Math.round(fleet.median)}.{range}</>
+            )}
+          </div>
+        );
+      })()}
 
       {fabricated.length > 0 && (
         <div className="md-cal-flag">
