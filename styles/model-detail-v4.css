@@ -269,7 +269,11 @@
   padding: 16px;
   background: var(--terminal-black);
   border-bottom: 1px solid rgba(192, 192, 192, 0.08);
-  min-height: 300px;
+  /* No min-height. It was 300px, sized for the charts, and every section inherited it
+     whether or not it held a chart — the drift-status panel rendered 119px of content in
+     a 300px box, so nearly half of it was forced whitespace. The charts that need a
+     height set their own (ResponsiveContainer height={280} / {380}), so nothing here
+     depends on a floor. */
 }
 .md-chart-title {
   font-size: 12px;
@@ -282,7 +286,10 @@
   margin-bottom: 12px;
 }
 .md-chart-empty {
-  height: 300px;
+  /* Was a fixed 300px, which turned two lines of text into a mostly empty grey slab.
+     A minimum keeps loading and locked states from collapsing or shifting the layout
+     as they resolve, without padding short content out to chart height. */
+  min-height: 132px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,12 +298,7 @@
 }
 .md-chart-empty-inner {
   text-align: center;
-  padding: 40px;
-}
-.md-chart-empty-icon {
-  font-size: 3em;
-  margin-bottom: 16px;
-  opacity: 0.3;
+  padding: 22px 24px;
 }
 .md-chart-empty-title {
   font-size: 1em;
@@ -561,16 +563,6 @@
   letter-spacing: 1px;
   margin-bottom: 24px;
 }
-.md-loading-icon {
-  font-size: 3em;
-  margin-bottom: 24px;
-  opacity: 0.7;
-  animation: md-pulse 2s infinite;
-}
-@keyframes md-pulse {
-  0%, 100% { opacity: 0.7; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
 .md-progress-track {
   height: 18px;
   background: rgba(255, 255, 255, 0.03);
@@ -630,11 +622,6 @@
   color: var(--red-alert);
   text-shadow: 0 0 8px var(--red-alert);
   margin-bottom: 16px;
-}
-.md-error-icon {
-  font-size: 4em;
-  margin-bottom: 16px;
-  opacity: 0.6;
 }
 .md-error-text {
   color: var(--phosphor-dim);
