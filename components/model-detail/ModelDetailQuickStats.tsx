@@ -42,7 +42,7 @@ export default function ModelDetailQuickStats({
 
   return (
     <div className="md-info-col">
-      <div className="md-info-title">🎯 {periodLabel}</div>
+      <div className="md-info-title">{periodLabel}</div>
 
       {/* Big Score Display */}
       <div style={{

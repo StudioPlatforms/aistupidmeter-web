@@ -143,7 +143,7 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
 
   const Section = ({ children }: { children: React.ReactNode }) => (
     <div className="md-chart-section">
-      <div className="md-chart-title">🎯 CALIBRATION &amp; KNOWN UNKNOWNS</div>
+      <div className="md-chart-title">CALIBRATION &amp; KNOWN UNKNOWNS</div>
       {children}
     </div>
   );
@@ -161,7 +161,6 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onShowProModal('calibration'); }}
         >
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">🔒</div>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>
               Calibration is a {PLANS[required]?.label ?? 'paid'} feature
             </div>
@@ -193,7 +192,6 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
       <Section>
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">⚠️</div>
             <div>{error}</div>
           </div>
         </div>

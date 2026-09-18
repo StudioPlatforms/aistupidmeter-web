@@ -86,7 +86,7 @@ export default function ModelDetailPricing({ modelName, provider, currentScore, 
 
   return (
     <div className="md-info-col">
-      <div className="md-info-title">💰 PRICING &amp; COST TO BENCHMARK</div>
+      <div className="md-info-title">PRICING &amp; COST TO BENCHMARK</div>
 
       <div className="md-info-row">
         <span className="md-info-label">Input Cost</span>

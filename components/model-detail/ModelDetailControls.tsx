@@ -72,7 +72,7 @@ export default function ModelDetailControls({
             disabled={isRefreshing}
           >
             {p.label}
-            {p.proOnly && !hasProAccess && <span className="lock-icon">🔒</span>}
+            {p.proOnly && !hasProAccess && <span className="lock-icon">PRO</span>}
           </button>
         ))}
       </div>

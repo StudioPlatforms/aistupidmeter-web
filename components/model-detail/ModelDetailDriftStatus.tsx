@@ -66,16 +66,37 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
           const s = by[k];
           if (!s) return null;
           const state = chipState(s);
-          const detail = s.armed
-            ? `statistic ${s.cusum.toFixed(2)} of ${s.threshold.toFixed(2)} needed to fire`
-            : `warming up · ${Math.min(s.days, s.coldStart)} of ${s.coldStart} days`;
+          const days = Math.min(s.days, s.coldStart);
+
+          // The statistic is shown whether or not the detector has armed.
+          //
+          // While warming up this used to read only "warming up - 5 of 10 days", which
+          // is a progress bar for us and tells the reader nothing about their model. The
+          // statistic is a real measurement from the first day; what the cold start
+          // withholds is the right to ACT on it, not its existence. So the number and its
+          // distance from the firing threshold are always on screen, and the warm-up line
+          // sits underneath as the caveat it actually is.
+          const pctOfThreshold = s.threshold > 0
+            ? Math.max(0, Math.min(100, (s.cusum / s.threshold) * 100))
+            : 0;
           const title = s.armed
             ? `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)}; fires at ${s.threshold.toFixed(2)}. ${s.days} measured days on the current configuration.`
-            : `${LABEL[k]}: ${s.days} of ${s.coldStart} measured days since this suite's configuration last changed. The detector cannot fire until it has ten.`;
+            : `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)} against a firing threshold of ${s.threshold.toFixed(2)}. ${s.days} of ${s.coldStart} measured days since this suite's configuration last changed — the detector cannot fire until it has ${s.coldStart}, so this figure is an early reading, not a verdict.`;
           return (
             <span key={k} className={`md-ds-chip md-ds-${state}${focus === k ? ' md-ds-focus' : ''}${focus && focus !== k ? ' md-ds-dim' : ''}`} title={title}>
               <span className="md-ds-name">{LABEL[k]}</span>
-              <span className="md-ds-detail">{detail}</span>
+              <span className="md-ds-stat">
+                <span className="md-ds-stat-v">{s.cusum.toFixed(3)}</span>
+                <span className="md-ds-stat-of">/ {s.threshold.toFixed(2)}</span>
+              </span>
+              <span className="md-ds-meter" aria-hidden="true">
+                <span className={`md-ds-meter-fill md-ds-meter-${state}`} style={{ width: `${Math.max(pctOfThreshold, 1.5)}%` }} />
+              </span>
+              <span className="md-ds-detail">
+                {s.armed
+                  ? `${Math.round(pctOfThreshold)}% of the way to firing`
+                  : `${Math.round(pctOfThreshold)}% of threshold · baseline ${days}/${s.coldStart} days`}
+              </span>
             </span>
           );
         })}
@@ -83,9 +104,9 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
 
       <div className="md-ds-foot">
         One Page-Hinkley statistic per suite on its own daily series, never blended; a suite fires at
-        {' '}{by.hourly?.threshold.toFixed(2) ?? '0.30'}. &ldquo;Warming up&rdquo; means fewer than ten measured
-        days since that suite&rsquo;s configuration last changed, so it cannot fire yet
-        {anyArmed ? '' : ' — nothing here is a verdict on the model'}.
+        {' '}{by.hourly?.threshold.toFixed(2) ?? '0.30'}. The statistic is measured from day one, but a
+        suite needs ten measured days since its configuration last changed before a reading is allowed
+        to fire{anyArmed ? '' : ' — so the figures above are early readings, not verdicts'}.
       </div>
     </div>
   );

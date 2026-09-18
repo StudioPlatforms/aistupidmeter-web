@@ -41,39 +41,39 @@ interface ModelDetailMatrixProps {
  * They are now read from the axes the suite reported. An axis that was not measured is not
  * shown at all, rather than being reconstructed from one that was.
  */
-interface AxisSpec { key: string; label: string; icon: string; weight: string; description: string; }
+interface AxisSpec { key: string; label: string; weight: string; description: string; }
 
 const CODING_AXES: AxisSpec[] = [
-  { key: 'correctness', label: 'CORRECTNESS',  icon: '✅', weight: '55%', description: 'Did the code work, and on repo tasks did it fix the real defect?' },
-  { key: 'stability',   label: 'STABILITY',    icon: '🔄', weight: '10%', description: 'Same answer run to run' },
-  { key: 'edgeCases',   label: 'EDGE CASES',   icon: '🎯', weight: '10%', description: 'On repo tasks: the hidden tests it never saw' },
-  { key: 'debugging',   label: 'DEBUGGING',    icon: '🔧', weight: '10%', description: 'Did it locate the defect rather than patch the symptom?' },
-  { key: 'codeQuality', label: 'CODE QUALITY', icon: '🎨', weight: '5%',  description: 'Readability and structure' },
-  { key: 'efficiency',  label: 'EFFICIENCY',   icon: '⚡', weight: '5%',  description: 'Output throughput' },
-  { key: 'format',      label: 'FORMAT',       icon: '📋', weight: '3%',  description: 'Guardrail: clean, parseable output' },
-  { key: 'safety',      label: 'SAFETY',       icon: '🛡️', weight: '2%',  description: 'Guardrail: no dangerous operations' },
-  { key: 'complexity',  label: 'COMPLEXITY',   icon: '🧩', weight: '0%',  description: 'Measured, but varies too little between models to rank them' },
+  { key: 'correctness', label: 'CORRECTNESS', weight: '55%', description: 'Did the code work, and on repo tasks did it fix the real defect?' },
+  { key: 'stability',   label: 'STABILITY', weight: '10%', description: 'Same answer run to run' },
+  { key: 'edgeCases',   label: 'EDGE CASES', weight: '10%', description: 'On repo tasks: the hidden tests it never saw' },
+  { key: 'debugging',   label: 'DEBUGGING', weight: '10%', description: 'Did it locate the defect rather than patch the symptom?' },
+  { key: 'codeQuality', label: 'CODE QUALITY', weight: '5%',  description: 'Readability and structure' },
+  { key: 'efficiency',  label: 'EFFICIENCY', weight: '5%',  description: 'Output throughput' },
+  { key: 'format',      label: 'FORMAT', weight: '3%',  description: 'Guardrail: clean, parseable output' },
+  { key: 'safety',      label: 'SAFETY', weight: '2%',  description: 'Guardrail: no dangerous operations' },
+  { key: 'complexity',  label: 'COMPLEXITY', weight: '0%',  description: 'Measured, but varies too little between models to rank them' },
 ];
 
 const TOOLING_AXES: AxisSpec[] = [
-  { key: 'taskCompletion',    label: 'TASK COMPLETION', icon: '✅', weight: '30%', description: 'Did the objective actually get done?' },
-  { key: 'toolSelection',     label: 'TOOL SELECTION',  icon: '🎯', weight: '20%', description: 'Choosing the right tool' },
-  { key: 'parameterAccuracy', label: 'PARAM ACCURACY',  icon: '⚙️', weight: '15%', description: 'Calling it with correct arguments' },
-  { key: 'efficiency',        label: 'TOOL EFFICIENCY', icon: '⚡', weight: '15%', description: 'Without unnecessary calls' },
-  { key: 'errorHandling',     label: 'ERROR HANDLING',  icon: '🔧', weight: '10%', description: 'Recovering when a call fails' },
-  { key: 'contextAwareness',  label: 'CTX AWARENESS',   icon: '🧠', weight: '5%',  description: 'Carrying earlier output forward' },
-  { key: 'safetyCompliance',  label: 'SAFETY COMPLNC.', icon: '🛡️', weight: '5%',  description: 'Avoiding destructive operations' },
+  { key: 'taskCompletion',    label: 'TASK COMPLETION', weight: '30%', description: 'Did the objective actually get done?' },
+  { key: 'toolSelection',     label: 'TOOL SELECTION', weight: '20%', description: 'Choosing the right tool' },
+  { key: 'parameterAccuracy', label: 'PARAM ACCURACY', weight: '15%', description: 'Calling it with correct arguments' },
+  { key: 'efficiency',        label: 'TOOL EFFICIENCY', weight: '15%', description: 'Without unnecessary calls' },
+  { key: 'errorHandling',     label: 'ERROR HANDLING', weight: '10%', description: 'Recovering when a call fails' },
+  { key: 'contextAwareness',  label: 'CTX AWARENESS', weight: '5%',  description: 'Carrying earlier output forward' },
+  { key: 'safetyCompliance',  label: 'SAFETY COMPLNC.', weight: '5%',  description: 'Avoiding destructive operations' },
 ];
 
 // Deep-reasoning weights are set per task, so a single percentage would be a fiction. The
 // axes are real and measured; the weight column says so instead of inventing a number.
 const REASONING_AXES: AxisSpec[] = [
-  { key: 'correctness',      label: 'CORRECTNESS',     icon: '✅', weight: 'per task', description: 'Did the session reach a working result?' },
-  { key: 'memoryRetention',  label: 'MEMORY RETENTION',icon: '🧠', weight: 'per task', description: 'Carrying commitments across turns' },
-  { key: 'planCoherence',    label: 'PLAN COHERENCE',  icon: '🗺️', weight: 'per task', description: 'Staying consistent with its own plan' },
-  { key: 'contextWindow',    label: 'CONTEXT WINDOW',  icon: '🔗', weight: 'per task', description: 'Using what was established earlier' },
-  { key: 'debugging',        label: 'DEBUGGING',       icon: '🔧', weight: 'per task', description: 'Fixing what it broke' },
-  { key: 'stability',        label: 'STABILITY',       icon: '🔄', weight: 'per task', description: 'Consistency across the session' },
+  { key: 'correctness',      label: 'CORRECTNESS', weight: 'per task', description: 'Did the session reach a working result?' },
+  { key: 'memoryRetention',  label: 'MEMORY RETENTION', weight: 'per task', description: 'Carrying commitments across turns' },
+  { key: 'planCoherence',    label: 'PLAN COHERENCE', weight: 'per task', description: 'Staying consistent with its own plan' },
+  { key: 'contextWindow',    label: 'CONTEXT WINDOW', weight: 'per task', description: 'Using what was established earlier' },
+  { key: 'debugging',        label: 'DEBUGGING', weight: 'per task', description: 'Fixing what it broke' },
+  { key: 'stability',        label: 'STABILITY', weight: 'per task', description: 'Consistency across the session' },
 ];
 
 /** Only axes the suite actually reported. No stand-ins, no derived values. */
@@ -129,7 +129,6 @@ const radarColor = (category: string): string => {
 interface MetricDef {
   key: string;
   label: string;
-  icon: string;
   weight: string;
   description: string;
   value: number;
@@ -175,7 +174,6 @@ function MetricCard({ metric, index, hasProAccess, onShowProModal }: {
         <div className="md-metric-top">
           <div className="md-metric-left">
             <div className="md-metric-name">
-              <span className="md-metric-icon">{metric.icon}</span>
               <span className="md-metric-label">{metric.label}</span>
               <span className="md-metric-weight">({metric.weight})</span>
             </div>
@@ -288,7 +286,7 @@ function RadarView({ metrics, category }: { metrics: MetricDef[]; category: stri
               background: 'rgba(0,0,0,0.04)',
             }}>
               <span style={{ color: pctColor(pct), fontWeight: 'bold' }}>{pct.toFixed(0)}%</span>
-              <span>{m.icon} {m.label}</span>
+              <span>{m.label}</span>
             </div>
           );
         })}
@@ -334,39 +332,39 @@ export default function ModelDetailMatrix({
     : '(1M)';
 
   if (scoringMode === 'speed') {
-    title = `🎯 7-AXIS PERFORMANCE MATRIX ${periodLabel}`;
+    title = `7-AXIS PERFORMANCE MATRIX ${periodLabel}`;
     subtitle = selectedPeriod === 'latest'
       ? 'Comprehensive analysis across all evaluation criteria'
       : 'Performance breakdown for the selected period';
-    if (selectedPeriod !== 'latest') note = '📊 Showing metrics averaged across benchmarks within this timeframe';
+    if (selectedPeriod !== 'latest') note = 'Showing metrics averaged across benchmarks within this timeframe';
     primaryCategory = 'speed';
 
     metrics = measuredMetrics(CODING_AXES, axesData.measured, 'speed');
   } else if (scoringMode === 'reasoning') {
-    title = `🧠 REASONING PERFORMANCE MATRIX ${periodLabel}`;
+    title = `REASONING PERFORMANCE MATRIX ${periodLabel}`;
     subtitle = selectedPeriod === 'latest'
       ? 'Deep reasoning and complex problem-solving analysis'
       : 'Reasoning performance for the selected period';
-    if (selectedPeriod !== 'latest') note = '🧮 Showing metrics from best-performing deep reasoning tests within this timeframe';
+    if (selectedPeriod !== 'latest') note = 'Showing metrics from best-performing deep reasoning tests within this timeframe';
     primaryCategory = 'reasoning';
 
     metrics = measuredMetrics(REASONING_AXES, axesData.measured, 'reasoning');
   } else if (scoringMode === 'tooling') {
-    title = `🔧 TOOL CALLING PERFORMANCE MATRIX ${periodLabel}`;
+    title = `TOOL CALLING PERFORMANCE MATRIX ${periodLabel}`;
     subtitle = selectedPeriod === 'latest'
       ? 'Advanced tool usage and API interaction capabilities'
       : 'Tool calling performance for the selected period';
-    if (selectedPeriod !== 'latest') note = '🛠️ Showing metrics from best-performing tool calling benchmarks within this timeframe';
+    if (selectedPeriod !== 'latest') note = 'Showing metrics from best-performing tool calling benchmarks within this timeframe';
     primaryCategory = 'tooling';
 
     metrics = measuredMetrics(TOOLING_AXES, axesData.measured, 'tooling');
   } else {
     // combined
-    title = `🎯 COMBINED PERFORMANCE MATRIX ${periodLabel}`;
+    title = `COMBINED PERFORMANCE MATRIX ${periodLabel}`;
     subtitle = selectedPeriod === 'latest'
       ? 'Unified analysis: 70% Speed Benchmarks + 30% Deep Reasoning'
       : 'Combined performance for the selected period';
-    if (selectedPeriod !== 'latest') note = '🔀 Showing balanced metrics from both rapid coding tasks and complex reasoning challenges';
+    if (selectedPeriod !== 'latest') note = 'Showing balanced metrics from both rapid coding tasks and complex reasoning challenges';
     primaryCategory = 'speed';
 
     // Combined view: the coding axes are the ones that exist on every model, and the
@@ -422,7 +420,7 @@ export default function ModelDetailMatrix({
               transition: 'all 0.15s',
             }}
           >
-            ▤ CARDS
+            CARDS
           </button>
           <button
             onClick={() => setViewMode('radar')}
@@ -440,7 +438,7 @@ export default function ModelDetailMatrix({
               transition: 'all 0.15s',
             }}
           >
-            ◎ WEB CHART
+            WEB CHART
           </button>
         </div>
       </div>

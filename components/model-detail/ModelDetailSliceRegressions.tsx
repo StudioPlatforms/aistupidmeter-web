@@ -39,6 +39,15 @@ interface SliceRegression {
   open: boolean;
 }
 
+interface TaskRate {
+  slug: string;
+  runs: number;
+  passRate: number | null;
+  recentRuns: number;
+  recentPassRate: number | null;
+  testable: boolean;
+}
+
 interface Props {
   modelId: string | number;
   /** Show resolved episodes as well as open ones. */
@@ -68,6 +77,11 @@ export default function ModelDetailSliceRegressions({
   // How much of this model the detector could actually test. Without it, "nothing found"
   // and "nothing was testable" render identically and mean opposite things.
   const [coverage, setCoverage] = useState<{ tasksSeen: number; tasksTestable: number; minBaselineRuns: number; baselineDays: number } | null>(null);
+  // Per-task pass rates. Without these, finding nothing rendered as a sentence
+  // asserting that every task passes at its usual rate — the conclusion with the
+  // evidence withheld, and no way for a reader to see which task is weakest.
+  const [tasks, setTasks] = useState<TaskRate[]>([]);
+  const [recentDays, setRecentDays] = useState(7);
 
   useEffect(() => {
     // Client component: an empty base means a same-origin request through nginx,
@@ -85,6 +99,8 @@ export default function ModelDetailSliceRegressions({
       .then(res => res.json())
       .then(data => {
         setCoverage(data?.coverage ?? null);
+        setTasks(Array.isArray(data?.tasks) ? data.tasks : []);
+        if (typeof data?.recentDays === 'number') setRecentDays(data.recentDays);
         if (cancelled) return;
         if (data?.success) setRows(Array.isArray(data.data) ? data.data : []);
         else setError(data?.error || 'Failed to load task-level regressions');
@@ -103,7 +119,7 @@ export default function ModelDetailSliceRegressions({
 
   return (
     <div className="md-chart-section">
-      <div className="md-chart-title">🧩 TASK-LEVEL REGRESSIONS</div>
+      <div className="md-chart-title">TASK-LEVEL REGRESSIONS</div>
 
       {loading && (
         <div className="md-chart-empty">
@@ -116,7 +132,6 @@ export default function ModelDetailSliceRegressions({
       {!loading && error && (
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">⚠️</div>
             <div>{error}</div>
           </div>
         </div>
@@ -147,12 +162,61 @@ export default function ModelDetailSliceRegressions({
                 <div style={{ marginBottom: 6 }}>No task-level regressions detected.</div>
                 <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
                   {coverage
-                    ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test, and all are passing at their usual rate.`
-                    : 'Every benchmark task is passing at its usual rate for this model.'}{' '}
+                    ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test.`
+                    : ''}{' '}
                   This check runs nightly and compares each task against its own recent history.
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* The per-task table. Rendered whenever we have rates, regressions or not: when
+          the detector finds nothing this is the evidence behind the all-clear, and when
+          it finds something it is the context the flagged rows sit in. Sorted weakest
+          first, because the one question this answers that the composite cannot is
+          "which task is this model worst at". */}
+      {!loading && !error && tasks.length > 0 && (
+        <div className="md-sr-tasks">
+          <div className="md-sr-tasks-head">
+            Pass rate by task
+            <span className="md-sr-tasks-sub">
+              last {recentDays} days vs the {coverage?.baselineDays ?? 30}-day baseline &middot; weakest first
+            </span>
+          </div>
+          <div className="md-sr-grid">
+            {tasks.map(t => {
+              const recent = t.recentPassRate;
+              const base = t.passRate;
+              const delta = recent !== null && base !== null ? recent - base : null;
+              const tone = recent === null ? 'none' : recent >= 0.8 ? 'good' : recent >= 0.5 ? 'mid' : 'low';
+              return (
+                <div key={t.slug} className="md-sr-task" title={
+                  `${t.slug}: ${t.recentRuns} run(s) in the last ${recentDays} days, ${t.runs} in the ${coverage?.baselineDays ?? 30}-day baseline.` +
+                  (t.testable ? '' : ` Below the ${coverage?.minBaselineRuns ?? 5}-run minimum, so the detector is not testing this task yet.`)
+                }>
+                  <div className="md-sr-task-top">
+                    <span className="md-sr-task-name">{t.slug}</span>
+                    <span className={`md-sr-task-val md-sr-task-${tone}`}>
+                      {recent === null ? '—' : `${Math.round(recent * 100)}%`}
+                    </span>
+                  </div>
+                  <div className="md-sr-bar" aria-hidden="true">
+                    <div className={`md-sr-bar-fill md-sr-bar-${tone}`} style={{ width: `${Math.round((recent ?? 0) * 100)}%` }} />
+                  </div>
+                  <div className="md-sr-task-foot">
+                    <span>{t.recentRuns} run{t.recentRuns === 1 ? '' : 's'}</span>
+                    {delta !== null && Math.abs(delta) >= 0.01 && (
+                      <span className={delta < 0 ? 'md-sr-dn' : 'md-sr-up'}>
+                        {delta > 0 ? '+' : '\u2212'}{Math.abs(Math.round(delta * 100))} pts vs baseline
+                      </span>
+                    )}
+                    {!t.testable && <span className="md-sr-untested">not yet testable</span>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

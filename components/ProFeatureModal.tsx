@@ -90,7 +90,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
       <div className="pro-modal-card" onClick={(e) => e.stopPropagation()}>
         <button className="pro-modal-close" onClick={onClose} aria-label="Close">×</button>
 
-        <span className="pro-modal-badge">◆ PRO feature</span>
+        <span className="pro-modal-badge">PRO feature</span>
         <div className="pro-modal-title">{details.title}</div>
         <div className="pro-modal-sub">{details.description}</div>
 

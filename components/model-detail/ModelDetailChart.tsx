@@ -76,10 +76,9 @@ export default function ModelDetailChart({
 
     return (
       <div className="md-chart-section">
-        <div className="md-chart-title">📈 PERFORMANCE TIMELINE — {modeLabel}</div>
+        <div className="md-chart-title">PERFORMANCE TIMELINE — {modeLabel}</div>
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">📊</div>
             <div className="md-chart-empty-title">{emptyMessage}</div>
             <div className="md-chart-empty-sub">{emptySuggestion}</div>
             {showSwitch && (
@@ -127,7 +126,7 @@ export default function ModelDetailChart({
 
   return (
     <div className="md-chart-section">
-      <div className="md-chart-title">📈 PERFORMANCE TIMELINE — {modeLabel}</div>
+      <div className="md-chart-title">PERFORMANCE TIMELINE — {modeLabel}</div>
       <PerformanceChart
         data={chartData}
         chartType="historical"

@@ -273,7 +273,7 @@ export default function ModelDetailSuiteTasks({
                         : proDetail ? detail : <button type="button" className="md-st-lock" onClick={onShowProModal}>details · Pro</button>}
                     </span>
                     <span className="md-st-col-spark">
-                      {proDetail ? <Spark points={h[t.slug] ?? []} /> : <button type="button" className="md-st-lock" onClick={onShowProModal} aria-label="14-day trend is a Pro feature">◆</button>}
+                      {proDetail ? <Spark points={h[t.slug] ?? []} /> : <button type="button" className="md-st-lock" onClick={onShowProModal} aria-label="14-day trend is a Pro feature">PRO</button>}
                     </span>
                     {hasMore && (
                       <button type="button" className="md-st-more" onClick={() => setOpen(o => ({ ...o, [key]: !isOpen }))} aria-expanded={isOpen}>

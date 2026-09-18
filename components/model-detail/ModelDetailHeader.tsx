@@ -102,7 +102,7 @@ export default function ModelDetailHeader({
           className={`md-header-btn ${autoRefresh ? 'active' : ''}`}
           onClick={onToggleAutoRefresh}
         >
-          {autoRefresh ? '🔄 AUTO ON' : '🔄 AUTO'}
+          {autoRefresh ? 'AUTO ON' : 'AUTO'}
         </button>
         <button
           className="md-header-btn"

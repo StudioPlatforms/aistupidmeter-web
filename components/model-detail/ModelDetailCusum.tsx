@@ -48,6 +48,7 @@ interface CusumSeries {
   realShare: number;
   sufficientData: boolean;
   daysUntilAvailable: number;
+  daysOnCurrentConfig: number;
   threshold: number;
   minObservations: number;
   rearmObservations: number;
@@ -131,7 +132,7 @@ export default function ModelDetailCusum({
 
   const Section = ({ children }: { children: React.ReactNode }) => (
     <div className="md-chart-section">
-      <div className="md-chart-title">📉 DRIFT DETECTION — CUSUM</div>
+      <div className="md-chart-title">DRIFT DETECTION — CUSUM</div>
       {children}
     </div>
   );
@@ -149,7 +150,6 @@ export default function ModelDetailCusum({
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onShowProModal('drift-cusum'); }}
         >
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">🔒</div>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>
               CUSUM drift curve is a Pro feature
             </div>
@@ -182,7 +182,6 @@ export default function ModelDetailCusum({
       <Section>
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">⚠️</div>
             <div style={{ color: 'var(--phosphor-dim)', fontSize: 12 }}>
               Could not load drift history — {error}
             </div>
@@ -192,16 +191,17 @@ export default function ModelDetailCusum({
     );
   }
 
-  // ── Not enough verified data ──────────────────────────────────────────
-  // Below the detector's cold-start window there is no baseline to deviate from,
-  // so a curve would be meaningless regardless of what the scores are. Never
-  // draw an interpolated or partial line here.
-  if (series && !series.sufficientData) {
+  // ── Nothing measured yet ──────────────────────────────────────────────
+  // Only when there is genuinely no series. Below the cold-start window the
+  // detector has no baseline and may not fire, but the daily medians and the
+  // running statistic are real measurements, and the chart already shades
+  // un-armed spans and says so per point — so it is shown, marked provisional,
+  // rather than replaced by a paragraph explaining why it is absent.
+  if (series && !series.sufficientData && series.points.length === 0) {
     return (
       <Section>
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-icon">📊</div>
             <div style={{ fontWeight: 600, marginBottom: 6 }}>
               Not enough history yet
             </div>
@@ -237,6 +237,9 @@ export default function ModelDetailCusum({
     // Separate key so detections render as their own marker layer.
     detection: p.driftDetected ? p.cusum : null,
   }));
+
+  // Warming up: the curve is real but nothing on it may be treated as a detection.
+  const provisional = !series.sufficientData;
 
   const peak = Math.max(...series.points.map((p) => p.cusum));
   const yMax = Math.max(peak, series.threshold) * 1.15;
@@ -299,7 +302,7 @@ export default function ModelDetailCusum({
         )}
         {!d.armed && (
           <div style={{ marginTop: 6, maxWidth: 230, color: 'var(--phosphor-dim)' }}>
-            ⏳ {d.minRequired === series.minObservations ? 'Building baseline' : 'Re-arming after a change-point'}
+            {d.minRequired === series.minObservations ? 'Building baseline' : 'Re-arming after a change-point'}
             {' '}— day {d.n} of {d.minRequired}. The threshold is inactive until the
             baseline is established.
           </div>
@@ -310,6 +313,19 @@ export default function ModelDetailCusum({
 
   return (
     <Section>
+      {/* Warming up. Stated before the chart rather than under it, because the one thing a
+          reader must not do with this curve is treat a rise as a detection: the threshold
+          is inactive until the baseline is established. The shaded spans on the chart say
+          the same thing per day. */}
+      {provisional && (
+        <div className="md-cu-provisional">
+          <strong>Baseline still forming</strong> &mdash; {series.daysOnCurrentConfig} of{' '}
+          {series.minObservations} measured days on the current benchmark configuration
+          {series.daysUntilAvailable > 0 && <> ({series.daysUntilAvailable} to go)</>}. The curve
+          below is real, but the detector cannot fire yet, so nothing on it counts as a detection.
+        </div>
+      )}
+
       {/* Suite selector — the detector runs one series per suite (coding, tool use, reasoning) */}
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
         {(Object.keys(SUITE_LABEL) as CusumSuite[]).map((sName) => (

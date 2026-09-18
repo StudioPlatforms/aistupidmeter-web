@@ -439,7 +439,6 @@ export default function ModelDetailClient({
           <div className="md-loading-title">
             {(initialDisplayName || initialName || slug).toUpperCase().replace(/-/g, ' ')}
           </div>
-          <div className="md-loading-icon">⚡</div>
           <div className="md-progress-track">
             <div className="md-progress-fill" style={{ width: `${loadingProgress}%`, background: progressBg }} />
           </div>
@@ -457,7 +456,7 @@ export default function ModelDetailClient({
           )}
           {loadingAttempts >= 3 && (
             <div style={{ marginTop: '12px', fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
-              ⏳ Waiting for benchmark data to be available...
+              Waiting for benchmark data to be available...
             </div>
           )}
         </div>
@@ -472,7 +471,6 @@ export default function ModelDetailClient({
       <div className="md-error">
         <div className="md-error-inner">
           <div className="md-error-title">MODEL NOT FOUND</div>
-          <div className="md-error-icon">⚠️</div>
           <div className="md-error-text">The requested model could not be located in our database.</div>
           <button onClick={() => router.push('/')} className="vintage-btn" style={{ padding: '10px 24px' }}>
             ← RETURN TO DASHBOARD

@@ -82,7 +82,7 @@ export default function ModelDetailCommunityTests({
   return (
     <div className="md-chart-section">
       <div className="md-chart-title">
-        👥 Tested by others with their own keys
+        Tested by others with their own keys
         <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 400, marginLeft: 8 }}>
           {totalRuns} run{totalRuns === 1 ? '' : 's'} · {totalTesters} tester{totalTesters === 1 ? '' : 's'}
         </span>
