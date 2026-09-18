@@ -137,7 +137,7 @@ export default function ModelDetailSliceRegressions({
         </div>
       )}
 
-      {!loading && !error && rows.length === 0 && (
+      {!loading && !error && rows.length === 0 && tasks.length === 0 && (
         <div className="md-chart-empty">
           <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
             {coverage && coverage.tasksTestable === 0 ? (
@@ -177,6 +177,19 @@ export default function ModelDetailSliceRegressions({
           it finds something it is the context the flagged rows sit in. Sorted weakest
           first, because the one question this answers that the composite cannot is
           "which task is this model worst at". */}
+      {/* All-clear as a single line, not a 132px box. The grid below is the evidence and
+          should lead; a grey slab restating the conclusion above it just pushes the data
+          down the page. */}
+      {!loading && !error && rows.length === 0 && tasks.length > 0 && (
+        <div className="md-sr-clear">
+          <strong>No task-level regressions detected.</strong>{' '}
+          {coverage
+            ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test.`
+            : ''}{' '}
+          Checked nightly against each task&rsquo;s own recent history.
+        </div>
+      )}
+
       {!loading && !error && tasks.length > 0 && (
         <div className="md-sr-tasks">
           <div className="md-sr-tasks-head">
