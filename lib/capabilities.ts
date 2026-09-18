@@ -37,6 +37,8 @@ export type Capability =
   | 'api-monitoring'
   /** Calibration and known-unknowns: confidence accuracy and abstention behaviour. */
   | 'calibration'
+  /** Cheaper models that can stand in for this one, and the measured cost of doing it. */
+  | 'substitutes'
   /** Shared workspace, seats, projects, webhooks. */
   | 'team'
   /** SSO, SCIM and the audit trail. */
@@ -56,6 +58,10 @@ export const REQUIRED_PLAN: Record<Capability, Plan> = {
   // that the free board does not. Pro is the floor, so the cheapest paid plan
   // still reaches it.
   calibration: 'pro',
+  // Answers "can I pay less for this" with a measured failure rate rather than a
+  // score comparison. Priced with calibration: both are analysis of runs we have
+  // already paid for, and both belong to the cheapest paid plan.
+  substitutes: 'pro',
   team: 'teams',
   governance: 'teams',
 };
@@ -68,6 +74,7 @@ export const CAPABILITY_LABEL: Record<Capability, string> = {
   'routing-analytics': 'Routing analytics',
   'api-monitoring': 'API monitoring',
   calibration: 'Calibration and known-unknowns',
+  substitutes: 'Cheaper substitutes',
   team: 'Shared workspace',
   governance: 'Security and governance',
 };

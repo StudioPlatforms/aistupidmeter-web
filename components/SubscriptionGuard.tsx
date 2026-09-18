@@ -170,6 +170,11 @@ const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: s
     { title: 'Confidence you can use', description: 'Expected Calibration Error: whether a stated 90% actually comes out right about 90% of the time, or is a reassuring round number.' },
     { title: 'The questions behind the number', description: 'Per-item results for the latest sweep, so the figure can be checked rather than taken on trust.' },
   ],
+  substitutes: [
+    { title: 'What switching actually costs', description: 'For every cheaper model, the measured share of requests this one completes that the cheaper one would fail — not a score gap, the overlap behind it.' },
+    { title: 'Read per trial, not per verdict', description: 'A published verdict is the median of seven trials. One request is not seven, so this reads the trials underneath and reports the variance the median removes.' },
+    { title: 'Bounded, not assumed', description: 'Each figure comes with the range it must fall in for any dependence between the two models’ failures, so nothing rests on an unstated assumption.' },
+  ],
   'api-monitoring': [
     { title: 'Per-key request logs', description: 'See exactly how each key is used, by which model, at what cost and latency.' },
     { title: 'Prompt auditing', description: 'Opt-in prompt retention with automatic secret scrubbing.' },

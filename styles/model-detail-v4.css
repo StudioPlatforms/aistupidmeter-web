@@ -1035,3 +1035,118 @@
   background: rgba(53, 196, 106, 0.06);
 }
 .md-sr-clear strong { color: var(--phosphor-green, #35c46a); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Cheaper substitutes (Pro+)
+
+   A dense table rather than cards: five short numeric columns per row, and the
+   panel's whole job is to be scanned down the "Would fail" column. Cards would
+   triple the height for the same five facts, which is the failure the drift and
+   regression panels were already corrected for.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* The recommendation, stated once in plain money before the evidence. */
+.md-sub-lede {
+  font-size: 12px; line-height: 1.55; color: var(--phosphor-dim);
+  margin: 0 0 12px; padding: 9px 12px; border-radius: 4px;
+  border-left: 3px solid var(--phosphor-green, #35c46a);
+  background: rgba(53, 196, 106, 0.06);
+}
+.md-sub-lede strong { color: var(--phosphor-bright, inherit); font-weight: 650; }
+
+.md-sub-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--phosphor-dim); margin: 0 0 8px;
+}
+.md-sub-head-sub { text-transform: none; letter-spacing: 0; font-weight: 500; opacity: 0.8; }
+
+.md-sub-table { display: flex; flex-direction: column; }
+
+.md-sub-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 0.6fr) minmax(0, 0.7fr);
+  align-items: center; gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.18));
+  font-size: 11.5px;
+}
+.md-sub-row-head {
+  border-top: none; padding: 0 0 6px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--phosphor-dim);
+}
+.md-sub-row-head span { cursor: help; }
+.md-sub-row-head span:first-child, .md-sub-row-head span:nth-child(2) { cursor: default; }
+
+.md-sub-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--phosphor-bright, inherit); font-weight: 600;
+}
+.md-sub-vendor {
+  display: block; font-size: 9.5px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.04em; color: var(--phosphor-dim); margin-top: 1px;
+}
+
+.md-sub-price { min-width: 0; color: var(--phosphor-bright, inherit); }
+.md-sub-save {
+  display: block; font-size: 10px; color: var(--phosphor-dim); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.md-sub-regret { min-width: 0; }
+.md-sub-regret-v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.md-sub-range {
+  display: block; font-size: 10px; color: var(--phosphor-dim); margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.md-sub-rescue { color: var(--phosphor-dim); font-variant-numeric: tabular-nums; }
+
+.md-sub-chip {
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  white-space: nowrap; cursor: help;
+}
+
+/* One colour scale for the verdict, used by both the chip and the number, so a
+   row reads the same whichever column the eye lands on first. */
+.md-sub-safe         { color: var(--phosphor-green, #35c46a); }
+.md-sub-caution      { color: var(--amber-warning, #ffb000); }
+.md-sub-unsafe       { color: var(--red-alert, #e4574c); }
+.md-sub-insufficient { color: var(--phosphor-dim); }
+.md-sub-chip.md-sub-safe         { background: rgba(53, 196, 106, 0.12); }
+.md-sub-chip.md-sub-caution      { background: rgba(255, 176, 0, 0.12); }
+.md-sub-chip.md-sub-unsafe       { background: rgba(228, 87, 76, 0.12); }
+.md-sub-chip.md-sub-insufficient { background: rgba(128, 128, 128, 0.12); }
+
+.md-sub-more {
+  margin: 10px 0 0; padding: 4px 10px; font-size: 10.5px; font-weight: 600;
+  color: var(--phosphor-dim); background: transparent; cursor: pointer;
+  border: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.25)); border-radius: 3px;
+}
+.md-sub-more:hover { color: var(--phosphor-bright, inherit); }
+
+.md-sub-foot {
+  font-size: 10.5px; line-height: 1.5; color: var(--phosphor-dim);
+  margin-top: 12px; opacity: 0.85;
+}
+
+.md-sub-clear {
+  font-size: 11.5px; line-height: 1.55; color: var(--phosphor-dim);
+  padding: 8px 12px; border-radius: 4px;
+  border-left: 3px solid var(--metal-silver, rgba(192, 192, 192, 0.35));
+  background: rgba(128, 128, 128, 0.06);
+}
+
+/* Phone: the two derived columns are the first to go. Price-per-1M and the
+   rescue rate are context; the model, what it would break, and the verdict are
+   the answer, and they still fit. */
+@media (max-width: 640px) {
+  .md-sub-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.8fr); gap: 8px; }
+  .md-sub-price, .md-sub-rescue { display: none; }
+  .md-sub-row-head span:nth-child(2), .md-sub-row-head span:nth-child(4) { display: none; }
+  .md-sub-name::after {
+    content: attr(data-save); display: block; font-size: 9.5px; color: var(--phosphor-dim);
+  }
+}

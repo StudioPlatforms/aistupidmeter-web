@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
@@ -56,6 +56,16 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         'Expected Calibration Error — does a stated 90% actually come out right 90% of the time',
         'Abstention behaviour on non-existent entities, withheld details and unobservable facts',
         'Per-question detail, so you can see what produced the number',
+      ],
+    },
+    substitutes: {
+      title: 'Unlock substitution analysis',
+      description: 'The board tells you what each model scores and what it costs. This tells you what actually happens if you switch to the cheaper one.',
+      benefits: [
+        'For every cheaper model: the measured share of working requests it would fail',
+        'Read from per-trial outcomes, not run verdicts — a verdict is a median of seven and hides what one request sees',
+        'A range across every possible dependence, so the estimate is bounded rather than assumed',
+        'The reverse too: how much of what this model drops, the cheaper one completes',
       ],
     },
     'api-monitoring': {

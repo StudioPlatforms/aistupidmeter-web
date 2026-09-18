@@ -29,6 +29,7 @@ import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum'
 import ModelDetailDriftStatus from '../../../components/model-detail/ModelDetailDriftStatus';
 import ModelDetailSliceRegressions from '../../../components/model-detail/ModelDetailSliceRegressions';
 import ModelDetailCalibration from '../../../components/model-detail/ModelDetailCalibration';
+import ModelDetailSubstitutes from '../../../components/model-detail/ModelDetailSubstitutes';
 import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
 
 // Shared components
@@ -193,7 +194,7 @@ export default function ModelDetailClient({
 
   // Pro modal
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration' | 'substitutes'>('historical-data');
 
   // Visitor counts (same as main page TopBar)
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
@@ -604,6 +605,17 @@ export default function ModelDetailClient({
           the question they cannot: the model did or did not solve the task — but when it
           has no way of knowing, does it say so, or invent something and sound sure? */}
       <ModelDetailCalibration
+        modelId={modelId}
+        plan={plan}
+        hasProAccess={hasProAccess}
+        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+      />
+
+      {/* Cheaper models that can do this one's work, and what switching costs in failed
+          requests. Placed directly after calibration because both are decision panels
+          rather than measurement panels: everything above says how this model behaves,
+          these two say what to do about it. */}
+      <ModelDetailSubstitutes
         modelId={modelId}
         plan={plan}
         hasProAccess={hasProAccess}

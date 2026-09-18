@@ -48,6 +48,8 @@ const ROWS: Array<{ label: string; get: (p: Plan) => string; note?: string }> = 
   { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : 'No', note: 'Coding, reasoning, tool-calling and price sorts' },
   { label: 'Calibration & known-unknowns', get: p => planMeets(p, REQUIRED_PLAN.calibration) ? 'Yes' : '—',
     note: 'Per model: how often it invents an answer to a question that has none, and whether its stated confidence is worth anything' },
+  { label: 'Cheaper substitutes',   get: p => planMeets(p, REQUIRED_PLAN.substitutes) ? 'Yes' : '—',
+    note: 'Which cheaper models can do a given model’s work, and the measured share of working requests that would start failing if you switched' },
   { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
     note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
   { label: 'Routed requests / mo',  get: p => fmt(PLANS[p].routerRequestsPerMonth), note: 'You bring your own provider keys; providers bill you for inference directly' },
