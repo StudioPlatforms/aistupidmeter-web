@@ -1066,7 +1066,7 @@
 
 .md-sub-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 0.6fr) minmax(0, 0.7fr);
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.85fr) minmax(0, 1.5fr) minmax(0, 0.5fr) minmax(0, 0.7fr);
   align-items: center; gap: 10px;
   padding: 7px 0;
   border-top: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.18));
@@ -1139,14 +1139,36 @@
   background: rgba(128, 128, 128, 0.06);
 }
 
+/* The suite the verdict came from, and the per-suite strip under it. Three short
+   figures in place of the old Frechet range: the range was reassurance, the split
+   is evidence, and it is what stops a good coding number hiding a bad tool one. */
+.md-sub-gov {
+  display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--phosphor-dim); margin-top: 1px;
+}
+.md-sub-prov { margin-left: 2px; cursor: help; }
+.md-sub-suites { display: flex; flex-wrap: wrap; gap: 3px 6px; margin-top: 3px; }
+.md-sub-suite {
+  font-size: 9.5px; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: help;
+  color: var(--phosphor-dim); padding: 1px 4px; border-radius: 2px;
+  background: rgba(128,128,128,.10);
+}
+/* Provisional suites read quieter, but are never hidden: "not measured enough yet"
+   and "fine" must not render the same. */
+.md-sub-suite-prov { opacity: .62; font-style: italic; }
+
 /* Phone: the two derived columns are the first to go. Price-per-1M and the
    rescue rate are context; the model, what it would break, and the verdict are
    the answer, and they still fit. */
 @media (max-width: 640px) {
-  .md-sub-row { grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.8fr); gap: 8px; }
+  .md-sub-row { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, 0.7fr); gap: 8px; }
   .md-sub-price, .md-sub-rescue { display: none; }
   .md-sub-row-head span:nth-child(2), .md-sub-row-head span:nth-child(4) { display: none; }
   .md-sub-name::after {
     content: attr(data-save); display: block; font-size: 9.5px; color: var(--phosphor-dim);
   }
 }
+
+/* The cheaper-but-riskier alternative, inside the lede. Set apart so the safe
+   recommendation still reads as the recommendation. */
+.md-sub-lede-alt { display: block; margin-top: 4px; opacity: 0.9; }

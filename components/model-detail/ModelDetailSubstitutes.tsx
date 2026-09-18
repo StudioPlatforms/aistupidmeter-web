@@ -34,12 +34,31 @@ import { REQUIRED_PLAN } from '../../lib/capabilities';
 
 type Verdict = 'safe' | 'caution' | 'unsafe' | 'insufficient';
 
+type Suite = 'coding' | 'tooling' | 'reasoning';
+
+interface SuiteRegret {
+  suite: Suite;
+  pairedCells: number;
+  trials: number;
+  expectedPasses: number;
+  regret: number;
+  regretLo: number;
+  regretHi: number;
+  regretFloor: number;
+  rescue: number;
+  /** False while the suite lacks the resolution to decide a verdict. */
+  counts: boolean;
+}
+
 interface Substitute {
   modelId: number;
   name: string;
   vendor: string;
   blendedCostPer1M: number;
   cheaperBy: number | null;
+  suites: SuiteRegret[];
+  governingSuite: Suite | null;
+  governingIsProvisional: boolean;
   pairedCells: number;
   trials: number;
   expectedPasses: number;
@@ -56,11 +75,10 @@ interface Report {
   vendor: string;
   blendedCostPer1M: number;
   basis: {
-    suite: string;
+    suites: Suite[];
     benchConfigId: number;
     since: string;
-    tasks: number;
-    taskSlugs: string[];
+    tasksBySuite: Record<string, number>;
     note: string;
   };
   substitutes: Substitute[];
@@ -80,11 +98,16 @@ const VERDICT_LABEL: Record<Verdict, string> = {
   insufficient: 'Too few runs',
 };
 
+/** Short column labels; the full name is in the title attribute. */
+const SUITE_ORDER: Suite[] = ['coding', 'tooling', 'reasoning'];
+const SUITE_ABBR: Record<Suite, string> = { coding: 'cod', tooling: 'tool', reasoning: 'rsn' };
+const SUITE_NAME: Record<Suite, string> = { coding: 'coding', tooling: 'tool use', reasoning: 'reasoning' };
+
 const VERDICT_HINT: Record<Verdict, string> = {
-  safe: 'Breaks under 2% of what this model completes, and under 5% even on the worst-case reading.',
-  caution: 'A measurable share of working requests would start failing. Worth the saving only if you can absorb that.',
-  unsafe: 'Fails too much of what this model completes for the saving to be the deciding factor.',
-  insufficient: 'Not enough paired runs on the current benchmark configuration to judge yet.',
+  safe: 'Every suite with enough runs breaks under 2% of what this model completes, and under 5% even on the worst-case reading.',
+  caution: 'At least one suite loses a measurable share of working requests. Worth the saving only if you can absorb that.',
+  unsafe: 'At least one suite fails too much of what this model completes for the saving to be the deciding factor.',
+  insufficient: 'No suite yet has enough paired runs on the current benchmark configuration to judge.',
 };
 
 const pct1 = (v: number) => `${(v * 100).toFixed(1)}%`;
@@ -221,6 +244,17 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
 
   const shown = showAll ? rows : rows.slice(0, 5);
   const best = rows.find(r => r.verdict === 'safe') ?? null;
+  // A caution-rated option that is meaningfully cheaper than the safe pick. Only
+  // surfaced when the gap is large enough to be a real trade rather than noise.
+  const cheaperRisk =
+    best && best.cheaperBy
+      ? rows.find(
+          r =>
+            r.verdict === 'caution' &&
+            r.cheaperBy !== null &&
+            r.cheaperBy >= best.cheaperBy! * 3
+        ) ?? null
+      : null;
 
   return (
     <Section>
@@ -229,9 +263,24 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
       {best && best.cheaperBy && best.cheaperBy > 1.5 && (
         <div className="md-sub-lede">
           <strong>{best.name}</strong> does this model&rsquo;s work at{' '}
-          <strong>{savings(best.cheaperBy)}</strong>, failing{' '}
+          <strong>{savings(best.cheaperBy)}</strong>, failing at worst{' '}
           <strong>{pct1(best.regret)}</strong> of what it completes
+          {best.governingSuite && <> (on {SUITE_NAME[best.governingSuite]}, its weakest suite)</>}
           {best.rescue >= 0.2 && <> — and completing <strong>{pct0(best.rescue)}</strong> of what it drops</>}.
+          {/* The cheapest option is often one tier below safe. Saying so is the difference
+              between a recommendation and a recommendation you can act on: a reader who
+              can absorb 3% should not have to work it out of the table themselves. */}
+          {cheaperRisk && (
+            <>
+              {' '}
+              <span className="md-sub-lede-alt">
+                <strong>{cheaperRisk.name}</strong> is {savings(cheaperRisk.cheaperBy)} again, at{' '}
+                <strong>{pct1(cheaperRisk.regret)}</strong>
+                {cheaperRisk.governingSuite && <> on {SUITE_NAME[cheaperRisk.governingSuite]}</>} — worth
+                it only if you can absorb that.
+              </span>
+            </>
+          )}
         </div>
       )}
 
@@ -240,7 +289,11 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
           {report.name} costs {money(report.blendedCostPer1M)}/1M blended
         </span>
         <span className="md-sub-head-sub">
-          {report.basis.tasks} repository-repair tasks · config {report.basis.benchConfigId} · per-trial
+          {(['coding', 'tooling', 'reasoning'] as Suite[])
+            .filter(x => report.basis.tasksBySuite[x])
+            .map(x => `${report.basis.tasksBySuite[x]} ${SUITE_NAME[x]}`)
+            .join(' · ')}{' '}
+          tasks · config {report.basis.benchConfigId}
         </span>
       </div>
 
@@ -248,7 +301,7 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
         <div className="md-sub-row md-sub-row-head" role="row">
           <span role="columnheader">Model</span>
           <span role="columnheader">Price</span>
-          <span role="columnheader" title="Of the requests this model completes, the share the substitute would fail. Range is the span across every possible dependence between their failures.">
+          <span role="columnheader" title="Of the requests this model completes, the share the substitute would fail — taken from its weakest suite, never averaged across them. The strip underneath gives every suite.">
             Would fail
           </span>
           <span role="columnheader" title="Of the requests this model fails, the share the substitute completes.">
@@ -276,11 +329,35 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
               <span className={`md-sub-regret-v md-sub-${s.verdict}`}>
                 {s.verdict === 'insufficient' ? '—' : pct1(s.regret)}
               </span>
-              {s.verdict !== 'insufficient' && (
-                <span className="md-sub-range">
-                  {pct1(s.regretLo)}&ndash;{pct1(s.regretHi)}
+              {s.governingSuite && (
+                <span className="md-sub-gov">
+                  {SUITE_NAME[s.governingSuite]}
+                  {s.governingIsProvisional && <span className="md-sub-prov" title="Decided by a suite still below the run floor: it cannot confirm safety, but the sample already rules it out.">&deg;</span>}
                 </span>
               )}
+              {/* Every suite, so the headline can be checked rather than trusted.
+                  Never averaged: a good coding number must not be able to hide a
+                  bad tool-use one, which is the whole reason the verdict takes the
+                  worst rather than the middle. */}
+              <span className="md-sub-suites">
+                {/* Fixed order, not worst-first: a strip that reorders per row cannot be
+                    compared down the column, and which suite decided is already said above. */}
+                {SUITE_ORDER.map(name => s.suites.find(q => q.suite === name)).filter(Boolean).map(q => (q!)).map(q => (
+                  <span
+                    key={q.suite}
+                    className={`md-sub-suite${q.counts ? '' : ' md-sub-suite-prov'}`}
+                    title={
+                      `${SUITE_NAME[q.suite]}: ${pct1(q.regret)} of what this model completes would fail` +
+                      ` — ${q.pairedCells} paired tasks, ${q.trials} trial${q.trials === 1 ? '' : 's'}.` +
+                      (q.counts
+                        ? ''
+                        : ` Below the run floor, so it cannot grant a verdict; it is read on its lower bound of ${pct1(q.regretFloor)}, which can still deny one.`)
+                    }
+                  >
+                    {SUITE_ABBR[q.suite]} {pct1(q.regret)}{q.counts ? '' : '\u00b0'}
+                  </span>
+                ))}
+              </span>
             </span>
 
             <span className="md-sub-rescue" role="cell">
@@ -307,7 +384,11 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
 
       <div className="md-sub-foot">
         Read from per-trial outcomes, not run verdicts — a verdict is the median of seven
-        trials and hides the variance a single request sees. {report.basis.note}
+        trials and hides the variance a single request sees. Each suite stands on its own and
+        the headline takes the worst, never the average, because a safe coding score must not
+        be able to cover a bad tool-use one. A degree mark (&deg;) means a suite has too few
+        runs to confirm safety yet; it is judged on its lower bound, so it can still rule
+        safety out. {report.basis.note}
       </div>
     </Section>
   );
