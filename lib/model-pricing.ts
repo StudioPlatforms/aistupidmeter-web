@@ -35,6 +35,9 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
     // GPT-6 Astra (GA 2026-09-04) — new flagship generation, 2.5x GPT-5.6 Sol.
     // Cached input is $1/MTok; we quote the cache-MISS rate per the convention
     // above. Fast mode ($20/$100) and Batch/Flex (-50%) tiers are not modelled.
+    // Sol and Luna first: the generic gpt-6 branch is Astra's price (5x / 100x theirs).
+    if (name.includes('gpt-6-sol')) return { input: 2, output: 10 };
+    if (name.includes('gpt-6-luna')) return { input: 0.10, output: 0.50 };
     if (name.includes('gpt-6')) return { input: 10, output: 50 };
     // GPT-5.6 family (GA 2026-07-09) — specific tiers before the generic
     // gpt-5 catch-all, which would otherwise swallow every 5.x model.
@@ -62,6 +65,8 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
   if (prov === 'anthropic') {
     if (name.includes('fable-5') || name.includes('mythos-5')) return { input: 10, output: 50 };
     if (name.includes('opus-4-1') || name.includes('opus-4.1')) return { input: 15, output: 75 }; // legacy tier
+    // Opus 5.5 came in BELOW the tier it succeeds, so it needs its own branch first.
+    if (name.includes('opus-5-5')) return { input: 4, output: 20 };
     // Opus 4.5 through Opus 5 all sit at $5/$25.
     if (name.includes('opus')) return { input: 5, output: 25 };
     // The $2/$10 launch rate BECAME the standard price for Sonnet 5: the rise to

@@ -357,6 +357,7 @@ export default async function MethodologyPage() {
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Daily at 4 AM<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 9, in real Docker sandboxes<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 7-axis evaluation<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Transcript</strong>: each model sees its own tool calls and their results in its provider&rsquo;s native tool format, with its own reasoning carried between calls (from 23 September 2026). Until then results came back as plain chat text, and some models &mdash; GPT-6 Astra among them &mdash; read that as the call never having run and repeated it, so part of what the suite measured was our transcript format<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Agent capability tests
               </div>
             </div>
