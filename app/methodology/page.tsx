@@ -855,7 +855,8 @@ export default async function MethodologyPage() {
               TEST YOUR KEYS
             </div>
             <div style={{ ...styles.text, marginBottom: '12px' }}>
-              Run benchmarks with your own API keys to verify we're not making up numbers
+              Run the same benchmarks with your own API keys, scored by the same code as our published runs, and
+              compare the result with our figure from the same version of the test
             </div>
             <Link href="/router/test-keys" style={{
               display: 'inline-block',

@@ -317,8 +317,8 @@ export default function AboutPage() {
             {[
               ['Published Method', 'The scoring weights, the statistical tests and the drift constants are documented in full on the methodology page and in the 2026 methodology paper. If you think a weight is wrong, you can quote it back to us.'],
               ['Tasks Held Back On Purpose', 'The benchmark tasks are the one thing we do not publish. When they were public, providers optimised against them \u2014 and a test that can be studied in advance, or scraped into training data, stops measuring anything.'],
-              ['Config-Versioned', 'Every score records the benchmark configuration it ran under, so a change we made is never mistaken for a change the model made'],
-              ['User Verifiable', '"Test Your Keys" runs the same tasks with your own API keys, so you can reproduce our numbers yourself'],
+              ['Config-Versioned', 'Every score records the benchmark configuration it ran under \u2014 a fingerprint of every prompt, test and check the models are given \u2014 so a change we made is never mistaken for a change the model made'],
+              ['User Verifiable', '"Test Your Keys" runs the same tasks with your own API keys and scores them with the same code as our published runs, so you can reproduce our numbers yourself'],
             ].map(([title, desc], i) => (
               <div key={i} style={styles.panel}>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</div>
@@ -345,7 +345,7 @@ export default function AboutPage() {
               {
                 title: 'Performance Time-Series',
                 desc: 'Every score we have ever recorded, per model, per axis, per suite, with the benchmark configuration each run used.',
-                items: ['176,000+ scored runs since August 2025', '9-axis breakdown, not just headline scores', 'Confidence intervals and per-trial variance'],
+                items: ['176,000+ scored runs since August 2025', 'Per-axis breakdown, not just headline scores', 'Confidence intervals and per-trial variance'],
               },
               {
                 title: 'Drift and Regression Dataset',
@@ -359,7 +359,7 @@ export default function AboutPage() {
               },
               {
                 title: 'Deep Reasoning Sessions',
-                desc: 'Multi-turn dialogues scored on 9 axes including memory retention, plan coherence and context use.',
+                desc: 'Multi-turn working sessions scored on 5 axes. Memory, plan coherence and context use are checked by running code: requirements stated during the conversation, and decisions the model declares in its own plan, are tested at every later step.',
                 items: ['4,400+ multi-turn sessions', 'Turn-by-turn scoring', 'Raw outputs retained where retention policy allows'],
               },
             ].map((dataset, i) => (
@@ -415,7 +415,7 @@ export default function AboutPage() {
             {[
               { title: 'Open Web Application', desc: 'The site you are reading is open source. The benchmark repository is deliberately private: when it was public, providers optimised against the specific tasks, which destroys the measurement. The method itself is fully published.', links: [{ label: 'Frontend (Web) \u2192', url: 'https://github.com/StudioPlatforms/aistupidmeter-web' }] },
               { title: 'Public API', desc: 'All benchmark data accessible via a free, keyed REST API. Rankings, historical scores, confidence intervals, degradation alerts and drift signatures.', code: 'GET /api/v1/models', internalLink: { label: 'API Docs \u2192', href: '/api-docs' } },
-              { title: 'Detailed Documentation', desc: 'Complete technical documentation of our 9-axis scoring, Page-Hinkley drift detection, and statistical methods.', internalLink: { label: 'Read Methodology \u2192', href: '/methodology' } },
+              { title: 'Detailed Documentation', desc: 'Complete technical documentation of how each suite is scored, Page-Hinkley drift detection, and statistical methods.', internalLink: { label: 'Read Methodology \u2192', href: '/methodology' } },
               { title: 'Test Your Keys', desc: 'Run benchmarks with your own API keys to verify we\'re not making up numbers.', internalLink: { label: 'Test Now \u2192', href: '/router/test-keys' } },
             ].map((item, i) => (
               <div key={i} style={styles.panel}>

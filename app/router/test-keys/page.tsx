@@ -392,8 +392,9 @@ export default function TestKeysPage() {
                 <div className="rv4-info-banner-content">
                   <div className="rv4-info-banner-title">Why your number can differ from ours</div>
                   <div className="rv4-info-banner-text">
-                    This is one run on your key. Ours is a median over repeated runs on a fixed schedule. Rate
-                    limits, account tier and ordinary run-to-run variance all move a single sample.
+                    Both are scored by the same code, on the same version of the test. Yours is one run on your
+                    key; ours is our latest scheduled run, which for coding makes seven attempts per task where
+                    yours makes one. Rate limits, account tier and ordinary run-to-run variance all move a single sample.
                   </div>
                 </div>
               </div>
