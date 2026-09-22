@@ -68,15 +68,17 @@ const TOOLING_AXES: AxisSpec[] = [
 // Deep-reasoning weights are set per task, so a single percentage would be a fiction. The
 // axes are real and measured; the weight column says so instead of inventing a number.
 const REASONING_AXES: AxisSpec[] = [
-  { key: 'correctness',      label: 'CORRECTNESS', weight: 'per task', description: 'Did the session reach a working result?' },
-  { key: 'memoryRetention',  label: 'MEMORY RETENTION', weight: 'per task', description: 'Carrying commitments across turns' },
-  { key: 'planCoherence',    label: 'PLAN COHERENCE', weight: 'per task', description: 'Staying consistent with its own plan' },
-  { key: 'contextWindow',    label: 'CONTEXT WINDOW', weight: 'per task', description: 'Using what was established earlier' },
-  { key: 'debugging',        label: 'DEBUGGING', weight: 'per task', description: 'Fixing what it broke' },
-  // `stability` (answer-length variance) and `safety` (a keyword rule) were retracted from the
-  // reasoning suite on 2026-09-22 and are no longer reported; `edgeCases` is reported only
-  // when a turn failed, since recovery cannot be observed otherwise.
-  { key: 'edgeCases',        label: 'RECOVERY', weight: 'per task', description: 'Passing again after a failed turn' },
+  { key: 'correctness',      label: 'CORRECTNESS', weight: 'per task', description: 'Steps that passed their tests or checks' },
+  // Since 2026-09-23 the three continuity axes are executable: rules stated once in the
+  // conversation (at the start or mid-session), and the decisions a model declares in its own plan, are checked by running
+  // code at every later step. They used to compare words (identifier overlap).
+  { key: 'memoryRetention',  label: 'MEMORY RETENTION', weight: 'per task', description: 'Rules stated once in the session, still followed later' },
+  { key: 'planCoherence',    label: 'PLAN COHERENCE', weight: 'per task', description: 'Code keeps the decisions declared in its own plan' },
+  { key: 'contextWindow',    label: 'CONTEXT WINDOW', weight: 'per task', description: 'Rules from the first message still followed at the end' },
+  // `debugging` was correctness under another name and is folded into it; `codeQuality`,
+  // `stability` and `safety` are retracted. `edgeCases` is reported only when a code step
+  // failed, since recovery cannot be observed otherwise.
+  { key: 'edgeCases',        label: 'RECOVERY', weight: 'per task', description: 'Code passing again after a failed step' },
 ];
 
 /** Only axes the suite actually reported. No stand-ins, no derived values. */

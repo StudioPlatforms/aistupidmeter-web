@@ -89,11 +89,7 @@ const AXES_BY_SUITE: Record<Suite, readonly Axis[]> = {
   ],
   deep: [
     { key: 'correctness',       label: 'Correctness',     short: 'Corr' },
-    { key: 'codeQuality',       label: 'Code quality',    short: 'Code' },
-    { key: 'stability',         label: 'Stability',       short: 'Stab' },
-    { key: 'edgeCases',         label: 'Edge cases',      short: 'Edge' },
-    { key: 'debugging',         label: 'Debugging',       short: 'Debug' },
-    { key: 'safety',            label: 'Safety',          short: 'Safe' },
+    { key: 'edgeCases',         label: 'Recovery',        short: 'Recov' },
     { key: 'memoryRetention',   label: 'Memory',          short: 'Mem' },
     { key: 'planCoherence',     label: 'Plan coherence',  short: 'Plan' },
     { key: 'contextWindow',     label: 'Context use',     short: 'Ctx' },
