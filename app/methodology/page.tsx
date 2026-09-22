@@ -672,7 +672,7 @@ export default async function MethodologyPage() {
               rotating through four, so consecutive days compared different tasks. It now runs all four
               every day and the daily figure is their mean. Predicted from the per-session spread at about
               4 points, its day-to-day noise measured over the first week of the current configuration
-              is <strong>2.6 points</strong> (median across 19 models), inside the range the detector
+              is <strong>2.0 points</strong> (median across 19 models), inside the range the detector
               was validated on. Each
               suite&rsquo;s statistic restarts on its own configuration change and needs ten days of history
               before it can fire.
