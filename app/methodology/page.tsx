@@ -644,11 +644,13 @@ export default async function MethodologyPage() {
               3. M&#8348; = min(m&#8321; &hellip; m&#8348;)<br/>
               4. PH&#8348; = m&#8348; &minus; M&#8348;<br/>
               5. If PH&#8348; &gt; lambda: ALERT, then reset the detector fully<br/>
+              &nbsp;&nbsp;&nbsp;(tool use: only once PH&#8348; has stayed above its lambda for 3 consecutive daily runs)<br/>
               <br/>
               <span style={{ color: 'var(--phosphor-green)' }}>
                 Parameters (lib/page-hinkley.ts):<br/>
                 &rarr; Tolerance (delta): 0.01 &mdash; one point of the 0&ndash;100 score<br/>
                 &rarr; Threshold (lambda): 0.30 &mdash; thirty points of accumulated shortfall<br/>
+                &rarr; Tool use: lambda 0.50, held for 3 consecutive daily runs<br/>
                 &rarr; Cold start: 10 observations before it may fire<br/>
                 &rarr; Rolling baseline for alerting: 28 days
               </span>
@@ -668,8 +670,14 @@ export default async function MethodologyPage() {
               credit outage, its modelled filler and two scoring changes, all inside one window. Measured over
               nine days on one configuration (14&ndash;22 September 2026), the tool-use score&rsquo;s day-to-day
               spread is <strong>3.9 points</strong> (median across 19 models; 2.1 to 7.2). An earlier estimate
-              of 1.4, taken from two days, understated it; at this noise the detector&rsquo;s measured false-alarm
-              rate is higher than for coding, as the table below shows. The reasoning suite was
+              of 1.4, taken from two days, understated it. At that noise the rule the other suites use would
+              raise about two false tool-use alarms a month across the fleet, so from 23 September 2026 tool
+              use fires on its own rule: the statistic must pass <strong>0.50</strong> instead of 0.30 and stay
+              above it for <strong>three consecutive daily runs</strong>. Simulated at each model&rsquo;s own
+              noise, that is about one false alarm every three to four months across the whole fleet. A
+              sustained 5-point drop is still caught 96% of the time, in a median of 15 days. The price is
+              small drops: a sustained 3-point decline in tool use is now caught within 30 days less than half
+              the time. It will be re-checked when tool use moves to two runs a day, which halves its variance. The reasoning suite was
               genuinely noisier (6&ndash;8 points), and the cause was structural: it ran one task a day,
               rotating through four, so consecutive days compared different tasks. It now runs all four
               every day and the daily figure is their mean. Predicted from the per-session spread at about

@@ -52,6 +52,8 @@ interface CusumSeries {
   threshold: number;
   minObservations: number;
   rearmObservations: number;
+  /** consecutive daily points above the threshold before a detection (tool use: 3; absent = 1) */
+  confirmObservations?: number;
   detections: string[];
   period: string;
 }
@@ -415,7 +417,9 @@ export default function ModelDetailCusum({
             strokeDasharray="6 4"
             strokeWidth={1}
             label={{
-              value: `ALERT THRESHOLD ${series.threshold.toFixed(2)}`,
+              value: (series.confirmObservations ?? 1) > 1
+                ? `ALERT THRESHOLD ${series.threshold.toFixed(2)} · HELD ${series.confirmObservations} DAYS`
+                : `ALERT THRESHOLD ${series.threshold.toFixed(2)}`,
               position: 'insideTopRight',
               fill: 'var(--phosphor-dim)',
               fontSize: 10,

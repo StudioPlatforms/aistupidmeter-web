@@ -13,7 +13,15 @@
 import { useEffect, useState } from 'react';
 
 type SuiteKey = 'hourly' | 'tooling' | 'deep';
-interface SuiteState { cusum: number; days: number; armed: boolean; threshold: number; coldStart: number }
+interface SuiteState {
+  cusum: number; days: number; armed: boolean; threshold: number; coldStart: number;
+  /** consecutive daily readings above the threshold needed before the detector fires (tool use: 3) */
+  confirm?: number;
+  /** consecutive armed readings above the threshold, ending at the newest one */
+  above?: number;
+  /** the detector fired on the newest reading */
+  fired?: boolean;
+}
 interface Signature {
   driftStatus?: 'NORMAL' | 'WARNING' | 'ALERT';
   dataSource?: 'measured' | 'synthetic';
@@ -23,9 +31,12 @@ interface Signature {
 const LABEL: Record<SuiteKey, string> = { hourly: 'Coding', tooling: 'Tool use', deep: 'Reasoning' };
 const ORDER: SuiteKey[] = ['hourly', 'tooling', 'deep'];
 
+// A reading above the threshold is an alert only once the detector has fired on it. Tool use
+// needs three consecutive daily readings above its threshold, so its first two are a warning.
+// `fired` is absent from older API responses; those fall back to the threshold comparison.
 function chipState(s: SuiteState): 'cold' | 'ok' | 'warn' | 'alert' {
   if (!s.armed) return 'cold';
-  if (s.cusum >= s.threshold) return 'alert';
+  if (s.fired ?? s.cusum >= s.threshold) return 'alert';
   if (s.cusum >= s.threshold / 2) return 'warn';
   return 'ok';
 }
@@ -79,8 +90,13 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
           const pctOfThreshold = s.threshold > 0
             ? Math.max(0, Math.min(100, (s.cusum / s.threshold) * 100))
             : 0;
+          const confirm = s.confirm ?? 1;
+          const pending = s.armed && !s.fired && confirm > 1 && (s.above ?? 0) > 0;
+          const firesAt = confirm > 1
+            ? `fires when it stays above ${s.threshold.toFixed(2)} for ${confirm} consecutive daily runs`
+            : `fires at ${s.threshold.toFixed(2)}`;
           const title = s.armed
-            ? `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)}; fires at ${s.threshold.toFixed(2)}. ${s.days} measured days on the current configuration.`
+            ? `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)}; ${firesAt}. ${s.days} measured days on the current configuration.`
             : `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)} against a firing threshold of ${s.threshold.toFixed(2)}. ${s.days} of ${s.coldStart} measured days since this suite's configuration last changed — the detector cannot fire until it has ${s.coldStart}, so this figure is an early reading, not a verdict.`;
           return (
             <span key={k} className={`md-ds-chip md-ds-${state}${focus === k ? ' md-ds-focus' : ''}${focus && focus !== k ? ' md-ds-dim' : ''}`} title={title}>
@@ -93,7 +109,9 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
                 <span className={`md-ds-meter-fill md-ds-meter-${state}`} style={{ width: `${Math.max(pctOfThreshold, 1.5)}%` }} />
               </span>
               <span className="md-ds-detail">
-                {s.armed
+                {pending
+                  ? `above threshold · day ${s.above} of the ${confirm} in a row needed to fire`
+                  : s.armed
                   ? `${Math.round(pctOfThreshold)}% of the way to firing`
                   : `${Math.round(pctOfThreshold)}% of threshold · baseline ${days}/${s.coldStart} days`}
               </span>
@@ -103,8 +121,10 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
       </div>
 
       <div className="md-ds-foot">
-        One Page-Hinkley statistic per suite on its own daily series, never blended; a suite fires at
-        {' '}{by.hourly?.threshold.toFixed(2) ?? '0.30'}. The statistic is measured from day one, but a
+        One Page-Hinkley statistic per suite on its own daily series, never blended. Coding and reasoning
+        fire at {by.hourly?.threshold.toFixed(2) ?? '0.30'}; tool use, which is noisier, fires only when its
+        statistic stays above {by.tooling?.threshold.toFixed(2) ?? '0.50'} for {by.tooling?.confirm ?? 3} consecutive
+        daily runs. The statistic is measured from day one, but a
         suite needs ten measured days since its configuration last changed before a reading is allowed
         to fire{anyArmed ? '' : ' — so the figures above are early readings, not verdicts'}.
       </div>
