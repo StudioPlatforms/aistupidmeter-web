@@ -346,7 +346,7 @@ export default async function MethodologyPage() {
               <div style={styles.text}>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Frequency</strong>: Daily at 3 AM<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: 4 multi-turn scenarios, all four every day (one rotating task a day until 13 September 2026; the daily score is the mean over the four)<br/>
-                <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 13-axis evaluation<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 7 axes, weighted per task &mdash; six others retracted after measurement showed they tracked answer length or a keyword, not reasoning<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Complex reasoning tests
               </div>
             </div>
@@ -670,8 +670,10 @@ export default async function MethodologyPage() {
               modelled filler and two scoring changes, all inside one window. The reasoning suite was
               genuinely noisier (6&ndash;8 points), and the cause was structural: it ran one task a day,
               rotating through four, so consecutive days compared different tasks. It now runs all four
-              every day and the daily figure is their mean; from the per-session spread (8 points) that
-              puts its day-to-day noise near 4, inside the range the detector was validated on. Each
+              every day and the daily figure is their mean. Predicted from the per-session spread at about
+              4 points, its day-to-day noise measured over the first week of the current configuration
+              is <strong>2.6 points</strong> (median across 19 models), inside the range the detector
+              was validated on. Each
               suite&rsquo;s statistic restarts on its own configuration change and needs ten days of history
               before it can fire.
               <br/><br/>

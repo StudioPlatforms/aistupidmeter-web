@@ -73,7 +73,10 @@ const REASONING_AXES: AxisSpec[] = [
   { key: 'planCoherence',    label: 'PLAN COHERENCE', weight: 'per task', description: 'Staying consistent with its own plan' },
   { key: 'contextWindow',    label: 'CONTEXT WINDOW', weight: 'per task', description: 'Using what was established earlier' },
   { key: 'debugging',        label: 'DEBUGGING', weight: 'per task', description: 'Fixing what it broke' },
-  { key: 'stability',        label: 'STABILITY', weight: 'per task', description: 'Consistency across the session' },
+  // `stability` (answer-length variance) and `safety` (a keyword rule) were retracted from the
+  // reasoning suite on 2026-09-22 and are no longer reported; `edgeCases` is reported only
+  // when a turn failed, since recovery cannot be observed otherwise.
+  { key: 'edgeCases',        label: 'RECOVERY', weight: 'per task', description: 'Passing again after a failed turn' },
 ];
 
 /** Only axes the suite actually reported. No stand-ins, no derived values. */
