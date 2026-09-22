@@ -664,10 +664,12 @@ export default async function MethodologyPage() {
               sessions a day) and reasoning (four multi-turn tasks a day) each carry their own
               statistic, and a model&rsquo;s status takes the largest. Until 13 September 2026 only the
               coding suite was watched, and this paragraph said the other two were too noisy: tool use
-              was moving 26 points day to day. That number was wrong about the instrument. Measured on
-              days when the sessions actually completed, on one configuration, the tool-use score moves
-              <strong>1.4 points</strong> a day across all 24 models &mdash; the 26 was a credit outage, its
-              modelled filler and two scoring changes, all inside one window. The reasoning suite was
+              was moving 26 points day to day. That number was wrong about the instrument &mdash; the 26 was a
+              credit outage, its modelled filler and two scoring changes, all inside one window. Measured over
+              nine days on one configuration (14&ndash;22 September 2026), the tool-use score&rsquo;s day-to-day
+              spread is <strong>3.9 points</strong> (median across 19 models; 2.1 to 7.2). An earlier estimate
+              of 1.4, taken from two days, understated it; at this noise the detector&rsquo;s measured false-alarm
+              rate is higher than for coding, as the table below shows. The reasoning suite was
               genuinely noisier (6&ndash;8 points), and the cause was structural: it ran one task a day,
               rotating through four, so consecutive days compared different tasks. It now runs all four
               every day and the daily figure is their mean. Predicted from the per-session spread at about
