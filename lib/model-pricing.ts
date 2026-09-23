@@ -125,7 +125,7 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
   }
 
   if (prov === 'glm') {
-    if (name.includes('5.2') || name.includes('5.1')) return { input: 1.40, output: 4.40 };
+    if (name.includes('5.3') || name.includes('5.2') || name.includes('5.1')) return { input: 1.40, output: 4.40 };
     if (name.includes('4.7') || name.includes('4.6')) return { input: 0.60, output: 2.20 };
     return { input: 1.40, output: 4.40 };
   }

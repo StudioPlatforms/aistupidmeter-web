@@ -405,12 +405,12 @@ export default function RootLayout({
         
         {/* Enhanced SEO meta tags for target keywords */}
         <meta name="ai-content-classification" content="ai-benchmarking-tool,ai-smart-router,ai-api-monitoring" />
-        <meta name="model-types" content="OpenAI,Anthropic,Google,DeepSeek,GLM,Kimi,GPT-5.6,GPT-5.3-Codex,Claude-Opus-5,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,DeepSeek-V4,Kimi-K3,GLM-5.2" />
+        <meta name="model-types" content="OpenAI,Anthropic,Google,DeepSeek,GLM,Kimi,GPT-5.6,GPT-5.3-Codex,Claude-Opus-5,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,DeepSeek-V4,Kimi-K3,GLM-5.3" />
         <meta name="functionality" content="ai-benchmark,performance-testing,model-comparison,ai-evaluation,smart-routing,api-gateway,prompt-auditing,api-monitoring,budget-control,cost-analytics" />
         <meta name="target-audience" content="developers,ai-researchers,software-engineers,data-scientists,devops,platform-engineers,ai-startups,enterprise-ai-teams" />
         <meta name="use-cases" content="ai-model-selection,performance-comparison,coding-ai-evaluation,llm-benchmarking,api-cost-optimization,prompt-safety-auditing,multi-provider-routing,ai-failover" />
         <meta name="benchmark-types" content="coding-benchmark,debugging-test,performance-evaluation,quality-assessment,tool-calling-test,reasoning-benchmark,deep-reasoning" />
-        <meta name="supported-models" content="GPT-5.6-Sol,GPT-5.6-Luna,GPT-5.6-Terra,GPT-5.5,GPT-5.4,GPT-5.3-Codex,Claude-Opus-5,Claude-Opus-4.8,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,Gemini-3.1-Flash-Lite,DeepSeek-V4-Pro,DeepSeek-V4-Flash,Kimi-K3,GLM-5.2" />
+        <meta name="supported-models" content="GPT-5.6-Sol,GPT-5.6-Luna,GPT-5.6-Terra,GPT-5.5,GPT-5.4,GPT-5.3-Codex,Claude-Opus-5,Claude-Opus-4.8,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,Gemini-3.1-Flash-Lite,DeepSeek-V4-Pro,DeepSeek-V4-Flash,Kimi-K3,GLM-5.3" />
         <meta name="comparison-features" content="Claude-vs-GPT,GPT-vs-Gemini,Kimi-vs-Claude,DeepSeek-vs-GPT,AI-model-rankings,smart-routing-strategies,cost-per-token-comparison" />
         <meta name="router-features" content="auto-best,best-coding,best-reasoning,best-creative,cheapest,direct-pin,openai-compatible,anthropic-passthrough,embeddings-proxy" />
         <meta name="monitoring-features" content="per-key-tracking,prompt-auditing,secret-scrubbing,budget-alerts,cost-trends,efficiency-metrics,request-logging,aes256-encryption" />

@@ -28,7 +28,7 @@ const PROVIDERS = [
   { id: 'google' as Provider, name: 'Google', desc: 'Gemini 3.1 Pro, Gemini 3.1 Flash-Lite', keyFormat: 'AIza...', docsUrl: 'aistudio.google.com/apikey' },
   { id: 'deepseek' as Provider, name: 'DeepSeek', desc: 'DeepSeek V4-Pro, V4-Flash — MoE reasoning', keyFormat: 'sk-...', docsUrl: 'platform.deepseek.com/api_keys' },
   { id: 'kimi' as Provider, name: 'Kimi', desc: 'Kimi K3, Kimi K2.7-Code — Moonshot AI', keyFormat: 'sk-...', docsUrl: 'platform.moonshot.ai/console/api-keys' },
-  { id: 'glm' as Provider, name: 'GLM', desc: 'GLM-5.2 — Z.ai, 128K context', keyFormat: 'API key varies', docsUrl: 'z.ai/manage-apikey/apikey-list' },
+  { id: 'glm' as Provider, name: 'GLM', desc: 'GLM-5.3 — Z.ai, 1M context', keyFormat: 'API key varies', docsUrl: 'z.ai/manage-apikey/apikey-list' },
 ];
 
 /** Providers we used to support. Keys stay visible so users can remove them. */
