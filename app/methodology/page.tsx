@@ -337,6 +337,7 @@ export default async function MethodologyPage() {
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Tasks</strong>: {status?.corpus?.coding ? [[status.corpus.coding.repoTasks, 'repo debugging'], [status.corpus.coding.hardFunctionTasks, 'hard function'], [status.corpus.coding.floorChecks, 'floor check']].filter(([n]) => (n as number) > 0).map(([n, label]) => `${n} ${label}`).join(' + ') + `, all ${status.corpus.coding.total} every sweep` : 'six repo debugging tasks and one hard function task, all every sweep'}<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Trials</strong>: 7 per task, median scored<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Scoring</strong>: 9-axis evaluation<br/>
+                <strong style={{ color: 'var(--phosphor-dim)' }}>Answers</strong>: only what the model returns as its answer is graded, never its hidden reasoning. An attempt that uses its whole output budget without answering, or answers without code, is a failed attempt; a retry asks the identical question (from 23 September 2026). Before that, code found in a model&rsquo;s reasoning could be graded when it never gave an answer, and not answering cost less than answering wrongly<br/>
                 <strong style={{ color: 'var(--phosphor-dim)' }}>Purpose</strong>: Debugging and coding capability
               </div>
             </div>
