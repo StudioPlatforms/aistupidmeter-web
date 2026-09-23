@@ -1836,14 +1836,30 @@ export default function Dashboard() {
         
         console.log('🚫 Degraded models to exclude from recommendations:', Array.from(degradedModelNames));
         
-        // Avoid Now recommendations (consistent with Model Intelligence Center)
+        // Avoid Now: genuine problems only (the API no longer puts price judgements here).
         if (recommendations.avoidNow && Array.isArray(recommendations.avoidNow) && recommendations.avoidNow.length > 0) {
           recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
             if (model && model.name) {
-              const message = `🚫 AVOID: ${getCompactName(model.name)} - ${model.reason || 'Poor performance detected'}`;
+              const message = `🚫 AVOID: ${model.displayName || getCompactName(model.name)} - ${model.reason || 'Poor performance detected'}`;
               addUniqueContent(message);
             }
           });
+        }
+
+        // Poor value: a price judgement, labelled as one (never "avoid").
+        if (Array.isArray(recommendations.poorValue)) {
+          recommendations.poorValue.slice(0, 1).forEach((model: any) => {
+            if (model && model.name) {
+              addUniqueContent(`💸 POOR VALUE: ${model.displayName || getCompactName(model.name)} - ${model.reason}`);
+            }
+          });
+        }
+
+        if (recommendations.bestValue && recommendations.bestValue.name) {
+          const v = recommendations.bestValue;
+          if (!degradedModelNames.has(v.name.toLowerCase())) {
+            addUniqueContent(`💰 BEST VALUE: ${v.displayName || getCompactName(v.name)} - ${v.reason}`);
+          }
         }
         
         // Best recommendations (consistent with Model Intelligence Center) - FIXED: Avoid contradictions
@@ -1853,10 +1869,10 @@ export default function Dashboard() {
           
           // CRITICAL: Don't recommend a model that's currently seriously degraded
           if (!degradedModelNames.has(bestNameLower)) {
-            const accuracy = best.correctness ? `${Math.round(best.correctness)}%` : 
-                            best.score ? `${Math.round(best.score)}%` : 
-                            'High';
-            const message = `✅ BEST FOR CODE: ${getCompactName(best.name)} (${accuracy} accuracy)`;
+            // Only a measured correctness is called accuracy; a score is not a percentage.
+            const message = typeof best.correctness === 'number'
+              ? `✅ BEST FOR CODE: ${best.displayName || getCompactName(best.name)} (${Math.round(best.correctness)}% correct, coding score ${best.codingScore ?? best.score})`
+              : `✅ BEST FOR CODE: ${best.displayName || getCompactName(best.name)} - ${best.reason || 'highest coding score'}`;
             addUniqueContent(message);
           }
         }
@@ -1867,7 +1883,7 @@ export default function Dashboard() {
           
           // CRITICAL: Don't recommend a model that's currently seriously degraded
           if (!degradedModelNames.has(reliableNameLower)) {
-            const message = `🛡️ MOST RELIABLE: ${getCompactName(reliable.name)} - ${reliable.reason || 'Consistent performance'}`;
+            const message = `🛡️ MOST RELIABLE: ${reliable.displayName || getCompactName(reliable.name)} - ${reliable.reason || 'Consistent performance'}`;
             addUniqueContent(message);
           }
         }
@@ -1878,7 +1894,7 @@ export default function Dashboard() {
           
           // CRITICAL: Don't recommend a model that's currently seriously degraded
           if (!degradedModelNames.has(fastestNameLower)) {
-            const message = `⚡ FASTEST: ${getCompactName(fastest.name)} - ${fastest.reason || 'Quick response time'}`;
+            const message = `⚡ FASTEST: ${fastest.displayName || getCompactName(fastest.name)} - ${fastest.reason || 'Quick response time'}`;
             addUniqueContent(message);
           }
         }
@@ -1930,11 +1946,10 @@ export default function Dashboard() {
               };
             }).sort((a: any, b: any) => b.valueScore - a.valueScore);
           
-          if (modelsWithPricing[0] && modelsWithPricing[0].valueScore > 10) {
-            const message = `💰 BEST VALUE: ${getCompactName(modelsWithPricing[0].name)} - ${modelsWithPricing[0].currentScore} pts for $${modelsWithPricing[0].estimatedCost.toFixed(2)}/1M tokens`;
-            addUniqueContent(message);
-          }
-          
+          // "Best value" comes from the recommendations API only (points per MEASURED dollar of
+          // an identical coding run). A second, list-price-per-token version used to be added
+          // here, which ranks verbose models backwards and could name a different winner.
+
           // Most expensive disasters - FIXED: Use addUniqueContent
           const expensiveWorst = modelsWithPricing.filter(m => m.currentScore < 60 && m.estimatedCost > 20);
           if (expensiveWorst.length > 0) {

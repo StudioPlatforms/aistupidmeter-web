@@ -930,7 +930,8 @@
   .v4-quick-info { display: none; }
 }
 @media (min-width: 600px) {
-  .v4-quick-info-grid { grid-template-columns: repeat(4, 1fr); }
+  /* six cards (code, reliable, fastest, value, poor value, avoid) → two even rows */
+  .v4-quick-info-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
 /* Between the phone breakpoint and a real desktop the full nav appears but the

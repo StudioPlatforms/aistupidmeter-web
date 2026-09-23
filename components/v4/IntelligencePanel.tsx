@@ -6,7 +6,6 @@ import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { getModelPricing } from '../../lib/model-pricing';
 import { isVolatile } from '../../lib/fleet-buckets';
 
 interface IntelligencePanelProps {
@@ -30,10 +29,11 @@ const getCompactName = (name: string): string => {
   // Auto-format: capitalize each segment, handle common patterns
   return name
     .split('-')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .map(w => (w === 'gpt' ? 'GPT' : w === 'glm' ? 'GLM' : w === 'deepseek' ? 'DeepSeek' : w.charAt(0).toUpperCase() + w.slice(1)))
     .join(' ')
     .replace(/\.\s/g, '.')
-    .replace(/\s(\d)/g, ' $1');
+    .replace(/\s(\d)/g, ' $1')
+    .replace(/^(GPT|GLM) (\d)/, '$1-$2');
 };
 
 const scoreColor = (score: number) =>
@@ -56,18 +56,19 @@ export default function IntelligencePanel({
   // Build recommendation items from real data
   const recoItems: Array<{ type: string; name: string; detail: string; score: number; status: string; danger?: boolean; providerDot?: string }> = [];
 
+  // Every card below is one category computed from measurements by the API
+  // (routes/analytics.ts /recommendations) and is shown under that category's own name.
+  const nameOf = (x: any) => x?.displayName || getCompactName(x?.name);
+
   if (recommendations?.bestForCode?.name) {
     const b = recommendations.bestForCode;
-    // Only claim a correctness figure when one was measured. The API used to send
-    // `score * 0.9` here and this printed it as "78% correct" for a model measured at 100%.
-    const acc = typeof b.correctness === 'number' ? `${Math.round(b.correctness)}% correct` : 'top ranked';
     recoItems.push({
       type: 'BEST FOR CODE',
-      name: getCompactName(b.name),
-      detail: `${acc}${b.provider ? ` | ${b.provider}` : ''}`,
-      score: b.score || b.correctness || 0,
+      name: nameOf(b),
+      detail: b.reason || (typeof b.correctness === 'number' ? `${Math.round(b.correctness)}% correct` : 'top coding score'),
+      score: b.codingScore ?? b.score ?? 0,
       status: 'STBL',
-      providerDot: b.provider,
+      providerDot: b.vendor || b.provider,
     });
   }
 
@@ -75,11 +76,11 @@ export default function IntelligencePanel({
     const r = recommendations.mostReliable;
     recoItems.push({
       type: 'MOST RELIABLE',
-      name: getCompactName(r.name),
+      name: nameOf(r),
       detail: r.reason || 'Lowest variance',
       score: r.score || 0,
       status: 'STBL',
-      providerDot: r.provider,
+      providerDot: r.vendor || r.provider,
     });
   }
 
@@ -87,56 +88,58 @@ export default function IntelligencePanel({
     const f = recommendations.fastestResponse;
     recoItems.push({
       type: 'FASTEST RESPONSE',
-      name: getCompactName(f.name),
+      name: nameOf(f),
       detail: f.reason || 'Quick response time',
       score: f.score || 0,
       status: 'FAST',
-      providerDot: f.provider,
+      providerDot: f.vendor || f.provider,
     });
   }
 
-  // Best Value (pts/$) — computed from live modelScores data
-  const availableWithPrice = modelScores
-    .filter(m => typeof m.currentScore === 'number' && m.currentScore > 0 && m.provider)
-    .map(m => {
-      const pricing = getModelPricing(m.name, m.provider);
-      const cost = pricing.input * 0.4 + pricing.output * 0.6;
-      const value = cost > 0 ? m.currentScore / cost : 0;
-      return { ...m, value, cost };
-    })
-    .sort((a, b) => b.value - a.value);
-
-  if (availableWithPrice.length > 0) {
-    const best = availableWithPrice[0];
+  // Best value: points per MEASURED dollar of one identical coding run. This used to be
+  // computed here from list price per token, which ranks verbose models backwards — a model
+  // that writes four times as much costs four times as much per task at the same price.
+  if (recommendations?.bestValue?.name) {
+    const v = recommendations.bestValue;
     recoItems.push({
-      type: 'BEST VALUE (pts/$)',
-      name: getCompactName(best.name),
-      detail: `${best.value.toFixed(1)} pts/$ | best ROI`,
-      score: best.currentScore,
-      status: `$${best.cost.toFixed(2)}`,
-      providerDot: best.provider,
+      type: 'BEST VALUE',
+      name: nameOf(v),
+      detail: v.reason || 'Most points per dollar',
+      score: v.score || 0,
+      status: typeof v.costPerRun === 'number' ? `$${v.costPerRun < 0.1 ? v.costPerRun.toFixed(3) : v.costPerRun.toFixed(2)}` : 'VALUE',
+      providerDot: v.vendor || v.provider,
     });
   }
 
-  // Avoid Now — from recommendations API
-  if (recommendations?.avoidNow && Array.isArray(recommendations.avoidNow)) {
+  // Poor value: another ranked model scores at least as high for a third of the cost or less.
+  // A price judgement, not a fault, so it is not styled as one.
+  if (Array.isArray(recommendations?.poorValue)) {
+    recommendations.poorValue.slice(0, 2).forEach((model: any) => {
+      if (!model?.name) return;
+      recoItems.push({
+        type: '⚠ POOR VALUE',
+        name: nameOf(model),
+        detail: model.reason || 'A cheaper model scores as high',
+        score: model.score || 0,
+        status: 'COST',
+        providerDot: model.vendor || model.provider,
+      });
+    });
+  }
+
+  // Avoid now: genuine problems only (serious degradation or a failing score).
+  if (Array.isArray(recommendations?.avoidNow)) {
     recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
-      if (model?.name) {
-        // The API builds this list from RANK and PRICE (routes/analytics.ts), not from any
-        // degradation finding — its own reason text says so: "Ranked #16 of 24 • Expensive
-        // at $17.00/1M tokens". Badging that DEGR claimed the model had got worse, which the
-        // drift monitor was simultaneously denying for the same model on the same screen.
-        // It is a value judgement, and the badge now says that instead.
-        recoItems.push({
-          type: '⚠ POOR VALUE',
-          name: getCompactName(model.name),
-          detail: model.reason || 'Low rank for the price',
-          score: model.score || 0,
-          status: 'COST',
-          danger: true,
-          providerDot: model.provider,
-        });
-      }
+      if (!model?.name) return;
+      recoItems.push({
+        type: '⛔ AVOID NOW',
+        name: nameOf(model),
+        detail: model.reason || 'Performance problem',
+        score: typeof model.score === 'number' ? model.score : 0,
+        status: 'AVOID',
+        danger: true,
+        providerDot: model.provider,
+      });
     });
   }
 
