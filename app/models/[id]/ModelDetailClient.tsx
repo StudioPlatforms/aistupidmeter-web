@@ -29,6 +29,7 @@ import ModelDetailCusum from '../../../components/model-detail/ModelDetailCusum'
 import ModelDetailDriftStatus from '../../../components/model-detail/ModelDetailDriftStatus';
 import ModelDetailSliceRegressions from '../../../components/model-detail/ModelDetailSliceRegressions';
 import ModelDetailCalibration from '../../../components/model-detail/ModelDetailCalibration';
+import ModelDetailVerbosity from '../../../components/model-detail/ModelDetailVerbosity';
 import ModelDetailSubstitutes from '../../../components/model-detail/ModelDetailSubstitutes';
 import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
 
@@ -599,6 +600,14 @@ export default function ModelDetailClient({
         plan={plan}
         hasProAccess={hasProAccess}
         onShowProModal={() => { setProModalFeature('performance-matrix'); setShowProModal(true); }}
+      />
+
+      {/* How much the model writes per suite, against the fleet on the same tasks. After the
+          suite tables because those show the tokens each task was billed for; this separates
+          the words a reader actually gets back from the reasoning inside that bill. Free. */}
+      <ModelDetailVerbosity
+        modelId={modelId}
+        focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null}
       />
 
       {/* Calibration and known-unknowns. Sits after the suite tables because it answers

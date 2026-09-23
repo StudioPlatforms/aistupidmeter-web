@@ -1172,3 +1172,34 @@
 /* The cheaper-but-riskier alternative, inside the lede. Set apart so the safe
    recommendation still reads as the recommendation. */
 .md-sub-lede-alt { display: block; margin-top: 4px; opacity: 0.9; }
+
+/* ── How much it writes (ModelDetailVerbosity) ─────────────────────────────────────
+   Emphasis strip: this model in the data blue, the fleet in grey. Greys chosen for
+   >= 3:1 against each surface (dataviz validator): #80868b on light, #9aa0a6 on dark. */
+.md-vb-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 4px 0 10px; }
+.md-vb-row { min-width: 0; padding: 10px 12px; border: 1px solid var(--metal-silver); border-radius: 8px; background: var(--terminal-dark); }
+.md-vb-dim { opacity: 0.55; }
+.md-vb-head { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.md-vb-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--phosphor-dim); margin-right: auto; }
+.md-vb-value { font-size: 22px; font-weight: 600; color: var(--phosphor-green); line-height: 1.1; }
+.md-vb-unit { font-size: 11px; color: var(--phosphor-dim); }
+.md-vb-line { font-size: 12px; line-height: 1.5; color: var(--phosphor-green); margin-top: 4px; }
+.md-vb-line strong { font-weight: 700; }
+.md-vb-sub { font-size: 11px; line-height: 1.5; color: var(--phosphor-dim); margin-top: 4px; }
+.md-vb-note { font-style: italic; }
+.md-vb-strip { position: relative; margin-top: 6px; }
+.md-vb-strip svg { display: block; overflow: visible; }
+.md-vb-strip g[tabindex]:focus { outline: none; }
+.md-vb-strip g[tabindex]:focus-visible .md-vb-dot { stroke: var(--phosphor-green); }
+.md-vb-axis { stroke: var(--metal-silver); stroke-width: 1; }
+.md-vb-tick { stroke: var(--metal-silver); stroke-width: 1; }
+.md-vb-tick-typ { stroke: var(--phosphor-dim); stroke-width: 1.5; }
+.md-vb-ticklabel { font-size: 9px; fill: var(--phosphor-dim); }
+.md-vb-dot { fill: #80868b; stroke: var(--terminal-dark); stroke-width: 2; }
+.md-vb-dot-self { fill: #1a73e8; }
+[data-theme="dark"] .md-vb-dot:not(.md-vb-dot-self) { fill: #9aa0a6; }
+.md-vb-tip { position: absolute; bottom: 30px; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  background: var(--terminal-dark); border: 1px solid var(--metal-silver); border-radius: 6px; padding: 4px 8px;
+  font-size: 11px; color: var(--phosphor-green); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12); z-index: 2; }
+.md-vb-tip-sub { display: block; color: var(--phosphor-dim); font-size: 10px; }
+.md-vb-foot { font-size: 10px; line-height: 1.6; color: var(--phosphor-dim); }
