@@ -32,6 +32,7 @@ import ModelDetailCalibration from '../../../components/model-detail/ModelDetail
 import ModelDetailVerbosity from '../../../components/model-detail/ModelDetailVerbosity';
 import ModelDetailSubstitutes from '../../../components/model-detail/ModelDetailSubstitutes';
 import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
+import ModelDetailCommunityFunding from '../../../components/model-detail/ModelDetailCommunityFunding';
 
 // Shared components
 import ProFeatureModal from '../../../components/ProFeatureModal';
@@ -55,6 +56,11 @@ interface ModelDetails {
   isCalibrating?: boolean;
   /** Days of history the baseline needs (server-owned, currently 10). */
   calibrationDays?: number;
+  /**
+   * Suites we no longer run for this model because the community funds them (JSON array as
+   * stored, e.g. '["deep","tooling"]'); null when we run everything.
+   */
+  communitySuites?: string | null;
   latestScore?: {
     stupidScore: number;
     displayScore?: number;
@@ -530,6 +536,17 @@ export default function ModelDetailClient({
       <div style={{ margin: '0 0 16px 0' }}>
         <TrackModelButton modelId={modelId} modelName={modelDetails.name} />
       </div>
+
+      {/* Reasoning / tool-use tests the community funds for this model: says so, explains it once,
+          and lets a signed-in visitor fund today's run. Renders nothing for other models. */}
+      {modelDetails.communitySuites && (
+        <ModelDetailCommunityFunding
+          modelId={modelDetails.id}
+          modelName={modelDetails.displayName || modelDetails.name}
+          vendor={modelDetails.vendor}
+          signedIn={Boolean(session?.user)}
+        />
+      )}
 
       {/* KPI stat bar */}
       <ModelDetailStatBar
