@@ -31,7 +31,8 @@ export interface ProviderKey {
 
 export interface UserPreferences {
   routingStrategy: 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
-    | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling';
+    | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling'
+    | 'best_consistent' | 'fastest_quality';
   fallbackEnabled: boolean;
   maxCostPer1kTokens: number | null;
   maxLatencyMs: number | null;
@@ -39,6 +40,8 @@ export interface UserPreferences {
   requireStreaming: boolean;
   excludedProviders: string[];
   excludedModels: string[];
+  /** Deprioritise models with an active drift alert (default on). */
+  avoidDrifting?: boolean;
 }
 
 export interface AnalyticsOverview {

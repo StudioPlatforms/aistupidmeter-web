@@ -8,7 +8,8 @@ import { apiClient } from '@/lib/api-client';
 import type { UserPreferences } from '@/lib/api-client';
 
 type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
-  | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling';
+  | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling'
+  | 'best_consistent' | 'fastest_quality';
 
 /**
  * Each strategy ranks on a different benchmark suite. `basis` says which one,
@@ -23,6 +24,8 @@ const ROUTING_STRATEGIES = [
   { id: 'best_value_coding' as RoutingStrategy, name: 'BEST VALUE FOR CODING', desc: 'Cheapest way to get near-top coding quality: most coding points per dollar among models within 5 points of your best', basis: 'Coding score ÷ measured cost of a coding run', recommended: false },
   { id: 'best_value_reasoning' as RoutingStrategy, name: 'BEST VALUE FOR REASONING', desc: 'Most reasoning points per dollar among models within 5 points of your best', basis: 'Reasoning score ÷ measured cost of a reasoning run', recommended: false },
   { id: 'best_value_tooling' as RoutingStrategy, name: 'BEST VALUE FOR TOOL USE', desc: 'Most tool-use points per dollar among models within 5 points of your best — for agents on a budget', basis: 'Tool-use score ÷ measured cost of a tool-use run', recommended: false },
+  { id: 'best_consistent' as RoutingStrategy, name: 'MOST CONSISTENT', desc: 'The steadiest of the near-top models: the smallest run-to-run swing in its score, so answers vary least from one day to the next', basis: 'Spread of the coding score over recent runs, among models within 5 points of your best', recommended: false },
+  { id: 'fastest_quality' as RoutingStrategy, name: 'FASTEST GOOD MODEL', desc: 'The fastest model that is still near the top — unlike Fastest Response, it never trades away quality for speed', basis: 'Measured latency, among models within 5 points of your best', recommended: false },
   { id: 'best_creative' as RoutingStrategy, name: 'BEST FOR CREATIVE', desc: 'General-purpose quality for open-ended writing. There is no creative-writing benchmark on this site, so this ranks on the same combined score as Best Overall', basis: 'Combined score (no dedicated creative benchmark)', recommended: false },
   { id: 'cheapest' as RoutingStrategy, name: 'MOST COST-EFFECTIVE', desc: 'Lowest list price per token among your connected providers, with no quality bar — for a cheap model that is still near the top, use a Best Value option', basis: 'Published provider pricing', recommended: false },
   { id: 'fastest' as RoutingStrategy, name: 'FASTEST RESPONSE', desc: 'Lowest average response time, measured over the last 7 days of benchmark runs', basis: 'Benchmark latency', recommended: false },
@@ -135,6 +138,7 @@ export default function RouterPreferencesPage() {
       requireStreaming: false,
       excludedProviders: [],
       excludedModels: [],
+      avoidDrifting: true,
     });
   };
 
@@ -252,7 +256,11 @@ export default function RouterPreferencesPage() {
           </div>
           <div className="rv4-panel-body">
             <div className="rv4-strategy-grid">
-              {ROUTING_STRATEGIES.map((strategy) => (
+              {ROUTING_STRATEGIES
+                // Creative is the same ranking as Best Overall (no creative benchmark exists). It is
+                // hidden from new choices and shown only to someone who already has it saved.
+                .filter(strategy => strategy.id !== 'best_creative' || preferences.routingStrategy === 'best_creative')
+                .map((strategy) => (
                 <div
                   key={strategy.id}
                   className={`rv4-strategy-card${preferences.routingStrategy === strategy.id ? ' active' : ''}`}
@@ -475,6 +483,25 @@ export default function RouterPreferencesPage() {
                 <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
                   Automatically try alternative models if the primary model fails or is unavailable.
                   This ensures zero downtime and maximum reliability.
+                </div>
+              </div>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', marginTop: '14px' }}>
+              <input
+                type="checkbox"
+                className="rv4-checkbox"
+                checked={preferences.avoidDrifting !== false}
+                onChange={(e) => setPreferences({ ...preferences, avoidDrifting: e.target.checked })}
+                style={{ marginTop: '1px' }}
+              />
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  AVOID MODELS WITH AN ACTIVE DRIFT ALERT
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
+                  When our drift detectors flag a model as degrading on the skill your strategy uses — or its hourly
+                  canary is failing — it moves behind every unflagged model. It is never removed: if every option is
+                  flagged, the best of them is still used, and the routing reason says so.
                 </div>
               </div>
             </label>

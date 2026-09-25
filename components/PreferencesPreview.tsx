@@ -14,7 +14,8 @@ const ROUTING_STRATEGIES = [
   { id: 'best_value_coding', name: 'BEST VALUE FOR CODING', desc: 'Most coding points per dollar among near-top models', recommended: false },
   { id: 'best_value_reasoning', name: 'BEST VALUE FOR REASONING', desc: 'Most reasoning points per dollar among near-top models', recommended: false },
   { id: 'best_value_tooling', name: 'BEST VALUE FOR TOOL USE', desc: 'Most tool-use points per dollar among near-top models', recommended: false },
-  { id: 'best_creative', name: 'BEST FOR CREATIVE', desc: 'General-purpose quality for open-ended writing', recommended: false },
+  { id: 'best_consistent', name: 'MOST CONSISTENT', desc: 'The steadiest near-top model, run to run', recommended: false },
+  { id: 'fastest_quality', name: 'FASTEST GOOD MODEL', desc: 'The fastest model within 5 points of the best', recommended: false },
   { id: 'cheapest', name: 'MOST COST-EFFECTIVE', desc: 'Lowest list price per token among your connected providers', recommended: false },
   { id: 'fastest', name: 'FASTEST RESPONSE', desc: 'Lowest measured average response time', recommended: false },
 ];

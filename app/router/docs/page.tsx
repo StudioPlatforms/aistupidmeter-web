@@ -207,7 +207,9 @@ console.log(response.choices[0].message.content);`} />}
                   { id: 'auto', cat: 'Default', desc: 'Uses your saved routing strategy from Preferences' },
                   { id: 'auto-coding', cat: 'Coding', desc: 'Best for code generation, debugging, refactoring' },
                   { id: 'auto-reasoning', cat: 'Reasoning', desc: 'Best for complex analysis, math, logic' },
-                  { id: 'auto-creative', cat: 'Overall', desc: 'Same ranking as auto-best: there is no creative-writing benchmark, so it uses the combined score' },
+                  { id: 'auto-consistent', cat: 'Consistency', desc: 'Among models within 5 points of the best one you can use, the one whose score swings least from run to run' },
+                  { id: 'auto-fastest-quality', cat: 'Speed', desc: 'Among models within 5 points of the best one you can use, the fastest (measured latency) — auto-fastest has no quality bar' },
+                  { id: 'auto-creative', cat: 'Legacy', desc: 'Still accepted, same ranking as auto-best — there is no creative-writing benchmark' },
                   { id: 'auto-cheapest', cat: 'Cost', desc: 'Lowest list price per token among your providers — no quality bar' },
                   { id: 'auto-value', cat: 'Value', desc: 'Most combined-score points per measured dollar, among models within 5 points of the best one you can use' },
                   { id: 'auto-value-coding', cat: 'Value', desc: 'Most coding points per dollar (measured cost of a coding run), near-top models only' },
@@ -230,6 +232,12 @@ console.log(response.choices[0].message.content);`} />}
           </div>
           <P style={{ marginTop: '8px' }}>
             <strong>Direct pin routing:</strong> Send any real model ID (e.g., <code className="doc-code">claude-opus-4-7</code>, <code className="doc-code">gpt-5.5</code>, <code className="doc-code">gemini-3.5-flash</code>) to bypass the strategy router and forward directly to that provider.
+          </P>
+          <P style={{ marginTop: '8px' }}>
+            <strong>Near-top strategies</strong> (<code className="doc-code">auto-value*</code>, <code className="doc-code">auto-consistent</code>, <code className="doc-code">auto-fastest-quality</code>) only choose among models within 5 points of the best model <em>you</em> can use — after your keys, exclusions and limits — so a cheaper, steadier or faster pick is never a much weaker one. Value is measured: the benchmark score divided by what one identical benchmark run actually cost that model, not its list price per token.
+          </P>
+          <P style={{ marginTop: '8px' }}>
+            <strong>Drift-aware routing</strong> (on by default, see Preferences): a model whose drift detector has fired for the skill your strategy relies on, or whose hourly canary is failing, is moved behind every unflagged model. It is never removed — if every candidate is flagged, the best of them is still used — and the routing reason names any model that was passed over and why.
           </P>
         </DocPanel>
 

@@ -128,7 +128,8 @@ export default function HelpPage() {
                   { id: 'auto-value-coding', strategy: 'Best Value: Coding', use: 'Most coding points per dollar among near-top models' },
                   { id: 'auto-value-reasoning', strategy: 'Best Value: Reasoning', use: 'Most reasoning points per dollar among near-top models' },
                   { id: 'auto-value-tooling', strategy: 'Best Value: Tool Use', use: 'Most tool-use points per dollar among near-top models' },
-                  { id: 'auto-creative', strategy: 'Best Overall (alias)', use: 'No creative benchmark exists; ranks the same as auto-best' },
+                  { id: 'auto-consistent', strategy: 'Most Consistent', use: 'Steadiest near-top model, answers vary least day to day' },
+                  { id: 'auto-fastest-quality', strategy: 'Fastest Good Model', use: 'Fastest model within 5 points of the best' },
                   { id: 'auto-cheapest', strategy: 'Lowest Price', use: 'Lowest list price per token, no quality bar' },
                   { id: 'auto-fastest', strategy: 'Lowest Latency', use: 'Real-time apps, chatbots, quick queries' },
                 ].map(s => (

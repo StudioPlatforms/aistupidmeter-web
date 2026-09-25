@@ -417,7 +417,8 @@ export default function RouterKeysPage() {
                       { id: 'auto-value-coding', desc: 'Best value on the code benchmark' },
                       { id: 'auto-value-reasoning', desc: 'Best value on the reasoning benchmark' },
                       { id: 'auto-value-tooling', desc: 'Best value on the tool-use benchmark' },
-                      { id: 'auto-creative', desc: 'Same as auto-best (no creative benchmark)' },
+                      { id: 'auto-consistent', desc: 'Steadiest near-top model' },
+                      { id: 'auto-fastest-quality', desc: 'Fastest model near the top' },
                       { id: 'auto-cheapest', desc: 'Lowest list price, no quality bar' },
                       { id: 'auto-fastest', desc: 'Lowest measured latency' },
                     ].map(m => (
