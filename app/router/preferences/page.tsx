@@ -7,7 +7,8 @@ import PreferencesPreview from '@/components/PreferencesPreview';
 import { apiClient } from '@/lib/api-client';
 import type { UserPreferences } from '@/lib/api-client';
 
-type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest';
+type RoutingStrategy = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
+  | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling';
 
 /**
  * Each strategy ranks on a different benchmark suite. `basis` says which one,
@@ -18,8 +19,12 @@ const ROUTING_STRATEGIES = [
   { id: 'best_coding' as RoutingStrategy, name: 'BEST FOR CODING', desc: 'Best at writing correct, well-structured code to spec', basis: 'Hourly 9-axis code benchmark', recommended: false },
   { id: 'best_reasoning' as RoutingStrategy, name: 'BEST FOR REASONING', desc: 'Best at multi-step problems, planning and long-context analysis', basis: 'Deep reasoning benchmark', recommended: false },
   { id: 'best_tooling' as RoutingStrategy, name: 'BEST FOR TOOL USE', desc: 'Best at picking the right tool with the right arguments and recovering from errors — use this for agents and coding assistants', basis: 'Tooling benchmark', recommended: false },
+  { id: 'best_value' as RoutingStrategy, name: 'BEST VALUE OVERALL', desc: 'Most benchmark points per dollar among models within 5 points of the best one you can use', basis: 'Combined score ÷ measured cost of an identical benchmark run', recommended: false },
+  { id: 'best_value_coding' as RoutingStrategy, name: 'BEST VALUE FOR CODING', desc: 'Cheapest way to get near-top coding quality: most coding points per dollar among models within 5 points of your best', basis: 'Coding score ÷ measured cost of a coding run', recommended: false },
+  { id: 'best_value_reasoning' as RoutingStrategy, name: 'BEST VALUE FOR REASONING', desc: 'Most reasoning points per dollar among models within 5 points of your best', basis: 'Reasoning score ÷ measured cost of a reasoning run', recommended: false },
+  { id: 'best_value_tooling' as RoutingStrategy, name: 'BEST VALUE FOR TOOL USE', desc: 'Most tool-use points per dollar among models within 5 points of your best — for agents on a budget', basis: 'Tool-use score ÷ measured cost of a tool-use run', recommended: false },
   { id: 'best_creative' as RoutingStrategy, name: 'BEST FOR CREATIVE', desc: 'General-purpose quality for open-ended writing. There is no creative-writing benchmark on this site, so this ranks on the same combined score as Best Overall', basis: 'Combined score (no dedicated creative benchmark)', recommended: false },
-  { id: 'cheapest' as RoutingStrategy, name: 'MOST COST-EFFECTIVE', desc: 'Lowest list price per token among your connected providers', basis: 'Published provider pricing', recommended: false },
+  { id: 'cheapest' as RoutingStrategy, name: 'MOST COST-EFFECTIVE', desc: 'Lowest list price per token among your connected providers, with no quality bar — for a cheap model that is still near the top, use a Best Value option', basis: 'Published provider pricing', recommended: false },
   { id: 'fastest' as RoutingStrategy, name: 'FASTEST RESPONSE', desc: 'Lowest average response time, measured over the last 7 days of benchmark runs', basis: 'Benchmark latency', recommended: false },
 ];
 

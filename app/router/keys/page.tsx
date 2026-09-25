@@ -413,8 +413,12 @@ export default function RouterKeysPage() {
                       { id: 'auto-coding', desc: 'Best on the code benchmark' },
                       { id: 'auto-reasoning', desc: 'Best on the reasoning benchmark' },
                       { id: 'auto-tooling', desc: 'Best on the tool-use benchmark' },
-                      { id: 'auto-creative', desc: 'Best combined score' },
-                      { id: 'auto-cheapest', desc: 'Lowest cost per token' },
+                      { id: 'auto-value', desc: 'Most points per dollar, near-top models' },
+                      { id: 'auto-value-coding', desc: 'Best value on the code benchmark' },
+                      { id: 'auto-value-reasoning', desc: 'Best value on the reasoning benchmark' },
+                      { id: 'auto-value-tooling', desc: 'Best value on the tool-use benchmark' },
+                      { id: 'auto-creative', desc: 'Same as auto-best (no creative benchmark)' },
+                      { id: 'auto-cheapest', desc: 'Lowest list price, no quality bar' },
                       { id: 'auto-fastest', desc: 'Lowest measured latency' },
                     ].map(m => (
                       <div key={m.id} style={{

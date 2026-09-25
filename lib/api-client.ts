@@ -30,7 +30,8 @@ export interface ProviderKey {
 }
 
 export interface UserPreferences {
-  routingStrategy: 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest';
+  routingStrategy: 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
+    | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling';
   fallbackEnabled: boolean;
   maxCostPer1kTokens: number | null;
   maxLatencyMs: number | null;

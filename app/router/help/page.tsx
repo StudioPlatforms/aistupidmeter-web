@@ -123,8 +123,13 @@ export default function HelpPage() {
                   { id: 'auto', strategy: 'Saved Preference', use: 'Uses your configured default strategy' },
                   { id: 'auto-coding', strategy: 'Best Coding', use: 'Code generation, debugging, refactoring' },
                   { id: 'auto-reasoning', strategy: 'Best Reasoning', use: 'Complex analysis, math, logic puzzles' },
-                  { id: 'auto-creative', strategy: 'Best Creative', use: 'Creative writing, brainstorming, content' },
-                  { id: 'auto-cheapest', strategy: 'Lowest Cost', use: 'High-volume tasks, budget-conscious usage' },
+                  { id: 'auto-tooling', strategy: 'Best Tool Use', use: 'Agents and coding assistants that call tools' },
+                  { id: 'auto-value', strategy: 'Best Value', use: 'Near-top quality for the fewest dollars (combined score)' },
+                  { id: 'auto-value-coding', strategy: 'Best Value: Coding', use: 'Most coding points per dollar among near-top models' },
+                  { id: 'auto-value-reasoning', strategy: 'Best Value: Reasoning', use: 'Most reasoning points per dollar among near-top models' },
+                  { id: 'auto-value-tooling', strategy: 'Best Value: Tool Use', use: 'Most tool-use points per dollar among near-top models' },
+                  { id: 'auto-creative', strategy: 'Best Overall (alias)', use: 'No creative benchmark exists; ranks the same as auto-best' },
+                  { id: 'auto-cheapest', strategy: 'Lowest Price', use: 'Lowest list price per token, no quality bar' },
                   { id: 'auto-fastest', strategy: 'Lowest Latency', use: 'Real-time apps, chatbots, quick queries' },
                 ].map(s => (
                   <tr key={s.id}>
