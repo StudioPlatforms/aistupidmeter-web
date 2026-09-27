@@ -389,7 +389,7 @@ export default async function MethodologyPage() {
           [<code key="b">GET /api/v1/models/:id/history?period=7d</code>, 'Historical series'],
           [<code key="c">GET /api/v1/models/:id</code>, 'One model in detail'],
           [<code key="d">GET /api/v1/analytics/degradations</code>, 'Models currently degrading, with magnitude'],
-          ['Limits', 'Free 10 requests a day (1 a minute) · Pro 10,000 a day (60 a minute) · Teams 100,000 a day (300 a minute); X-RateLimit headers on every response, 429 when exceeded, daily quotas reset at 00:00 UTC'],
+          ['Limits', 'Free 10 requests a day (1 a minute) · Pro 10,000 a day (60 a minute) · Developer 25,000 a day (120 a minute) · Teams 100,000 a day (300 a minute); X-RateLimit headers on every response, 429 when exceeded, daily quotas reset at 00:00 UTC'],
         ]} />
         <Prose>
           <p><Link href="/account/data-keys">Create a key</Link> · <Link href="/api-docs">Full API reference</Link>. Volume beyond these tiers and commercial redistribution are arranged directly — <Link href="/contact">get in touch</Link>.</p>

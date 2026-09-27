@@ -20,7 +20,7 @@
 
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
-import { isPlan, planMeets, PLANS, type Plan } from '@/lib/entitlements';
+import { isPlan, planMeets, PLANS, DATA_API_LIMITS, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN, CAPABILITY_LABEL, type Capability } from '@/lib/capabilities';
 import { upgradeHref } from '@/lib/checkout-url';
 import { monthlyLong, planName } from '@/lib/pricing-display';
@@ -138,10 +138,10 @@ const fmt = (n: number) => (n === -1 ? 'Unlimited' : n.toLocaleString());
 
 const COMPARISON: Array<{ label: string; get: (p: Plan) => string }> = [
   { label: 'Tracked models', get: p => fmt(PLANS[p].watchedModels) },
-  { label: 'Comparable history', get: p => (PLANS[p].historyDays === null ? 'Everything we hold' : `${PLANS[p].historyDays} days`) },
-  { label: 'Routed requests / mo', get: p => fmt(PLANS[p].routerRequestsPerMonth) },
+  { label: 'Comparable history', get: p => (PLANS[p].historyDays === null ? 'Full history' : `${PLANS[p].historyDays} days`) },
+  { label: 'Smart Router requests / mo', get: p => fmt(PLANS[p].routerRequestsPerMonth) },
   { label: 'Decision-log history', get: p => `${PLANS[p].routerDiagnosticDays} days` },
-  { label: 'Data API', get: p => `${PLANS[p].dataApiTier} tier` },
+  { label: 'Data API', get: p => `${fmt(DATA_API_LIMITS[PLANS[p].dataApiTier].daily)} requests/day` },
 ];
 
 const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: string }>> = {
@@ -181,8 +181,7 @@ const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: s
     { title: 'Budget controls', description: 'Spending limits per key with soft or hard enforcement and threshold alerts.' },
   ],
   team: [
-    { title: 'Five editor seats', description: 'Viewers are unlimited — only people who change things consume a seat.' },
-    { title: 'Shared watchlists', description: 'Projects the whole team follows, rather than one person’s private list.' },
+    { title: 'Five editors, each on Teams', description: 'Every editor gets the full plan — history, analysis, routing and Data API limits. Viewers are unlimited and read-only.' },
     { title: 'Outbound webhooks', description: 'Signed HTTP callbacks when a model you depend on regresses.' },
   ],
   governance: [

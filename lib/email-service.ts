@@ -455,6 +455,32 @@ export async function sendAssessmentNotification(req: {
   );
 }
 
+/** Confirm a Smart Router top-up. */
+export async function sendRouterCreditsConfirmation(to: string, opts: { requests: number; amountCents: number }) {
+  const amount = `$${(opts.amountCents / 100).toLocaleString('en-US', { minimumFractionDigits: opts.amountCents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
+  const rows: Array<[string, string]> = [
+    ['Paid', amount],
+    ['Added', `${opts.requests.toLocaleString('en-US')} Smart Router requests`],
+    ['Used', 'Only after your plan’s monthly allowance, one per successful request'],
+    ['Expiry', 'Credits do not expire'],
+  ];
+  const intro = 'Thank you — your Smart Router top-up has been added to your account.';
+  return deliver(
+    to,
+    'Your Smart Router credits — AI Stupid Level',
+    renderEmail({
+      heading: 'Credits added',
+      intro,
+      rows,
+      ctaLabel: 'See your balance',
+      ctaUrl: 'https://aistupidlevel.info/account/billing',
+      footnote: 'Stripe sends the invoice separately. Questions about a charge? Reply to this email.',
+    }),
+    `${intro}\n\n` + rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') + `\n\nBalance: https://aistupidlevel.info/account/billing\n`,
+    CONTACT_INBOX,
+  );
+}
+
 /** Confirm a paid workload assessment to the customer: what happens next, and the guarantees. */
 export async function sendAssessmentConfirmation(to: string, opts: { id: number; amount: string }) {
   const rows: Array<[string, string]> = [

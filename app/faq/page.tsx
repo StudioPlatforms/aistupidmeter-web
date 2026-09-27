@@ -158,7 +158,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'api',
         q: 'Do you have an API?',
-        a: 'Yes. The Data API at /api/v1 returns current rankings with confidence intervals, history and the models currently degrading. It needs a free key from [Data API keys](/account/data-keys), sent as an Authorization header. Free keys get 10 requests a day, Pro 10,000 and Teams 100,000. Keys became necessary after the open version was used to republish our rankings elsewhere. The full reference is at [/api-docs](/api-docs).',
+        a: 'Yes. The Data API at /api/v1 returns current rankings with confidence intervals, history and the models currently degrading. It needs a free key from [Data API keys](/account/data-keys), sent as an Authorization header. Free keys get 10 requests a day, Pro 10,000, Developer 25,000 and Teams 100,000. Keys became necessary after the open version was used to republish our rankings elsewhere. The full reference is at [/api-docs](/api-docs).',
       },
       {
         id: 'intervals',

@@ -13,6 +13,7 @@ import {
 } from './lib/db-client';
 import { consumeTicket } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
+import { withWorkspace } from './lib/workspace-plan';
 import { verifyPassword } from './lib/password';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -185,14 +186,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             // to the client. Every downstream check should read `entitlements`
             // rather than re-deriving access from a tier string — that habit is
             // what let the FAQ and the dashboard disagree for months.
-            const plan = planFor(user as any);
-            const entitlements = entitlementsFor(user as any);
+            // Own subscription, raised to the plan of any workspace this account
+            // edits (lib/workspace-plan.ts) — a Teams editor gets Teams.
+            const subject = withWorkspace(user.id, user) as any;
+            const plan = planFor(subject);
+            const entitlements = entitlementsFor(subject);
 
             // `subscriptionStatus` is kept for the call sites that still test
             // for 'active' | 'trialing'. It is a derived flag, NOT the dead
             // `subscription_status` column (which reads 'trial' for everyone,
             // including active payers).
-            const hasProAccess = hasActiveSubscription(user);
+            const hasProAccess = hasActiveSubscription(subject);
             (session.user as any).subscriptionStatus = hasProAccess ? 'active' : 'inactive';
             (session.user as any).subscriptionId = user.stripe_subscription_id;
             (session.user as any).subscriptionTier = user.subscription_tier;

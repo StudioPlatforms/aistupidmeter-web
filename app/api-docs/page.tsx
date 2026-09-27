@@ -5,9 +5,10 @@ import EnterpriseContact from '@/components/EnterpriseContact';
 import { DATA_API_LIMITS } from '@/lib/entitlements';
 
 /** How each Data API tier is obtained. The limits themselves come from the plan table. */
-const HOW_TO_GET: Record<'free' | 'pro' | 'teams' | 'enterprise', string> = {
+const HOW_TO_GET: Record<'free' | 'pro' | 'developer' | 'teams' | 'enterprise', string> = {
   free: 'Sign up and create a key',
-  pro: 'Included with Pro and Developer',
+  pro: 'Included with Pro',
+  developer: 'Included with Developer',
   teams: 'Included with Teams',
   enterprise: 'By arrangement — see below',
 };
@@ -242,7 +243,7 @@ export default function ApiDocsPage() {
                 {/* Rendered from the shared limit table so the docs cannot drift
                     from what the rate limiter enforces. The hand-written version
                     of this table had lost the Teams row entirely. */}
-                {(['free', 'pro', 'teams', 'enterprise'] as const).map(tier => (
+                {(['free', 'pro', 'developer', 'teams', 'enterprise'] as const).map(tier => (
                   <tr key={tier}>
                     <td style={{ ...s.td, color: 'var(--phosphor-green)', fontWeight: 'bold' }}>
                       {DATA_API_LIMITS[tier].label}

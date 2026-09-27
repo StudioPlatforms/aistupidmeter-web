@@ -31,7 +31,7 @@
 import { Fragment, useState } from 'react';
 import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
 import Link from 'next/link';
-import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
+import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, ROUTER_CREDITS, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 import { upgradeHref } from '@/lib/checkout-url';
@@ -51,7 +51,7 @@ type Row = { label: string; get: (p: Plan) => string; note?: string };
 /** The comparison table, in three groups. Every value is read from the plan table. */
 const GROUPS: Array<{ title: string; rows: Row[] }> = [
   { title: 'Monitoring', rows: [
-    { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels) },
+    { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels), note: 'Email alerts when one drops, and a weekly summary' },
     { label: 'Comparable history',    get: p => PLANS[p].historyDays === null ? 'Full history' : `${PLANS[p].historyDays} days` },
     { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : '—', note: 'Coding, reasoning, tool-calling and price sorts' },
     { label: 'Calibration & known-unknowns', get: p => planMeets(p, REQUIRED_PLAN.calibration) ? 'Yes' : '—',
@@ -59,29 +59,32 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
     { label: 'Cheaper substitutes',   get: p => planMeets(p, REQUIRED_PLAN.substitutes) ? 'Yes' : '—',
       note: 'Which cheaper models can do a given model’s work, and the measured share of working requests that would start failing if you switched' },
     { label: 'Custom alert thresholds', get: p => PLANS[p].customAlerts ? 'Yes' : '—' },
-    { label: 'Exports',               get: p => PLANS[p].exports ? 'Yes' : '—' },
+    { label: 'Exports',               get: p => PLANS[p].exports ? 'Yes' : '—', note: 'Model reports and routing analytics as CSV or JSON' },
   ] },
-  { title: 'API and routing', rows: [
+  { title: 'Smart Router and Data API', rows: [
+    { label: 'Smart Router requests / month', get: p => fmt(PLANS[p].routerRequestsPerMonth),
+      note: `The router picks the best model for each request and sends it with your own provider keys, so providers bill the tokens to you directly. Past the allowance, top up from $${ROUTER_CREDITS.minimumUsd} (${ROUTER_CREDITS.requestsPerUsd.toLocaleString('en-US')} requests per $1) or move up a plan` },
+    { label: 'Routing analytics',     get: p => planMeets(p, REQUIRED_PLAN['routing-analytics']) ? 'Yes' : '—', note: 'What each request cost, which model served it, and the trend' },
+    { label: 'API monitoring',        get: p => planMeets(p, REQUIRED_PLAN['api-monitoring']) ? 'Yes' : '—',
+      note: 'Per-key request logs, cost dashboard, prompt auditing with secret scrubbing, and budget limits per key' },
+    { label: 'Decision-log history',  get: p => `${PLANS[p].routerDiagnosticDays} days`, note: 'How far back you can see why each request went to the model it did' },
     { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
       note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
-    { label: 'Routed requests / month', get: p => fmt(PLANS[p].routerRequestsPerMonth), note: 'You bring your own provider keys; providers bill you for inference directly' },
-    { label: 'Decision-log history',  get: p => `${PLANS[p].routerDiagnosticDays} days` },
-    { label: 'Webhooks',              get: p => PLANS[p].webhooks ? 'Yes' : '—' },
+    { label: 'Webhooks',              get: p => PLANS[p].webhooks ? 'Yes' : '—', note: 'Signed callbacks when a model you watch regresses' },
   ] },
   { title: 'Team', rows: [
-    { label: 'Editor seats',          get: p => fmt(PLANS[p].seats), note: 'Viewers are unlimited on plans with projects' },
-    { label: 'Projects',              get: p => PLANS[p].projects === 0 ? '—' : fmt(PLANS[p].projects) },
-    { label: 'SSO, SCIM & audit trail', get: p => (p === 'teams' || p === 'enterprise') ? 'Yes' : '—', note: 'OIDC or SAML, directory provisioning, exportable audit log' },
+    { label: 'Editor seats',          get: p => fmt(PLANS[p].seats), note: 'On Teams and Enterprise every editor gets the plan’s features and limits. Viewers are unlimited and read-only' },
+    { label: 'SSO, SCIM & audit trail', get: p => planMeets(p, REQUIRED_PLAN.governance) ? 'Yes' : '—', note: 'OIDC or SAML, directory provisioning, exportable audit log' },
   ] },
 ];
 
 /** One-line summary of what a plan is for. */
 const PITCH: Record<Plan, string> = {
-  free: 'The public evidence, plus three tracked models and a weekly summary of what changed.',
-  pro: 'Full history, the diagnosis behind every change, calibration data, exports and custom alerts.',
-  developer: 'Production routing volume, 30-day decision logs and your own workspace.',
-  teams: 'Five editors, shared watchlists, webhooks, SSO and the audit trail.',
-  enterprise: 'Contracted scope, unlimited seats, 365-day retention and invoicing.',
+  free: 'The public evidence, plus a watchlist of three models with email alerts and a weekly summary.',
+  pro: 'Full history, the diagnosis behind every change, calibration and substitute analysis, exports and custom alerts.',
+  developer: 'For running the Smart Router in production: ten times the requests, API monitoring and 30-day decision logs.',
+  teams: 'Five editors, each with the full Teams plan, plus webhooks, single sign-on and an audit trail.',
+  enterprise: 'Contracted scope, unlimited seats and requests, 365-day decision logs and invoicing.',
   legacy_pro: '',
 };
 
@@ -89,26 +92,25 @@ const PITCH: Record<Plan, string> = {
 function highlights(p: Plan): { lead?: string; items: string[] } {
   const e = PLANS[p];
   const api = DATA_API_LIMITS[e.dataApiTier];
+  const router = isUnlimited(e.routerRequestsPerMonth) ? 'Unlimited Smart Router requests' : `Smart Router: ${fmt(e.routerRequestsPerMonth)} requests a month`;
+  const dataApi = `Data API: ${fmt(api.daily)} requests a day`;
   switch (p) {
     case 'free': return { items: [
-      `${fmt(e.watchedModels)} tracked models`, `${e.historyDays} days of history`, 'Every category ranking',
-      `${fmt(e.routerRequestsPerMonth)} routed requests a month`, `Data API: ${fmt(api.daily)} requests a day`,
+      `${fmt(e.watchedModels)} tracked models, with email alerts`, `${e.historyDays} days of history`, 'Every category ranking', router, dataApi,
     ] };
     case 'pro': return { lead: 'Everything in Free, plus', items: [
-      `${fmt(e.watchedModels)} tracked models`, 'Full comparable history', 'Calibration and cheaper-substitute analysis',
-      'Exports and custom alert thresholds', `Data API: ${fmt(api.daily)} requests a day`,
+      `${fmt(e.watchedModels)} tracked models and custom alert thresholds`, 'Full history and the drift diagnosis behind every change',
+      'Calibration and cheaper-substitute analysis', 'Routing analytics and CSV/JSON exports', router, dataApi,
     ] };
     case 'developer': return { lead: 'Everything in Pro, plus', items: [
-      `${fmt(e.routerRequestsPerMonth)} routed requests a month`, `${e.routerDiagnosticDays}-day decision logs`,
-      `${fmt(e.projects)} project workspace`,
+      router, 'API monitoring: per-key logs, costs, prompt auditing and budget limits', `${e.routerDiagnosticDays}-day decision logs`, dataApi,
     ] };
     case 'teams': return { lead: 'Everything in Developer, plus', items: [
-      `${fmt(e.seats)} editor seats and ${fmt(e.projects)} projects`, `${fmt(e.routerRequestsPerMonth)} routed requests a month`,
-      `${e.routerDiagnosticDays}-day decision logs`, 'Webhooks', 'SSO, SCIM and audit trail',
+      `${fmt(e.seats)} editors, each with the full Teams plan`, router, `${e.routerDiagnosticDays}-day decision logs`, dataApi,
+      'Webhooks when a watched model regresses', 'Single sign-on (OIDC or SAML), SCIM and an audit trail',
     ] };
     case 'enterprise': return { items: [
-      'Unlimited seats and projects', `Data API: ${fmt(api.daily)} requests a day`,
-      `${e.routerDiagnosticDays}-day decision logs`, 'Contract, invoicing and a named contact',
+      'Unlimited editor seats', router, dataApi, `${e.routerDiagnosticDays}-day decision logs`, 'Contract and invoicing',
     ] };
     default: return { items: [] };
   }
@@ -362,7 +364,7 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
           </section>
           <section>
             <h3>What happens at a limit</h3>
-            <p>Nothing breaks silently. Routing stops at your monthly allowance unless you choose in billing settings to continue and be charged for the overage. Data API calls beyond the ceiling are refused with a clear error rather than throttled into a timeout.</p>
+            <p>Nothing breaks silently, and nothing is ever billed after the fact. When a month&rsquo;s Smart Router allowance is used up, routing pauses with a clear message: top up with prepaid credits — from ${ROUTER_CREDITS.minimumUsd}, {ROUTER_CREDITS.requestsPerUsd.toLocaleString('en-US')} requests per $1, and they never expire — or move up a plan: on Developer and Teams a request costs less than a credit. Data API calls beyond the daily ceiling are refused with a clear error rather than throttled into a timeout.</p>
           </section>
           <section>
             <h3>Why annual is cheaper</h3>

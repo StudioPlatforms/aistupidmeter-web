@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { checkSubscription } from '@/lib/db-client';
 import { entitlementsFor, planFor } from '@/lib/entitlements';
+import { withWorkspace } from '@/lib/workspace-plan';
 import { findUserByEmail } from '@/lib/db-client';
 
 /**
@@ -29,8 +30,8 @@ export async function POST(_request: NextRequest) {
       success: true,
       data: {
         ...subscriptionStatus,
-        plan: planFor(user as any),
-        entitlements: entitlementsFor(user as any),
+        plan: planFor(withWorkspace(user?.id, user) as any),
+        entitlements: entitlementsFor(withWorkspace(user?.id, user) as any),
       },
     });
   } catch (error) {

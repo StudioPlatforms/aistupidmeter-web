@@ -31,7 +31,7 @@ export type Plan =
   | 'legacy_pro';
 
 /** Quota tiers on the public Data API. Must stay in sync with lib/data-api-keys.ts. */
-export type DataApiTier = 'free' | 'pro' | 'teams' | 'enterprise';
+export type DataApiTier = 'free' | 'pro' | 'developer' | 'teams' | 'enterprise';
 
 /**
  * Daily and per-minute quota for each Data API tier.
@@ -45,9 +45,23 @@ export type DataApiTier = 'free' | 'pro' | 'teams' | 'enterprise';
 export const DATA_API_LIMITS: Record<DataApiTier, { daily: number; perMinute: number; label: string }> = {
   free:       { daily: 10,      perMinute: 1,    label: 'Free' },
   pro:        { daily: 10_000,  perMinute: 60,   label: 'Pro' },
+  // Its own tier since 2026-09-27: Developer used to share Pro's quota, so the plan
+  // that costs twice as much bought nothing more on the Data API.
+  developer:  { daily: 25_000,  perMinute: 120,  label: 'Developer' },
   teams:      { daily: 100_000, perMinute: 300,  label: 'Teams' },
   enterprise: { daily: 250_000, perMinute: 1000, label: 'Enterprise' },
 };
+
+/**
+ * Smart Router top-up credits, bought when a monthly allowance runs out.
+ *
+ * $1 buys 2,000 requests ($5 per 10,000, $0.0005 each). Deliberately dearer per
+ * request than the Developer ($0.00025) and Teams ($0.00013) allowances, so that for
+ * regular volume moving up a plan is the cheaper way to buy it, and credits stay what
+ * they are for: an occasional top-up. (Pro's allowance is dearer still per request —
+ * Pro is priced for its analysis, not for routing.) Minimum $5; credits do not expire.
+ */
+export const ROUTER_CREDITS = { requestsPerUsd: 2_000, minimumUsd: 5 } as const;
 
 /** Sentinel for "no limit". JSON-safe, unlike Infinity. */
 export const UNLIMITED = -1;
@@ -121,7 +135,7 @@ export const PLANS: Record<Plan, Entitlements> = {
   developer: {
     plan: 'developer', label: 'Developer',
     watchedModels: 20, historyDays: null, categorySorts: true,
-    dataApiTier: 'pro',
+    dataApiTier: 'developer',
     routerRequestsPerMonth: 100_000, evalUnitsPerMonth: 250, routerDiagnosticDays: 30,
     seats: 1, projects: 1,
     exports: true, webhooks: false, customAlerts: true,
@@ -148,7 +162,7 @@ export const PLANS: Record<Plan, Entitlements> = {
   legacy_pro: {
     plan: 'legacy_pro', label: 'Pro (legacy)',
     watchedModels: 20, historyDays: null, categorySorts: true,
-    dataApiTier: 'pro',
+    dataApiTier: 'developer',   // legacy_pro carries Developer's feature set, API quota included
     routerRequestsPerMonth: 100_000, evalUnitsPerMonth: 250, routerDiagnosticDays: 30,
     seats: 1, projects: 1,
     exports: true, webhooks: false, customAlerts: true,
@@ -206,10 +220,28 @@ export interface EntitlementSubject {
   trial_ends_at?: string | null;
   subscription_canceled_at?: string | null;
   subscription_ends_at?: string | null;
+  /**
+   * The plan of a paid workspace this account is an active OWNER or EDITOR of, if any
+   * (resolved by lib/workspace-plan.ts in each app, which does the I/O this module may
+   * not). An editor on a Teams workspace gets Teams, not their own Free plan: that is
+   * what "five editor seats" is sold as. Viewers never inherit — they are unlimited,
+   * so inheriting would give away the plan.
+   */
+  workspace_tier?: string | null;
 }
 
-/** Resolve the plan an account is currently on. */
+/**
+ * Resolve the plan an account is currently on: its own subscription, raised to the
+ * plan of a workspace it edits when that is higher.
+ */
 export function planFor(user: EntitlementSubject | null | undefined): Plan {
+  const own = ownPlanFor(user);
+  const ws = user?.workspace_tier;
+  return isPlan(ws) && PLAN_RANK[ws] > PLAN_RANK[own] ? ws : own;
+}
+
+/** The account's own subscription, ignoring any workspace. */
+export function ownPlanFor(user: EntitlementSubject | null | undefined): Plan {
   if (!user) return 'free';
 
   const tier = user.subscription_tier;

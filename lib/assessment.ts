@@ -45,13 +45,19 @@ export async function startAssessmentCheckout(intake: AssessmentIntake): Promise
   const priceId = assessmentPriceId();
   if (!priceId) throw Object.assign(new Error('STRIPE_PRICE_ASSESSMENT is not configured'), { code: 'unconfigured' });
 
+  // The web app opens a handle per use and closes it (lib/identity-db.ts).
   const db = openIdentityDb();
-  const info = db.prepare(`
-    INSERT INTO assessment_requests
-      (user_id, contact_email, company, workload, candidate_models, task_count, status)
-    VALUES (?, ?, ?, ?, ?, ?, 'awaiting_payment')
-  `).run(intake.userId, intake.contactEmail, intake.company, intake.workload, intake.candidateModels, intake.taskCount);
-  const id = Number(info.lastInsertRowid);
+  let id: number;
+  try {
+    const info = db.prepare(`
+      INSERT INTO assessment_requests
+        (user_id, contact_email, company, workload, candidate_models, task_count, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'awaiting_payment')
+    `).run(intake.userId, intake.contactEmail, intake.company, intake.workload, intake.candidateModels, intake.taskCount);
+    id = Number(info.lastInsertRowid);
+  } finally {
+    db.close();
+  }
 
   const meta = { kind: 'assessment', requestId: String(id) };
   const app = process.env.NEXT_PUBLIC_APP_URL;
@@ -78,11 +84,16 @@ export async function startAssessmentCheckout(intake: AssessmentIntake): Promise
     cancel_url: `${app}/assessment?cancelled=1`,
   });
 
-  db.prepare(`
-    UPDATE assessment_requests
-       SET stripe_session_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
-     WHERE id = ?
-  `).run(session.id, id);
+  const db2 = openIdentityDb();
+  try {
+    db2.prepare(`
+      UPDATE assessment_requests
+         SET stripe_session_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+       WHERE id = ?
+    `).run(session.id, id);
+  } finally {
+    db2.close();
+  }
 
   if (!session.url) throw new Error('Stripe returned no Checkout URL');
   return { id, url: session.url };
@@ -106,16 +117,22 @@ export async function markAssessmentPaid(session: Stripe.Checkout.Session): Prom
   if (!Number.isInteger(id) || id <= 0) return null;
 
   const db = openIdentityDb();
-  const res = db.prepare(`
+  let res: { changes: number };
+  let row: { id: number; contact_email: string; company: string | null; workload: string; candidate_models: string | null; task_count: number | null } | undefined;
+  try {
+  res = db.prepare(`
     UPDATE assessment_requests
        SET status = 'paid', paid_at = strftime('%Y-%m-%dT%H:%M:%fZ','now'), amount_cents = ?,
            stripe_session_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
      WHERE id = ? AND paid_at IS NULL
   `).run(session.amount_total ?? null, session.id, id);
 
-  const row = db.prepare(`
+  row = db.prepare(`
     SELECT id, contact_email, company, workload, candidate_models, task_count FROM assessment_requests WHERE id = ?
-  `).get(id) as { id: number; contact_email: string; company: string | null; workload: string; candidate_models: string | null; task_count: number | null } | undefined;
+  `).get(id) as typeof row;
+  } finally {
+    db.close();
+  }
   if (!row) return null;
 
   if (res.changes === 1) {

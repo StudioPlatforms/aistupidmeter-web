@@ -14,16 +14,16 @@ import { useSearchParams } from 'next/navigation';
 import { monthlyLong } from '@/lib/pricing-display';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { PLANS, SELLABLE_PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
+import { PLANS, SELLABLE_PLANS, ROUTER_CREDITS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
 import type { SellablePlan } from '@/lib/stripe-plans';
 
 interface Meter { key: string; label: string; used: number; limit: number; period: string }
-interface Overage {
-  behavior: 'stop' | 'continue';
-  monthlyCapUsd: number;
+interface Credits {
+  balance: number;
   usedThisMonth: number;
   includedThisMonth: number;
-  priceLabel: string;
+  requestsPerUsd: number;
+  minimumUsd: number;
 }
 
 interface Usage {
@@ -95,8 +95,10 @@ function Bar({ used, limit }: { used: number; limit: number }) {
 export default function BillingClient({ buyable = [] }: { buyable?: string[] }) {
   const { data: session, status } = useSession();
   const [usage, setUsage] = useState<Usage | null>(null);
-  const [ov, setOv] = useState<Overage | null>(null);
-  const [capDraft, setCapDraft] = useState<string>('');
+  const [credits, setCredits] = useState<Credits | null>(null);
+  const [topup, setTopup] = useState<string>('25');
+  const [buying, setBuying] = useState(false);
+  const [topupNote, setTopupNote] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<SellablePlan | null>(null);
@@ -144,12 +146,46 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
     if (status !== 'authenticated') { if (status === 'unauthenticated') setLoading(false); return; }
     Promise.all([
       fetch('/api/account/usage', { cache: 'no-store' }).then(r => r.json()),
-      fetch('/api/account/overage', { cache: 'no-store' }).then(r => r.json()),
-    ]).then(([u, o]) => {
+      fetch('/api/account/credits', { cache: 'no-store' }).then(r => r.json()),
+    ]).then(([u, c]) => {
       if (u?.success) setUsage(u.data);
-      if (o?.success) { setOv(o.data); setCapDraft(String(o.data.monthlyCapUsd || '')); }
+      if (c?.success) setCredits(c.data);
     }).finally(() => setLoading(false));
   }, [status]);
+
+  // Back from Stripe: credit the top-up now (the webhook does the same; whichever is first
+  // wins), then refresh the balance.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const t = params.get('topup');
+    if (t === 'cancelled') { setTopupNote('The top-up was cancelled — nothing was charged.'); return; }
+    const sid = params.get('session_id');
+    if (t !== 'done' || !sid) return;
+    fetch(`/api/stripe/credits?session_id=${encodeURIComponent(sid)}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => {
+        setTopupNote(d?.success
+          ? `Thank you — ${Number(d.data.requests).toLocaleString()} requests were added to your credits.`
+          : 'Payment received. Your credits will appear here within a minute.');
+        return fetch('/api/account/credits', { cache: 'no-store' }).then(r => r.json());
+      })
+      .then(c => { if (c?.success) setCredits(c.data); })
+      .catch(() => setTopupNote('Payment received. Your credits will appear here within a minute.'));
+  }, [status, params]);
+
+  const buyCredits = async () => {
+    setBuying(true); setTopupNote(null);
+    try {
+      const r = await fetch('/api/stripe/credits', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountUsd: Number(topup) }),
+      });
+      const d = await r.json().catch(() => null);
+      if (d?.success && d.data?.url) { window.location.href = d.data.url; return; }
+      setTopupNote(d?.error ?? 'Could not start checkout.');
+    } catch { setTopupNote('Could not reach billing. Please try again.'); }
+    setBuying(false);
+  };
 
   if (status === 'unauthenticated') {
     return (
@@ -264,89 +300,62 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
           <span>History: {usage?.retention.historyDays === null ? 'everything we hold' : `${usage?.retention.historyDays} days`}</span>
           <span>Decision logs: {usage?.retention.decisionLogDays} days</span>
           <span>Seats: {isUnlimited(usage?.seats ?? 1) ? '∞' : usage?.seats}</span>
-          <span>Projects: {usage?.projects === 0 ? '—' : isUnlimited(usage?.projects ?? 0) ? '∞' : usage?.projects}</span>
         </div>
       </section>
 
-      {/* What happens at the limit */}
+      {/* Smart Router credits: what happens when the monthly allowance runs out */}
       <section style={card}>
-        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>When the allowance runs out</h2>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
-          Your choice, made in advance. Stopping means requests are refused once the included
-          allowance is used — nothing is ever billed that you did not opt into. Continuing keeps
-          your application running and bills the excess at {ov?.priceLabel ?? '$1.30 per 10,000 requests'},
-          never past a cap you set.
+        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Smart Router credits</h2>
+        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
+          Your plan includes {credits ? (isUnlimited(credits.includedThisMonth) ? 'unlimited' : credits.includedThisMonth.toLocaleString()) : '…'} Smart
+          Router requests a month. When they are used up, routing pauses — unless you hold credits, which are used
+          one per successful request until the month resets. Nothing is ever billed after the fact: credits are
+          bought in advance, from ${ROUTER_CREDITS.minimumUsd}, at {(credits?.requestsPerUsd ?? ROUTER_CREDITS.requestsPerUsd).toLocaleString()} requests per $1, and they do not expire.
         </p>
 
-        {(['stop', 'continue'] as const).map(b => (
-          <label key={b} style={{
-            display: 'flex', gap: 11, alignItems: 'flex-start', padding: '11px 12px', marginBottom: 8,
-            border: `1px solid ${ov?.behavior === b ? 'var(--phosphor-green)' : 'var(--border-subtle, #2a2a2a)'}`,
-            borderRadius: 5, cursor: 'pointer',
-          }}>
-            <input
-              type="radio" name="overage" checked={ov?.behavior === b} style={{ marginTop: 3 }}
-              onChange={async () => {
-                const cap = b === 'continue' ? Number(capDraft || 0) : 0;
-                const r = await fetch('/api/account/overage', {
-                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ behavior: b, monthlyCapUsd: cap }),
-                });
-                const j = await r.json();
-                if (j?.success) { setOv(o => (o ? { ...o, behavior: b, monthlyCapUsd: cap } : o)); setMsg('Saved'); }
-                else setMsg(j?.message ?? 'Could not save');
-                setTimeout(() => setMsg(null), 2600);
-              }}
-            />
-            <span>
-              <span style={{ fontSize: '0.9em', fontWeight: 600 }}>
-                {b === 'stop' ? 'Stop at the limit' : 'Keep going and bill the overage'}
-              </span>
-              <span style={{ display: 'block', fontSize: '0.8em', color: 'var(--phosphor-dim)', marginTop: 3, lineHeight: 1.5 }}>
-                {b === 'stop'
-                  ? 'Requests are refused with a clear reason until the month resets. No surprise bill.'
-                  : 'Your application keeps working. Requires a monthly cap — we will not run an uncapped meter against your account.'}
-              </span>
-            </span>
-          </label>
-        ))}
-
-        {ov?.behavior === 'continue' && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6, flexWrap: 'wrap' }}>
-            <label style={{ fontSize: '0.85em' }}>Monthly cap</label>
-            <span style={{ fontSize: '0.9em' }}>$</span>
-            <input
-              type="number" min={1} max={10000} step={1} value={capDraft}
-              onChange={e => setCapDraft(e.target.value)}
-              style={{
-                width: 96, padding: '7px 9px', font: 'inherit', fontSize: '0.88em',
-                background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border-subtle, #2a2a2a)',
-                borderRadius: 3, color: 'inherit',
-              }}
-            />
-            <button className="md-ctrl-btn" style={{ fontSize: '0.82em' }}
-              onClick={async () => {
-                const r = await fetch('/api/account/overage', {
-                  method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ behavior: 'continue', monthlyCapUsd: Number(capDraft) }),
-                });
-                const j = await r.json();
-                setMsg(j?.success ? 'Cap saved' : (j?.message ?? 'Could not save'));
-                if (j?.success) setOv(o => (o ? { ...o, monthlyCapUsd: Number(capDraft) } : o));
-                setTimeout(() => setMsg(null), 2600);
-              }}>Save cap</button>
-            {msg && <span style={{ fontSize: '0.82em', color: 'var(--phosphor-green)' }}>{msg}</span>}
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>This month</div>
+            <div style={{ fontSize: '1.15em', fontWeight: 600 }}>
+              {credits ? `${credits.usedThisMonth.toLocaleString()} / ${isUnlimited(credits.includedThisMonth) ? '∞' : credits.includedThisMonth.toLocaleString()}` : '…'}
+            </div>
           </div>
-        )}
-        {ov?.behavior === 'stop' && msg && (
-          <div style={{ fontSize: '0.82em', color: 'var(--phosphor-green)' }}>{msg}</div>
-        )}
+          <div>
+            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>Credits</div>
+            <div style={{ fontSize: '1.15em', fontWeight: 600 }}>{credits ? `${credits.balance.toLocaleString()} requests` : '…'}</div>
+          </div>
+        </div>
 
-        <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 14, marginBottom: 0, lineHeight: 1.55 }}>
-          Overage billing becomes active once metered billing is switched on. Until then the cap is
-          still enforced — routing stops at it — so this setting can never cost you anything
-          unexpectedly.
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {[5, 25, 100].map(v => (
+            <button key={v} type="button" onClick={() => setTopup(String(v))} aria-pressed={Number(topup) === v}
+              style={{
+                height: 36, padding: '0 14px', borderRadius: 6, cursor: 'pointer', font: 'inherit', fontSize: '0.88em',
+                fontWeight: Number(topup) === v ? 600 : 400,
+                border: `1px solid ${Number(topup) === v ? 'var(--accent)' : 'var(--metal-silver)'}`,
+                background: Number(topup) === v ? 'var(--accent-bg)' : 'var(--terminal-dark)',
+                color: Number(topup) === v ? 'var(--accent)' : 'var(--phosphor-green)',
+              }}>${v}</button>
+          ))}
+          <span style={{ fontSize: '0.9em', marginLeft: 6 }}>$</span>
+          <input
+            type="number" min={ROUTER_CREDITS.minimumUsd} step={1} value={topup} aria-label="Top-up amount in US dollars"
+            onChange={e => setTopup(e.target.value)}
+            style={{
+              width: 110, height: 36, padding: '0 10px', font: 'inherit', fontSize: '0.9em',
+              background: 'var(--terminal-dark)', border: '1px solid var(--metal-silver)', borderRadius: 6, color: 'inherit',
+            }}
+          />
+          <button type="button" className="vintage-btn vintage-btn--primary" disabled={buying || !(Number(topup) >= ROUTER_CREDITS.minimumUsd)}
+            onClick={buyCredits} style={{ padding: '8px 16px', fontSize: '0.88em' }}>
+            {buying ? 'Opening checkout…' : `Buy ${Number(topup) >= ROUTER_CREDITS.minimumUsd ? Math.floor(Number(topup) * (credits?.requestsPerUsd ?? ROUTER_CREDITS.requestsPerUsd)).toLocaleString() : '…'} requests`}
+          </button>
+        </div>
+        <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 10, marginBottom: 0, lineHeight: 1.55 }}>
+          Minimum ${ROUTER_CREDITS.minimumUsd}, no maximum. Paid by card through Stripe, with an invoice. Topping up
+          every month? On Developer and Teams a request costs less than a credit.
         </p>
+        {topupNote && <p style={{ fontSize: '0.85em', color: 'var(--phosphor-green)', marginTop: 10, marginBottom: 0 }}>{topupNote}</p>}
       </section>
 
       {/* Change plan */}
@@ -358,6 +367,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
             ? `Moving to a current plan ends your held ${monthlyLong('legacy_pro')} price. Compare carefully before switching — your plan already includes routing and Data API access.`
             : 'Every plan collects a payment method at checkout, including during a free trial, and you can cancel any time.'}
         </p>
+        {msg && <p role="status" style={{ fontSize: '0.85em', color: 'var(--phosphor-green)', margin: '0 0 12px' }}>{msg}</p>}
         <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
           {SELLABLE_PLANS.map(p => {
             const pe = PLANS[p];

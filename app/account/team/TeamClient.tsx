@@ -97,9 +97,8 @@ export default function TeamClient() {
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '50px 20px', textAlign: 'center' }}>
         <h1 style={{ fontSize: '1.35em', marginBottom: 10 }}>Workspaces start on Developer</h1>
         <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 24 }}>
-          Developer gives you a workspace of your own with one project, to keep a piece of work and
-          its watchlist separate. Teams opens it up: five editor seats, unlimited viewers, three
-          projects, webhooks, single sign-on and the audit trail.
+          Developer gives you a workspace of your own. Teams opens it up: five editors, each with the
+          full Teams plan, plus unlimited read-only viewers, webhooks, single sign-on and an audit trail.
         </p>
         <Link href="/pricing" className="vintage-btn" style={{ padding: '11px 22px', textDecoration: 'none' }}>
           Compare plans
@@ -117,13 +116,12 @@ export default function TeamClient() {
         <h1 style={{ fontSize: '1.35em', marginBottom: 8 }}>Create your workspace</h1>
         <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 20 }}>
           {d.seatLimit === 1
-            ? <>A workspace keeps a piece of work and its watchlist separate from the rest of your
-                account. Your plan includes {plural(d.projectLimit, 'project')} and one editor seat.
-                You can still invite people as viewers — those do not use a seat — and Teams adds
-                more editors.</>
-            : <>A workspace is where your team shares monitoring. You get{' '}
-                {plural(d.seatLimit, 'editor seat')}, unlimited viewers and{' '}
-                {plural(d.projectLimit, 'project')}.</>}
+            ? <>A workspace is where you manage who has access. Your plan includes one editor seat —
+                yours. You can invite people as read-only viewers, which do not use a seat; Teams adds
+                four more editors, each with the full Teams plan.</>
+            : <>A workspace is where you manage your team. You get{' '}
+                {plural(d.seatLimit, 'editor seat')} — every editor gets your plan&rsquo;s features and
+                limits — plus unlimited read-only viewers.</>}
         </p>
         <form onSubmit={async e => {
           e.preventDefault();
@@ -201,8 +199,8 @@ export default function TeamClient() {
       <section style={card}>
         <h2 style={h2}>Projects</h2>
         <p style={sub}>
-          {(d.projects ?? []).length} of {d.projectLimit} used. Projects keep separate workloads —
-          or separate clients — from sharing one watchlist.
+          {(d.projects ?? []).length} of {d.projectLimit} used. Projects are names for organising your
+          team&rsquo;s work; watchlists, keys and reports are not yet scoped to a project.
         </p>
         {(d.projects ?? []).map((p, i) => (
           <div key={p.id} style={{ ...rowS, ...(i === 0 ? { borderTop: 'none' } : {}) }}>
