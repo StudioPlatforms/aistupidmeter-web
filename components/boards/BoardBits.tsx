@@ -1,6 +1,7 @@
 'use client';
 
 import ProviderLogo from '../ProviderLogo';
+import WatchStar from '../WatchStar';
 import type { BoardRow } from '../../lib/use-boards';
 
 /** Small shared pieces for the four leaderboard layouts. Styles: styles/boards.css (lbx-*). */
@@ -13,6 +14,14 @@ export function Logo({ provider, size = 16, box = 26 }: { provider: string | nul
       <ProviderLogo provider={provider || ''} size={size} />
     </span>
   );
+}
+
+/**
+ * The watchlist star. Rows are one link stretched over the whole row (.lbx-stretch), so the
+ * star sits above that link rather than inside it — a button inside an <a> is invalid.
+ */
+export function Star({ row, size = 14 }: { row: BoardRow; size?: number }) {
+  return <span className="lbx-star"><WatchStar modelId={row.id} modelName={row.label} size={size} /></span>;
 }
 
 export function Rank({ row }: { row: BoardRow }) {

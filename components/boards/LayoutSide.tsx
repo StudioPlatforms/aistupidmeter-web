@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { BOARD_KEYS, BOARD_CADENCE, useElementWidth, type Board, type Boards } from '../../lib/use-boards';
-import { CommunityIcon, Logo, Note, Rank, Score, communityBlurb, modelHref } from './BoardBits';
+import { CommunityIcon, Logo, Note, Rank, Score, Star, communityBlurb, modelHref } from './BoardBits';
 
 /**
  * Layout "Side by side": the four boards as four full lists next to each other. Below
@@ -22,12 +22,15 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
       <div className="lbx-colhead" aria-hidden="true"><span>#</span><span>Model</span><span>Score</span></div>
       <ol className="lbx-list">
         {board.ranked.map((row) => (
-          <li key={row.id}>
-            <Link href={modelHref(row)} className="lbx-row">
-              <Rank row={row} />
-              <span className="lbx-model"><Logo provider={row.provider} /><span className="lbx-name">{row.label}</span><Note row={row} /></span>
-              <Score row={row} />
-            </Link>
+          <li key={row.id} className="lbx-row">
+            <Rank row={row} />
+            <span className="lbx-model">
+              <Star row={row} />
+              <Logo provider={row.provider} />
+              <Link href={modelHref(row)} className="lbx-name lbx-stretch">{row.label}</Link>
+              <Note row={row} />
+            </span>
+            <Score row={row} />
           </li>
         ))}
       </ol>
@@ -46,13 +49,12 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
           <p className="lbx-comm-text">{communityBlurb(k)}</p>
           <ul className="lbx-comm-list">
             {board.community.map((row) => (
-              <li key={row.id}>
-                <Link href={modelHref(row, true)} className="lbx-crow" title={`Open ${row.label} to fund its next run`}>
-                  <Logo provider={row.provider} size={14} box={22} />
-                  <span className="lbx-name">{row.label}</span>
-                  {row.when && <span className="lbx-chip">{row.when}</span>}
-                  <Score row={row} muted />
-                </Link>
+              <li key={row.id} className="lbx-crow">
+                <Star row={row} size={13} />
+                <Logo provider={row.provider} size={14} box={22} />
+                <Link href={modelHref(row, true)} className="lbx-name lbx-stretch" title={`Open ${row.label} to fund its next run`}>{row.label}</Link>
+                {row.when && <span className="lbx-chip">{row.when}</span>}
+                <Score row={row} muted />
               </li>
             ))}
           </ul>
@@ -65,13 +67,12 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
           <div className="lbx-comm-head"><span>Not ranked right now</span></div>
           <ul className="lbx-comm-list">
             {board.other.map((row) => (
-              <li key={row.id}>
-                <Link href={modelHref(row)} className="lbx-crow" title={row.staleReason || undefined}>
-                  <Logo provider={row.provider} size={14} box={22} />
-                  <span className="lbx-name">{row.label}</span>
-                  {row.when && <span className="lbx-chip">{row.when}</span>}
-                  <Score row={row} muted />
-                </Link>
+              <li key={row.id} className="lbx-crow">
+                <Star row={row} size={13} />
+                <Logo provider={row.provider} size={14} box={22} />
+                <Link href={modelHref(row)} className="lbx-name lbx-stretch" title={row.staleReason || undefined}>{row.label}</Link>
+                {row.when && <span className="lbx-chip">{row.when}</span>}
+                <Score row={row} muted />
               </li>
             ))}
           </ul>

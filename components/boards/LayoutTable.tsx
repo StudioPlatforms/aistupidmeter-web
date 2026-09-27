@@ -9,7 +9,7 @@ import {
   BOARD_KEYS, BOARD_TITLE, BOARD_TO_SORT, SORT_TO_BOARD, useElementWidth,
   type BoardKey, type BoardRow, type Boards, type SortKey,
 } from '../../lib/use-boards';
-import { CommunityIcon, Logo, Rank, modelHref } from './BoardBits';
+import { CommunityIcon, Logo, Rank, Star, modelHref } from './BoardBits';
 
 /**
  * Layout "Table": one row per model with all four scores and each score's rank on its own
@@ -154,15 +154,16 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                   )}
                   {g.key === 'other' && <div className="lbx-comm lbx-comm--inline"><div className="lbx-comm-head"><span>Not ranked right now</span></div></div>}
                   {rows.map((row, i) => (
-                    <Link key={row.id} href={modelHref(row, g.key === 'community')} className="lbx-tcard">
+                    <div key={row.id} className="lbx-tcard">
                       <span className="lbx-tcard-top">
                         <span className="lbx-tcard-rank">
                           {g.key !== 'ranked' ? <span className="lbx-rank lbx-rank--none">–</span>
                             : active ? <Rank row={row} /> : <span className="lbx-rank">{positionOf(i)}</span>}
                         </span>
+                        <Star row={row} />
                         <Logo provider={row.provider} size={17} box={28} />
                         <span className="lbx-model-text">
-                          <span className="lbx-name">{row.label}</span>
+                          <Link href={modelHref(row, g.key === 'community')} className="lbx-name lbx-stretch">{row.label}</Link>
                           <span className="lbx-prov">{row.vendor}</span>
                         </span>
                         <span className="lbx-tcard-main">
@@ -177,7 +178,7 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                           </span>
                         ))}
                       </span>
-                    </Link>
+                    </div>
                   ))}
                   {g.key === 'ranked' && !showAll && g.rows.length > 8 && (
                     <div className="lbx-more">

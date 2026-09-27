@@ -162,7 +162,7 @@ a.lbx-name:hover { color: var(--accent); }
 .lbx-tcard-main { flex-shrink: 0; }
 .lbx-big { font-size: 20px; font-weight: 700; color: var(--good); font-variant-numeric: tabular-nums; }
 .lbx-big.is-muted { color: var(--phosphor-dim); font-weight: 500; }
-.lbx-tcard-subs { margin-top: 8px; padding-left: 42px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lbx-tcard-subs { margin-top: 8px; padding-left: 60px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .lbx-tcard-sub { display: flex; flex-direction: column; min-width: 0; }
 .lbx-tcard-label { font-size: 10.5px; line-height: 14px; color: var(--phosphor-dim); }
 .lbx-mini { font-size: 13px; line-height: 18px; white-space: nowrap; }
@@ -221,7 +221,7 @@ a.lbx-name:hover { color: var(--accent); }
 /* ── D: connected ───────────────────────────────────────────────── */
 .lbx-trace { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; min-height: 50px; padding: 8px 16px; margin-bottom: 14px;
   background: var(--terminal-dark); border: 1px solid var(--metal-silver); border-radius: 8px; }
-.lbx-trace-who { display: flex; align-items: center; gap: 9px; min-width: 250px; }
+.lbx-trace-who { display: flex; align-items: center; gap: 9px; min-width: 250px; max-width: 360px; }
 .lbx-trace-kicker { font-size: 11.5px; color: var(--phosphor-dim); }
 .lbx-trace-name { font-size: 15px; font-weight: 600; color: var(--accent); }
 .lbx-trace-stats { display: flex; gap: 22px; flex-wrap: wrap; padding-left: 20px; border-left: 1px solid var(--metal-silver); }
@@ -304,3 +304,16 @@ a.lbx-name:hover { color: var(--accent); }
 
 /* settings page: four across when there is room */
 .lbx-options--settings { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); margin: 4px 0 0; }
+
+/* ── row links + watch star ─────────────────────────────────────────
+   A row is one link (the model name) stretched over the whole row, so the row stays one
+   click target while the star, above it, can be a real button of its own. */
+.lbx-row, .lbx-crow, .lbx-frow, .lbx-tcard, .lbx-rl-row { position: relative; }
+.lbx-stretch::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.lbx-stretch:focus-visible { outline: none; }
+.lbx-stretch:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lbx-star { position: relative; z-index: 1; display: inline-flex; flex-shrink: 0; margin: 0 -2px 0 -4px; }
+
+/* the connected layout's trace bar says how to use it */
+.lbx-trace-id { display: flex; flex-direction: column; min-width: 0; }
+.lbx-trace-hint { font-size: 11.5px; line-height: 15px; color: var(--phosphor-dim); }

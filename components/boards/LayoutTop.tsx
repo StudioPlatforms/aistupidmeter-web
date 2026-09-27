@@ -6,7 +6,7 @@ import {
   BOARD_KEYS, BOARD_TITLE, BOARD_TO_SORT, SORT_TO_BOARD, useElementWidth,
   type Board, type BoardKey, type BoardRow, type Boards, type SortKey,
 } from '../../lib/use-boards';
-import { CommunityIcon, Logo, Note, Rank, Score, modelHref, trendGlyph } from './BoardBits';
+import { CommunityIcon, Logo, Note, Rank, Score, Star, modelHref, trendGlyph } from './BoardBits';
 
 /**
  * Layout "Top 5": the first five of every board at a glance, the community-funded models in
@@ -54,10 +54,11 @@ export default function LayoutTop({ boards, sortKey, onSortChange }: {
                   const cd = find('coding', m.id), rs = find('reasoning', m.id), tl = find('tooling', m.id);
                   return (
                     <div key={m.id} className="lbx-scard">
-                      <Link href={modelHref(m)} className="lbx-scard-name">
+                      <div className="lbx-scard-name">
+                        <Star row={m} />
                         <Logo provider={m.provider} />
-                        <span className="lbx-name">{m.label}</span>
-                      </Link>
+                        <Link href={modelHref(m)} className="lbx-name">{m.label}</Link>
+                      </div>
                       <dl className="lbx-scard-stats">
                         <div><dt>Coding</dt><dd>{cd ? <><b>{cd.row.score}</b> <small>{cd.ranked ? `rank ${cd.row.rankText}` : cd.row.when}</small></> : '—'}</dd></div>
                         <div><dt>Reasoning</dt><dd className="is-muted">{rs ? <><b>{rs.row.score ?? '—'}</b> <small>{rs.ranked ? `rank ${rs.row.rankText}` : rs.row.when}</small></> : '—'}</dd></div>
@@ -85,30 +86,28 @@ export default function LayoutTop({ boards, sortKey, onSortChange }: {
             </div>
             <ol className="lbx-list lbx-full-list">
               {boards[full].ranked.map((row) => (
-                <li key={row.id}>
-                  <Link href={modelHref(row)} className="lbx-frow">
-                    <Rank row={row} />
-                    <span className="lbx-model">
-                      <Logo provider={row.provider} size={18} box={30} />
-                      <span className="lbx-model-text"><span className="lbx-name">{row.label}</span><span className="lbx-prov">{row.vendor}</span></span>
-                      <Note row={row} />
-                    </span>
-                    <Score row={row} />
-                    <span className={`lbx-trend lbx-trend--${row.trend}`} aria-label={`trend ${row.trend}`}>{trendGlyph(row.trend)}</span>
-                  </Link>
+                <li key={row.id} className="lbx-frow">
+                  <Rank row={row} />
+                  <span className="lbx-model">
+                    <Star row={row} />
+                    <Logo provider={row.provider} size={18} box={30} />
+                    <span className="lbx-model-text"><Link href={modelHref(row)} className="lbx-name lbx-stretch">{row.label}</Link><span className="lbx-prov">{row.vendor}</span></span>
+                    <Note row={row} />
+                  </span>
+                  <Score row={row} />
+                  <span className={`lbx-trend lbx-trend--${row.trend}`} aria-label={`trend ${row.trend}`}>{trendGlyph(row.trend)}</span>
                 </li>
               ))}
               {boards[full].other.map((row) => (
-                <li key={row.id}>
-                  <Link href={modelHref(row)} className="lbx-frow is-muted" title={row.staleReason || undefined}>
-                    <span className="lbx-rank lbx-rank--none">–</span>
-                    <span className="lbx-model">
-                      <Logo provider={row.provider} size={18} box={30} />
-                      <span className="lbx-model-text"><span className="lbx-name">{row.label}</span><span className="lbx-prov">not ranked right now</span></span>
-                    </span>
-                    <Score row={row} muted />
-                    <span />
-                  </Link>
+                <li key={row.id} className="lbx-frow is-muted">
+                  <span className="lbx-rank lbx-rank--none">–</span>
+                  <span className="lbx-model">
+                    <Star row={row} />
+                    <Logo provider={row.provider} size={18} box={30} />
+                    <span className="lbx-model-text"><Link href={modelHref(row)} className="lbx-name lbx-stretch" title={row.staleReason || undefined}>{row.label}</Link><span className="lbx-prov">not ranked right now</span></span>
+                  </span>
+                  <Score row={row} muted />
+                  <span />
                 </li>
               ))}
             </ol>
@@ -133,15 +132,14 @@ function TopCard({ board, onSeeAll }: { board: Board; onSeeAll: () => void }) {
       </header>
       <ol className="lbx-list">
         {board.ranked.slice(0, 5).map((row) => (
-          <li key={row.id}>
-            <Link href={modelHref(row)} className="lbx-row lbx-row--tall">
-              <Rank row={row} />
-              <span className="lbx-model">
-                <Logo provider={row.provider} />
-                <span className="lbx-model-text"><span className="lbx-name">{row.label}</span><span className="lbx-prov">{row.vendor}</span></span>
-              </span>
-              <Score row={row} />
-            </Link>
+          <li key={row.id} className="lbx-row lbx-row--tall">
+            <Rank row={row} />
+            <span className="lbx-model">
+              <Star row={row} />
+              <Logo provider={row.provider} />
+              <span className="lbx-model-text"><Link href={modelHref(row)} className="lbx-name lbx-stretch">{row.label}</Link><span className="lbx-prov">{row.vendor}</span></span>
+            </span>
+            <Score row={row} />
           </li>
         ))}
       </ol>

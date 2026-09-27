@@ -5,6 +5,19 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+/**
+ * Where to go once the account exists: the page that sent them here (?callbackUrl=, or the
+ * older ?next= the watch star uses), so "Sign up to track this model" lands back on it. Only a
+ * same-site path is honoured — never another origin. Read at submit time rather than with
+ * useSearchParams, which would need a Suspense boundary on this statically rendered page.
+ */
+function returnPath(): string {
+  if (typeof window === 'undefined') return '/router';
+  const sp = new URLSearchParams(window.location.search);
+  const raw = sp.get('callbackUrl') || sp.get('next') || '';
+  return raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/router';
+}
+
 export default function SignUpPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -83,8 +96,8 @@ export default function SignUpPage() {
         return;
       }
 
-      // Redirect to router dashboard
-      router.push('/router');
+      // Back to where they came from (default: the router dashboard)
+      router.push(returnPath());
     } catch (err) {
       setError('An error occurred during registration');
       setLoading(false);
@@ -92,7 +105,7 @@ export default function SignUpPage() {
   };
 
   const handleOAuthSignIn = (provider: 'google' | 'github') => {
-    signIn(provider, { callbackUrl: '/router' });
+    signIn(provider, { callbackUrl: returnPath() });
   };
 
   return (

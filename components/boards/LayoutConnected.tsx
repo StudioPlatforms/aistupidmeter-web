@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import WatchStar from '../WatchStar';
 import { BOARD_KEYS, BOARD_TITLE, BOARD_CADENCE, useElementWidth, type Board, type BoardRow, type Boards } from '../../lib/use-boards';
-import { Logo, modelHref } from './BoardBits';
+import { Logo, Star, modelHref } from './BoardBits';
 
 /**
  * Layout "Connected" (the default): each board is a column, best at the top, and a line
@@ -129,7 +129,7 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
                     onFocus={() => onHover(it.row.id)}
                     onBlur={() => onHover(null)}
                     aria-pressed={it.row.id === sel}
-                    title={it.group === 'other' ? it.row.staleReason || undefined : undefined}
+                    title={it.group === 'other' && it.row.staleReason ? it.row.staleReason : `Follow ${it.row.label} across the four boards`}
                   >
                     <span className="lbx-conn-rank">{it.group === 'ranked' ? it.row.rankText : '–'}</span>
                     <span className="lbx-model"><Logo provider={it.row.provider} size={13} box={20} /><span className="lbx-name">{it.row.label}</span></span>
@@ -167,10 +167,12 @@ function TraceBar({ row, boards }: { row: BoardRow; boards: Boards }) {
   return (
     <div className="lbx-trace" aria-live="polite">
       <div className="lbx-trace-who">
-        <span className="lbx-trace-kicker">Tracing</span>
-        <WatchStar modelId={row.id} modelName={row.label} size={14} />
+        <WatchStar modelId={row.id} modelName={row.label} size={15} />
         <Logo provider={row.provider} size={16} box={26} />
-        <span className="lbx-trace-name">{row.label}</span>
+        <span className="lbx-trace-id">
+          <span className="lbx-trace-name">{row.label}</span>
+          <span className="lbx-trace-hint">Click any model in the columns to follow it across the boards</span>
+        </span>
       </div>
       <div className="lbx-trace-stats">
         {BOARD_KEYS.map((k) => {
@@ -235,10 +237,11 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
               {r.m.community.length ? 'Community-funded · ranked on coding only' : 'Not ranked on every board'}
             </div>
           )}
-          <Link href={modelHref(r.m)} className={`lbx-rl-row${r.muted ? ' is-muted' : ''}`}>
+          <div className={`lbx-rl-row${r.muted ? ' is-muted' : ''}`}>
             <span className="lbx-model">
+              <Star row={r.m} />
               <Logo provider={r.m.provider} size={15} box={24} />
-              <span className="lbx-model-text"><span className="lbx-name">{r.m.label}</span><span className="lbx-prov">{r.sub}</span></span>
+              <span className="lbx-model-text"><Link href={modelHref(r.m)} className="lbx-name lbx-stretch">{r.m.label}</Link><span className="lbx-prov">{r.sub}</span></span>
             </span>
             <svg width="144" height="40" aria-hidden="true" className="lbx-rl-chart">
               <path d="M0 5H144" className="lbx-rl-top" />
@@ -246,7 +249,7 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
               {r.gaps && <path d={r.gaps} className="lbx-rl-gap" />}
               {r.dots && <path d={r.dots} className="lbx-rl-dot" />}
             </svg>
-          </Link>
+          </div>
         </div>
       ))}
       <p className="lbx-foot">Top of each chart is rank 1. A grey dot at the bottom means no rank on that board.</p>
