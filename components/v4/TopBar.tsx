@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ThemeButton from '../ThemeButton';
 import AccountMenu from '../AccountMenu';
+import { useVisitorStats } from '../../lib/use-visitor-stats';
 
 interface TopBarProps {
   selectedView: string;
@@ -12,8 +13,12 @@ interface TopBarProps {
   todayVisits: number | null;
 }
 
-export default function TopBar({ selectedView, onViewChange, visitorCount, todayVisits }: TopBarProps) {
+export default function TopBar({ selectedView, onViewChange, todayVisits }: TopBarProps) {
   const router = useRouter();
+  // Pages that do not pass today's count (every page but home) fetch it here. The all-time total
+  // is never shown in this slot: it is labelled "today".
+  const stats = useVisitorStats();
+  const today = todayVisits ?? stats.today;
   const [currentTime, setCurrentTime] = useState<string>('');
 
   useEffect(() => {
@@ -102,7 +107,7 @@ export default function TopBar({ selectedView, onViewChange, visitorCount, today
           {/* Was an eye emoji. Dropped for the same reason the rest of the
               chrome lost its pictograms in the clean redesign, and the label now
               says what the number is rather than leaving it to an icon. */}
-          <b style={{ color: 'var(--phosphor-green)' }}>{todayVisits !== null ? todayVisits.toLocaleString() : visitorCount ? (visitorCount >= 1000 ? `${Math.round(visitorCount / 1000)}K` : visitorCount.toLocaleString()) : '…'}</b> visits today
+          <b style={{ color: 'var(--phosphor-green)' }}>{today !== null ? today.toLocaleString() : '…'}</b> visits today
         </span>
         <div className="v4-live-dot"></div>
         <span>ONLINE</span>

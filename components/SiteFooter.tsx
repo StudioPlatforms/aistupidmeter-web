@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import '../styles/site-footer.css';
+import { useVisitorStats } from '../lib/use-visitor-stats';
 
 /**
  * The one footer, on every public page, rendered once by the root layout after the page.
@@ -46,17 +47,7 @@ function useNextCodingRun(): string {
 export default function SiteFooter() {
   const pathname = usePathname() || '/';
   const nextRun = useNextCodingRun();
-  const [visits, setVisits] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const base = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-    fetch(`${base}/visitors/stats`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled && typeof d?.totals?.visits === 'number') setVisits(d.totals.visits); })
-      .catch(() => { /* the count is decoration; never block the footer on it */ });
-    return () => { cancelled = true; };
-  }, []);
+  const visits = useVisitorStats().total;
 
   if (HIDDEN.some((re) => re.test(pathname))) return null;
 

@@ -28,13 +28,14 @@
  * the row returns when the engine does.
  */
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
 import Link from 'next/link';
 import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 import { upgradeHref } from '@/lib/checkout-url';
+import '../../styles/pricing.css';
 
 type Interval = 'monthly' | 'annual';
 
@@ -45,29 +46,38 @@ const money = (n: number) => (Number.isInteger(n)
   ? `$${n.toLocaleString('en-US')}`   // "$1,290", not "$1290"
   : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
-const ROWS: Array<{ label: string; get: (p: Plan) => string; note?: string }> = [
-  { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels) },
-  { label: 'Comparable history',    get: p => PLANS[p].historyDays === null ? 'Everything we hold' : `${PLANS[p].historyDays} days` },
-  { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : 'No', note: 'Coding, reasoning, tool-calling and price sorts' },
-  { label: 'Calibration & known-unknowns', get: p => planMeets(p, REQUIRED_PLAN.calibration) ? 'Yes' : '—',
-    note: 'Per model: how often it invents an answer to a question that has none, and whether its stated confidence is worth anything' },
-  { label: 'Cheaper substitutes',   get: p => planMeets(p, REQUIRED_PLAN.substitutes) ? 'Yes' : '—',
-    note: 'Which cheaper models can do a given model’s work, and the measured share of working requests that would start failing if you switched' },
-  { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
-    note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
-  { label: 'Routed requests / mo',  get: p => fmt(PLANS[p].routerRequestsPerMonth), note: 'You bring your own provider keys; providers bill you for inference directly' },
-  { label: 'Decision-log history',  get: p => `${PLANS[p].routerDiagnosticDays} days` },
-  { label: 'Editor seats',          get: p => fmt(PLANS[p].seats), note: 'Viewers are unlimited on plans with projects' },
-  { label: 'Projects',              get: p => PLANS[p].projects === 0 ? '—' : fmt(PLANS[p].projects) },
-  { label: 'Exports',               get: p => PLANS[p].exports ? 'Yes' : '—' },
-  { label: 'Webhooks',              get: p => PLANS[p].webhooks ? 'Yes' : '—' },
-  { label: 'Custom alert thresholds', get: p => PLANS[p].customAlerts ? 'Yes' : '—' },
-  { label: 'SSO, SCIM & audit trail', get: p => (p === 'teams' || p === 'enterprise') ? 'Yes' : '—', note: 'OIDC or SAML, directory provisioning, exportable audit log' },
+type Row = { label: string; get: (p: Plan) => string; note?: string };
+
+/** The comparison table, in three groups. Every value is read from the plan table. */
+const GROUPS: Array<{ title: string; rows: Row[] }> = [
+  { title: 'Monitoring', rows: [
+    { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels) },
+    { label: 'Comparable history',    get: p => PLANS[p].historyDays === null ? 'Full history' : `${PLANS[p].historyDays} days` },
+    { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : '—', note: 'Coding, reasoning, tool-calling and price sorts' },
+    { label: 'Calibration & known-unknowns', get: p => planMeets(p, REQUIRED_PLAN.calibration) ? 'Yes' : '—',
+      note: 'Per model: how often it invents an answer to a question that has none, and whether its stated confidence is worth anything' },
+    { label: 'Cheaper substitutes',   get: p => planMeets(p, REQUIRED_PLAN.substitutes) ? 'Yes' : '—',
+      note: 'Which cheaper models can do a given model’s work, and the measured share of working requests that would start failing if you switched' },
+    { label: 'Custom alert thresholds', get: p => PLANS[p].customAlerts ? 'Yes' : '—' },
+    { label: 'Exports',               get: p => PLANS[p].exports ? 'Yes' : '—' },
+  ] },
+  { title: 'API and routing', rows: [
+    { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
+      note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
+    { label: 'Routed requests / month', get: p => fmt(PLANS[p].routerRequestsPerMonth), note: 'You bring your own provider keys; providers bill you for inference directly' },
+    { label: 'Decision-log history',  get: p => `${PLANS[p].routerDiagnosticDays} days` },
+    { label: 'Webhooks',              get: p => PLANS[p].webhooks ? 'Yes' : '—' },
+  ] },
+  { title: 'Team', rows: [
+    { label: 'Editor seats',          get: p => fmt(PLANS[p].seats), note: 'Viewers are unlimited on plans with projects' },
+    { label: 'Projects',              get: p => PLANS[p].projects === 0 ? '—' : fmt(PLANS[p].projects) },
+    { label: 'SSO, SCIM & audit trail', get: p => (p === 'teams' || p === 'enterprise') ? 'Yes' : '—', note: 'OIDC or SAML, directory provisioning, exportable audit log' },
+  ] },
 ];
 
 /** One-line summary of what a plan is for. */
 const PITCH: Record<Plan, string> = {
-  free: 'Track three models and get a weekly summary of what changed.',
+  free: 'The public evidence, plus three tracked models and a weekly summary of what changed.',
   pro: 'Full history, the diagnosis behind every change, calibration data, exports and custom alerts.',
   developer: 'Production routing volume, 30-day decision logs and your own workspace.',
   teams: 'Five editors, shared watchlists, webhooks, SSO and the audit trail.',
@@ -75,10 +85,49 @@ const PITCH: Record<Plan, string> = {
   legacy_pro: '',
 };
 
+/** What each card lists, derived from the plan table so a changed limit shows up here too. */
+function highlights(p: Plan): { lead?: string; items: string[] } {
+  const e = PLANS[p];
+  const api = DATA_API_LIMITS[e.dataApiTier];
+  switch (p) {
+    case 'free': return { items: [
+      `${fmt(e.watchedModels)} tracked models`, `${e.historyDays} days of history`, 'Every category ranking',
+      `${fmt(e.routerRequestsPerMonth)} routed requests a month`, `Data API: ${fmt(api.daily)} requests a day`,
+    ] };
+    case 'pro': return { lead: 'Everything in Free, plus', items: [
+      `${fmt(e.watchedModels)} tracked models`, 'Full comparable history', 'Calibration and cheaper-substitute analysis',
+      'Exports and custom alert thresholds', `Data API: ${fmt(api.daily)} requests a day`,
+    ] };
+    case 'developer': return { lead: 'Everything in Pro, plus', items: [
+      `${fmt(e.routerRequestsPerMonth)} routed requests a month`, `${e.routerDiagnosticDays}-day decision logs`,
+      `${fmt(e.projects)} project workspace`,
+    ] };
+    case 'teams': return { lead: 'Everything in Developer, plus', items: [
+      `${fmt(e.seats)} editor seats and ${fmt(e.projects)} projects`, `${fmt(e.routerRequestsPerMonth)} routed requests a month`,
+      `${e.routerDiagnosticDays}-day decision logs`, 'Webhooks', 'SSO, SCIM and audit trail',
+    ] };
+    case 'enterprise': return { items: [
+      'Unlimited seats and projects', `Data API: ${fmt(api.daily)} requests a day`,
+      `${e.routerDiagnosticDays}-day decision logs`, 'Contract, invoicing and a named contact',
+    ] };
+    default: return { items: [] };
+  }
+}
+
+const Check = () => (
+  <svg className="prc-check" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+    <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const Cell = ({ v }: { v: string }) =>
+  v === 'Yes' ? <><Check /><span className="sr-only">Included</span></>
+  : v === '—' ? <span className="prc-dash" aria-label="Not included">—</span>
+  : <>{v}</>;
+
 export default function PricingClient({ buyable = [] }: { buyable?: string[] }) {
   // Annual first. See the note at the top of this file.
   const [interval, setInterval] = useState<Interval>('annual');
-
   const annual = interval === 'annual';
 
   const cta = (p: Plan): { href: string | null; label: string } => {
@@ -89,354 +138,251 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
     return { href: upgradeHref(p, interval), label: 'Start free trial' };
   };
 
+  /** Headline price, its period, and the line under it. Annual shows the yearly amount actually billed. */
+  const price = (p: Plan): { amount: string; period: string; sub: React.ReactNode } | null => {
+    const e = PLANS[p];
+    if (e.priceMonthly === null) return null;
+    if (e.priceMonthly === 0) return { amount: '$0', period: 'forever', sub: 'No card required' };
+    if (annual && e.priceAnnual !== null) {
+      const saving = e.priceMonthly * 12 - e.priceAnnual;
+      return { amount: money(e.priceAnnual), period: '/ year',
+        sub: <>{money(e.priceAnnual / 12)} a month{saving > 0 && <> · <em>save {money(saving)}</em></>}</> };
+    }
+    return { amount: money(e.priceMonthly), period: '/ month',
+      sub: e.priceAnnual !== null ? <>or {money(e.priceAnnual)} a year — two months free</> : null };
+  };
+
+  const shortPrice = (p: Plan): string => {
+    const e = PLANS[p];
+    if (e.priceMonthly === null) return 'Custom';
+    if (e.priceMonthly === 0) return 'Free';
+    return annual && e.priceAnnual !== null ? `${money(e.priceAnnual)}/yr` : `${money(e.priceMonthly)}/mo`;
+  };
+
+  const CARD_PLANS = SELLABLE_PLANS.filter(p => p !== 'enterprise');
+  const ent = cta('enterprise');
+
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '28px 20px 70px' }}>
-      <h1 style={{ fontSize: '1.6em', margin: '0 0 8px' }}>Know when your model decisions stop being right</h1>
-      <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6, maxWidth: 680, margin: '0 0 22px' }}>
-        The evidence is free — current scores, every category ranking, seven days of history and the
-        full methodology. Paid plans buy depth and workflow: longer comparable history, the diagnosis
-        behind a change, more tracked models, routing and team features.
-      </p>
+    <div className="prc">
+      <header className="prc-hero">
+        <div className="prc-kicker">Pricing</div>
+        <h1>Know when your model decisions stop being right</h1>
+        <p>
+          The evidence is free — current scores, every category ranking, seven days of history and the full
+          methodology. Paid plans buy depth and workflow: longer comparable history, the diagnosis behind a
+          change, more tracked models, routing and team features.
+        </p>
+      </header>
 
       {/* Interval switch. Annual is pre-selected and carries the saving on its face. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 26 }}>
-        <div style={{ display: 'inline-flex', gap: 4, padding: 3, borderRadius: 6, border: '1px solid var(--border-subtle, #2a2a2a)' }}>
-          {(['annual', 'monthly'] as Interval[]).map(i => (
-            <button key={i} onClick={() => setInterval(i)} className="md-ctrl-btn"
-              style={{
-                padding: '7px 16px', fontSize: '0.86em', borderRadius: 4, cursor: 'pointer',
-                background: interval === i ? 'var(--accent, #1a73e8)' : 'transparent',
-                color: interval === i ? '#fff' : 'inherit',
-                borderColor: interval === i ? 'var(--accent, #1a73e8)' : 'transparent',
-                fontWeight: interval === i ? 600 : 400,
-              }}>
-              {i === 'annual' ? 'Annual' : 'Monthly'}
-            </button>
-          ))}
+      <div className="prc-toggle" role="group" aria-label="Billing interval">
+        <div className="prc-toggle-inner">
+          <button className={annual ? 'is-on' : ''} aria-pressed={annual} onClick={() => setInterval('annual')}>
+            Annual <span className="prc-toggle-save">2 months free</span>
+          </button>
+          <button className={!annual ? 'is-on' : ''} aria-pressed={!annual} onClick={() => setInterval('monthly')}>
+            Monthly
+          </button>
         </div>
-        <span style={{
-          fontSize: '0.82em', padding: '5px 11px', borderRadius: 999,
-          background: 'rgba(26,115,232,0.10)', color: 'var(--accent, #1a73e8)',
-          border: '1px solid rgba(26,115,232,0.3)', fontWeight: 600,
-        }}>
-          Annual = 12 months for the price of 10
-        </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 12, marginBottom: 36 }}>
-        {SELLABLE_PLANS.map(p => {
+      <div className="prc-plans">
+        {CARD_PLANS.map(p => {
           const e = PLANS[p];
           const c = cta(p);
-          const highlight = p === 'teams';
-
-          // Three numbers, because they answer three different questions: what
-          // it costs per month to compare against the monthly option, what will
-          // actually be charged, and what the choice saves.
-          const perMonth = e.priceMonthly === null ? null
-            : annual && e.priceAnnual !== null ? e.priceAnnual / 12 : e.priceMonthly;
-          const billed = e.priceMonthly === null ? null
-            : annual && e.priceAnnual !== null ? e.priceAnnual : e.priceMonthly;
-          const saving = annual && e.priceMonthly && e.priceAnnual !== null
-            ? e.priceMonthly * 12 - e.priceAnnual
-            : 0;
-
+          const featured = p === 'teams';
+          const pr = price(p)!;
+          const h = highlights(p);
           return (
-            <div key={p} style={{
-              padding: '16px 15px', borderRadius: 6, position: 'relative',
-              border: `1px solid ${highlight ? 'var(--accent, #1a73e8)' : 'var(--border-subtle, #2a2a2a)'}`,
-              boxShadow: highlight ? '0 0 0 1px var(--accent, #1a73e8)' : 'none',
-              background: highlight ? 'rgba(26,115,232,0.04)' : 'transparent',
-              display: 'flex', flexDirection: 'column', gap: 8,
-            }}>
-              {highlight && (
-                <span style={{
-                  position: 'absolute', top: -9, left: 14, fontSize: '0.68em', fontWeight: 700,
-                  letterSpacing: '.5px', textTransform: 'uppercase', padding: '2px 8px',
-                  borderRadius: 999, background: 'var(--accent, #1a73e8)', color: '#fff',
-                }}>
-                  Most complete
-                </span>
-              )}
-
-              <div style={{ fontWeight: 700 }}>{e.label}</div>
-
-              {e.priceMonthly === null ? (
-                <div style={{ fontSize: '1.45em', fontWeight: 700 }}>Let&rsquo;s talk</div>
-              ) : e.priceMonthly === 0 ? (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: '1.45em', fontWeight: 700 }}>$0</span>
-                    <span style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>/mo</span>
-                  </div>
-                  <div style={{ fontSize: '0.76em', color: 'var(--phosphor-dim)' }}>Forever. No card required.</div>
-                </>
-              ) : (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                    <span style={{ fontSize: '1.45em', fontWeight: 700 }}>{money(perMonth!)}</span>
-                    <span style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>/mo</span>
-                  </div>
-                  <div style={{ fontSize: '0.76em', color: 'var(--phosphor-dim)', lineHeight: 1.5 }}>
-                    {annual ? (
-                      <>
-                        {money(billed!)} billed yearly
-                        {saving > 0 && (
-                          <>
-                            <br />
-                            <span style={{ color: 'var(--phosphor-green)', fontWeight: 600 }}>
-                              Save {money(saving)} a year
-                            </span>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {money(billed!)} billed monthly
-                        {e.priceAnnual !== null && (
-                          <>
-                            <br />
-                            <span style={{ opacity: 0.85 }}>
-                              {money(e.priceAnnual / 12)}/mo on annual
-                            </span>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
-
-              <div style={{ fontSize: '0.8em', color: 'var(--phosphor-dim)', lineHeight: 1.5, flex: 1, marginTop: 2 }}>
-                {PITCH[p]}
+            <div key={p} className={`prc-card${featured ? ' is-featured' : ''}`}>
+              <div className="prc-card-head">
+                <h2>{e.label}</h2>
+                {featured && <span className="prc-badge">Most complete</span>}
               </div>
-
-              {c.href ? (
-                <Link href={c.href}
-                  className={highlight ? 'vintage-btn vintage-btn--primary' : 'vintage-btn'}
-                  style={{
-                    padding: '9px 10px', textAlign: 'center', textDecoration: 'none',
-                    fontSize: '0.85em', whiteSpace: 'normal', lineHeight: 1.3,
-                  }}>
-                  {c.label}
-                </Link>
-              ) : (
-                <span
-                  title="This plan is not open for sign-up yet"
-                  style={{
-                    padding: '9px 10px', textAlign: 'center', fontSize: '0.85em',
-                    lineHeight: 1.3, border: '1px dashed var(--border-subtle, #2a2a2a)',
-                    borderRadius: 3, color: 'var(--phosphor-dim)', cursor: 'default',
-                  }}>
-                  {c.label}
-                </span>
-              )}
+              <p className="prc-pitch">{PITCH[p]}</p>
+              <div className="prc-price"><b>{pr.amount}</b><span>{pr.period}</span></div>
+              <div className="prc-sub">{pr.sub}</div>
+              <div className="prc-cta">
+                {c.href
+                  ? <Link href={c.href} className={`prc-btn${featured ? ' is-primary' : ''}`}>{c.label}</Link>
+                  : <span className="prc-btn is-off" title="This plan is not open for sign-up yet">{c.label}</span>}
+              </div>
+              <ul className="prc-list">
+                {h.lead && <li className="is-lead"><span />{h.lead}</li>}
+                {h.items.map(i => <li key={i}><Check />{i}</li>)}
+              </ul>
             </div>
           );
         })}
       </div>
 
+      <div className="prc-ent">
+        <div>
+          <h2>{PLANS.enterprise.label}</h2>
+          <p>{PITCH.enterprise}</p>
+        </div>
+        <ul>{highlights('enterprise').items.map(i => <li key={i}><Check />{i}</li>)}</ul>
+        <div>{ent.href && <Link href={ent.href} className="prc-btn is-auto">{ent.label}</Link>}</div>
+      </div>
+
+      <p className="prc-fine">
+        Prices in USD, excluding any applicable tax. Free trials collect a payment method; cancel any time from the
+        billing portal. Provider inference is billed by your provider, never marked up by us.
+      </p>
+
       {/* Bespoke work sits outside the plan ladder on purpose: it is contracted and
           human-operated, so it has no entitlement row and nothing here is self-serve.
           Saying that plainly is the point — the evaluation-units row was removed from
-          the table above for advertising an allowance no customer could spend, and a
-          custom benchmark described as though it were a feature toggle would repeat it. */}
-      <h2 style={{ fontSize: '1.05em', margin: '32px 0 4px' }}>Beyond the plans</h2>
-      <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: '0 0 14px', maxWidth: 720 }}>
-        The plans above measure the models everyone can see. These two measure <em>your</em> workload
-        instead. Both are contracted and run by us rather than switched on in the product, and both
-        start with a scoping conversation in which we will tell you if your workload is not one we
-        can measure reliably.
-      </p>
-
-      <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginBottom: 34 }}>
-        <div style={{
-          padding: '18px 17px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 10,
-          border: '1px solid var(--accent, #1a73e8)', background: 'rgba(26,115,232,0.04)',
-        }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '1.02em' }}>Custom continuous benchmarking</div>
-            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 3 }}>Contracted · priced on scope</div>
-          </div>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            A public benchmark measures general capability. If you use a model for one specific job —
-            triaging claims, reviewing code, pulling fields out of your own documents — a general
-            score only tells you so much. We build a benchmark out of your workload and run it on the
-            same schedule as the public suites, so you learn when a model gets worse at{' '}
-            <em>your</em> job rather than at ours.
+          the table for advertising an allowance no customer could spend, and a custom
+          benchmark described as though it were a feature toggle would repeat it. */}
+      <section className="prc-section">
+        <div className="prc-section-head">
+          <h2>Beyond the plans</h2>
+          <p>
+            The plans measure the models everyone can see. These two measure <em>your</em> workload instead. Both are
+            run by us rather than switched on in the product, and we will tell you if your workload is not one we can
+            measure reliably.
           </p>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.83em', lineHeight: 1.75, color: 'var(--phosphor-dim)' }}>
-            <li>A task set built from your real work, with the answer keys held out of the prompt</li>
-            <li>Run repeatedly against the models you actually use, scored on the median of several trials</li>
-            <li>The same change detection the public board runs, with a baseline for your suite alone</li>
-            <li>Results reach you through the alerts, webhooks, exports and Data API your plan already has</li>
-            <li>A scheduled review of what moved, and whether it is worth changing model</li>
-            <li>Your tasks stay yours: never published, never folded into the public corpus</li>
-          </ul>
-          <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', lineHeight: 1.55, margin: 0, opacity: 0.85 }}>
-            We run your suite on our own provider accounts. You do not share API keys with us, and you
-            do not carry the inference bill — it is ours, and it is included in the contracted price.
-            That is also what scope means here: how many tasks, how many models and how often they run
-            is precisely what the measurement costs us to produce, so it is what sets the price.
-          </p>
-          <Link href="/contact?topic=custom-benchmark" className="vintage-btn vintage-btn--primary"
-            style={{ padding: '9px 10px', textAlign: 'center', textDecoration: 'none', fontSize: '0.85em', marginTop: 'auto' }}>
-            Talk to us about your workload
-          </Link>
         </div>
-
-        <div style={{
-          padding: '18px 17px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 10,
-          border: '1px solid var(--border-subtle, #2a2a2a)',
-        }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '1.02em' }}>Workload assessment</div>
-            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 3 }}>{ASSESSMENT_PRICE_LABEL} · one-off, fixed scope</div>
+        <div className="prc-offers">
+          <div className="prc-offer">
+            <h3>Workload assessment</h3>
+            <div className="prc-offer-price"><b>{ASSESSMENT_PRICE_LABEL}</b>one-off, fixed scope</div>
+            <p>
+              The smaller first step, and the usual way into continuous benchmarking. One workload, measured once,
+              against three candidate models — using your tasks rather than ours — with a decision report at the end.
+              Including, where the evidence supports it, a recommendation to change nothing.
+            </p>
+            <ul className="prc-list">
+              <li><Check />Up to 20 tasks you supply, three candidate models</li>
+              <li><Check />A decision report within seven business days of us having what we need</li>
+              <li><Check />Scope confirmed within two business days — or a full refund if we cannot measure your workload</li>
+              <li><Check />Credited against an annual plan bought within 30 days, up to that plan’s price</li>
+              <li><Check />Refunded if we cannot deliver the agreed report</li>
+            </ul>
+            <Link href="/assessment" className="prc-btn is-primary is-auto">Book an assessment</Link>
           </div>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            The smaller first step, and the usual way into continuous benchmarking. One workload,
-            measured once, against three candidate models — using your tasks rather than ours — with a
-            decision report at the end. Including, where the evidence supports it, a recommendation to
-            change nothing.
-          </p>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.83em', lineHeight: 1.75, color: 'var(--phosphor-dim)' }}>
-            <li>Up to 20 tasks you supply, three candidate models</li>
-            <li>A decision report within seven business days of us having what we need</li>
-            <li>Scope confirmed within two business days — or a full refund if we cannot measure your workload</li>
-            <li>Credited against an annual plan bought within 30 days, up to that plan’s price</li>
-            <li>Refunded if we cannot deliver the agreed report</li>
-          </ul>
-          <Link href="/assessment" className="vintage-btn"
-            style={{ padding: '9px 10px', textAlign: 'center', textDecoration: 'none', fontSize: '0.85em', marginTop: 'auto' }}>
-            Book an assessment
-          </Link>
+          <div className="prc-offer">
+            <h3>Custom continuous benchmarking</h3>
+            <div className="prc-offer-price">Contracted · priced on scope</div>
+            <p>
+              A public benchmark measures general capability. If you use a model for one specific job — triaging
+              claims, reviewing code, pulling fields out of your own documents — we build a benchmark out of your
+              workload and run it on the same schedule as the public suites, so you learn when a model gets worse
+              at <em>your</em> job rather than at ours.
+            </p>
+            <ul className="prc-list">
+              <li><Check />A task set built from your real work, with the answer keys held out of the prompt</li>
+              <li><Check />Run repeatedly against the models you actually use, scored on the median of several trials</li>
+              <li><Check />The same change detection the public board runs, with a baseline for your suite alone</li>
+              <li><Check />Results through the alerts, webhooks, exports and Data API your plan already has</li>
+              <li><Check />A scheduled review of what moved, and whether it is worth changing model</li>
+              <li><Check />Your tasks stay yours: never published, never folded into the public corpus</li>
+            </ul>
+            <p className="prc-offer-note">
+              We run your suite on our own provider accounts: you do not share API keys with us, and the inference
+              bill is ours, included in the contracted price. How many tasks, how many models and how often they run
+              is what the measurement costs us to produce, so it is what sets the price.
+            </p>
+            <Link href="/contact?topic=custom-benchmark" className="prc-btn is-auto">Talk to us about your workload</Link>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-        <h2 style={{ fontSize: '1.05em', margin: '0 0 12px' }}>What each plan includes</h2>
+      <section className="prc-section">
+        <div className="prc-section-head">
+          <h2>Compare plans</h2>
+          <p>Every plan reads the same measurement. What you pay for is how much of it you can see, how far back, and what you can wire it into.</p>
+        </div>
         {/* On a phone the table is wider than the viewport and the paid columns sit
             off-screen. Without this the page silently hides the plans someone is
             most likely to buy. */}
-        <span className="pricing-scroll-hint" style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>
-          swipe to compare →
-        </span>
-      </div>
-      <div className="pricing-table-scroll" style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85em', minWidth: 640 }}>
-          <thead>
-            <tr style={{ textAlign: 'left', color: 'var(--phosphor-dim)' }}>
-              <th className="pricing-row-label" style={{ padding: '8px 10px 8px 0' }}></th>
-              {SELLABLE_PLANS.map(p => <th key={p} style={{ padding: '8px 10px' }}>{PLANS[p].label}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map(r => (
-              <tr key={r.label} style={{ borderTop: '1px solid var(--border-subtle, #2a2a2a)' }}>
-                <td className="pricing-row-label" style={{ padding: '9px 10px 9px 0', color: 'var(--phosphor-dim)' }}>
-                  {r.label}
-                  {r.note && <div style={{ fontSize: '0.85em', opacity: 0.7, lineHeight: 1.4 }}>{r.note}</div>}
-                </td>
+        <div className="prc-swipe">Swipe to compare →</div>
+        <div className="prc-table-wrap">
+          <table className="prc-table">
+            <thead>
+              <tr>
+                <th scope="col"><span className="sr-only">Feature</span></th>
                 {SELLABLE_PLANS.map(p => (
-                  <td key={p} style={{ padding: '9px 10px' }}>{r.get(p)}</td>
+                  <th key={p} scope="col" className={p === 'teams' ? 'is-featured' : ''}>
+                    <b>{PLANS[p].label}</b><span>{shortPrice(p)}</span>
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {GROUPS.map(g => (
+                <Fragment key={g.title}>
+                  <tr className="prc-group">
+                    <td>{g.title}</td>
+                    {SELLABLE_PLANS.map(p => <td key={p} className={p === 'teams' ? 'is-featured' : ''} />)}
+                  </tr>
+                  {g.rows.map(r => (
+                    <tr key={r.label}>
+                      <td className="prc-row-label">{r.label}{r.note && <small>{r.note}</small>}</td>
+                      {SELLABLE_PLANS.map(p => (
+                        <td key={p} className={p === 'teams' ? 'is-featured' : ''}><Cell v={r.get(p)} /></td>
+                      ))}
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Cadence and trial counts only. No fleet size: the number of tracked models
           changes whenever a model is retired — seven went on one day — and a hard-coded
           count on a pricing page is the drift this file exists to prevent. */}
-      <h2 style={{ fontSize: '1.05em', margin: '32px 0 4px' }}>What you are actually buying</h2>
-      <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: '0 0 14px', maxWidth: 720 }}>
-        Every plan reads the same measurement. What you pay for is how much of it you can see, how far
-        back, and what you can wire it into.
-      </p>
-      <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', marginBottom: 6 }}>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Four suites, on a fixed schedule</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            Coding runs every four hours on real repository defects, graded by the project&rsquo;s own test
-            suite including tests the model never sees. Multi-turn reasoning and tool-calling run daily.
-            A small probe runs hourly to catch a sudden change between full runs.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Repeated, then taken as a median</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            Each coding task runs seven times and the median is scored, because one sample cannot tell a
-            model getting worse from a model having a bad afternoon. That repetition is most of what the
-            benchmark costs to run, and it is why an alert is worth believing.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Gaps are shown, not filled</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            If a provider declines a task or a session does not finish, that task drops out rather than
-            being scored zero. The row says how much of the set it covers, and a score measured over
-            fewer tasks is never called tied with one measured over all of them.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Free is a real tier</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            Current scores, every category ranking, seven days of history and the full methodology cost
-            nothing and need no account. A benchmark nobody can check is not worth reading, so the
-            evidence is not the paid part. Depth and workflow are.
-          </p>
-        </section>
-      </div>
-
-      <div style={{ marginTop: 28, display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>What happens at a limit</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            Nothing breaks silently. Routing stops at your monthly allowance unless you choose in billing
-            settings to continue and be charged for the overage. Data API calls beyond the ceiling are
-            refused with a clear error rather than throttled into a timeout.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Why annual is cheaper</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            There is no discount code and no countdown. An annual plan is billed once instead of
-            twelve times, which costs us less in payment fees and in churn, and we pass that back as
-            two free months. You can still cancel; we do not hold you to the year.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>What we do not charge for</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            On every plan above, provider inference. You connect your own OpenAI, Anthropic, Google,
-            DeepSeek, Kimi or GLM keys, and those providers bill you directly at their rates. We charge
-            for the software and the measurement, never a markup on tokens. Custom continuous
-            benchmarking works the other way round and says so on its card: we run it on our accounts
-            and the inference is in the price.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Existing subscribers</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            If you already subscribe, you keep your current price and everything you already had for
-            at least twelve months. Nothing about these plans reduces what you have today. Your plan
-            only changes if you choose to change it, or if you cancel and come back later.
-          </p>
-        </section>
-        <section>
-          <h3 style={{ fontSize: '0.95em', margin: '0 0 6px' }}>Does routing save money?</h3>
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
-            In our own benchmark the cheapest model matching the top score cost about {SAVINGS_PCT}% less
-            per request. {SAVINGS_QUALIFIER}
-          </p>
-        </section>
-      </div>
-
-      <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 26, lineHeight: 1.6 }}>
-        Prices in USD, excluding any applicable tax. Every plan collects a payment method at checkout,
-        including during a free trial, and you can cancel at any time from the billing portal.
-        Questions about a plan? <Link href="/contact?topic=sales" style={{ color: 'var(--accent, #1a73e8)' }}>Talk to us</Link>.
-      </p>
+      <section className="prc-section">
+        <div className="prc-section-head">
+          <h2>What you are actually buying</h2>
+        </div>
+        <div className="prc-qa">
+          <section>
+            <h3>Four suites, on a fixed schedule</h3>
+            <p>Coding runs every four hours on real repository defects, graded by the project&rsquo;s own test suite including tests the model never sees. Multi-turn reasoning and tool-calling run daily. A small probe runs hourly to catch a sudden change between full runs.</p>
+          </section>
+          <section>
+            <h3>Repeated, then taken as a median</h3>
+            <p>Each coding task runs seven times and the median is scored, because one sample cannot tell a model getting worse from a model having a bad afternoon. That repetition is most of what the benchmark costs to run, and it is why an alert is worth believing.</p>
+          </section>
+          <section>
+            <h3>Gaps are shown, not filled</h3>
+            <p>If a provider declines a task or a session does not finish, that task drops out rather than being scored zero. The row says how much of the set it covers, and a score measured over fewer tasks is never called tied with one measured over all of them.</p>
+          </section>
+          <section>
+            <h3>Free is a real tier</h3>
+            <p>Current scores, every category ranking, seven days of history and the full methodology cost nothing and need no account. A benchmark nobody can check is not worth reading, so the evidence is not the paid part. Depth and workflow are.</p>
+          </section>
+          <section>
+            <h3>What happens at a limit</h3>
+            <p>Nothing breaks silently. Routing stops at your monthly allowance unless you choose in billing settings to continue and be charged for the overage. Data API calls beyond the ceiling are refused with a clear error rather than throttled into a timeout.</p>
+          </section>
+          <section>
+            <h3>Why annual is cheaper</h3>
+            <p>There is no discount code and no countdown. An annual plan is billed once instead of twelve times, which costs us less in payment fees and in churn, and we pass that back as two free months. You can still cancel; we do not hold you to the year.</p>
+          </section>
+          <section>
+            <h3>What we do not charge for</h3>
+            <p>On every plan, provider inference. You connect your own OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM keys, and those providers bill you directly at their rates. We charge for the software and the measurement, never a markup on tokens. Custom continuous benchmarking works the other way round and says so above: we run it on our accounts and the inference is in the price.</p>
+          </section>
+          <section>
+            <h3>Existing subscribers</h3>
+            <p>If you already subscribe, you keep your current price and everything you already had for at least twelve months. Nothing about these plans reduces what you have today. Your plan only changes if you choose to change it, or if you cancel and come back later.</p>
+          </section>
+          <section>
+            <h3>Does routing save money?</h3>
+            <p>In our own benchmark the cheapest model matching the top score cost about {SAVINGS_PCT}% less per request. {SAVINGS_QUALIFIER}</p>
+          </section>
+        </div>
+        <p className="prc-foot">
+          Prices in USD, excluding any applicable tax. Every plan collects a payment method at checkout, including
+          during a free trial, and you can cancel at any time from the billing portal.
+          Questions about a plan? <Link href="/contact?topic=sales">Talk to us</Link>.
+        </p>
+      </section>
     </div>
   );
 }

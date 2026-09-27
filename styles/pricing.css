@@ -1,0 +1,141 @@
+/* ═══════════════════════════════════════════════════════════════════
+   PRICING PAGE (app/pricing/PricingClient.tsx) — prc-*
+   Clean-theme tokens only, so light and dark both work. Plan cards are the one place boxes
+   are used; everything else on the page is type and hairlines.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.prc { max-width: 1200px; margin: 0 auto; padding: 48px 24px 72px; color: var(--phosphor-green);
+  --prc-page: #f5f6f8; }                       /* the light page background (vintage.css), for the pinned table column */
+[data-theme="dark"] .prc { --prc-page: var(--terminal-black); }
+
+/* hero */
+.prc-hero { text-align: center; max-width: 780px; margin: 0 auto 32px; }
+.prc-kicker { font-size: 12px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--accent); }
+.prc-hero h1 { margin-top: 10px; font-size: clamp(28px, 3.4vw, 40px); line-height: 1.15; font-weight: 600; letter-spacing: -.4px; }
+.prc-hero p { margin-top: 14px; font-size: 17px; line-height: 1.6; color: var(--phosphor-dim); }
+
+/* interval switch */
+.prc-toggle { display: flex; justify-content: center; margin-bottom: 36px; }
+.prc-toggle-inner { display: inline-flex; padding: 4px; gap: 4px; border-radius: 999px; background: var(--terminal-dark); border: 1px solid var(--metal-silver); }
+.prc-toggle button { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 18px; border: 0; border-radius: 999px;
+  background: transparent; color: var(--phosphor-dim); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.prc-toggle button.is-on { background: var(--accent); color: #fff; }
+.prc-toggle-save { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--good-bg); color: var(--good); }
+.prc-toggle button.is-on .prc-toggle-save { background: rgba(255,255,255,.22); color: #fff; }
+
+/* plan cards */
+.prc-plans { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.prc-card { position: relative; display: flex; flex-direction: column; padding: 24px 22px; border-radius: 12px;
+  background: var(--terminal-dark); border: 1px solid var(--metal-silver); box-shadow: 0 1px 2px rgba(60,64,67,.06); }
+.prc-card.is-featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 28px rgba(26,115,232,.12); }
+.prc-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.prc-card h2 { font-size: 17px; font-weight: 600; }
+.prc-badge { font-size: 11px; font-weight: 600; letter-spacing: .3px; padding: 3px 9px; border-radius: 999px; background: var(--accent-bg); color: var(--accent); white-space: nowrap; }
+.prc-pitch { margin-top: 8px; min-height: 63px; font-size: 14px; line-height: 1.5; color: var(--phosphor-dim); }
+.prc-price { margin-top: 18px; display: flex; align-items: baseline; gap: 6px; }
+.prc-price b { font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.prc-price span { font-size: 15px; color: var(--phosphor-dim); }
+.prc-sub { margin-top: 8px; min-height: 20px; font-size: 13.5px; color: var(--phosphor-dim); }
+.prc-sub em { font-style: normal; font-weight: 600; color: var(--good); }
+.prc-cta { margin-top: 20px; }
+.prc-list { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--metal-silver); list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 14px; line-height: 1.45; }
+.prc-list li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; }
+.prc-list li.is-lead { font-weight: 600; }
+.prc-check { width: 18px; height: 18px; margin-top: 1px; color: var(--accent); }
+
+/* buttons */
+.prc-btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 42px; padding: 0 16px; border-radius: 8px;
+  font-size: 14.5px; font-weight: 500; text-decoration: none; text-align: center; cursor: pointer;
+  border: 1px solid var(--metal-silver); background: var(--terminal-dark); color: var(--phosphor-green); }
+.prc-btn:hover { border-color: var(--accent); color: var(--accent); }
+.prc-btn.is-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.prc-btn.is-primary:hover { background: var(--accent-ink); border-color: var(--accent-ink); color: #fff; }
+.prc-btn.is-off { border-style: dashed; color: var(--phosphor-dim); cursor: default; }
+.prc-btn.is-auto { width: auto; display: inline-flex; align-self: flex-start; }
+[data-theme="dark"] .prc-btn.is-primary,
+[data-theme="dark"] .prc-btn.is-primary:hover,
+[data-theme="dark"] .prc-toggle button.is-on { color: var(--terminal-black); }
+[data-theme="dark"] .prc-toggle button.is-on .prc-toggle-save { background: rgba(0,0,0,.18); color: var(--terminal-black); }
+
+/* enterprise band */
+.prc-ent { margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) auto; gap: 28px; align-items: center;
+  padding: 22px 24px; border-radius: 12px; background: var(--terminal-dark); border: 1px solid var(--metal-silver); }
+.prc-ent h2 { font-size: 17px; font-weight: 600; }
+.prc-ent p { margin-top: 6px; font-size: 14px; line-height: 1.5; color: var(--phosphor-dim); }
+.prc-ent ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px; font-size: 14px; }
+.prc-ent li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; }
+
+.prc-fine { margin-top: 18px; text-align: center; font-size: 13px; color: var(--phosphor-dim); }
+.prc-fine a { color: var(--accent); }
+
+/* sections below */
+.prc-section { margin-top: 80px; }
+.prc-section-head { max-width: 760px; margin-bottom: 28px; }
+.prc-section-head h2 { font-size: 26px; line-height: 1.25; font-weight: 600; letter-spacing: -.2px; }
+.prc-section-head p { margin-top: 10px; font-size: 16px; line-height: 1.6; color: var(--phosphor-dim); }
+
+/* beyond the plans: two offers, divided by a hairline, no boxes */
+.prc-offers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--metal-silver); }
+.prc-offer { display: flex; flex-direction: column; padding: 28px 40px 0 0; }
+.prc-offer + .prc-offer { padding: 28px 0 0 40px; border-left: 1px solid var(--metal-silver); }
+.prc-offer h3 { font-size: 20px; font-weight: 600; }
+.prc-offer-price { margin-top: 6px; font-size: 14px; color: var(--phosphor-dim); }
+.prc-offer-price b { font-size: 22px; font-weight: 700; color: var(--phosphor-green); margin-right: 6px; }
+.prc-offer p { margin-top: 14px; font-size: 15px; line-height: 1.7; }
+.prc-offer .prc-list { border-top: 0; margin-top: 16px; padding-top: 0; }
+.prc-offer-note { font-size: 13.5px !important; line-height: 1.6 !important; color: var(--phosphor-dim); }
+.prc-offer .prc-btn { margin-top: 24px; }
+
+/* comparison table */
+.prc-table-wrap { overflow-x: auto; }
+.prc-table { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.prc-table th, .prc-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid var(--metal-silver); vertical-align: middle; }
+.prc-table th:first-child, .prc-table td:first-child { text-align: left; padding-left: 0; width: 32%; }
+.prc-table thead th { background: transparent; border-bottom: 1px solid var(--phosphor-dim); vertical-align: bottom; }
+.prc-table thead th b { display: block; font-size: 15px; font-weight: 600; color: var(--phosphor-green); }
+.prc-table thead th span { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 400; color: var(--phosphor-dim); }
+.prc-table .is-featured { background: var(--accent-bg); }
+.prc-table thead th.is-featured { background: var(--accent-bg); border-radius: 10px 10px 0 0; }
+.prc-table tr.prc-group td { padding-top: 26px; font-size: 12px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--accent); text-align: left; }
+.prc-table tr.prc-group td.is-featured { background: var(--accent-bg); }
+.prc-row-label { color: var(--phosphor-green); }
+.prc-row-label small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.45; color: var(--phosphor-dim); }
+.prc-dash { color: var(--phosphor-dim); opacity: .55; }
+.prc-table .prc-check { display: inline-block; vertical-align: middle; }
+.prc-swipe { display: none; font-size: 13px; color: var(--phosphor-dim); margin-bottom: 8px; }
+
+/* questions: two balanced columns */
+.prc-qa { columns: 2 380px; column-gap: 56px; }
+.prc-qa section { break-inside: avoid; padding-bottom: 26px; }
+.prc-qa h3 { font-size: 16px; font-weight: 600; }
+.prc-qa p { margin-top: 8px; font-size: 15px; line-height: 1.7; color: var(--phosphor-dim); }
+
+.prc-foot { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--metal-silver); font-size: 13.5px; line-height: 1.6; color: var(--phosphor-dim); }
+.prc-foot a { color: var(--accent); }
+
+@media (max-width: 1099px) {
+  .prc-plans { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prc-ent { grid-template-columns: 1fr; gap: 16px; }
+  .prc-offers { grid-template-columns: 1fr; }
+  .prc-offer, .prc-offer + .prc-offer { padding: 28px 0 0; border-left: 0; }
+  .prc-offer + .prc-offer { margin-top: 28px; border-top: 1px solid var(--metal-silver); }
+}
+@media (max-width: 767px) {
+  .prc { padding: 28px 16px 96px; }
+  .prc-hero p { font-size: 15.5px; }
+  .prc-plans { grid-template-columns: 1fr; }
+  .prc-pitch { min-height: 0; }
+  .prc-ent ul { grid-template-columns: 1fr; }
+  .prc-section { margin-top: 56px; }
+  .prc-section-head h2 { font-size: 22px; }
+  .prc-swipe { display: block; }
+  .prc-table { min-width: 640px; font-size: 13.5px; }
+  .prc-table thead th b { font-size: 13px; overflow-wrap: anywhere; }
+  .prc-table th, .prc-table td { padding: 11px 8px; }
+  .prc-table th:first-child, .prc-table td:first-child { position: sticky; left: 0; z-index: 2; width: 128px; padding-right: 10px; background: var(--prc-page); }
+  .prc-row-label small { display: none; }
+  .prc-qa { columns: 1; }
+}
+
+/* screen-reader-only text (the ticks and dashes in the table carry a spoken label) */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
