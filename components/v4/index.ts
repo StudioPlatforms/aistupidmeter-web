@@ -10,4 +10,3 @@ export { default as ProviderStrip } from './ProviderStrip';
 export { default as MeterBar } from './MeterBar';
 export { default as QuickInfo } from './QuickInfo';
 export { default as MobileNav } from './MobileNav';
-export { default as V4Footer } from './V4Footer';

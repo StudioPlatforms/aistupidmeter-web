@@ -10,7 +10,7 @@ import '../../../styles/v4-layout.css';
 import '../../../styles/model-detail-v4.css';
 
 // V4 components (shared with main page)
-import { TopBar, V4Footer } from '../../../components/v4';
+import { TopBar } from '../../../components/v4';
 import MobileNav from '../../../components/v4/MobileNav';
 
 // Model-detail specific components
@@ -686,7 +686,6 @@ export default function ModelDetailClient({
       />
 
       {/* Footer */}
-      <V4Footer visitorCount={null} />
 
       {/* One navigation for the whole site.
           This page used to carry its own six-button bar with a second,

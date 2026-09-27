@@ -337,39 +337,33 @@ export default function ModelDetailMatrix({
     : '(1M)';
 
   if (scoringMode === 'speed') {
-    title = `7-AXIS PERFORMANCE MATRIX ${periodLabel}`;
-    subtitle = selectedPeriod === 'latest'
-      ? 'Comprehensive analysis across all evaluation criteria'
-      : 'Performance breakdown for the selected period';
-    if (selectedPeriod !== 'latest') note = 'Showing metrics averaged across benchmarks within this timeframe';
+    title = `CODING PERFORMANCE MATRIX ${periodLabel}`;
+    subtitle = 'The nine coding measures, with the weight each carries in the coding score';
+    if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
     primaryCategory = 'speed';
 
     metrics = measuredMetrics(CODING_AXES, axesData.measured, 'speed');
   } else if (scoringMode === 'reasoning') {
     title = `REASONING PERFORMANCE MATRIX ${periodLabel}`;
-    subtitle = selectedPeriod === 'latest'
-      ? 'Deep reasoning and complex problem-solving analysis'
-      : 'Reasoning performance for the selected period';
-    if (selectedPeriod !== 'latest') note = 'Showing metrics from best-performing deep reasoning tests within this timeframe';
+    subtitle = 'The reasoning measures; each task weights them differently';
+    if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
     primaryCategory = 'reasoning';
 
     metrics = measuredMetrics(REASONING_AXES, axesData.measured, 'reasoning');
   } else if (scoringMode === 'tooling') {
     title = `TOOL CALLING PERFORMANCE MATRIX ${periodLabel}`;
-    subtitle = selectedPeriod === 'latest'
-      ? 'Advanced tool usage and API interaction capabilities'
-      : 'Tool calling performance for the selected period';
-    if (selectedPeriod !== 'latest') note = 'Showing metrics from best-performing tool calling benchmarks within this timeframe';
+    subtitle = 'The seven tool-use measures, with the weight each carries in the tool-use score';
+    if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
     primaryCategory = 'tooling';
 
     metrics = measuredMetrics(TOOLING_AXES, axesData.measured, 'tooling');
   } else {
     // combined
     title = `COMBINED PERFORMANCE MATRIX ${periodLabel}`;
-    subtitle = selectedPeriod === 'latest'
-      ? 'Unified analysis: 70% Speed Benchmarks + 30% Deep Reasoning'
-      : 'Combined performance for the selected period';
-    if (selectedPeriod !== 'latest') note = 'Showing balanced metrics from both rapid coding tasks and complex reasoning challenges';
+    // The combined score is coding 50%, reasoning 25%, tool use 25%. This said "70% Speed
+    // Benchmarks + 30% Deep Reasoning", a weighting the site has not used in a long time.
+    subtitle = 'Measures from all three suites · combined score: coding 50%, reasoning 25%, tool use 25%';
+    if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
     primaryCategory = 'speed';
 
     // Combined view: the coding axes are the ones that exist on every model, and the

@@ -134,7 +134,7 @@ export default function ModelDetailCusum({
 
   const Section = ({ children }: { children: React.ReactNode }) => (
     <div className="md-chart-section">
-      <div className="md-chart-title">DRIFT DETECTION — CUSUM</div>
+      <div className="md-chart-title">DRIFT DETECTION — PAGE-HINKLEY</div>
       {children}
     </div>
   );
@@ -290,7 +290,7 @@ export default function ModelDetailCusum({
         <div style={{ fontWeight: 600, marginBottom: 6 }}>
           {new Date(d.ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </div>
-        <div>CUSUM: <strong>{d.cusum.toFixed(3)}</strong> / {series.threshold.toFixed(2)}</div>
+        <div>Page-Hinkley: <strong>{d.cusum.toFixed(3)}</strong> / {series.threshold.toFixed(2)}</div>
         <div style={{ color: 'var(--phosphor-dim)' }}>
           Daily median score: {d.score.toFixed(1)}
         </div>

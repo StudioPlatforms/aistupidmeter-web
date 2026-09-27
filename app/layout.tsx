@@ -3,6 +3,7 @@ import { ROUTER_PLAN, planName, priceNumber } from '@/lib/pricing-display';
 import Script from 'next/script'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
+import SiteFooter from '../components/SiteFooter'
 import '../styles/vintage.css'
 import '../styles/drift-cards.css'
 import '../styles/v4-layout.css'
@@ -443,6 +444,7 @@ export default function RootLayout({
         <Providers>
           <VisitorTracker />
           {children}
+          <SiteFooter />
         </Providers>
       </body>
     </html>

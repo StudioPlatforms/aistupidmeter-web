@@ -1,0 +1,14 @@
+/* The site footer (components/SiteFooter.tsx), rendered once by the root layout. */
+.site-footer { background: var(--terminal-dark); border-top: 1px solid var(--metal-silver); color: var(--phosphor-dim);
+  padding: 18px 20px 20px; font-size: 12.5px; }
+.site-footer a { color: var(--accent); text-decoration: none; }
+.site-footer a:hover { text-decoration: underline; }
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 6px 20px; max-width: 1760px; margin: 0 auto 12px; font-weight: 500; }
+.site-footer-links a { color: var(--phosphor-green); }
+.site-footer-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; max-width: 1760px; margin: 0 auto; }
+.site-footer-social { display: flex; flex-wrap: wrap; gap: 14px; }
+.site-footer-meta b { color: var(--phosphor-green); font-weight: 600; }
+@media (max-width: 767px) {
+  .site-footer { padding: 16px 16px 86px; }   /* clear of the fixed bottom navigation */
+  .site-footer-row { flex-direction: column; align-items: flex-start; }
+}

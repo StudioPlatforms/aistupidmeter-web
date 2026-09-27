@@ -85,9 +85,9 @@ export const modeConfig: Record<string, {
     showHeatmap: true,
   },
   speed: {
-    title: '7-AXIS PERFORMANCE RADAR',
-    subtitle: 'Full benchmark with efficiency & stability emphasis',
-    heatmapTitle: '7-AXIS HEATMAP',
+    title: 'CODING RADAR',
+    subtitle: 'The nine coding measures; efficiency and stability highlighted',
+    heatmapTitle: 'CODING HEATMAP',
     axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     highlightIndices: [3, 4], // efficiency, stability
     showHeatmap: true,
@@ -102,7 +102,7 @@ export const modeConfig: Record<string, {
   },
   price: {
     title: 'COST-EFFICIENCY RADAR',
-    subtitle: 'Performance per dollar across dimensions',
+    subtitle: 'The nine coding measures; cost is in the price-performance table',
     heatmapTitle: 'COST-EFFICIENCY HEATMAP',
     axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     highlightIndices: [3], // efficiency

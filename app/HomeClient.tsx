@@ -43,7 +43,6 @@ import {
   ProviderStrip,
   QuickInfo,
   MobileNav,
-  V4Footer,
 } from '../components/v4';
 
 type Provider = 'openai' | 'xai' | 'anthropic' | 'google';
@@ -4007,8 +4006,7 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
       </div>
       )}{/* end v4-grid3 */}
 
-      {/* V4 FOOTER */}
-      <V4Footer visitorCount={visitorCount} />
+      {/* The footer is rendered once for every page by the root layout (components/SiteFooter). */}
 
       {/* MOBILE NAV */}
       <MobileNav
