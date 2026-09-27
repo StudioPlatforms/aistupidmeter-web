@@ -29,6 +29,7 @@
  */
 
 import { useState } from 'react';
+import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
 import Link from 'next/link';
 import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
@@ -289,7 +290,7 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
         }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: '1.02em' }}>Workload assessment</div>
-            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 3 }}>$490 · one-off, fixed scope</div>
+            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 3 }}>{ASSESSMENT_PRICE_LABEL} · one-off, fixed scope</div>
           </div>
           <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', lineHeight: 1.6, margin: 0 }}>
             The smaller first step, and the usual way into continuous benchmarking. One workload,
@@ -300,12 +301,13 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.83em', lineHeight: 1.75, color: 'var(--phosphor-dim)' }}>
             <li>Up to 20 tasks you supply, three candidate models</li>
             <li>A decision report within seven business days of us having what we need</li>
-            <li>Credited in full against an annual plan bought within 30 days</li>
+            <li>Scope confirmed within two business days — or a full refund if we cannot measure your workload</li>
+            <li>Credited against an annual plan bought within 30 days, up to that plan’s price</li>
             <li>Refunded if we cannot deliver the agreed report</li>
           </ul>
           <Link href="/assessment" className="vintage-btn"
             style={{ padding: '9px 10px', textAlign: 'center', textDecoration: 'none', fontSize: '0.85em', marginTop: 'auto' }}>
-            See what an assessment covers
+            Book an assessment
           </Link>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { planForPriceId } from '@/lib/stripe-plans';
+import { markAssessmentPaid } from '@/lib/assessment';
 import { recordActivation } from '@/lib/activation';
 import { sendPurchaseConfirmationEmail, sendTrialEndingEmail } from '@/lib/email-service';
 import { PLANS, isPlan } from '@/lib/entitlements';
@@ -83,6 +84,11 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+        // One-off workload assessment (mode: payment): no subscription, no userId required.
+        if (session.metadata?.kind === 'assessment') {
+          await markAssessmentPaid(session);
+          break;
+        }
         const userId = session.metadata?.userId;
         
         if (!userId) {

@@ -38,7 +38,7 @@ const PRICE_ENV: Record<SellablePlan, Record<Interval, string>> = {
 
 /** One-off charges. */
 export const ONE_TIME_ENV = {
-  assessment: 'STRIPE_PRICE_ASSESSMENT',   // $490 assisted assessment
+  assessment: 'STRIPE_PRICE_ASSESSMENT',   // one-off workload assessment (lib/assessment-price.ts)
 } as const;
 
 /** Metered usage. Only billed once the corresponding meter is wired up. */

@@ -15,6 +15,8 @@
   border: 1px solid var(--metal-silver); background: var(--terminal-dark); color: var(--accent); }
 .doc-btn:hover { border-color: var(--accent); }
 .doc-btn.is-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* dark theme's accent is a light blue: white on it is ~2:1, so the label goes dark */
+[data-theme="dark"] .doc-btn.is-primary { color: var(--terminal-black); }
 
 .doc-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; align-items: start; }
 .doc-main { min-width: 0; }
@@ -92,6 +94,27 @@
 .doc-person p { max-width: 760px; margin: 0; font-size: 15.5px; line-height: 1.75; color: var(--phosphor-green); }
 .doc-facts a { color: var(--accent); }
 
+/* assessment booking page: the offer on the left, the form on the right (no frame around it) */
+.asmt { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 56px; align-items: start; }
+.asmt-info.doc-prose { margin-top: 0; }
+.asmt-info h3:first-of-type { margin-top: 18px; }
+.asmt-price { font-size: 15px; color: var(--phosphor-dim); }
+.asmt-price b { font-size: 30px; font-weight: 700; color: var(--phosphor-green); margin-right: 8px; font-variant-numeric: tabular-nums; }
+.asmt-form-col { position: sticky; top: 72px; }
+.asmt-form h2 { font-size: 20px; font-weight: 600; margin-bottom: 14px; color: var(--phosphor-green); }
+.asmt-form label { display: block; margin-bottom: 14px; font-size: 14px; font-weight: 500; color: var(--phosphor-green); }
+.asmt-form label span { font-weight: 400; color: var(--phosphor-dim); }
+.asmt-form input, .asmt-form textarea { display: block; width: 100%; margin-top: 6px; padding: 10px 12px; font: inherit; font-weight: 400;
+  color: var(--phosphor-green); background: var(--terminal-dark); border: 1px solid var(--metal-silver); border-radius: 6px; }
+.asmt-form input:focus, .asmt-form textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.asmt-form textarea { resize: vertical; min-height: 110px; }
+.asmt-submit { width: 100%; justify-content: center; height: 44px; font-size: 15px; cursor: pointer; }
+.asmt-submit:disabled { opacity: .7; cursor: wait; }
+.asmt-fine { margin-top: 10px; font-size: 13px; color: var(--phosphor-dim); }
+.asmt-fine a { color: var(--accent); }
+.asmt-error { margin: 0 0 12px; font-size: 14px; color: var(--bad); }
+.asmt-notice { margin-bottom: 18px; padding-left: 12px; border-left: 3px solid var(--warn); font-size: 14px; line-height: 1.55; color: var(--phosphor-green); }
+
 @media (max-width: 1099px) {
   .doc { padding: 24px 16px 40px; }
   .doc-body { grid-template-columns: minmax(0, 1fr); gap: 20px; }
@@ -101,6 +124,8 @@
   .doc-toc a { white-space: nowrap; border: 1px solid var(--metal-silver); border-radius: 16px; padding: 6px 12px; margin: 0; background: var(--terminal-dark); }
   .doc-toc a.is-active { border-color: var(--accent); }
   .doc-qa-grid { columns: 1; }
+  .asmt { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .asmt-form-col { position: static; }
 }
 @media (max-width: 599px) {
   .doc-lead { font-size: 15.5px; }

@@ -417,7 +417,7 @@ export async function sendContactAcknowledgement(to: string, name?: string | nul
   );
 }
 
-/** Tell the operator about a new $490 assessment request. */
+/** Tell the operator about a newly PAID workload assessment. Sent once, when payment is confirmed. */
 export async function sendAssessmentNotification(req: {
   id: number;
   contactEmail: string;
@@ -425,29 +425,56 @@ export async function sendAssessmentNotification(req: {
   workload: string;
   candidateModels?: string | null;
   taskCount?: number | null;
+  amount: string;
 }) {
   const rows: Array<[string, string]> = [['From', esc(req.contactEmail)]];
   if (req.company) rows.push(['Company', esc(req.company)]);
   if (req.candidateModels) rows.push(['Candidate models', esc(req.candidateModels)]);
   if (req.taskCount) rows.push(['Tasks', String(req.taskCount)]);
+  rows.push(['Paid', esc(req.amount)]);
   rows.push(['Reference', `#${req.id}`]);
 
   return deliver(
     CONTACT_INBOX,
-    `[Assessment] ${req.company || req.contactEmail} — AI Stupid Level`,
+    `[Assessment — paid] ${req.company || req.contactEmail} — AI Stupid Level`,
     renderEmail({
-      heading: 'New workload assessment request',
+      heading: 'New paid workload assessment',
       intro: `<span style="white-space:pre-wrap;">${esc(req.workload)}</span>`,
       rows,
-      ctaLabel: 'Reply',
+      ctaLabel: 'Reply to the customer',
       ctaUrl: `mailto:${req.contactEmail}`,
       footnote:
-        `Stored as assessment_requests #${req.id}, status "requested". ` +
-        `Scope is agreed before anyone is charged.`,
+        `Stored as assessment_requests #${req.id}, status "paid". The customer was promised a scope ` +
+        `confirmation within two business days — or a full refund (Stripe dashboard) if the workload ` +
+        `cannot be measured.`,
     }),
-    `New workload assessment request (#${req.id})\n\nFrom: ${req.contactEmail}\n` +
+    `New paid workload assessment (#${req.id}, ${req.amount})\n\nFrom: ${req.contactEmail}\n` +
     (req.company ? `Company: ${req.company}\n` : '') +
-    `\n${req.workload}\n`,
+    `\n${req.workload}\n\nConfirm scope within two business days, or refund in full.\n`,
     req.contactEmail,
+  );
+}
+
+/** Confirm a paid workload assessment to the customer: what happens next, and the guarantees. */
+export async function sendAssessmentConfirmation(to: string, opts: { id: number; amount: string }) {
+  const rows: Array<[string, string]> = [
+    ['Reference', `Assessment #${opts.id}`],
+    ['Paid', opts.amount],
+    ['Next step', 'We confirm the scope with you within two business days'],
+    ['Report', 'Within seven business days of us having your tasks'],
+  ];
+  const intro =
+    'Thank you — your workload assessment is booked. A member of the team will write to you within two ' +
+    'business days to agree the tasks, the three candidate models and the success criteria.';
+  const footnote =
+    'If, once we have read your workload, we cannot measure it, we refund the full amount before any work ' +
+    'starts; we also refund in full if we cannot deliver the agreed report. The amount is credited against ' +
+    'an annual plan bought within 30 days, up to that plan\u2019s price. Reply to this email to reach us directly.';
+  return deliver(
+    to,
+    `Your workload assessment is booked (#${opts.id}) — AI Stupid Level`,
+    renderEmail({ heading: 'Your assessment is booked', intro, rows, footnote }),
+    `${intro}\n\n` + rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') + `\n\n${footnote}\n\nAI Stupid Level\nhttps://aistupidlevel.info\n`,
+    CONTACT_INBOX,
   );
 }

@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { openIdentityDb } from '@/lib/identity-db';
-import { sendAssessmentNotification, sendContactAcknowledgement } from '@/lib/email-service';
+import { startAssessmentCheckout } from '@/lib/assessment';
 
 /**
- * Intake for the $490 workload assessment.
+ * Booking for the workload assessment ($1,290, lib/assessment.ts).
  *
- * Payment does not come first. The scope is agreed with a human before anyone is
- * charged, because the offer includes a refund if we cannot deliver the agreed
- * report — taking money before knowing the workload is supportable would make
- * that promise expensive and unkeepable. So this records the request and starts
- * a conversation; checkout happens after scoping.
+ * Records what the customer arrives with, then hands them to Stripe Checkout. Payment is taken
+ * at booking; the scoping guarantee (scope confirmed within two business days, or a full refund
+ * before any work starts) is what makes that fair. The request row is kept even if the customer
+ * abandons checkout, as status 'awaiting_payment'.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,16 +17,17 @@ export async function POST(request: NextRequest) {
 
     const contactEmail = String(body.email ?? session?.user?.email ?? '').trim().toLowerCase();
     const workload = String(body.workload ?? '').trim();
-    const company = String(body.company ?? '').trim() || null;
-    const candidateModels = String(body.models ?? '').trim() || null;
-    const taskCount = Number.isFinite(Number(body.taskCount)) ? Number(body.taskCount) : null;
+    const company = String(body.company ?? '').trim().slice(0, 200) || null;
+    const candidateModels = String(body.models ?? '').trim().slice(0, 500) || null;
+    const n = Number(body.taskCount);
+    const taskCount = Number.isInteger(n) && n >= 1 && n <= 20 ? n : null;
 
-    if (!contactEmail.includes('@')) {
-      return NextResponse.json({ success: false, error: 'A contact email is required' }, { status: 400 });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(contactEmail)) {
+      return NextResponse.json({ success: false, error: 'A valid contact email is required' }, { status: 400 });
     }
     if (workload.length < 20) {
       return NextResponse.json(
-        { success: false, error: 'Tell us a little about the workload — a sentence or two is enough.' },
+        { success: false, error: 'Tell us a little about the decision — a sentence or two is enough.' },
         { status: 400 }
       );
     }
@@ -36,31 +35,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'That is longer than we can accept here.' }, { status: 400 });
     }
 
-    const db = openIdentityDb();
-    const info = db.prepare(`
-      INSERT INTO assessment_requests
-        (user_id, contact_email, company, workload, candidate_models, task_count)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
-      session?.user?.id ? Number(session.user.id) : null,
-      contactEmail, company, workload, candidateModels, taskCount
-    );
-
-    const id = Number(info.lastInsertRowid);
-
-    // Notify, then acknowledge. Both are best-effort: the row is the record of
-    // the request, and a mail failure must not lose the lead or fail the form.
-    void sendAssessmentNotification({
-      id, contactEmail, company, workload, candidateModels, taskCount,
-    }).then(res => {
-      if (!res.success) console.error(`[assessment] #${id} stored but NOT emailed:`, res.error);
+    const { id, url } = await startAssessmentCheckout({
+      userId: session?.user?.id ? Number(session.user.id) : null,
+      contactEmail, company, workload, candidateModels, taskCount,
     });
-    void sendContactAcknowledgement(contactEmail, null, 'sales');
-
-    console.log(`[assessment] request #${id} from ${contactEmail}`);
-    return NextResponse.json({ success: true, data: { id } });
-  } catch (error) {
-    console.error('[assessment] intake failed:', error);
-    return NextResponse.json({ success: false, error: 'Could not record your request' }, { status: 500 });
+    console.log(`[assessment] #${id} checkout opened for ${contactEmail}`);
+    return NextResponse.json({ success: true, data: { id, url } });
+  } catch (error: any) {
+    if (error?.code === 'unconfigured') {
+      console.error('[assessment] checkout unavailable: STRIPE_PRICE_ASSESSMENT not set');
+      return NextResponse.json(
+        { success: false, error: 'Online booking is unavailable right now. Please email us and we will set it up by invoice.' },
+        { status: 503 }
+      );
+    }
+    console.error('[assessment] booking failed:', error?.message || error);
+    return NextResponse.json({ success: false, error: 'Could not start checkout. Please try again.' }, { status: 500 });
   }
 }

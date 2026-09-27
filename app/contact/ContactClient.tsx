@@ -4,7 +4,7 @@
  * The public contact form.
  *
  * Open to everyone, signed in or not. The Enterprise plan used to send people to
- * /assessment — a $490 one-off engagement — which is a strange answer to
+ * /assessment — a paid one-off engagement — which is a strange answer to
  * "I would like to talk about an annual contract", and there was no route at all
  * for support, security or press. Every one of those now lands here and reaches
  * a person.

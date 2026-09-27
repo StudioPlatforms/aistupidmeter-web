@@ -2,17 +2,17 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
 
 /**
- * The assessment offer and its intake form.
+ * The assessment offer and its booking form.
  *
- * The copy states what is included, what is not, and the refund condition —
- * because the strategy's whole argument for this offer is that it is a small,
- * bounded, honest first purchase. Vagueness here would defeat the point.
+ * States exactly what is included, what happens after payment, and the two refund conditions —
+ * a fixed-scope first purchase only works if nothing about it is vague. Submitting stores the
+ * request and continues to Stripe Checkout (lib/assessment.ts).
  */
-export default function AssessmentClient() {
+export default function AssessmentClient({ cancelled }: { cancelled: boolean }) {
   const { data: session } = useSession();
-  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,83 +31,95 @@ export default function AssessmentClient() {
         }),
       });
       const d = await r.json();
-      if (d?.success) setSent(true); else setError(d?.error ?? 'Something went wrong');
-    } catch { setError('Network error'); }
-    finally { setBusy(false); }
+      if (d?.success && d.data?.url) { window.location.href = d.data.url; return; }
+      setError(d?.error ?? 'Something went wrong');
+    } catch { setError('Network error — please try again.'); }
+    setBusy(false);
   };
-
-  const field: React.CSSProperties = {
-    width: '100%', padding: '9px 11px', marginTop: 4,
-    background: 'rgba(0,0,0,0.04)', border: '1px solid var(--border-subtle, #2a2a2a)',
-    borderRadius: 3, color: 'inherit', font: 'inherit',
-  };
-  const label: React.CSSProperties = { display: 'block', marginBottom: 14, fontSize: '0.85em' };
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 20px 70px' }}>
-      <h1 style={{ fontSize: '1.5em', margin: '0 0 10px' }}>Is the model you chose still the right one?</h1>
-      <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, margin: '0 0 20px' }}>
-        A fixed-scope assessment of one workload against three candidate models, using your tasks
-        rather than ours. You get a decision report within seven business days of us having what we
-        need — including, where the evidence supports it, a recommendation to change nothing.
-      </p>
-
-      <div style={{ padding: 16, border: '1px solid var(--phosphor-green)', borderRadius: 4, marginBottom: 24 }}>
-        <div style={{ fontSize: '1.3em', fontWeight: 700, marginBottom: 8 }}>$490</div>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.87em', lineHeight: 1.7, color: 'var(--phosphor-dim)' }}>
-          <li>One workload, up to 20 tasks you supply</li>
-          <li>Three candidate models, up to 1,000 standard execution units</li>
-          <li>Two hours of expert time, and a concise decision report</li>
-          <li>Credited in full against an annual plan bought within 30 days</li>
-          <li>Refunded if we cannot deliver the agreed report</li>
-        </ul>
-        <p style={{ fontSize: '0.8em', color: 'var(--phosphor-dim)', marginTop: 12, marginBottom: 0, lineHeight: 1.6 }}>
-          Provider inference is billed to your own keys under a cap you agree first. We scope with you
-          before charging anything — nobody pays until we both know the workload is one we can measure.
+    <div className="doc">
+      <header className="doc-head">
+        <div className="doc-kicker">Workload assessment</div>
+        <h1>Is the model you chose still the right one?</h1>
+        <p className="doc-lead">
+          A fixed-scope assessment of one workload against three candidate models, using your tasks rather than
+          ours. You get a decision report within seven business days of us having what we need — including, where
+          the evidence supports it, a recommendation to change nothing.
         </p>
-      </div>
+      </header>
 
-      {sent ? (
-        <div style={{ padding: 20, border: '1px solid var(--phosphor-green)', borderRadius: 4, lineHeight: 1.65 }}>
-          <strong>Got it.</strong>
-          <p style={{ margin: '8px 0 0', color: 'var(--phosphor-dim)', fontSize: '0.9em' }}>
-            We will come back to you to agree the scope, the acceptance criterion and the provider
-            spend cap before anything is charged.
+      <div className="asmt">
+        <div className="asmt-info doc-prose">
+          <p className="asmt-price"><b>{ASSESSMENT_PRICE_LABEL}</b> <span>one-off, fixed scope · USD, excluding any applicable tax</span></p>
+
+          <h3>What is included</h3>
+          <ul>
+            <li>One workload, up to 20 tasks you supply, with the answer keys held out of the prompts</li>
+            <li>Three candidate models, up to 1,000 standard execution units, several trials per task</li>
+            <li>Two hours of expert time, and a concise decision report</li>
+          </ul>
+
+          <h3>How it works</h3>
+          <ol>
+            <li><b>Book and pay</b> below. Payment is by card through Stripe, and an invoice with your company details is issued automatically.</li>
+            <li><b>We confirm the scope within two business days</b> — the tasks, the three models and what “good” means for your workload.</li>
+            <li><b>You send your tasks.</b> We build the suite and run it repeatedly against the candidates.</li>
+            <li><b>You get the report</b> within seven business days of us having your tasks.</li>
+          </ol>
+
+          <h3>Guarantees</h3>
+          <ul>
+            <li>If, once we have read your workload, we cannot measure it, we refund the full amount before any work starts.</li>
+            <li>If we cannot deliver the agreed report, we refund in full.</li>
+            <li>The full amount is credited against an annual plan bought within 30 days, up to that plan’s price — with Teams, the year costs nothing extra.</li>
+          </ul>
+          <p className="doc-muted">
+            Provider inference is billed to your own API keys under a cap you agree first, so the cost of running
+            the models is never hidden in our price. Your tasks stay yours: never published, never added to the
+            public benchmark.
           </p>
         </div>
-      ) : (
-        <form onSubmit={submit}>
-          <label style={label}>
-            Your email
-            <input name="email" type="email" required style={field}
-              defaultValue={session?.user?.email ?? ''} placeholder="your@email.com" />
-          </label>
-          <label style={label}>
-            Company <span style={{ opacity: 0.6 }}>(optional)</span>
-            <input name="company" style={field} />
-          </label>
-          <label style={label}>
-            What decision do you need to make?
-            <textarea name="workload" required rows={5} style={field}
-              placeholder="e.g. We use Claude Sonnet for support-ticket triage and are considering moving to a cheaper model. We need to know whether quality would hold." />
-          </label>
-          <label style={label}>
-            Candidate models <span style={{ opacity: 0.6 }}>(optional)</span>
-            <input name="models" style={field} placeholder="claude-sonnet-5, gpt-5.6-terra, deepseek-v4-pro" />
-          </label>
-          <label style={label}>
-            Roughly how many tasks? <span style={{ opacity: 0.6 }}>(optional, up to 20)</span>
-            <input name="taskCount" type="number" min={1} max={20} style={field} />
-          </label>
 
-          {error && <p style={{ color: 'var(--amber-warning)', fontSize: '0.85em' }}>{error}</p>}
+        <div className="asmt-form-col">
+          {cancelled && (
+            <p className="asmt-notice">Payment was not completed, so nothing was charged. You can book again below whenever you are ready.</p>
+          )}
+          <form onSubmit={submit} className="asmt-form">
+            <h2>Book your assessment</h2>
+            <label>
+              Your email
+              <input name="email" type="email" required defaultValue={session?.user?.email ?? ''} placeholder="you@company.com" />
+            </label>
+            <label>
+              Company <span>(optional)</span>
+              <input name="company" maxLength={200} />
+            </label>
+            <label>
+              What decision do you need to make?
+              <textarea name="workload" required rows={5} maxLength={4000}
+                placeholder="e.g. We use Claude Sonnet for support-ticket triage and are considering moving to a cheaper model. We need to know whether quality would hold." />
+            </label>
+            <label>
+              Candidate models <span>(optional)</span>
+              <input name="models" maxLength={500} placeholder="claude-sonnet-5, gpt-5.6-terra, deepseek-v4-pro" />
+            </label>
+            <label>
+              Roughly how many tasks? <span>(optional, up to 20)</span>
+              <input name="taskCount" type="number" min={1} max={20} />
+            </label>
 
-          <button type="submit" disabled={busy} className="vintage-btn"
-            style={{ padding: '11px 22px', cursor: busy ? 'wait' : 'pointer' }}>
-            {busy ? 'Sending…' : 'Start the conversation →'}
-          </button>
-        </form>
-      )}
+            {error && <p className="asmt-error" role="alert">{error}</p>}
+
+            <button type="submit" disabled={busy} className="doc-btn is-primary asmt-submit">
+              {busy ? 'Opening secure checkout…' : `Continue to secure payment — ${ASSESSMENT_PRICE_LABEL}`}
+            </button>
+            <p className="asmt-fine">
+              You will be taken to Stripe to pay. Questions first? <a href="/contact?topic=sales">Contact us</a>.
+            </p>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

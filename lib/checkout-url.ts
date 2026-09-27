@@ -35,7 +35,7 @@ export function checkoutHref(plan: SellablePlan, interval: Interval): string {
  *
  * Enterprise goes to the contact form rather than a checkout — it is the one
  * plan with no self-serve price, and sending it to `/assessment` (as the pricing
- * page used to) offered a $490 one-off engagement to someone asking about an
+ * page used to) offered a paid one-off engagement to someone asking about an
  * annual contract.
  */
 export function upgradeHref(plan: Plan, interval: Interval): string {
