@@ -24,7 +24,7 @@ const providerDotClass = (provider: string): string => {
   return map[provider?.toLowerCase()] || 'openai';
 };
 
-const getCompactName = (name: string): string => {
+export const getCompactName = (name: string): string => {
   if (!name) return name;
   // Auto-format: capitalize each segment, handle common patterns
   return name
@@ -53,187 +53,20 @@ export default function IntelligencePanel({
   const router = useRouter();
   const { data: session } = useSession();
 
-  // Build recommendation items from real data
-  const recoItems: Array<{ type: string; name: string; detail: string; score: number; status: string; danger?: boolean; providerDot?: string }> = [];
+  const recoItems = buildRecoItems(recommendations, modelScores);
 
-  // Every card below is one category computed from measurements by the API
-  // (routes/analytics.ts /recommendations) and is shown under that category's own name.
-  const nameOf = (x: any) => x?.displayName || getCompactName(x?.name);
-
-  if (recommendations?.bestForCode?.name) {
-    const b = recommendations.bestForCode;
-    recoItems.push({
-      type: 'BEST FOR CODE',
-      name: nameOf(b),
-      detail: b.reason || (typeof b.correctness === 'number' ? `${Math.round(b.correctness)}% correct` : 'top coding score'),
-      score: b.codingScore ?? b.score ?? 0,
-      status: 'STBL',
-      providerDot: b.vendor || b.provider,
-    });
-  }
-
-  if (recommendations?.mostReliable?.name) {
-    const r = recommendations.mostReliable;
-    recoItems.push({
-      type: 'MOST RELIABLE',
-      name: nameOf(r),
-      detail: r.reason || 'Lowest variance',
-      score: r.score || 0,
-      status: 'STBL',
-      providerDot: r.vendor || r.provider,
-    });
-  }
-
-  if (recommendations?.fastestResponse?.name) {
-    const f = recommendations.fastestResponse;
-    recoItems.push({
-      type: 'FASTEST RESPONSE',
-      name: nameOf(f),
-      detail: f.reason || 'Quick response time',
-      score: f.score || 0,
-      status: 'FAST',
-      providerDot: f.vendor || f.provider,
-    });
-  }
-
-  // Best value: points per MEASURED dollar of one identical coding run. This used to be
-  // computed here from list price per token, which ranks verbose models backwards — a model
-  // that writes four times as much costs four times as much per task at the same price.
-  if (recommendations?.bestValue?.name) {
-    const v = recommendations.bestValue;
-    recoItems.push({
-      type: 'BEST VALUE',
-      name: nameOf(v),
-      detail: v.reason || 'Most points per dollar',
-      score: v.score || 0,
-      status: typeof v.costPerRun === 'number' ? `$${v.costPerRun < 0.1 ? v.costPerRun.toFixed(3) : v.costPerRun.toFixed(2)}` : 'VALUE',
-      providerDot: v.vendor || v.provider,
-    });
-  }
-
-  // Poor value: another ranked model scores at least as high for a third of the cost or less.
-  // A price judgement, not a fault, so it is not styled as one.
-  if (Array.isArray(recommendations?.poorValue)) {
-    recommendations.poorValue.slice(0, 2).forEach((model: any) => {
-      if (!model?.name) return;
-      recoItems.push({
-        type: '⚠ POOR VALUE',
-        name: nameOf(model),
-        detail: model.reason || 'A cheaper model scores as high',
-        score: model.score || 0,
-        status: 'COST',
-        providerDot: model.vendor || model.provider,
-      });
-    });
-  }
-
-  // Avoid now: genuine problems only (serious degradation or a failing score).
-  if (Array.isArray(recommendations?.avoidNow)) {
-    recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
-      if (!model?.name) return;
-      recoItems.push({
-        type: '⛔ AVOID NOW',
-        name: nameOf(model),
-        detail: model.reason || 'Performance problem',
-        score: typeof model.score === 'number' ? model.score : 0,
-        status: 'AVOID',
-        danger: true,
-        providerDot: model.provider,
-      });
-    });
-  }
-
-  // Genuinely noisy models, measured by the SAME standard error the front-page VOLATILE
-  // count uses (lib/fleet-buckets), so the two cannot disagree in public again.
-  //
-  // This used to fire on `trend === 'down'` and label the result "UNRELIABLE · High
-  // variance detected". Direction is not variance: on 15 September 2026 it called
-  // gpt-5.6-terra unreliable for high variance while that model had one of the LOWEST
-  // standard errors on the board and the stat bar's VOLATILE count read 0.
-  const volatileModels = modelScores
-    .filter(m =>
-      typeof m.currentScore === 'number' &&
-      isVolatile(m) &&
-      !recoItems.some(ri => ri.name === getCompactName(m.name))
-    )
-    .slice(0, 1);
-
-  volatileModels.forEach(m => {
-    recoItems.push({
-      type: '⚠ UNRELIABLE',
-      name: getCompactName(m.name),
-      detail: typeof m.standardError === 'number'
-        ? `±${m.standardError.toFixed(1)} pts between identical runs`
-        : 'High variance between identical runs',
-      score: m.currentScore,
-      status: 'VOLA',
-      danger: true,
-      providerDot: m.provider,
-    });
-  });
-
-  // Build activity feed from recent events
-  const activityItems: Array<{ time: string; icon: string; text: string }> = [];
-
-  // Degradation events
-  degradations.slice(0, 3).forEach((deg: any) => {
-    if (deg.modelName) {
-      activityItems.push({
-        time: deg.detectedAt ? formatTimeAgo(deg.detectedAt) : 'recent',
-        icon: deg.severity === 'critical' ? '🔴' : '🟡',
-        text: `<b class="${deg.severity === 'critical' ? 'crit' : 'warn'}">${getCompactName(deg.modelName)}</b> ${deg.message || 'performance issue'}`,
-      });
-    }
-  });
-
-  // Recently benchmarked models (trend up)
-  modelScores
-    .filter(m => m.trend === 'up' && typeof m.currentScore === 'number')
-    .slice(0, 2)
-    .forEach(m => {
-      activityItems.push({
-        time: formatTimeAgo(m.lastUpdated),
-        icon: '🟢',
-        text: `<b>${getCompactName(m.name)}</b> benchmarked: <b>${m.currentScore}</b>`,
-      });
-    });
-
-  // Stable models
-  modelScores
-    .filter(m => m.trend === 'stable' && typeof m.currentScore === 'number' && m.currentScore >= 80)
-    .slice(0, 2)
-    .forEach(m => {
-      activityItems.push({
-        time: formatTimeAgo(m.lastUpdated),
-        icon: '🟢',
-        text: `<b>${getCompactName(m.name)}</b> stable: <b>${m.currentScore}</b>`,
-      });
-    });
-
-  // Drift incidents
-  if (driftIncidents && driftIncidents.length > 0) {
-    driftIncidents.slice(0, 2).forEach((inc: any) => {
-      activityItems.push({
-        time: inc.detectedAt ? formatTimeAgo(inc.detectedAt) : 'recent',
-        icon: '🔵',
-        text: `<b>${getCompactName(inc.modelName || 'Model')}</b> ${inc.type || 'drift detected'}`,
-      });
-    });
-  }
+  const activityItems = buildActivityItems(degradations, modelScores, driftIncidents).map((a) => ({
+    time: a.time,
+    icon: a.tone === 'crit' ? '🔴' : a.tone === 'warn' ? '🟡' : a.tone === 'info' ? '🔵' : '🟢',
+    text: a.tone === 'crit' || a.tone === 'warn'
+      ? `<b class="${a.tone}">${a.model}</b> ${a.text}`
+      : a.value !== undefined ? `<b>${a.model}</b> ${a.text}: <b>${a.value}</b>` : `<b>${a.model}</b> ${a.text}`,
+  }));
 
   // Provider trust data — show the top 4 providers by trust score.
   // xAI / Grok are excluded: the API no longer returns them, and the
   // fallback builder filters them as a safety net.
-  const providerData = (providerReliability.length > 0
-    ? providerReliability
-    : buildProviderTrustFromScores(modelScores)
-  )
-    .filter((prov: any) => {
-      const key = String(prov.provider || prov.name || '').toLowerCase();
-      return key !== 'xai' && key !== 'x.ai' && key !== 'grok';
-    })
-    .sort((a: any, b: any) => (b.score || b.trustScore || 0) - (a.score || a.trustScore || 0))
-    .slice(0, 4);
+  const providerData = providerTrustList(providerReliability, modelScores).slice(0, 4);
 
   return (
     <div className="v4-panel v4-left-panel">
@@ -363,7 +196,7 @@ export default function IntelligencePanel({
   );
 }
 
-function formatTimeAgo(date: Date | string): string {
+export function formatTimeAgo(date: Date | string): string {
   if (!date) return '—';
   const d = typeof date === 'string' ? new Date(date) : date;
   if (isNaN(d.getTime())) return '—';
@@ -394,6 +227,187 @@ function buildProviderTrustFromScores(modelScores: any[]): any[] {
       provider: name,
       score: Math.round(data.total / data.count),
     }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4);
+    .sort((a, b) => b.score - a.score);
+}
+
+// ─── Shared builders ──────────────────────────────────────────────────────────
+// Also used by the insights grid under the full-width leaderboards
+// (components/insights/InsightsGrid.tsx), so the two views cannot disagree.
+
+export interface RecoItem {
+  /** best = a positive pick; poor = a price warning; avoid / unreliable = a genuine problem. */
+  kind: 'best' | 'poor' | 'avoid' | 'unreliable';
+  type: string;
+  name: string;
+  /** The model's API name, for a link to its page. */
+  rawName?: string;
+  detail: string;
+  score: number;
+  status: string;
+  danger?: boolean;
+  providerDot?: string;
+}
+
+export function buildRecoItems(recommendations: any, modelScores: any[]): RecoItem[] {
+  const recoItems: RecoItem[] = [];
+
+  // Every card below is one category computed from measurements by the API
+  // (routes/analytics.ts /recommendations) and is shown under that category's own name.
+  const nameOf = (x: any) => x?.displayName || getCompactName(x?.name);
+
+  if (recommendations?.bestForCode?.name) {
+    const b = recommendations.bestForCode;
+    recoItems.push({
+      kind: 'best', type: 'BEST FOR CODE',
+      name: nameOf(b), rawName: b.name,
+      detail: b.reason || (typeof b.correctness === 'number' ? `${Math.round(b.correctness)}% correct` : 'top coding score'),
+      score: b.codingScore ?? b.score ?? 0,
+      status: 'STBL',
+      providerDot: b.vendor || b.provider,
+    });
+  }
+
+  if (recommendations?.mostReliable?.name) {
+    const r = recommendations.mostReliable;
+    recoItems.push({
+      kind: 'best', type: 'MOST RELIABLE',
+      name: nameOf(r), rawName: r.name,
+      detail: r.reason || 'Lowest variance',
+      score: r.score || 0,
+      status: 'STBL',
+      providerDot: r.vendor || r.provider,
+    });
+  }
+
+  if (recommendations?.fastestResponse?.name) {
+    const f = recommendations.fastestResponse;
+    recoItems.push({
+      kind: 'best', type: 'FASTEST RESPONSE',
+      name: nameOf(f), rawName: f.name,
+      detail: f.reason || 'Quick response time',
+      score: f.score || 0,
+      status: 'FAST',
+      providerDot: f.vendor || f.provider,
+    });
+  }
+
+  // Best value: points per MEASURED dollar of one identical coding run. This used to be
+  // computed here from list price per token, which ranks verbose models backwards — a model
+  // that writes four times as much costs four times as much per task at the same price.
+  if (recommendations?.bestValue?.name) {
+    const v = recommendations.bestValue;
+    recoItems.push({
+      kind: 'best', type: 'BEST VALUE',
+      name: nameOf(v), rawName: v.name,
+      detail: v.reason || 'Most points per dollar',
+      score: v.score || 0,
+      status: typeof v.costPerRun === 'number' ? `$${v.costPerRun < 0.1 ? v.costPerRun.toFixed(3) : v.costPerRun.toFixed(2)}` : 'VALUE',
+      providerDot: v.vendor || v.provider,
+    });
+  }
+
+  // Poor value: another ranked model scores at least as high for a third of the cost or less.
+  // A price judgement, not a fault, so it is not styled as one.
+  if (Array.isArray(recommendations?.poorValue)) {
+    recommendations.poorValue.slice(0, 2).forEach((model: any) => {
+      if (!model?.name) return;
+      recoItems.push({
+        kind: 'poor', type: '⚠ POOR VALUE',
+        name: nameOf(model), rawName: model.name,
+        detail: model.reason || 'A cheaper model scores as high',
+        score: model.score || 0,
+        status: 'COST',
+        providerDot: model.vendor || model.provider,
+      });
+    });
+  }
+
+  // Avoid now: genuine problems only (serious degradation or a failing score).
+  if (Array.isArray(recommendations?.avoidNow)) {
+    recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
+      if (!model?.name) return;
+      recoItems.push({
+        kind: 'avoid', type: '⛔ AVOID NOW',
+        name: nameOf(model), rawName: model.name,
+        detail: model.reason || 'Performance problem',
+        score: typeof model.score === 'number' ? model.score : 0,
+        status: 'AVOID',
+        danger: true,
+        providerDot: model.provider,
+      });
+    });
+  }
+
+  // Genuinely noisy models, measured by the SAME standard error the front-page VOLATILE
+  // count uses (lib/fleet-buckets), so the two cannot disagree in public again.
+  //
+  // This used to fire on `trend === 'down'` and label the result "UNRELIABLE · High
+  // variance detected". Direction is not variance: on 15 September 2026 it called
+  // gpt-5.6-terra unreliable for high variance while that model had one of the LOWEST
+  // standard errors on the board and the stat bar's VOLATILE count read 0.
+  const volatileModels = modelScores
+    .filter(m =>
+      typeof m.currentScore === 'number' &&
+      isVolatile(m) &&
+      !recoItems.some(ri => ri.name === getCompactName(m.name))
+    )
+    .slice(0, 1);
+
+  volatileModels.forEach(m => {
+    recoItems.push({
+      kind: 'unreliable', type: '⚠ UNRELIABLE',
+      name: getCompactName(m.name), rawName: m.name,
+      detail: typeof m.standardError === 'number'
+        ? `±${m.standardError.toFixed(1)} pts between identical runs`
+        : 'High variance between identical runs',
+      score: m.currentScore,
+      status: 'VOLA',
+      danger: true,
+      providerDot: m.provider,
+    });
+  });
+
+  return recoItems;
+}
+
+export interface ActivityItem { time: string; tone: 'crit' | 'warn' | 'good' | 'info'; model: string; text: string; value?: number }
+
+export function buildActivityItems(degradations: any[], modelScores: any[], driftIncidents: any[]): ActivityItem[] {
+  const items: ActivityItem[] = [];
+  degradations.slice(0, 3).forEach((deg: any) => {
+    if (!deg.modelName) return;
+    items.push({
+      time: deg.detectedAt ? formatTimeAgo(deg.detectedAt) : 'recent',
+      tone: deg.severity === 'critical' ? 'crit' : 'warn',
+      model: getCompactName(deg.modelName),
+      text: deg.message || 'performance issue',
+    });
+  });
+  modelScores
+    .filter(m => m.trend === 'up' && typeof m.currentScore === 'number')
+    .slice(0, 2)
+    .forEach(m => items.push({ time: formatTimeAgo(m.lastUpdated), tone: 'good', model: getCompactName(m.name), text: 'benchmarked', value: m.currentScore }));
+  modelScores
+    .filter(m => m.trend === 'stable' && typeof m.currentScore === 'number' && m.currentScore >= 80)
+    .slice(0, 2)
+    .forEach(m => items.push({ time: formatTimeAgo(m.lastUpdated), tone: 'good', model: getCompactName(m.name), text: 'stable', value: m.currentScore }));
+  (driftIncidents || []).slice(0, 2).forEach((inc: any) => {
+    items.push({
+      time: inc.detectedAt ? formatTimeAgo(inc.detectedAt) : 'recent',
+      tone: 'info',
+      model: getCompactName(inc.modelName || 'Model'),
+      text: inc.type || 'drift detected',
+    });
+  });
+  return items;
+}
+
+/** Every provider, highest trust first. xAI / Grok are excluded: the API no longer returns them. */
+export function providerTrustList(providerReliability: any[], modelScores: any[]): any[] {
+  return (providerReliability.length > 0 ? providerReliability : buildProviderTrustFromScores(modelScores))
+    .filter((prov: any) => {
+      const key = String(prov.provider || prov.name || '').toLowerCase();
+      return key !== 'xai' && key !== 'x.ai' && key !== 'grok';
+    })
+    .sort((a: any, b: any) => (b.score || b.trustScore || 0) - (a.score || a.trustScore || 0));
 }

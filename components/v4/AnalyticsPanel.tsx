@@ -60,7 +60,7 @@ const toolingAxisFullNames = ['Tool Selection', 'Parameter Accuracy', 'Error Han
 const toolingAxKeys = ['toolSelection', 'parameterAccuracy', 'errorHandling', 'taskCompletion', 'efficiency', 'contextAwareness', 'safetyCompliance'];
 
 // Mode-specific axis configurations (9 axes: CORR, CMPL, QUAL, EFF, STBL, EDGE, DBG, FMT, SAFE)
-const modeConfig: Record<string, {
+export const modeConfig: Record<string, {
   title: string;
   subtitle: string;
   heatmapTitle: string;
@@ -110,10 +110,26 @@ const modeConfig: Record<string, {
   },
 };
 
-const scoreColor = (v: number) =>
+/** The axis set a sort shows: Combined, Coding and Price use the nine coding axes; Reasoning and Tool use their own. */
+export function axesForSort(sortBy: string) {
+  const config = modeConfig[sortBy] || modeConfig.combined;
+  const isTooling = sortBy === 'tooling';
+  const isReasoning = sortBy === 'reasoning';
+  const baseLabels = isTooling ? toolingAxisLabels : isReasoning ? reasoningAxisLabels : combinedAxisLabels;
+  const baseFullNames = isTooling ? toolingAxisFullNames : isReasoning ? reasoningAxisFullNames : combinedAxisFullNames;
+  const baseAxKeys = isTooling ? toolingAxKeys : isReasoning ? reasoningAxKeys : combinedAxKeys;
+  return {
+    config,
+    axisLabels: config.axisIndices.map(i => baseLabels[i]).filter(Boolean),
+    axisFullNames: config.axisIndices.map(i => baseFullNames[i]).filter(Boolean),
+    axKeys: config.axisIndices.map(i => baseAxKeys[i]).filter(Boolean),
+  };
+}
+
+export const scoreColor = (v: number) =>
   v >= 80 ? 'var(--good)' : v >= 65 ? 'var(--warn)' : 'var(--bad)';
 
-const scoreBg = (v: number) =>
+export const scoreBg = (v: number) =>
   v >= 80 ? 'var(--good-bg)' : v >= 65 ? 'var(--warn-bg)' : 'var(--bad-bg)';
 
 // OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
@@ -121,7 +137,7 @@ const scoreBg = (v: number) =>
 // cannot disagree with the leaderboard or the model detail page.
 
 // Average axes across all history entries for the selected period
-function getAveragedAxes(history: any[]): Record<string, number> {
+export function getAveragedAxes(history: any[]): Record<string, number> {
   const entriesWithAxes = history.filter((h: any) => h.axes && typeof h.axes === 'object');
   if (entriesWithAxes.length === 0) return {};
   if (entriesWithAxes.length === 1) return entriesWithAxes[0].axes;
@@ -154,15 +170,7 @@ export default function AnalyticsPanel({
   const available = modelScores.filter(m => typeof m.currentScore === 'number' && m.currentScore > 0);
 
   // Get mode config — pick the right axis set per benchmark suite
-  const config = modeConfig[leaderboardSortBy] || modeConfig.combined;
-  const isToolingMode = leaderboardSortBy === 'tooling';
-  const isReasoningMode = leaderboardSortBy === 'reasoning';
-  const baseLabels = isToolingMode ? toolingAxisLabels : isReasoningMode ? reasoningAxisLabels : combinedAxisLabels;
-  const baseFullNames = isToolingMode ? toolingAxisFullNames : isReasoningMode ? reasoningAxisFullNames : combinedAxisFullNames;
-  const baseAxKeys = isToolingMode ? toolingAxKeys : isReasoningMode ? reasoningAxKeys : combinedAxKeys;
-  const axisLabels = config.axisIndices.map(i => baseLabels[i]).filter(Boolean);
-  const axisFullNames = config.axisIndices.map(i => baseFullNames[i]).filter(Boolean);
-  const axKeys = config.axisIndices.map(i => baseAxKeys[i]).filter(Boolean);
+  const { config, axisLabels, axisFullNames, axKeys } = axesForSort(leaderboardSortBy);
 
   // Sort for radar: top 3 and bottom 3
   const sorted = [...available].sort((a, b) => (b.currentScore as number) - (a.currentScore as number));
@@ -421,7 +429,7 @@ export default function AnalyticsPanel({
 }
 
 // SVG Radar Chart — adapts axes based on mode
-function RadarChart({
+export function RadarChart({
   models, colors, modelHistoryData, axKeys, axisLabels, highlightIndices,
 }: {
   models: any[];

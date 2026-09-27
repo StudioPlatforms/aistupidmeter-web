@@ -12,6 +12,7 @@ import OnboardingTour, { ONBOARDING_STORAGE_KEY } from '../components/Onboarding
 import ConsentDialog, { CONSENT_STORAGE_KEY } from '../components/ConsentDialog';
 import DriftTour, { DRIFT_TOUR_STORAGE_KEY } from '../components/DriftTour';
 import Leaderboards from '../components/boards/Leaderboards';
+import InsightsGrid from '../components/insights/InsightsGrid';
 import LayoutChooser from '../components/boards/LayoutChooser';
 import { LayoutTour } from '../components/boards/layout-tour';
 import {
@@ -3870,14 +3871,29 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
         showSort={dashboardMode === 'drift' || layout === 'table'}
       />
 
-      {/* LEADERBOARDS, full width. Four boards side by side need the whole page, so on a
-          wide screen every layout but the table sits above the three columns. The table and
-          every narrow screen keep it in the middle column (below). */}
-      {dashboardMode === 'leaderboard' && wideScreen && layout !== 'table' && (
-        <div className="lbx-fullwidth">{leaderboards}</div>
-      )}
-
-      {/* V4 3-COLUMN LAYOUT */}
+      {/* LEADERBOARD VIEW ON A WIDE SCREEN: every layout full width, then the insights as rows
+          of cards (components/insights/InsightsGrid.tsx), capped at 1,760px. The three-column
+          frame below was built around a board in the middle column; with the boards above it,
+          it left ~900px of empty middle. The Drift Monitor and narrow screens keep that frame,
+          where it still fits. */}
+      {dashboardMode === 'leaderboard' && wideScreen ? (
+        <div className="lbx-page">
+          <div className="lbx-fullwidth">{leaderboards}</div>
+          <InsightsGrid
+            recommendations={recommendations}
+            degradations={degradations}
+            driftIncidents={driftIncidents}
+            providerReliability={providerReliability}
+            modelScores={modelScores}
+            modelHistoryData={modelHistoryData}
+            transparencyMetrics={transparencyMetrics}
+            leaderboardSortBy={leaderboardSortBy}
+            leaderboardPeriod={leaderboardPeriod}
+            onSortChange={(k) => setLeaderboardSortBy(k)}
+          />
+        </div>
+      ) : (
+      /* V4 3-COLUMN LAYOUT */
       <div className="v4-grid3">
         {/* LEFT PANEL: Intelligence Center (desktop only) */}
         <IntelligencePanel
@@ -3905,7 +3921,7 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
           */}
 
           {/* V4 LEADERBOARD or DRIFT MONITOR */}
-          {dashboardMode === 'leaderboard' && !(wideScreen && layout !== 'table') ? leaderboards : null}
+          {dashboardMode === 'leaderboard' ? leaderboards : null}
 
           {/* Drift Monitor Mode */}
           {(dashboardMode as string) === 'drift' && (
@@ -3988,7 +4004,8 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
           leaderboardSortBy={leaderboardSortBy}
           leaderboardPeriod={leaderboardPeriod}
         />
-      </div>{/* end v4-grid3 */}
+      </div>
+      )}{/* end v4-grid3 */}
 
       {/* V4 FOOTER */}
       <V4Footer visitorCount={visitorCount} />

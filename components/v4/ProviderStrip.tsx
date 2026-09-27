@@ -34,11 +34,11 @@ const PROVIDERS = [
   { key: 'kimi', label: 'KIMI', dot: 'kimi' },
 ];
 
-interface Health { status: string; responseTime: number | null; lastChecked: string | null; error: string | null }
+export interface Health { status: string; responseTime: number | null; lastChecked: string | null; error: string | null }
 
-export default function ProviderStrip({ modelScores }: ProviderStripProps) {
+/** The ten-minute availability probe per provider (/providers). null until it answers, and if it never does. */
+export function useProviderHealth(): Record<string, Health> | null {
   const [health, setHealth] = useState<Record<string, Health> | null>(null);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -55,25 +55,32 @@ export default function ProviderStrip({ modelScores }: ProviderStripProps) {
     })();
     return () => { cancelled = true; };
   }, []);
+  return health;
+}
+
+/** OK / SLOW / DOWN for one provider's probe, or null when there is nothing to say. */
+export function providerStatus(h: Health | undefined): { label: string; color: string; title: string } | null {
+  if (!h || !h.status || h.status === 'unknown') return null;
+  if (h.status === 'operational') {
+    return {
+      label: 'OK',
+      color: 'var(--phosphor-green)',
+      title: `Answered our last check${h.responseTime ? ` in ${(h.responseTime / 1000).toFixed(1)}s` : ''}`,
+    };
+  }
+  if (h.status === 'degraded') {
+    return { label: 'SLOW', color: 'var(--amber-warning)', title: 'Answered, but slowly' };
+  }
+  return { label: 'DOWN', color: 'var(--red-alert)', title: h.error ? h.error.slice(0, 120) : 'Did not answer our last check' };
+}
+
+export default function ProviderStrip({ modelScores }: ProviderStripProps) {
+  const health = useProviderHealth();
 
   // Only show providers we actually have models for, as before.
   const activeProviders = PROVIDERS.filter(p => modelScores.some(m => m.provider === p.key));
 
-  const render = (key: string): { label: string; color: string; title: string } | null => {
-    const h = health?.[key];
-    if (!h || !h.status || h.status === 'unknown') return null;
-    if (h.status === 'operational') {
-      return {
-        label: 'OK',
-        color: 'var(--phosphor-green)',
-        title: `Answered our last check${h.responseTime ? ` in ${(h.responseTime / 1000).toFixed(1)}s` : ''}`,
-      };
-    }
-    if (h.status === 'degraded') {
-      return { label: 'SLOW', color: 'var(--amber-warning)', title: 'Answered, but slowly' };
-    }
-    return { label: 'DOWN', color: 'var(--red-alert)', title: h.error ? h.error.slice(0, 120) : 'Did not answer our last check' };
-  };
+  const render = (key: string) => providerStatus(health?.[key]);
 
   return (
     <div className="v4-prov-strip">
