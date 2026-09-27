@@ -40,7 +40,6 @@ import {
   AnalyticsPanel,
   BelowLeaderboard,
   ProviderStrip,
-  MeterBar,
   QuickInfo,
   MobileNav,
   V4Footer,
@@ -3904,13 +3903,6 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
             </a>
           </div>
           */}
-
-          {/* Stupid Meter */}
-          <MeterBar
-            globalIndex={globalIndex}
-            modelScores={modelScores}
-            loading={loading}
-          />
 
           {/* V4 LEADERBOARD or DRIFT MONITOR */}
           {dashboardMode === 'leaderboard' && !(wideScreen && layout !== 'table') ? leaderboards : null}
