@@ -6,7 +6,11 @@ import '../../styles/docs.css';
  * Layout and building blocks for the long reading pages (About, Methodology, FAQ).
  *
  * On a wide screen: a sticky "on this page" list on the left and the content on the right —
- * prose held to a readable measure, card grids and tables allowed the full content width.
+ * prose held to a readable measure, tables allowed the full content width.
+ *
+ * Deliberately no card grids or callout boxes: pages built as grids of bordered text boxes were
+ * rejected by the owner as "full of containers". Text goes in prose, lists and Facts rows; only
+ * numbers (Stats) and tabular data (tables) get a frame.
  * Below 1100px the list becomes a row of links above the content. Server components, except
  * the list itself (it highlights the section in view).
  *
@@ -54,30 +58,6 @@ export function Section({ id, title, lead, children }: { id: string; title: stri
 
 export function Prose({ children }: { children: React.ReactNode }) {
   return <div className="doc-prose">{children}</div>;
-}
-
-export function Cards({ min = 240, children }: { min?: number; children: React.ReactNode }) {
-  // auto-fit: a row of three in a four-column-wide space stretches to fill it instead of leaving a hole
-  return <div className="doc-cards" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(min(${min}px, 100%), 1fr))` }}>{children}</div>;
-}
-
-export function Card({ title, kicker, children }: { title?: React.ReactNode; kicker?: string; children: React.ReactNode }) {
-  return (
-    <div className="doc-card">
-      {kicker && <div className="doc-card-kicker">{kicker}</div>}
-      {title && <h3>{title}</h3>}
-      <div className="doc-card-body">{children}</div>
-    </div>
-  );
-}
-
-export function Callout({ tone = 'info', title, children }: { tone?: 'info' | 'warn' | 'good'; title?: string; children: React.ReactNode }) {
-  return (
-    <div className={`doc-callout is-${tone}`}>
-      {title && <div className="doc-callout-title">{title}</div>}
-      <div>{children}</div>
-    </div>
-  );
 }
 
 export function Stats({ items }: { items: { value: React.ReactNode; label: string }[] }) {

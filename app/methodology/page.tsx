@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { DocPage, Section, Prose, Cards, Card, Callout, Stats, Facts } from '@/components/docs/Doc';
+import { DocPage, Section, Prose, Stats, Facts } from '@/components/docs/Doc';
 
 export const metadata: Metadata = {
   title: 'AI Benchmarking Methodology | How We Test AI Models',
@@ -107,9 +107,14 @@ const CODING_WEIGHTS: [string, number, string][] = [
   ['Complexity', 0, 'Measured and shown, but cannot separate models (below)'],
 ];
 
-const TOOL_WEIGHTS: [string, number][] = [
-  ['Task completion', 30], ['Tool selection', 20], ['Parameter accuracy', 15], ['Efficiency', 15],
-  ['Error handling', 10], ['Context awareness', 5], ['Safety compliance', 5],
+const TOOL_WEIGHTS: [string, number, string][] = [
+  ['Task completion', 30, 'Is the job actually done at the end?'],
+  ['Tool selection', 20, 'The right tool for each step'],
+  ['Parameter accuracy', 15, 'Called with the correct arguments'],
+  ['Efficiency', 15, 'No unnecessary calls'],
+  ['Error handling', 10, 'Recovering when a call fails'],
+  ['Context awareness', 5, 'Carrying earlier output forward'],
+  ['Safety compliance', 5, 'Avoiding destructive operations'],
 ];
 
 // Effective shares, not the raw weights in deepbench/tasks.ts: the scorer divides by the weights
@@ -167,36 +172,34 @@ export default async function MethodologyPage() {
     >
       <Section id="reading" title="Reading the leaderboards"
         lead="The home page shows four leaderboards of the same models. Visitors choose how they are laid out; the numbers are identical in every layout.">
-        <Cards min={230}>
-          <Card kicker="The four boards" title="Combined, Coding, Reasoning, Tool use">
-            <p>Combined weights coding 50% and reasoning and tool use 25% each. Coding is re-measured every four hours, reasoning and tool use daily. Best at the top of each.</p>
-          </Card>
-          <Card kicker="Ranks" title="“=” means a statistical tie">
-            <p>Models whose gap is smaller than the measurement can resolve share a rank, shown as “=4”. A rank without “=” stands on its own. How ties are decided is <a href="#ranks">below</a>.</p>
-          </Card>
-          <Card kicker="Notes under a model" title="Amber: fewer tasks. Grey: not ranked">
-            <p>An amber note such as “5/7 tasks” means the provider declined some tasks and the model was graded on the rest. A grey group at the foot of a board holds models with no current rank there — <a href="#community">community-funded</a> ones show the date of their last funded run.</p>
-          </Card>
-          <Card kicker="Period" title="Latest, 24H, 7D, 1M">
-            <p>Latest is the newest score. The others are the average of real measurements inside the window. Seven days of history are free; the month view is on paid plans.</p>
-          </Card>
-        </Cards>
-
+        <Prose>
+          <p>The four boards are <b>Combined</b>, <b>Coding</b>, <b>Reasoning</b> and <b>Tool use</b>, each with the best model at the top. Combined weights coding 50% and reasoning and tool use 25% each. Coding is re-measured every four hours, reasoning and tool use once a day.</p>
+        </Prose>
+        <Facts rows={[
+          ['“=4”', <>A statistical tie: the models sharing the rank are closer than the measurement can separate. A rank without “=” stands on its own. <a key="r" href="#ranks">How ties are decided</a>.</>],
+          ['Amber “5/7 tasks”', 'The provider declined some tasks, and the model was graded on the rest.'],
+          ['Grey group at the foot', <>Models with no current rank on that board. <a key="c" href="#community">Community-funded</a> models show the date of their last funded run.</>],
+          ['Latest, 24H, 7D, 1M', 'Latest is the newest score; the others average the real measurements in the window. Seven days of history are free; the month view is on paid plans.'],
+        ]} />
         <Prose>
           <h3>The four layouts</h3>
-          <p>A first-time visitor picks one; the choice is kept in the browser, and in the account when signed in (Settings → Leaderboard layout). The Layout button above the boards changes it at any time, and “How to read this” explains the layout on screen.</p>
+          <p>A first-time visitor picks one. The choice is kept in the browser, and in the account when signed in (Settings → Leaderboard layout). The Layout button above the boards changes it at any time, and “How to read this” explains the layout on screen.</p>
         </Prose>
-        <Cards min={230}>
-          <Card title="Connected (default)"><p>Each board is a column; a line joins the same model across them, so where it is strong and where it slips reads at a glance. Click a model to follow it; the bar above shows its place on all four.</p></Card>
-          <Card title="Side by side"><p>The four boards as four full lists. On a phone, swipe between them.</p></Card>
-          <Card title="Table"><p>One row per model: all four scores, each with its rank on that board, plus price. Click a heading to rank by it.</p></Card>
-          <Card title="Top 5"><p>The first five of each board, the community-funded models in a strip of their own, and one full board underneath with a tab per board.</p></Card>
-        </Cards>
-
+        <Facts rows={[
+          ['Connected (default)', 'Each board is a column and a line joins the same model across them, so where it is strong and where it slips reads at a glance. Click a model to follow it; the bar above shows its place on all four.'],
+          ['Side by side', 'The four boards as four full lists. On a phone, swipe between them.'],
+          ['Table', 'One row per model: all four scores, each with its rank on that board, plus price. Click a heading to rank by it.'],
+          ['Top 5', 'The first five of each board, the community-funded models in a strip of their own, and one full board underneath with a tab per board.'],
+        ]} />
         <Prose>
-          <h3>Under the boards</h3>
-          <p>Below the boards: <b>Needs attention</b> (only when a measured problem exists), <b>Quick answers</b> (<a href="#quick">how they are picked</a>), <b>Compare models</b> — a heatmap of every model&apos;s measures, a radar of the top and bottom three, and a price-performance table (score per dollar of list price), switched between boards by the tabs above them — and <b>Providers and method</b>: each provider&apos;s live status from a check every ten minutes, a trust score from its incident history, and the test schedule. Signed-in visitors also see <b>Your watchlist</b> above the boards: every model they have starred, with its place on each board. Starring a model also switches on email for it: an alert when its measured coding score is five or more points below a week earlier (the threshold is adjustable on paid plans) or a task-level regression is open, and a weekly summary.</p>
-          <p>The <b>Drift monitor</b> view, next to Leaderboard at the top, compares every model with its own past rather than with the other models.</p>
+          <h3>Around the boards</h3>
+          <ul>
+            <li><b>Your watchlist</b>, above the boards when signed in: every model you have starred, with its place on each board. Starring a model also switches on email for it — a weekly summary, and an alert when its measured coding score is five or more points below a week earlier (adjustable on paid plans) or a task-level regression is open.</li>
+            <li><b>Needs attention</b>, only when a measured problem exists, and <b>Quick answers</b> — <a href="#quick">how they are picked</a>.</li>
+            <li><b>Compare models</b>: a heatmap of every model&apos;s measures, a radar of the top and bottom three, and a price-performance table (score per dollar of list price), switched between boards by the tabs above them.</li>
+            <li><b>Providers and method</b>: each provider&apos;s live status from a check every ten minutes, a trust score from its incident history, and the test schedule.</li>
+            <li>The <b>Drift monitor</b> view, next to Leaderboard at the top, compares every model with its own past rather than with the other models.</li>
+          </ul>
         </Prose>
       </Section>
 
@@ -210,14 +213,15 @@ export default async function MethodologyPage() {
 
       <Section id="coding" title="Coding suite"
         lead={`Every four hours. ${coding ? `${coding.total} tasks — ${coding.repoTasks} repository debugging tasks${coding.hardFunctionTasks ? ` and ${coding.hardFunctionTasks} hard single-function task${coding.hardFunctionTasks > 1 ? 's' : ''}` : ''}` : 'Seven tasks'}, all run every sweep, seven attempts each, graded by execution.`}>
-        <div className="doc-weights">
-          {CODING_WEIGHTS.map(([name, w, note]) => (
-            <div key={name} className="doc-weight">
-              <span>{name}</span><b>{w}%</b>
-              <i><span style={{ width: `${Math.max(w, 0) / 55 * 100}%` }} /></i>
-              <small>{note}</small>
-            </div>
-          ))}
+        <div className="doc-table-wrap is-narrow">
+          <table className="doc-table">
+            <thead><tr><th>Measure</th><th className="num">Weight</th><th>What it measures</th></tr></thead>
+            <tbody>
+              {CODING_WEIGHTS.map(([name, w, note]) => (
+                <tr key={name}><td>{name}</td><td className="num">{w}%</td><td className="doc-muted">{note}</td></tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         <Prose>
           <p><b>Why these weights.</b> They follow what each measure can actually tell apart, not how important it sounds, measured by averaging each model over several sweeps and taking the spread between models. Complexity varies by four thousandths across the fleet, so it cannot move anyone&apos;s rank and carries no weight (it used to carry 20%); it is still measured and shown. Format and safety are guardrails that sit near 100% for everyone by design — their job is to cost a model points if it ever emits malformed or dangerous code.</p>
@@ -239,29 +243,31 @@ export default async function MethodologyPage() {
         <div className="doc-table-wrap">
           <table className="doc-table">
             <thead>
-              <tr><th>Task</th><th>What it asks</th><th className="num">Correctness</th><th className="num">Memory</th><th className="num">Plan</th><th className="num">Context</th><th className="num">Recovery*</th></tr>
+              <tr><th>Task</th><th className="doc-hide-sm">What it asks</th><th className="num">Correctness</th><th className="num">Memory</th><th className="num">Plan</th><th className="num">Context</th><th className="num">Recovery*</th></tr>
             </thead>
             <tbody>
               {DEEP_TASKS.map((t) => (
-                <tr key={t.task}><td><b>{t.task}</b></td><td>{t.what}</td>{t.w.map((w, i) => <td key={i} className="num">{w === null ? '—' : `${w}%`}</td>)}</tr>
+                <tr key={t.task}><td>{t.task}</td><td className="doc-muted doc-hide-sm">{t.what}</td>{t.w.map((w, i) => <td key={i} className="num">{w === null ? '—' : `${w}%`}</td>)}</tr>
               ))}
             </tbody>
           </table>
         </div>
         <Prose>
-          <p className="doc-muted">Share of the task&apos;s score each measure carries in a normal session. A measure the session gives no evidence for drops out and the rest are rescaled; it is never scored as zero. Plan coherence is not taken on tasks that ask for no plan. *Recovery counts only in a session where a step failed and the model was asked again — since 23 September about one Spec follow or Refactor project session in seven, and no IDE assistant session — taking the share shown and scaling the others down. A document answer is never re-asked, so Document memory has none. Rounded.</p>
+          <p className="doc-muted doc-note">Share of the task&apos;s score each measure carries in a normal session. A measure the session gives no evidence for drops out and the rest are rescaled; it is never scored as zero. Plan coherence is not taken on tasks that ask for no plan. *Recovery counts only in a session where a step failed and the model was asked again — since 23 September about one Spec follow or Refactor project session in seven, and no IDE assistant session — taking the share shown and scaling the others down. A document answer is never re-asked, so Document memory has none. Rounded.</p>
         </Prose>
       </Section>
 
       <Section id="tooling" title="Tool-use suite"
         lead="Daily at 04:00 Berlin time. Nine tasks, each in a real sandboxed machine: either the job is done at the end or it is not.">
-        <div className="doc-weights">
-          {TOOL_WEIGHTS.map(([name, w]) => (
-            <div key={name} className="doc-weight">
-              <span>{name}</span><b>{w}%</b>
-              <i><span style={{ width: `${w / 30 * 100}%` }} /></i>
-            </div>
-          ))}
+        <div className="doc-table-wrap is-narrow">
+          <table className="doc-table">
+            <thead><tr><th>Measure</th><th className="num">Weight</th><th>What it measures</th></tr></thead>
+            <tbody>
+              {TOOL_WEIGHTS.map(([name, w, note]) => (
+                <tr key={name}><td>{name}</td><td className="num">{w}%</td><td className="doc-muted">{note}</td></tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         <Prose>
           <p>Each model sees its own tool calls and their results in its provider&apos;s native tool format, with its own reasoning carried between calls. Until 23 September 2026 results came back as plain chat text, and some models read that as the call never having run and repeated it — part of what the suite measured was our transcript format.</p>
@@ -276,9 +282,9 @@ export default async function MethodologyPage() {
           ['Fires when', 'the fall is at least 12 points at p < 0.01; it closes itself when the gap does'],
           ['Cold start', 'about four days after a test-version change before it can fire'],
         ]} />
-        <Callout tone="warn" title="Corrected in September 2026">
-          Until 13 September 2026 this suite raised an incident on any 10% fall in a 24-hour mean, with no significance test, on answers cut off at 500 tokens. The 446 incidents it produced are retracted and excluded from every count on this site. The drift signature had a related fault — it mixed the three suites&apos; different scales — and the 46 provider-wide incidents and 1,145 change points recorded before that date came from it.
-        </Callout>
+        <Prose>
+          <p><b>Corrected in September 2026.</b> Until 13 September 2026 this suite raised an incident on any 10% fall in a 24-hour mean, with no significance test, on answers cut off at 500 tokens. The 446 incidents it produced are retracted and excluded from every count on this site. The drift signature had a related fault — it mixed the three suites&apos; different scales — and the 46 provider-wide incidents and 1,145 change points recorded before that date came from it.</p>
+        </Prose>
       </Section>
 
       <Section id="ranks" title="Uncertainty and ranks"
@@ -334,27 +340,27 @@ export default async function MethodologyPage() {
 
       <Section id="quick" title="Quick answers"
         lead="Each card under the boards has one stated definition. Only models measured on every suite and task qualify.">
-        <Cards min={250}>
-          <Card title="Best for code"><p>The highest score on the coding board.</p></Card>
-          <Card title="Most reliable"><p>The smallest spread of its coding score over its recent runs on one test version (at least five runs), among the models within five points of the top.</p></Card>
-          <Card title="Fastest response"><p>The lowest median response time over the last 48 hours (at least five runs), among the models within five points of the top.</p></Card>
-          <Card title="Best value"><p>The most points per measured dollar of one identical coding run — every attempt billed — among the models within five points of the top.</p></Card>
-          <Card title="Poor value"><p>Another ranked model scores at least as high for a third of the cost per coding run, or less. A price judgement, not a fault.</p></Card>
-          <Card title="Needs attention"><p>Genuine problems only: a serious measured degradation, a score of 55 or below, or unusually high run-to-run variance.</p></Card>
-        </Cards>
+        <Facts rows={[
+          ['Best for code', 'The highest score on the coding board.'],
+          ['Most reliable', 'The smallest spread of its coding score over its recent runs on one test version (at least five runs), among the models within five points of the top.'],
+          ['Fastest response', 'The lowest median response time over the last 48 hours (at least five runs), among the models within five points of the top.'],
+          ['Best value', 'The most points per measured dollar of one identical coding run — every attempt billed — among the models within five points of the top.'],
+          ['Poor value', 'Another ranked model scores at least as high for a third of the cost per coding run, or less. A price judgement, not a fault.'],
+          ['Needs attention', 'Genuine problems only: a serious measured degradation, a score of 55 or below, or unusually high run-to-run variance.'],
+        ]} />
         <Prose>
-          <p>For these cards cost is measured, not list price: every model runs the same seven coding tasks and every attempt is billed, so a verbose model costs what it really costs per task. (The price-performance table beside them uses list price.)</p>
+          <p>For these cards cost is measured, not list price: every model runs the same seven coding tasks and every attempt is billed, so a verbose model costs what it really costs per task. The price-performance table beside them uses list price.</p>
         </Prose>
       </Section>
 
       <Section id="extra" title="Other test suites"
         lead="Run as separate sweeps so the scored series stays a clean capability measurement. None of these feeds a leaderboard score. Statuses are read from the database hourly.">
-        <Cards min={240}>
-          <Card title="Adversarial safety"><p>18 probes across five attack types: jailbreak, injection, extraction, manipulation and harmful content. One probe per model per four-hour run, rotating.</p><p><b>{suiteStatusLine(status?.adversarial)}</b></p></Card>
-          <Card title="Prompt robustness"><p>11 variations — paraphrase, restructure, style change. The same task reworded and scored by the same runner, so a variant score compares with a real one.</p><p><b>{suiteStatusLine(status?.robustness)}</b></p></Card>
-          <Card title="Bias detection"><p>19 variants across gender, ethnicity and age, plus a neutral baseline. The nightly sweep takes one variant from each category.</p><p><b>{suiteStatusLine(status?.bias)}</b></p></Card>
-          <Card title="Version tracking"><p>Every score records the test version it ran under. Detecting a provider&apos;s own model-version change is not yet implemented.</p></Card>
-        </Cards>
+        <Facts rows={[
+          ['Adversarial safety', <>18 probes across five attack types — jailbreak, injection, extraction, manipulation and harmful content. One probe per model per four-hour run, rotating.<span key="s" className="doc-fact-sub">{suiteStatusLine(status?.adversarial)}</span></>],
+          ['Prompt robustness', <>11 variations — paraphrase, restructure, style change. The same task reworded and scored by the same runner, so a variant score compares with a real one.<span key="s" className="doc-fact-sub">{suiteStatusLine(status?.robustness)}</span></>],
+          ['Bias detection', <>19 variants across gender, ethnicity and age, plus a neutral baseline. The nightly sweep takes one variant from each category.<span key="s" className="doc-fact-sub">{suiteStatusLine(status?.bias)}</span></>],
+          ['Version tracking', 'Every score records the test version it ran under. Detecting a provider’s own model-version change is not yet implemented.'],
+        ]} />
       </Section>
 
       <Section id="data" title="Data to date"
@@ -366,9 +372,9 @@ export default async function MethodologyPage() {
           { value: n(corpus?.incidents), label: 'change points and incidents on record' },
         ]} />
         <Prose>
-          <p className="doc-muted">Runs are individual task attempts, all real executions. Retracted incidents are excluded from the last figure; 1,145 of the change points in it predate 13 September 2026 and came from the mixed-suite series described under <a href="#canary">Hourly canary</a>.</p>
+          <p className="doc-muted doc-note">Runs are individual task attempts, all real executions. Retracted incidents are excluded from the last figure; 1,145 of the change points in it predate 13 September 2026 and came from the mixed-suite series described under <a href="#canary">Hourly canary</a>.</p>
           <h3>Models tested ({models.length || '—'})</h3>
-          <p className="doc-muted">
+          <p>
             {models.length
               ? models.map((m, i) => <span key={m.name}>{i > 0 && ' · '}<Link href={`/models/${m.name}`}>{m.displayName}</Link></span>)
               : 'Unavailable right now.'}
@@ -391,16 +397,15 @@ export default async function MethodologyPage() {
       </Section>
 
       <Section id="compare" title="Compared with other benchmarks">
-        <Cards min={220}>
-          <Card title="vs. HumanEval"><p>Single-shot pass/fail on well-known functions. Here: repository debugging with hidden tests, seven attempts, an interval on every score.</p></Card>
-          <Card title="vs. MMLU"><p>Multiple choice. Here: the model&apos;s code is executed and its tool use happens in a real machine.</p></Card>
-          <Card title="vs. Chatbot Arena"><p>Human preference votes. Here: objective execution against tests.</p></Card>
-          <Card title="vs. vendor benchmarks"><p>Run once at launch by the company selling the model. Here: re-run on a schedule, independently, for as long as the model is served.</p></Card>
-        </Cards>
-        <Callout title="Check it yourself">
-          “Test your keys” runs the same tasks with your own API keys and scores them with the same code as our published runs. The web application is open source; the task bank is kept private, because when it was public providers optimised against it.{' '}
-          <Link href="/router/test-keys">Test your keys</Link> · <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">Source code</a>
-        </Callout>
+        <Facts rows={[
+          ['HumanEval', 'Single-shot pass/fail on well-known functions. Here: repository debugging with hidden tests, seven attempts, an interval on every score.'],
+          ['MMLU', 'Multiple choice. Here: the model’s code is executed and its tool use happens in a real machine.'],
+          ['Chatbot Arena', 'Human preference votes. Here: objective execution against tests.'],
+          ['Vendor benchmarks', 'Run once at launch by the company selling the model. Here: re-run on a schedule, independently, for as long as the model is served.'],
+        ]} />
+        <Prose>
+          <p><b>Check it yourself.</b> <Link href="/router/test-keys">Test your keys</Link> runs the same tasks with your own API keys and scores them with the same code as our published runs. The <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">web application is open source</a>; the task bank is kept private, because when it was public providers optimised against it.</p>
+        </Prose>
       </Section>
 
       <script
