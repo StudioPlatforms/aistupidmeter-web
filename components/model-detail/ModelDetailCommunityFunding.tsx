@@ -14,7 +14,7 @@
  * run, and is never stored — the card says exactly what happens to it rather than just "safe".
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Suite = 'deep' | 'tooling';
 interface Estimate { usd: number | null; min: number | null; max: number | null; runs: number; capUsd: number }
@@ -78,9 +78,18 @@ export default function ModelDetailCommunityFunding({
   // A leaderboard's "Fund a run" link lands here with ?fund=1: go straight to the funding
   // dialog. Declared before the intro effect and marks the intro seen, so the visitor gets
   // one dialog, not the explanation of something they already chose to do.
+  //
+  // Once per visit, and the flag comes out of the address as it is used: closing the dialog
+  // reloads `state`, which re-ran this effect with ?fund=1 still in the URL and reopened it —
+  // every close bounced straight back (and a reload or Back would have reopened it too).
+  const autoOpened = useRef(false);
   useEffect(() => {
-    if (!state?.communitySuites?.length) return;
-    if (new URLSearchParams(window.location.search).get('fund') !== '1') return;
+    if (autoOpened.current || !state?.communitySuites?.length) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('fund') !== '1') return;
+    autoOpened.current = true;
+    url.searchParams.delete('fund');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
     try { localStorage.setItem(seenKey, 'true'); } catch { /* private mode: the intro may follow */ }
     setFundOpen(true);
   }, [state, seenKey]);
