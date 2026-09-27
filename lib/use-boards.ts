@@ -215,6 +215,15 @@ export function useBoards(period: string, enabled = true) {
   return { boards, loading, error };
 }
 
+/** A model's place on one board, in words: rank and score, or why it has none. */
+export function standingOn(boards: Boards, k: BoardKey, id: string): { v: string; sub: string; ranked: boolean } {
+  const r = boards[k].ranked.find((x) => x.id === id);
+  if (r) return { v: r.rankText, sub: `score ${r.score}`, ranked: true };
+  const c = boards[k].community.find((x) => x.id === id);
+  if (c) return { v: '—', sub: k === 'combined' ? 'coding only' : `${c.score} on ${c.when}`, ranked: false };
+  return { v: '—', sub: 'not ranked', ranked: false };
+}
+
 /** Width of an element, tracked. 0 until measured. */
 export function useElementWidth<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);

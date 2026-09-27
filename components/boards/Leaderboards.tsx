@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { LAYOUT_INFO, type BoardLayout } from '../../lib/board-layout';
 import { useBoards, type SortKey } from '../../lib/use-boards';
 import { LayoutSketch } from './LayoutChooser';
@@ -7,6 +8,7 @@ import LayoutConnected from './LayoutConnected';
 import LayoutSide from './LayoutSide';
 import LayoutTable from './LayoutTable';
 import LayoutTop from './LayoutTop';
+import WatchlistCard from './WatchlistCard';
 import '../../styles/boards.css';
 
 /**
@@ -22,6 +24,8 @@ export default function Leaderboards({ layout, period, sortKey, onSortChange, on
   onHelp: () => void;
 }) {
   const { boards, loading, error } = useBoards(period);
+  // The model followed in the Connected layout. Kept here so a watchlist card can set it too.
+  const [followed, setFollowed] = useState<string | null>(null);
 
   return (
     <section className={`lbx lbx--${layout}${loading && boards ? ' is-refreshing' : ''}`} aria-label="Leaderboards">
@@ -37,10 +41,18 @@ export default function Leaderboards({ layout, period, sortKey, onSortChange, on
 
       {loading && boards && <div className="v4-lb-loading-bar" role="progressbar" aria-label="Updating leaderboards" />}
 
+      {boards && (
+        <WatchlistCard
+          boards={boards}
+          onPick={layout === 'connected' ? setFollowed : undefined}
+          picked={layout === 'connected' ? followed : null}
+        />
+      )}
+
       {!boards ? (
         <div className="lbx-empty">{error ? 'The leaderboards could not be loaded. Retrying shortly…' : 'Loading the leaderboards…'}</div>
       ) : layout === 'connected' ? (
-        <LayoutConnected boards={boards} />
+        <LayoutConnected boards={boards} selected={followed} onSelect={setFollowed} />
       ) : layout === 'side' ? (
         <LayoutSide boards={boards} />
       ) : layout === 'table' ? (

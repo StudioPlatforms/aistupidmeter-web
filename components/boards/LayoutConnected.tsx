@@ -2,8 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import WatchStar from '../WatchStar';
-import { BOARD_KEYS, BOARD_TITLE, BOARD_CADENCE, useElementWidth, type Board, type BoardRow, type Boards } from '../../lib/use-boards';
+import { BOARD_KEYS, BOARD_TITLE, BOARD_CADENCE, standingOn, useElementWidth, type Board, type BoardRow, type Boards } from '../../lib/use-boards';
 import { Logo, Star, modelHref } from './BoardBits';
 
 /**
@@ -43,9 +42,11 @@ function columnItems(board: Board): Item[] {
   return items;
 }
 
-export default function LayoutConnected({ boards }: { boards: Boards }) {
+/** `selected` lives in Leaderboards so the watchlist card can pick a model to follow too. */
+export default function LayoutConnected({ boards, selected, onSelect }: {
+  boards: Boards; selected: string | null; onSelect: (id: string) => void;
+}) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
-  const [selected, setSelected] = useState<string | null>(null);
   const [hover, setHover] = useState<string | null>(null);
 
   const cols = useMemo(() => BOARD_KEYS.map((k) => {
@@ -71,7 +72,7 @@ export default function LayoutConnected({ boards }: { boards: Boards }) {
     <div ref={ref} className="lbx-conn">
       {width === 0 ? null : width >= 1000
         ? <Columns cols={cols} width={width} focus={focus} sel={sel} everyone={everyone}
-                   onSelect={setSelected} onHover={setHover} boards={boards} />
+                   onSelect={onSelect} onHover={setHover} boards={boards} />
         : <RankLines boards={boards} everyone={everyone} />}
     </div>
   );
@@ -119,22 +120,30 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
               {items.map((it, i) => it.kind === 'label'
                 ? <div key={`l${i}`} className="lbx-conn-label" style={{ height: LABEL }}>{it.text}</div>
                 : (
-                  <button
+                  <div
                     key={it.row.id}
-                    type="button"
                     className={`lbx-conn-row${it.group !== 'ranked' ? ' is-muted' : ''}${it.row.id === focus ? ' is-hot' : ''}`}
                     style={{ height: ROW }}
-                    onClick={() => onSelect(it.row.id)}
                     onMouseEnter={() => onHover(it.row.id)}
-                    onFocus={() => onHover(it.row.id)}
-                    onBlur={() => onHover(null)}
-                    aria-pressed={it.row.id === sel}
-                    title={it.group === 'other' && it.row.staleReason ? it.row.staleReason : `Follow ${it.row.label} across the four boards`}
                   >
                     <span className="lbx-conn-rank">{it.group === 'ranked' ? it.row.rankText : '–'}</span>
-                    <span className="lbx-model"><Logo provider={it.row.provider} size={13} box={20} /><span className="lbx-name">{it.row.label}</span></span>
+                    <span className="lbx-model">
+                      <Star row={it.row} size={12} />
+                      <Logo provider={it.row.provider} size={13} box={20} />
+                      <button
+                        type="button"
+                        className="lbx-name lbx-conn-pick lbx-stretch"
+                        onClick={() => onSelect(it.row.id)}
+                        onFocus={() => onHover(it.row.id)}
+                        onBlur={() => onHover(null)}
+                        aria-pressed={it.row.id === sel}
+                        title={it.group === 'other' && it.row.staleReason ? it.row.staleReason : `Follow ${it.row.label} across the four boards`}
+                      >
+                        {it.row.label}
+                      </button>
+                    </span>
                     <span className="lbx-conn-score">{it.row.score ?? '—'}</span>
-                  </button>
+                  </div>
                 ))}
             </div>
           ))}
@@ -154,29 +163,20 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
   );
 }
 
-function standing(boards: Boards, k: (typeof BOARD_KEYS)[number], id: string): { v: string; sub: string } {
-  const r = boards[k].ranked.find((x) => x.id === id);
-  if (r) return { v: r.rankText, sub: `score ${r.score}` };
-  const c = boards[k].community.find((x) => x.id === id);
-  if (c) return { v: '—', sub: k === 'combined' ? 'coding only' : `${c.score} on ${c.when}` };
-  return { v: '—', sub: 'not ranked' };
-}
-
 function TraceBar({ row, boards }: { row: BoardRow; boards: Boards }) {
   const isCommunity = row.community.length > 0;
   return (
     <div className="lbx-trace" aria-live="polite">
       <div className="lbx-trace-who">
-        <WatchStar modelId={row.id} modelName={row.label} size={15} />
         <Logo provider={row.provider} size={16} box={26} />
         <span className="lbx-trace-id">
-          <span className="lbx-trace-name">{row.label}</span>
+          <span className="lbx-trace-name"><span className="lbx-trace-kicker">Following</span> {row.label}</span>
           <span className="lbx-trace-hint">Click any model in the columns to follow it across the boards</span>
         </span>
       </div>
       <div className="lbx-trace-stats">
         {BOARD_KEYS.map((k) => {
-          const s = standing(boards, k, row.id);
+          const s = standingOn(boards, k, row.id);
           return (
             <div key={k} className="lbx-trace-stat">
               <span className="lbx-trace-label">{BOARD_TITLE[k]}</span>

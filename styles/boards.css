@@ -317,3 +317,40 @@ a.lbx-name:hover { color: var(--accent); }
 /* the connected layout's trace bar says how to use it */
 .lbx-trace-id { display: flex; flex-direction: column; min-width: 0; }
 .lbx-trace-hint { font-size: 11.5px; line-height: 15px; color: var(--phosphor-dim); }
+
+/* ── your watchlist (every layout, signed in) ─────────────────────── */
+.lbx-wl { margin-bottom: 14px; padding: 12px 14px 14px; background: var(--terminal-dark); border: 1px solid var(--metal-silver); border-radius: 8px; }
+.lbx-wl--empty { display: flex; align-items: center; gap: 8px; padding: 10px 14px; font-size: 12.5px; color: var(--phosphor-dim); }
+.lbx-wl-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.lbx-wl-title { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--phosphor-green); }
+.lbx-wl-staricon { font-size: 15px; line-height: 1; color: var(--phosphor-dim); }
+.lbx-wl-staricon.is-on { color: var(--amber-warning, #f9ab00); }
+.lbx-wl-count { font-size: 12px; color: var(--phosphor-dim); }
+.lbx-wl-manage { margin-left: auto; font-size: 12.5px; font-weight: 500; text-decoration: none; }
+.lbx-wl-manage:hover { text-decoration: underline; }
+.lbx-wl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.lbx-wl-item { position: relative; padding: 10px 12px; border: 1px solid var(--metal-silver); border-radius: 8px; background: var(--terminal-dark); }
+.lbx-wl-item:hover { border-color: var(--accent); }
+.lbx-wl-item.is-picked { border-color: var(--accent); background: var(--accent-bg); }
+.lbx-wl-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lbx-wl-name .lbx-name { font-size: 13.5px; font-weight: 600; }
+.lbx-wl-pick { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600; min-width: 0; }
+.lbx-wl-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.lbx-wl-stats dt { font-size: 10.5px; line-height: 14px; color: var(--phosphor-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lbx-wl-stats dd { display: flex; flex-direction: column; font-size: 11px; line-height: 14px; white-space: nowrap; color: var(--phosphor-dim); }
+.lbx-wl-stats dd b { line-height: 18px; }
+.lbx-wl-stats dd b { font-size: 14px; font-weight: 600; color: var(--phosphor-green); }
+.lbx-wl-stats dd.is-muted b { color: var(--phosphor-dim); font-weight: 500; }
+@media (max-width: 599px) {
+  .lbx-wl-grid { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .lbx-wl-grid::-webkit-scrollbar { display: none; }
+  .lbx-wl-item { flex: 0 0 min(280px, calc(100% - 30px)); scroll-snap-align: start; }
+}
+
+/* connected rows are a div now: the star beside a trace button stretched over the row */
+.lbx-conn-row { position: relative; cursor: pointer; }
+.lbx-conn-row:hover { background: var(--terminal-black); }
+.lbx-conn-row.is-hot:hover { background: var(--accent-bg); }
+.lbx-conn-pick { border: 0; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; font-size: 12.5px; min-width: 0; color: inherit; }
+.lbx-conn-row .lbx-star { margin: 0 -3px 0 -5px; }
+.lbx-trace-kicker { font-size: 11.5px; font-weight: 400; color: var(--phosphor-dim); margin-right: 2px; }
