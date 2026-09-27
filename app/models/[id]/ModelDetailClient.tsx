@@ -442,7 +442,7 @@ export default function ModelDetailClient({
   if (loading) {
     const progressBg = loadingProgress < 30 ? 'var(--red-alert)' : loadingProgress < 70 ? 'var(--amber-warning)' : 'var(--phosphor-green)';
     return (
-      <div className="md-loading">
+      <div className="md-loading" data-page-loading>
         <div className="md-loading-inner">
           <div className="md-loading-title">
             {(initialDisplayName || initialName || slug).toUpperCase().replace(/-/g, ' ')}

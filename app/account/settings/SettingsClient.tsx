@@ -139,7 +139,7 @@ export default function SettingsClient() {
       </div>
     );
   }
-  if (loading) return <div style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) return <div data-page-loading style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
 
   const user = session?.user as any;
   const plan: Plan = isPlan(prefs?.plan) ? (prefs!.plan as Plan) : 'free';

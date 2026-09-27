@@ -64,29 +64,33 @@ const hexToRgb = (hex: string) => {
     : '26, 115, 232';
 };
 
+/** The CSS variables a theme sets on <html>. Shared by applyTheme and the pre-paint boot script. */
+export function themeVars(theme: ThemeColors): Record<string, string> {
+  return {
+    // Core (legacy variable names, new clean values)
+    '--phosphor-green': theme.primary,
+    '--phosphor-dim': theme.primaryDim,
+    '--terminal-black': theme.background,
+    '--terminal-dark': theme.backgroundDark,
+    '--metal-silver': theme.border,
+    '--paper-white': theme.backgroundDark,
+    // Accent + semantic tokens
+    '--accent': theme.accent,
+    '--accent-ink': theme.accentInk,
+    '--accent-bg': theme.accentBg,
+    '--accent-rgb': hexToRgb(theme.accent),
+    '--primary-rgb': hexToRgb(theme.accent), // tints resolve to the accent
+    '--good': theme.good, '--good-bg': theme.goodBg,
+    '--warn': theme.warn, '--warn-bg': theme.warnBg,
+    '--bad': theme.bad, '--bad-bg': theme.badBg,
+    '--amber-warning': theme.warn,
+    '--red-alert': theme.bad,
+  };
+}
+
 export function applyTheme(theme: ThemeColors) {
   const root = document.documentElement;
-  const set = (k: string, v: string) => root.style.setProperty(k, v);
-
-  // Core (legacy variable names, new clean values)
-  set('--phosphor-green', theme.primary);
-  set('--phosphor-dim', theme.primaryDim);
-  set('--terminal-black', theme.background);
-  set('--terminal-dark', theme.backgroundDark);
-  set('--metal-silver', theme.border);
-  set('--paper-white', theme.backgroundDark);
-
-  // Accent + semantic tokens
-  set('--accent', theme.accent);
-  set('--accent-ink', theme.accentInk);
-  set('--accent-bg', theme.accentBg);
-  set('--accent-rgb', hexToRgb(theme.accent));
-  set('--primary-rgb', hexToRgb(theme.accent)); // tints resolve to the accent
-  set('--good', theme.good); set('--good-bg', theme.goodBg);
-  set('--warn', theme.warn); set('--warn-bg', theme.warnBg);
-  set('--bad', theme.bad);   set('--bad-bg', theme.badBg);
-  set('--amber-warning', theme.warn);
-  set('--red-alert', theme.bad);
+  for (const [k, v] of Object.entries(themeVars(theme))) root.style.setProperty(k, v);
 
   // Light/dark hook for CSS + native form controls
   root.setAttribute('data-theme', theme.isLight ? 'light' : 'dark');
@@ -94,6 +98,18 @@ export function applyTheme(theme: ThemeColors) {
 
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (metaThemeColor) metaThemeColor.setAttribute('content', theme.backgroundDark);
+}
+
+/**
+ * Inline script for the root layout's <head>: applies the saved theme before the first paint.
+ *
+ * applyTheme otherwise runs only when the top bar mounts, so anything drawn before it — the home
+ * and model pages' loading screens, which render without the top bar — came up in the light theme
+ * for a visitor who had chosen dark, and every page flashed light before switching.
+ */
+export function themeBootScript(): string {
+  const themes = THEMES.map((t) => ({ v: themeVars(t), light: t.isLight, bar: t.backgroundDark }));
+  return `(function(){try{var T=${JSON.stringify(themes)};var i=parseInt(localStorage.getItem('retro-theme-index')||'0',10);if(!(i>=0&&i<T.length))i=0;var t=T[i],r=document.documentElement;for(var k in t.v)r.style.setProperty(k,t.v[k]);r.setAttribute('data-theme',t.light?'light':'dark');r.style.colorScheme=t.light?'light':'dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t.bar);}catch(e){}})();`;
 }
 
 function getDefaultThemeIndex(): number {

@@ -68,8 +68,8 @@
 .doc-stat b { font-size: 24px; font-weight: 700; color: var(--phosphor-green); font-variant-numeric: tabular-nums; }
 .doc-stat span { font-size: 13px; color: var(--phosphor-dim); }
 
-.doc-facts { margin-top: 14px; max-width: 860px; border-top: 1px solid var(--metal-silver); }
-.doc-facts > div { display: grid; grid-template-columns: minmax(160px, 34%) 1fr; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--metal-silver); font-size: 14.5px; line-height: 1.6; }
+.doc-facts { margin-top: 14px; max-width: 900px; border-top: 1px solid var(--metal-silver); }
+.doc-facts > div { display: grid; grid-template-columns: minmax(170px, 27%) 1fr; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--metal-silver); font-size: 14.5px; line-height: 1.6; }
 .doc-facts dt { color: var(--phosphor-dim); }
 .doc-facts dd { color: var(--phosphor-green); }
 
@@ -103,9 +103,15 @@
 /* no rules between questions in the columns: the last one in each column would sit on the section's own rule */
 .doc-qa-grid .doc-qa { break-inside: avoid; border-bottom: 0; padding: 12px 0 16px; }
 
-/* team */
-.doc-person { display: flex; flex-direction: column; gap: 6px; }
-.doc-person-role { font-size: 12px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--accent); }
+/* team: a plain list, name and role on the left, bio on the right */
+.doc-people { margin-top: 12px; border-top: 1px solid var(--metal-silver); }
+.doc-person { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 6px 32px; padding: 22px 0; border-bottom: 1px solid var(--metal-silver); }
+.doc-person:last-child { border-bottom: 0; }
+.doc-person h3 { font-size: 17px; }
+.doc-person-role { margin-top: 4px; font-size: 12px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--accent); }
+.doc-person-link { display: inline-block; margin-top: 8px; font-size: 14px; color: var(--accent); }
+.doc-person p { max-width: 760px; margin: 0; font-size: 15.5px; line-height: 1.75; color: var(--phosphor-green); }
+.doc-facts a { color: var(--accent); }
 
 @media (max-width: 1099px) {
   .doc { padding: 24px 16px 40px; }
@@ -122,4 +128,5 @@
   .doc-section > h2 { font-size: 21px; }
   .doc-prose { font-size: 15px; }
   .doc-facts > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .doc-person { grid-template-columns: minmax(0, 1fr); padding: 18px 0; }
 }

@@ -160,7 +160,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
       </div>
     );
   }
-  if (loading) return <div style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) return <div data-page-loading style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
 
   const plan: Plan = usage && isPlan(usage.plan) ? usage.plan : 'free';
   const e = PLANS[plan];

@@ -60,36 +60,27 @@ export default function SiteFooter() {
 
   if (HIDDEN.some((re) => re.test(pathname))) return null;
 
+  // The original slim bar (styles/v4-layout.css .v4-footer, 32px, 10px type) — kept as it was;
+  // only where it is rendered changed.
   return (
-    <footer className="site-footer">
-      <nav className="site-footer-links" aria-label="Site">
-        <Link href="/">Leaderboards</Link>
-        <Link href="/methodology">Methodology</Link>
-        <Link href="/faq">FAQ</Link>
-        <Link href="/about">About</Link>
-        <Link href="/ai-drift-detection">Drift detection</Link>
-        <Link href="/pricing">Pricing</Link>
-        <Link href="/api-docs">Data API</Link>
+    <footer className="v4-footer site-footer">
+      <div>
+        A product of <a href="https://studioplatforms.eu" target="_blank" rel="noopener noreferrer">Studio Platforms</a> — © {new Date().getFullYear()}
+      </div>
+      <div className="v4-footer-center">
+        <a href="https://www.reddit.com/r/aistupidlevel/" target="_blank" rel="noopener noreferrer">r/AIStupidLevel</a>
+        <a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer">Follow on X</a>
+        <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.producthunt.com/products/aistupidlevel?launch=aistupidlevel" target="_blank" rel="noopener noreferrer">Product Hunt</a>
         <Link href="/status">Provider status</Link>
         <Link href="/contact">Contact</Link>
-      </nav>
-      <div className="site-footer-row">
-        <span>
-          A product of <a href="https://studioplatforms.eu" target="_blank" rel="noopener noreferrer">Studio Platforms</a> © {new Date().getFullYear()}
-        </span>
-        <span className="site-footer-social">
-          <a href="https://www.reddit.com/r/aistupidlevel/" target="_blank" rel="noopener noreferrer">r/AIStupidLevel</a>
-          <a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer">X</a>
-          <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">GitHub</a>
-          <a href="https://www.producthunt.com/products/aistupidlevel?launch=aistupidlevel" target="_blank" rel="noopener noreferrer">Product Hunt</a>
-        </span>
-        <span className="site-footer-meta">
-          {nextRun && <>Next coding run <b>{nextRun}</b> · </>}
-          {/* totals.visits counts visits, not people (unique is a tenth of it) — label it as such. */}
-          {visits
-            ? `${visits >= 1e6 ? `${(visits / 1e6).toFixed(1)}M` : `${Math.round(visits / 1000)}K`} visits`
-            : 'Measuring AI models since 2025'}
-        </span>
+        {nextRun && <span>Next bench: <b style={{ color: 'var(--phosphor-green)' }}>{nextRun}</b></span>}
+      </div>
+      <div>
+        {/* totals.visits counts visits, not people (unique is a tenth of it) — label it as such. */}
+        {visits
+          ? `${visits >= 1e6 ? `${(visits / 1e6).toFixed(1)}M` : `${Math.round(visits / 1000)}K`} visits`
+          : 'Monitoring AI since 2025'}
       </div>
     </footer>
   );

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { DocPage, Section, Prose, Cards, Card, Callout, Stats } from '@/components/docs/Doc';
+import { DocPage, Section, Prose, Stats, Facts } from '@/components/docs/Doc';
 
 export const metadata: Metadata = {
   title: 'Independent AI Benchmarking',
@@ -69,12 +69,12 @@ const TOC = [
   { id: 'mission', label: 'Why we exist' },
   { id: 'team', label: 'Team' },
   { id: 'independence', label: 'Funding and independence' },
-  { id: 'validation', label: 'Keeping the measurement honest' },
+  { id: 'honest', label: 'How we keep it honest' },
   { id: 'data', label: 'Data and licensing' },
-  { id: 'verify', label: 'Check it yourself' },
-  { id: 'values', label: 'Values' },
   { id: 'contact', label: 'Contact' },
 ];
+
+const ext = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
 export default async function AboutPage() {
   const status = await getStatus();
@@ -97,55 +97,51 @@ export default async function AboutPage() {
     >
       <Section id="mission" title="Why we exist">
         <Prose>
-          <p>Developers have long reported that models they rely on seem to get worse after launch: GPT-4 was widely described as “lazier” than it had been, and Claude as refusing more. Providers can change a model behind the same API name — fine-tuning, safety updates, routing, quantisation — and nobody was systematically measuring it. AI Stupid Level exists to close that gap. We ran our first benchmark on 8 August 2025 and have not stopped since.</p>
+          <p>Developers have long reported that models they rely on seem to get worse after launch: GPT-4 was widely described as “lazier” than it had been, and Claude as refusing more. Providers can change a model behind the same API name — fine-tuning, safety updates, routing, quantisation — without saying so, and nobody was systematically measuring it.</p>
+          <p>AI Stupid Level exists to close that gap. We ran our first benchmark on 8 August 2025 and have not stopped since. The reasons have not changed:</p>
+          <ul>
+            <li><b>Vendors don’t disclose changes.</b> Updates and capability reductions happen without warning.</li>
+            <li><b>Most benchmarks are snapshots.</b> One measurement at launch, no error bars, and nothing watching for change afterwards.</li>
+            <li><b>Choosing a model for production deserves evidence,</b> not impressions.</li>
+            <li><b>Accountability needs independence.</b> Only someone with no stake in the result can keep an honest record.</li>
+          </ul>
         </Prose>
-        <Cards min={230}>
-          <Card title="Vendors don’t disclose changes"><p>Silent updates, capability reductions and performance shifts happen without warning.</p></Card>
-          <Card title="Most benchmarks are snapshots"><p>A single measurement, no standard error, ranks that separate models by less than their noise, and nothing watching for change.</p></Card>
-          <Card title="Developers need evidence"><p>Choosing a provider for a production system deserves data, not impressions.</p></Card>
-          <Card title="Accountability needs independence"><p>Monitoring by someone with no stake in the result keeps the record honest.</p></Card>
-        </Cards>
       </Section>
 
       <Section id="team" title="Team">
-        <Cards min={300}>
+        <div className="doc-people">
           {TEAM.map((m) => (
-            <Card key={m.name} kicker={m.role} title={m.name}>
+            <div key={m.name} className="doc-person">
+              <div>
+                <h3>{m.name}</h3>
+                <div className="doc-person-role">{m.role}</div>
+                <a className="doc-person-link" href={m.linkedin} {...ext}>LinkedIn</a>
+              </div>
               <p>{m.bio}</p>
-              <p><a href={m.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></p>
-            </Card>
+            </div>
           ))}
-        </Cards>
-        <Prose>
-          <p>The methodology is open to anyone who wants to check it: the scoring weights, the statistical methods and the drift constants are all on the <Link href="/methodology">methodology page</Link>, and the full write-up is a paper, the <a href="/asl-public-benchmark-methodology-2026.pdf" target="_blank" rel="noopener noreferrer">Public Benchmark Methodology (2026, PDF)</a>. The benchmark backend — task definitions, runners and scoring code — is deliberately private, because when it was public providers optimised against the specific tasks, and a test that can be studied in advance stops measuring anything. The front end is <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">open source</a>, so the site you are reading can be checked line by line. Corrections are welcome.</p>
-        </Prose>
+        </div>
       </Section>
 
-      <Section id="independence" title="Funding and independence">
-        <Cards min={300}>
-          <Card title="No vendor money"><p>No AI model provider funds us, and none of our investors is an AI model provider.</p></Card>
-          <Card title="No vendor relationships"><p>No financial relationship with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu or any other model provider.</p></Card>
-          <Card title="No affiliate links"><p>We earn no commission from API sign-ups or referrals. Placement on a board is decided by the measurement alone.</p></Card>
-          <Card title="Our servers, our keys"><p>Scheduled benchmarks run on our servers with API keys we pay for. The one exception is labelled on the site: reasoning and tool-use runs for five <Link href="/methodology#community">community-funded models</Link> are paid for by visitors with their own keys — the same test, on the same servers.</p></Card>
-          <Card title="Published method"><p>Weights, statistical tests and drift constants are published in full. The tasks themselves are withheld so they cannot be trained against.</p></Card>
-        </Cards>
-        <Prose>
-          <h3>How operations are funded</h3>
-        </Prose>
-        <Cards min={240}>
-          <Card title="Venture funding"><p>Our primary funding. It covers the gap revenue does not — benchmarking every model every four hours is not cheap — and none of it comes from a company we measure.</p></Card>
-          <Card title="Subscriptions"><p>Paid plans for longer history, drift analytics, more watched models, the Smart Router and higher Data API tiers.</p></Card>
-          <Card title="Data licensing"><p>Historical benchmark data for teams that need it in bulk, licensed to non-vendors only.</p></Card>
-        </Cards>
+      <Section id="independence" title="Funding and independence"
+        lead="Nobody who scores well on this site has paid us. That is the one line we will not cross.">
+        <Facts rows={[
+          ['Vendor money', 'None. No AI model provider funds us, and none of our investors is an AI model provider.'],
+          ['Vendor relationships', 'No financial relationship with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu or any other model provider.'],
+          ['Affiliate links', 'None. We earn nothing from API sign-ups or referrals; a model’s place on a board is decided by the measurement alone.'],
+          ['Who pays for the runs', <>We do: scheduled benchmarks run on our servers with API keys we pay for. The one exception is labelled on the site — reasoning and tool-use runs for five <Link key="c" href="/methodology#community">community-funded models</Link> are paid for by visitors with their own keys, running the same test on the same servers.</>],
+          ['How we are funded', 'Venture funding, which covers what revenue does not — benchmarking every model every four hours is not cheap; paid plans; and data licensing to organisations that are not model vendors.'],
+        ]} />
       </Section>
 
-      <Section id="validation" title="Keeping the measurement honest">
-        <Cards min={240}>
-          <Card title="Published method"><p>The weights, tests and constants are on the methodology page and in the 2026 paper. If you think a weight is wrong, you can quote it back to us.</p></Card>
-          <Card title="Tasks held back on purpose"><p>When the tasks were public, providers optimised against them. A test that can be studied in advance, or scraped into training data, stops measuring anything.</p></Card>
-          <Card title="Every score versioned"><p>Each score records the exact version of the tests it ran under, so a change we make is never mistaken for a change the model made.</p></Card>
-          <Card title="Corrections on the record"><p>When we find a fault in our own measurement we say so and retract what it produced — 492 drift incidents in September 2026 — rather than quietly deleting it.</p></Card>
-        </Cards>
+      <Section id="honest" title="How we keep it honest">
+        <Prose>
+          <p><b>The method is published.</b> Every weight, statistical test and drift constant is on the <Link href="/methodology">methodology page</Link> and in the <a href="/asl-public-benchmark-methodology-2026.pdf" {...ext}>Public Benchmark Methodology (2026, PDF)</a>. If you think a weight is wrong, you can quote it back to us.</p>
+          <p><b>The tasks are not.</b> When the task bank was public, providers optimised against it, and a test that can be studied in advance — or scraped into training data — stops measuring anything. The backend that holds the tasks, runners and scoring code stays private; the <a href="https://github.com/StudioPlatforms/aistupidmeter-web" {...ext}>web application is open source</a>, so the site you are reading can be checked line by line.</p>
+          <p><b>Every score is versioned.</b> Each one records the exact version of the tests it ran under, so a change we make is never mistaken for a change the model made.</p>
+          <p><b>Corrections stay on the record.</b> When we find a fault in our own measurement we say so and retract what it produced — 492 drift incidents in September 2026 — rather than quietly deleting it.</p>
+          <p><b>You can check it yourself.</b> <Link href="/router/test-keys">Test your keys</Link> runs the same tasks with your own API keys, scored by the same code as our published runs, and the <Link href="/api-docs">Data API</Link> serves the same data as JSON with a free key.</p>
+        </Prose>
       </Section>
 
       <Section id="data" title="Data and licensing"
@@ -157,72 +153,27 @@ export default async function AboutPage() {
           { value: String(status?.rankedModels?.length ?? '—'), label: 'models tested now' },
         ]} />
         <Prose>
-          <p>Beyond the free platform and the <Link href="/api-docs">Data API</Link>, we license the underlying data in bulk to teams that need more. Everything below is data we hold today; we do not sell datasets we have not collected.{' '}
-            {extraRunning
-              ? 'The adversarial-safety, bias and prompt-robustness suites started recently and their datasets are still too young to offer.'
-              : 'Adversarial-safety, bias and prompt-robustness testing are built but not yet collecting, so they are not offered.'}
-          </p>
+          <p>Beyond the free site and the Data API, we license the underlying data in bulk to teams that need more, and only to organisations that are not model vendors. Everything listed is data we hold today; we do not sell datasets we have not collected.</p>
         </Prose>
-        <Cards min={420}>
-          <Card title="Performance time series">
-            <p>Every score we have recorded, per model, per measure and per suite, with the test version each run used.</p>
-            <ul><li>{atLeast(c?.runs, 1000)} runs since August 2025</li><li>Per-measure breakdown, not just headline scores</li><li>Intervals and per-attempt variation</li></ul>
-          </Card>
-          <Card title="Drift and change-point record">
-            <p>Detected change points and drift incidents, with the detector state behind each.</p>
-            <ul><li>{atLeast(c?.incidents, 100)} change points and incidents; the 492 retracted incidents are kept and flagged, not deleted</li><li>Change points before 13 September 2026 came from a mixed-suite series and are identifiable by date</li><li>Test-version history, so changes to the method separate from changes to a model</li></ul>
-          </Card>
-          <Card title="Tool-use sessions">
-            <p>Full agent transcripts from real sandboxed executions: which tools were chosen, with what parameters, and what happened.</p>
-            <ul><li>{atLeast(c?.toolSessions, 1000)} sessions</li><li>Tool selection and parameter accuracy</li><li>Execution traces and error recovery</li></ul>
-          </Card>
-          <Card title="Reasoning sessions">
-            <p>Multi-turn working sessions scored on five measures; continuity is checked by running code against rules and decisions stated earlier in the session.</p>
-            <ul><li>{atLeast(c?.deepSessions, 100)} sessions</li><li>Turn-by-turn scoring</li><li>Raw outputs where retention policy allows</li></ul>
-          </Card>
-        </Cards>
-        <Callout title="Enterprise data access">
-          Continuously updated, with history back to 8 August 2025. Custom extracts, bulk exports and dedicated support are available. If you need something we do not collect, say so — we would rather tell you it does not exist yet than sell you a promise.{' '}
-          <a href="https://studioplatforms.eu/products/aistupidlevel/data-licensing" target="_blank" rel="noopener noreferrer">Pricing and contact</a>
-        </Callout>
-      </Section>
-
-      <Section id="verify" title="Check it yourself">
-        <Cards min={230}>
-          <Card title="Open web application"><p>The site you are reading is open source. The benchmark repository is private for the reason above; the method is published in full.</p><p><a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">Source code</a></p></Card>
-          <Card title="Data API"><p>Rankings, history, intervals and current degradations as JSON, with a free key. <code>GET /api/v1/models</code></p><p><Link href="/api-docs">API reference</Link></p></Card>
-          <Card title="Methodology"><p>How each suite is scored, how ranks are tied, and how drift is detected, with the measured false-alarm rates.</p><p><Link href="/methodology">Read the methodology</Link></p></Card>
-          <Card title="Test your keys"><p>Run the same tasks with your own API keys, scored by the same code as our published runs.</p><p><Link href="/router/test-keys">Test your keys</Link></p></Card>
-        </Cards>
-      </Section>
-
-      <Section id="values" title="Values">
-        <Cards min={240}>
-          <Card title="Scientific rigour"><p>Established statistical methods — Page-Hinkley change detection on each suite’s own series, Welch’s t-test for the hourly canary, standard errors measured from run-to-run repeatability, ranks that tie when a lead is inside the noise — with the constants and measured false-alarm rates published.</p></Card>
-          <Card title="Transparency"><p>Every scoring decision is documented and every result is reproducible with your own keys. Trust through verification, not claims.</p></Card>
-          <Card title="Independence"><p>No vendor funding, no affiliate revenue, no conflicts of interest. Our only loyalty is to the people who need accurate data.</p></Card>
-          <Card title="Community"><p>Built by developers, for developers. The front end is open to contributions, feedback shapes what we measure next, and corrections to the method are welcome.</p></Card>
-        </Cards>
+        <Facts rows={[
+          ['Performance time series', `Every score, per model, per measure and per suite, with the test version each run used — ${atLeast(c?.runs, 1000)} runs, with intervals and per-attempt variation.`],
+          ['Drift and change points', `${atLeast(c?.incidents, 100)} change points and incidents with the detector state behind each. The 492 retracted incidents are kept and flagged, and change points before 13 September 2026, which came from a mixed-suite series, are identifiable by date.`],
+          ['Tool-use sessions', `${atLeast(c?.toolSessions, 1000)} full agent transcripts from sandboxed runs: which tools were called, with what parameters, and what happened.`],
+          ['Reasoning sessions', `${atLeast(c?.deepSessions, 100)} multi-turn sessions, scored turn by turn, with raw outputs where retention policy allows.`],
+          ['Not yet offered', extraRunning
+            ? 'Adversarial safety, bias and prompt robustness: the suites started recently and their datasets are still too young.'
+            : 'Adversarial safety, bias and prompt robustness: built, not yet collecting.'],
+        ]} />
+        <Prose>
+          <p>Custom extracts, bulk exports and support are available, with history back to 8 August 2025. If you need something we do not collect, say so — we would rather tell you it does not exist yet than sell you a promise. <a href="https://studioplatforms.eu/products/aistupidlevel/data-licensing" {...ext}>Licensing, pricing and contact</a>.</p>
+        </Prose>
       </Section>
 
       <Section id="contact" title="Contact">
-        <Cards min={240}>
-          <Card title="Social">
-            <ul>
-              <li><a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer">X: @AIStupidlevel</a></li>
-              <li><a href="https://www.linkedin.com/company/asl-aistupidlevel-info" target="_blank" rel="noopener noreferrer">LinkedIn: AI Stupid Level</a></li>
-              <li><a href="https://github.com/studioplatforms" target="_blank" rel="noopener noreferrer">GitHub: @studioplatforms</a></li>
-              <li><a href="https://www.reddit.com/r/aistupidlevel/" target="_blank" rel="noopener noreferrer">Reddit: r/aistupidlevel</a></li>
-            </ul>
-          </Card>
-          <Card title="Questions">
-            <ul>
-              <li><Link href="/contact">Contact the team</Link></li>
-              <li><Link href="/faq">Frequently asked questions</Link></li>
-              <li><Link href="/methodology">Methodology</Link></li>
-            </ul>
-          </Card>
-        </Cards>
+        <Facts rows={[
+          ['Questions', <><Link key="c" href="/contact">Contact the team</Link> · <Link key="f" href="/faq">FAQ</Link></>],
+          ['Follow', <><a key="x" href="https://x.com/AIStupidlevel" {...ext}>X</a> · <a key="l" href="https://www.linkedin.com/company/asl-aistupidlevel-info" {...ext}>LinkedIn</a> · <a key="r" href="https://www.reddit.com/r/aistupidlevel/" {...ext}>Reddit</a> · <a key="g" href="https://github.com/studioplatforms" {...ext}>GitHub</a></>],
+        ]} />
       </Section>
 
       <script

@@ -1128,3 +1128,11 @@ a:hover { color: var(--accent-ink); }
 .v4-cov-held { color: var(--phosphor-dim); font-style: italic; }
 .v4-lb-row.v4-lb-held { opacity: 0.7; }
 .v4-lb-row.v4-lb-held .v4-lb-score { font-weight: 500; }
+
+/* Home loading screen: the progress track was hard-coded light (#e3e6ea with white bevels) and
+   only ever had a light-theme override, so it stayed light for dark-theme visitors. */
+[data-theme="dark"] .retro-progress-track {
+  background: var(--terminal-black);
+  border: 1px solid var(--metal-silver);
+  box-shadow: none;
+}

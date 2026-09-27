@@ -89,7 +89,7 @@ export default function TeamClient() {
       </div>
     );
   }
-  if (loading) return <div style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) return <div data-page-loading style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
 
   // Plan does not include a shared workspace.
   if (!d?.org && d?.canCreate === false) {

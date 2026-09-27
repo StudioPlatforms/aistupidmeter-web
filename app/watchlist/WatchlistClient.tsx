@@ -91,7 +91,7 @@ export default function WatchlistClient() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+    return <div data-page-loading style={{ padding: 40, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
   }
   if (error) {
     return <div style={{ padding: 40, textAlign: 'center', color: 'var(--amber-warning)' }}>{error}</div>;

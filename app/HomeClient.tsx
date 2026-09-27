@@ -3664,7 +3664,7 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
   // Enhanced retro loading screen with progress tracking
   if (loading) {
     return (
-      <div className="vintage-container">
+      <div className="vintage-container" data-page-loading>
         <div className="crt-monitor" style={{ 
           textAlign: 'center', 
           padding: 'var(--space-lg) var(--space-md)',

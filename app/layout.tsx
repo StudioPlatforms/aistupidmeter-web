@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
 import SiteFooter from '../components/SiteFooter'
+import { themeBootScript } from '../lib/theme-config'
 import '../styles/vintage.css'
 import '../styles/drift-cards.css'
 import '../styles/v4-layout.css'
@@ -238,10 +239,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: the boot script below sets data-theme and the theme variables on
+    // <html> before React hydrates, so the attributes intentionally differ from the server's.
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#ffffff" />
+        {/* Apply the visitor's saved theme before first paint (see lib/theme-config.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
         <meta name="color-scheme" content="light" />
         
         

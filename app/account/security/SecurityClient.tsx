@@ -143,7 +143,7 @@ export default function SecurityClient() {
       </div>
     );
   }
-  if (loading) return <div style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) return <div data-page-loading style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
 
   // Entitled, but with nowhere to put the settings yet.
   if (needsWorkspace && planMeets(plan, REQUIRED_PLAN.governance)) {
