@@ -17,6 +17,12 @@ import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, isPlan, type Plan } from '@/lib/entitlements';
+import {
+  BOARD_LAYOUTS, DEFAULT_LAYOUT, LAYOUT_INFO, isBoardLayout, markLayoutTourPending,
+  readLayoutCookie, writeLayoutCookie, type BoardLayout,
+} from '@/lib/board-layout';
+import { LayoutSketch } from '@/components/boards/LayoutChooser';
+import '@/styles/boards.css';
 
 interface Prefs {
   emailAlerts: boolean;
@@ -72,6 +78,7 @@ export default function SettingsClient() {
   const [models, setModels] = useState<WatchedModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState<string | null>(null);
+  const [layout, setLayout] = useState<BoardLayout | null>(null);
 
   const flash = (m: string) => { setSaved(m); setTimeout(() => setSaved(null), 2200); };
 
@@ -86,9 +93,12 @@ export default function SettingsClient() {
     Promise.all([
       fetch('/api/account/alert-preferences', { cache: 'no-store' }).then(r => r.json()),
       fetch('/api/account/watchlist', { cache: 'no-store' }).then(r => r.json()),
-    ]).then(([p, w]) => {
+      fetch('/api/account/ui-preferences', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+    ]).then(([p, w, u]) => {
       if (p?.success) setPrefs(p.data);
       if (w?.success) setModels(w.data.models ?? []);
+      const saved = u?.data?.leaderboardLayout;
+      setLayout(isBoardLayout(saved) ? saved : (readLayoutCookie() ?? DEFAULT_LAYOUT));
     }).finally(() => setLoading(false));
   }, [status]);
 
@@ -99,6 +109,17 @@ export default function SettingsClient() {
     });
     const d = await r.json();
     flash(d?.success ? 'Saved' : (d?.message ?? 'Could not save'));
+  };
+
+  /** Same save as the home page's chooser: account, cookie, and that layout's explainer next visit. */
+  const saveLayout = async (next: BoardLayout) => {
+    setLayout(next);
+    writeLayoutCookie(next);
+    markLayoutTourPending(next);
+    const r = await fetch('/api/account/ui-preferences', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leaderboardLayout: next }),
+    });
+    flash((await r.json().catch(() => null))?.success ? 'Saved' : 'Could not save');
   };
 
   const toggleModel = async (modelId: number, alertsEnabled: boolean) => {
@@ -280,6 +301,31 @@ export default function SettingsClient() {
             appears in the weekly digest, so your coverage is never quietly reduced.
           </p>
         )}
+      </section>
+
+      {/* 5 — Leaderboard layout */}
+      <section className="acct-wide" style={card}>
+        <h2 style={h2}>Leaderboard layout</h2>
+        <p style={sub}>
+          How the four leaderboards are shown on the home page. Saved to your account, so every
+          device you sign in on uses it. The home page explains the new layout the next time you open it.
+        </p>
+        <div className="lbx-options lbx-options--settings" role="radiogroup" aria-label="Leaderboard layout">
+          {BOARD_LAYOUTS.map((l) => (
+            <button key={l} type="button" role="radio" aria-checked={layout === l}
+                    className={`lbx-option${layout === l ? ' is-picked' : ''}`}
+                    onClick={() => { if (layout !== l) saveLayout(l); }}>
+              <LayoutSketch layout={l} />
+              <span className="lbx-option-text">
+                <span className="lbx-option-name">
+                  {LAYOUT_INFO[l].name}
+                  {l === DEFAULT_LAYOUT && <span className="lbx-option-badge">Default</span>}
+                </span>
+                <span className="lbx-option-desc">{LAYOUT_INFO[l].description}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       </section>
       </div>
     </div>

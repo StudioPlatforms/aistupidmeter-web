@@ -74,6 +74,17 @@ export default function ModelDetailCommunityFunding({
 
   // The one-time explanation, per model, remembered in this browser.
   const seenKey = `stupidmeter-community-seen:${modelId}`;
+
+  // A leaderboard's "Fund a run" link lands here with ?fund=1: go straight to the funding
+  // dialog. Declared before the intro effect and marks the intro seen, so the visitor gets
+  // one dialog, not the explanation of something they already chose to do.
+  useEffect(() => {
+    if (!state?.communitySuites?.length) return;
+    if (new URLSearchParams(window.location.search).get('fund') !== '1') return;
+    try { localStorage.setItem(seenKey, 'true'); } catch { /* private mode: the intro may follow */ }
+    setFundOpen(true);
+  }, [state, seenKey]);
+
   useEffect(() => {
     if (!state?.communitySuites?.length) return;
     let seen = false;

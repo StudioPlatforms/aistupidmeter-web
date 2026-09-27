@@ -1,6 +1,8 @@
 'use client';
 
 import TourModal, { type TourStep } from './TourModal';
+import { layoutSteps } from './boards/layout-tour';
+import type { BoardLayout } from '../lib/board-layout';
 
 export const ONBOARDING_STORAGE_KEY = 'stupidmeter-onboarding-seen';
 
@@ -10,7 +12,9 @@ export const ONBOARDING_STORAGE_KEY = 'stupidmeter-onboarding-seen';
  * The single most common misreading of this site is treating it as a "which AI is
  * smartest" leaderboard. It isn't - it's a consistency tracker. These six cards say that
  * in plain language and then describe, without jargon, how each suite actually works, so a
- * non-technical visitor can read the leaderboard correctly.
+ * non-technical visitor can read the leaderboard correctly. It ends with how to read the
+ * leaderboard layout the visitor picked (components/boards/layout-tour.tsx), which replaced
+ * the single "what the top of the list means" card when the layouts became a choice.
  *
  * Shown once per browser. Skipping counts as seen: nobody should meet this twice.
  */
@@ -101,29 +105,21 @@ const STEPS: TourStep[] = [
     ],
     icon: ICON.gauge,
   },
-  {
-    eyebrow: 'The leaderboard',
-    title: 'What the top of the list means',
-    body: [
-      'The model in first place is not "the smartest AI". It is the one that came out best across those three suites in the most recent runs, and stayed steady while doing it.',
-      'You will see several models sharing the same rank, marked with an “=”. That is deliberate and it is the honest answer: when the gap between them is smaller than our own measuring error, we will not pretend one is ahead. A rank without an “=” is a model standing on its own.',
-      'Positions still move — everything is re-tested every few hours — so read the direction of a model’s line before you read its place, and click any row for the full history.',
-    ],
-    icon: ICON.board,
-  },
 ];
 
 interface OnboardingTourProps {
   isOpen: boolean;
   onClose: () => void;
+  /** The leaderboard layout on screen: the tour ends with how to read it. */
+  layout: BoardLayout;
 }
 
-export default function OnboardingTour({ isOpen, onClose }: OnboardingTourProps) {
+export default function OnboardingTour({ isOpen, onClose, layout }: OnboardingTourProps) {
   return (
     <TourModal
       isOpen={isOpen}
       onClose={onClose}
-      steps={STEPS}
+      steps={[...STEPS, ...layoutSteps(layout)]}
       storageKey={ONBOARDING_STORAGE_KEY}
       finishLabel="Start exploring"
     />

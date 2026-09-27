@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { slugifyModelName } from '../lib/model-slug';
+import { cookies } from 'next/headers';
 import HomeClient from './HomeClient';
+import { LAYOUT_COOKIE, isBoardLayout } from '../lib/board-layout';
 
 // Thin server wrapper around the interactive dashboard. The dashboard itself is
 // a large client component that fetches live data, so its leaderboard content is
@@ -68,6 +70,10 @@ const srOnly: React.CSSProperties = {
 
 export default async function HomePage() {
   const models = await fetchRankedModels();
+  // The visitor's leaderboard layout, so the first paint is already the one they chose
+  // (lib/board-layout.ts). This page is rendered per request anyway (force-dynamic).
+  const layoutCookie = cookies().get(LAYOUT_COOKIE)?.value;
+  const initialLayout = isBoardLayout(layoutCookie) ? layoutCookie : null;
 
   const ranked = models
     .filter((m) => m && m.name)
@@ -172,7 +178,7 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <HomeClient />
+      <HomeClient initialLayout={initialLayout} />
     </>
   );
 }

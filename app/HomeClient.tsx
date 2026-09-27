@@ -2,7 +2,7 @@
 
 import { ENTRY_PAID_PLAN, planName, monthly } from '@/lib/pricing-display';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import TickerTape from '../components/TickerTape';
@@ -11,6 +11,14 @@ import ProFeatureModal from '../components/ProFeatureModal';
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from '../components/OnboardingTour';
 import ConsentDialog, { CONSENT_STORAGE_KEY } from '../components/ConsentDialog';
 import DriftTour, { DRIFT_TOUR_STORAGE_KEY } from '../components/DriftTour';
+import Leaderboards from '../components/boards/Leaderboards';
+import LayoutChooser from '../components/boards/LayoutChooser';
+import { LayoutTour } from '../components/boards/layout-tour';
+import {
+  DEFAULT_LAYOUT, LAYOUT_TOUR_PENDING_KEY, isBoardLayout, markLayoutTourPending,
+  readLayoutCookie, writeLayoutCookie, type BoardLayout,
+} from '../lib/board-layout';
+import { useMinWidth } from '../lib/use-boards';
 
 /** Set once the visitor has opened the drift view; stops the tab pulsing forever. */
 const DRIFT_SEEN_KEY = 'stupidmeter-drift-visited';
@@ -30,7 +38,6 @@ import {
   ControlsBar,
   IntelligencePanel,
   AnalyticsPanel,
-  V4Leaderboard,
   BelowLeaderboard,
   ProviderStrip,
   MeterBar,
@@ -149,7 +156,7 @@ function useStickyParam<T extends string>(
   return [value, setValue] as const;
 }
 
-export default function Dashboard() {
+export default function Dashboard({ initialLayout = null }: { initialLayout?: BoardLayout | null }) {
   const router = useRouter();
   const pathname = usePathname();
   
@@ -215,7 +222,7 @@ export default function Dashboard() {
   const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix'>('historical-data');
   
   // Session and subscription checking
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active' || 
                        (session?.user as any)?.subscriptionStatus === 'trialing';
   // Fixed analytics period since user controls were removed
@@ -239,6 +246,22 @@ export default function Dashboard() {
   
   // Welcome popup state
   const [showConsent, setShowConsent] = useState(false);
+
+  /*
+   * LEADERBOARD LAYOUT — the visitor's choice of four (lib/board-layout.ts).
+   * The server read the cookie, so a returning visitor's first paint is already right.
+   * Signed in, the account wins and the cookie mirrors it; a choice made before signing up
+   * is copied into the account the first time we see the session.
+   */
+  const [layout, setLayout] = useState<BoardLayout>(initialLayout ?? DEFAULT_LAYOUT);
+  const [layoutChosen, setLayoutChosen] = useState<boolean>(!!initialLayout);
+  const [layoutAccountChecked, setLayoutAccountChecked] = useState(false);
+  const [showChooser, setShowChooser] = useState(false);
+  const [chooserFirstTime, setChooserFirstTime] = useState(false);
+  const [showLayoutTour, setShowLayoutTour] = useState(false);
+  // At 1200px the side panels appear; four boards then need the page's full width, so every
+  // layout but the table sits above the three columns instead of inside the middle one.
+  const wideScreen = useMinWidth(1200);
 
  // Price info modal state
  const [showPriceInfoModal, setShowPriceInfoModal] = useState(false);
@@ -1597,7 +1620,7 @@ export default function Dashboard() {
     } else {
       const hasSeenMonitoring = localStorage.getItem('stupidmeter-monitoring-announcement-seen');
       const hasSeenOnboarding = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (!hasSeenMonitoring && hasSeenOnboarding) {
+      if (!hasSeenMonitoring && hasSeenOnboarding && readLayoutCookie()) {
         setTimeout(() => setShowMonitoringAnnouncement(true), 2000);
       }
     }
@@ -1619,7 +1642,8 @@ export default function Dashboard() {
    * it closes that card so this one has the screen to itself.
    */
   useEffect(() => {
-    if (loading || showConsent || showOnboarding) return;
+    // After the layout chooser: the tour ends with how to read the layout they picked.
+    if (loading || showConsent || showOnboarding || showChooser || !layoutChosen) return;
     let seen = true;
     try {
       seen = localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
@@ -1629,7 +1653,86 @@ export default function Dashboard() {
     if (seen) return;
     const t = setTimeout(() => setShowOnboarding(true), 450);
     return () => clearTimeout(t);
-  }, [loading, showConsent, showOnboarding]);
+  }, [loading, showConsent, showOnboarding, showChooser, layoutChosen]);
+
+  /*
+   * Layout choice, first visit. Popup order is now: consent → layout chooser → explainer
+   * (the full tour on a first visit, which ends with how to read the chosen layout; after
+   * that, only the chosen layout's two steps). Signed in, wait for the account: a layout
+   * saved there means this is not a first choice, whatever this browser says.
+   */
+  useEffect(() => {
+    if (sessionStatus === 'loading') return;
+    if (sessionStatus !== 'authenticated') { setLayoutAccountChecked(true); return; }
+    let cancelled = false;
+    fetch('/api/account/ui-preferences', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const saved = d?.data?.leaderboardLayout;
+        if (isBoardLayout(saved)) {
+          setLayout(saved);
+          setLayoutChosen(true);
+          writeLayoutCookie(saved);
+        } else {
+          // Chose before signing up: keep that choice with the new account.
+          const local = readLayoutCookie();
+          if (local) {
+            fetch('/api/account/ui-preferences', {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ leaderboardLayout: local }),
+            }).catch(() => {});
+          }
+        }
+      })
+      .catch(() => { /* offline or API down: this browser's choice stands */ })
+      .finally(() => { if (!cancelled) setLayoutAccountChecked(true); });
+    return () => { cancelled = true; };
+  }, [sessionStatus]);
+
+  useEffect(() => {
+    if (loading || showConsent || layoutChosen || !layoutAccountChecked || showChooser || dashboardMode !== 'leaderboard') return;
+    const t = setTimeout(() => { setChooserFirstTime(true); setShowChooser(true); }, 450);
+    return () => clearTimeout(t);
+  }, [loading, showConsent, layoutChosen, layoutAccountChecked, showChooser, dashboardMode]);
+
+  /** Every save — first visit, the Layout button, or Settings — queues that layout's explainer. */
+  const saveLayout = useCallback((next: BoardLayout) => {
+    setLayout(next);
+    setLayoutChosen(true);
+    setShowChooser(false);
+    setChooserFirstTime(false);
+    writeLayoutCookie(next);
+    markLayoutTourPending(next);
+    if (sessionStatus === 'authenticated') {
+      fetch('/api/account/ui-preferences', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leaderboardLayout: next }),
+      }).catch(() => {});
+    }
+  }, [sessionStatus]);
+
+  const clearLayoutTourPending = () => {
+    try { localStorage.removeItem(LAYOUT_TOUR_PENDING_KEY); } catch { /* ignore */ }
+  };
+
+  /*
+   * The chosen layout's explainer, after each change. Someone who has not seen the full tour
+   * gets that instead (it ends with the same steps), so this only fires once it is seen.
+   */
+  useEffect(() => {
+    if (loading || showConsent || showOnboarding || showChooser || showLayoutTour || dashboardMode !== 'leaderboard') return;
+    let pending: string | null = null;
+    let tourSeen = false;
+    try {
+      pending = localStorage.getItem(LAYOUT_TOUR_PENDING_KEY);
+      tourSeen = localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+    } catch { return; }
+    if (!pending || !tourSeen) return;
+    if (pending !== layout) { clearLayoutTourPending(); return; }
+    const t = setTimeout(() => setShowLayoutTour(true), 350);
+    return () => clearTimeout(t);
+  }, [loading, showConsent, showOnboarding, showChooser, showLayoutTour, dashboardMode, layout]);
 
   const updateGoogleConsent = (accepted: boolean) => {
     if (typeof window !== 'undefined' && (window as any).gtag) {
@@ -1672,7 +1775,7 @@ export default function Dashboard() {
     } catch {
       /* ignore */
     }
-    if (loading || showConsent || showOnboarding || showDriftTour) return;
+    if (loading || showConsent || showOnboarding || showDriftTour || showChooser || showLayoutTour) return;
     let seen = true;
     try {
       seen = localStorage.getItem(DRIFT_TOUR_STORAGE_KEY) === 'true';
@@ -1682,7 +1785,7 @@ export default function Dashboard() {
     if (seen) return;
     const t = setTimeout(() => setShowDriftTour(true), 600);
     return () => clearTimeout(t);
-  }, [dashboardMode, loading, showConsent, showOnboarding, showDriftTour]);
+  }, [dashboardMode, loading, showConsent, showOnboarding, showDriftTour, showChooser, showLayoutTour]);
 
   const handleConsentDecision = (accepted: boolean) => {
     try {
@@ -3712,6 +3815,17 @@ export default function Dashboard() {
     );
   }
 
+  const leaderboards = (
+    <Leaderboards
+      layout={layout}
+      period={leaderboardPeriod}
+      sortKey={leaderboardSortBy}
+      onSortChange={(k) => setLeaderboardSortBy(k)}
+      onChangeLayout={() => { setChooserFirstTime(false); setShowChooser(true); }}
+      onHelp={() => setShowLayoutTour(true)}
+    />
+  );
+
   return (
     <div>
       {/* V4 TOP BAR */}
@@ -3754,7 +3868,15 @@ export default function Dashboard() {
           setShowProModal(true);
         }}
         nudgeDrift={nudgeDrift}
+        showSort={dashboardMode === 'drift' || layout === 'table'}
       />
+
+      {/* LEADERBOARDS, full width. Four boards side by side need the whole page, so on a
+          wide screen every layout but the table sits above the three columns. The table and
+          every narrow screen keep it in the middle column (below). */}
+      {dashboardMode === 'leaderboard' && wideScreen && layout !== 'table' && (
+        <div className="lbx-fullwidth">{leaderboards}</div>
+      )}
 
       {/* V4 3-COLUMN LAYOUT */}
       <div className="v4-grid3">
@@ -3791,17 +3913,7 @@ export default function Dashboard() {
           />
 
           {/* V4 LEADERBOARD or DRIFT MONITOR */}
-          {dashboardMode === 'leaderboard' ? (
-            <V4Leaderboard
-              modelScores={modelScores}
-              modelHistoryData={modelHistoryData}
-              isLoading={isLeaderboardUIBusy}
-              showBatchRefreshing={showBatchRefreshing}
-              leaderboardSortBy={leaderboardSortBy}
-              leaderboardPeriod={leaderboardPeriod}
-              driftIncidents={driftIncidents}
-            />
-          ) : null}
+          {dashboardMode === 'leaderboard' && !(wideScreen && layout !== 'table') ? leaderboards : null}
 
           {/* Drift Monitor Mode */}
           {(dashboardMode as string) === 'drift' && (
@@ -4731,8 +4843,31 @@ export default function Dashboard() {
       {/* 1. Analytics consent — asked before anything else */}
       <ConsentDialog isOpen={showConsent} onDecide={handleConsentDecision} />
 
-      {/* 2. First-visit explainer: what this site actually measures */}
-      <OnboardingTour isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
+      {/* 2. Leaderboard layout — asked once, after consent; changeable from the board's
+          Layout button (and Settings, when signed in). */}
+      <LayoutChooser
+        isOpen={showChooser}
+        current={layout}
+        firstTime={chooserFirstTime}
+        signedIn={sessionStatus === 'authenticated'}
+        onSave={saveLayout}
+        onClose={() => setShowChooser(false)}
+      />
+
+      {/* 3. First-visit explainer: what this site measures, ending with how to read the
+          chosen layout. It covers that layout's steps, so the pending short tour is dropped. */}
+      <OnboardingTour
+        isOpen={showOnboarding}
+        layout={layout}
+        onClose={() => { clearLayoutTourPending(); setShowOnboarding(false); }}
+      />
+
+      {/* After every layout change: only that layout's "how to read this". */}
+      <LayoutTour
+        isOpen={showLayoutTour}
+        layout={layout}
+        onClose={() => { clearLayoutTourPending(); setShowLayoutTour(false); }}
+      />
 
       {/* Drift view has its own walkthrough - it answers a different question from the
           leaderboard and is the easiest part of the site to misread. */}

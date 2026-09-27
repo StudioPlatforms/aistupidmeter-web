@@ -14,6 +14,11 @@ interface ControlsBarProps {
   onShowProModal: (feature: 'historical-data' | 'performance-matrix') => void;
   /** Draw attention to the drift tab until the visitor has opened it once. */
   nudgeDrift?: boolean;
+  /**
+   * The sort only means something where one board is shown: the drift monitor and the table
+   * layout. The other layouts show all four boards at once, so it is hidden there.
+   */
+  showSort?: boolean;
 }
 
 export default function ControlsBar({
@@ -27,6 +32,7 @@ export default function ControlsBar({
   onModeChange,
   onShowProModal,
   nudgeDrift = false,
+  showSort = true,
 }: ControlsBarProps) {
   // What a signed-out visitor gets. Everything below is derived from the plan
   // table rather than hard-coded, so the entitlement matrix on /faq and the
@@ -92,6 +98,7 @@ export default function ControlsBar({
         ))}
       </div>
 
+      {showSort && <>
       <div className="v4-ctrl-sep"></div>
 
       <span className="v4-ctrl-label">Sort</span>
@@ -108,6 +115,7 @@ export default function ControlsBar({
           </button>
         ))}
       </div>
+      </>}
 
       {/* LuckyLarry ad image - desktop only.
           Temporarily disabled; uncomment to bring the banner back.
@@ -160,7 +168,7 @@ export default function ControlsBar({
           </span>
         </label>
 
-        <label className="v4-mc-item">
+        {showSort && <label className="v4-mc-item">
           <span className="v4-mc-label">Sort</span>
           <span className="v4-mc-select">
             <select
@@ -178,7 +186,7 @@ export default function ControlsBar({
             </select>
             <span className="v4-mc-chev" aria-hidden>▾</span>
           </span>
-        </label>
+        </label>}
 
         <label className="v4-mc-item">
           <span className="v4-mc-label">View</span>
