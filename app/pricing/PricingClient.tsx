@@ -266,14 +266,18 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
             <h3>Custom continuous benchmarking</h3>
             <div className="prc-offer-price">Contracted · priced on scope</div>
             <p>
-              A public benchmark measures general capability. If you use a model for one specific job — triaging
-              claims, reviewing code, pulling fields out of your own documents — we build a benchmark out of your
-              workload and run it on the same schedule as the public suites, so you learn when a model gets worse
-              at <em>your</em> job rather than at ours.
+              Public benchmarks measure general ability, and your work is rarely general. You might use AI to design
+              wind-turbine components in CAD, to analyse data for research at a neurology clinic, or to draft filings
+              in a narrow area of law — and the model at the top of a public leaderboard is not necessarily the best
+              at <em>that</em>. We build a benchmark from your own work and run it on the same schedule as our public
+              suites, against every AI model available — from OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM to
+              any other provider or open-source release your work calls for, with new models added as they launch.
+              So you always know which of the world&apos;s AI models does your job best, and you hear about it when
+              that changes — a new release that does it better, or an update that makes yours worse.
             </p>
             <ul className="prc-list">
               <li><Check />A task set built from your real work, with the answer keys held out of the prompt</li>
-              <li><Check />Run repeatedly against the models you actually use, scored on the median of several trials</li>
+              <li><Check />Run repeatedly against every model worth considering for your work, scored on the median of several trials</li>
               <li><Check />The same change detection the public board runs, with a baseline for your suite alone</li>
               <li><Check />Results through the alerts, webhooks, exports and Data API your plan already has</li>
               <li><Check />A scheduled review of what moved, and whether it is worth changing model</li>
