@@ -89,7 +89,7 @@ export interface Entitlements {
  * 64 accounts were paying $4.99/month when the five-plan ladder was introduced.
  * They keep that price and at least their existing access for twelve months.
  * The old Pro included router access and Data API access, so legacy_pro is
- * mapped to the *Developer* feature set rather than the new $9 Pro, which would
+ * mapped to the *Developer* feature set rather than the new Pro, which would
  * have been a silent downgrade. Do not "tidy" this into `pro`.
  */
 export const PLANS: Record<Plan, Entitlements> = {
@@ -98,7 +98,7 @@ export const PLANS: Record<Plan, Entitlements> = {
     watchedModels: 3, historyDays: 7, categorySorts: true,
     dataApiTier: 'free',
     // 1,000 not 10,000. The GTM draft proposed 10K, but that is a running budget
-    // rather than a taste, and it undercuts the $19 plan directly above it — if
+    // rather than a taste, and it undercuts the Developer plan directly above it — if
     // Free routes 10K requests there is little reason to pay for Developer. The
     // developer-activation gate is 100 successful requests across three days, so
     // 1,000 is ten times what is needed to integrate, evaluate and decide.
@@ -115,7 +115,8 @@ export const PLANS: Record<Plan, Entitlements> = {
     routerRequestsPerMonth: 10_000, evalUnitsPerMonth: 0, routerDiagnosticDays: 3,
     seats: 1, projects: 0,
     exports: true, webhooks: false, customAlerts: true,
-    priceMonthly: 9, priceAnnual: 90,
+    // +30% on 2026-09-27 (from $9/$90), rounded to a whole dollar; annual stays ten months.
+    priceMonthly: 12, priceAnnual: 120,
   },
   developer: {
     plan: 'developer', label: 'Developer',
@@ -124,7 +125,7 @@ export const PLANS: Record<Plan, Entitlements> = {
     routerRequestsPerMonth: 100_000, evalUnitsPerMonth: 250, routerDiagnosticDays: 30,
     seats: 1, projects: 1,
     exports: true, webhooks: false, customAlerts: true,
-    priceMonthly: 19, priceAnnual: 190,
+    priceMonthly: 25, priceAnnual: 250,   // was $19/$190 until 2026-09-27
   },
   teams: {
     plan: 'teams', label: 'Teams',
@@ -133,7 +134,7 @@ export const PLANS: Record<Plan, Entitlements> = {
     routerRequestsPerMonth: 1_000_000, evalUnitsPerMonth: 1_000, routerDiagnosticDays: 90,
     seats: 5, projects: 3,
     exports: true, webhooks: true, customAlerts: true,
-    priceMonthly: 99, priceAnnual: 990,
+    priceMonthly: 129, priceAnnual: 1290, // was $99/$990 until 2026-09-27
   },
   enterprise: {
     plan: 'enterprise', label: 'Enterprise',

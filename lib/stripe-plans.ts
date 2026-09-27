@@ -43,8 +43,8 @@ export const ONE_TIME_ENV = {
 
 /** Metered usage. Only billed once the corresponding meter is wired up. */
 export const METERED_ENV = {
-  routerOverage: 'STRIPE_PRICE_ROUTER_OVERAGE',   // $0.0001 per successful request
-  evalUnits:     'STRIPE_PRICE_EVAL_UNITS',       // $0.005 per completed unit
+  routerOverage: 'STRIPE_PRICE_ROUTER_OVERAGE',   // $0.00013 per successful request
+  evalUnits:     'STRIPE_PRICE_EVAL_UNITS',       // $0.0065 per completed unit
 } as const;
 
 export function isSellablePlan(v: unknown): v is SellablePlan {

@@ -40,7 +40,9 @@ type Interval = 'monthly' | 'annual';
 const fmt = (n: number) => (isUnlimited(n) ? 'Unlimited' : n.toLocaleString());
 
 /** Price to one decimal only when it needs one — "$7.50", but "$9". */
-const money = (n: number) => (Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`);
+const money = (n: number) => (Number.isInteger(n)
+  ? `$${n.toLocaleString('en-US')}`   // "$1,290", not "$1290"
+  : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
 
 const ROWS: Array<{ label: string; get: (p: Plan) => string; note?: string }> = [
   { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels) },

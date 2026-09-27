@@ -22,8 +22,12 @@ export const ENTRY_PAID_PLAN: Plan = 'pro';
  */
 export const ROUTER_PLAN: Plan = 'developer';
 
+/** "$1,290", "$20.83" — thousands separated, cents only when there are some. */
+const usd = (n: number): string => Number.isInteger(n)
+  ? `$${n.toLocaleString('en-US')}`
+  : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const money = (n: number | null): string =>
-  n === null ? 'Custom' : n === 0 ? 'Free' : Number.isInteger(n) ? `$${n}` : `$${n.toFixed(2)}`;
+  n === null ? 'Custom' : n === 0 ? 'Free' : usd(n);
 
 /**
  * A period suffix only makes sense on an actual amount. Without this guard,
@@ -55,7 +59,7 @@ export const annualMonthly = (plan: Plan): string => {
   const annual = PLANS[plan].priceAnnual;
   if (annual === null || annual === 0) return monthly(plan);
   const per = annual / 12;
-  return Number.isInteger(per) ? `$${per}/mo` : `$${per.toFixed(2)}/mo`;
+  return `${usd(per)}/mo`;
 };
 
 /** What a year on the annual plan saves against paying monthly, e.g. "$38". */
@@ -63,7 +67,7 @@ export const annualSaving = (plan: Plan): string | null => {
   const { priceMonthly, priceAnnual } = PLANS[plan];
   if (!priceMonthly || priceAnnual === null) return null;
   const saved = priceMonthly * 12 - priceAnnual;
-  return saved > 0 ? (Number.isInteger(saved) ? `$${saved}` : `$${saved.toFixed(2)}`) : null;
+  return saved > 0 ? usd(saved) : null;
 };
 
 /** e.g. "from $9/mo" — for CTAs that unlock across several plans. */

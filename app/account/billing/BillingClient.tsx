@@ -274,7 +274,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
         <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
           Your choice, made in advance. Stopping means requests are refused once the included
           allowance is used — nothing is ever billed that you did not opt into. Continuing keeps
-          your application running and bills the excess at {ov?.priceLabel ?? '$1 per 10,000 requests'},
+          your application running and bills the excess at {ov?.priceLabel ?? '$1.30 per 10,000 requests'},
           never past a cap you set.
         </p>
 
