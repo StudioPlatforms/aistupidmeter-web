@@ -54,8 +54,10 @@
 .lbx-row--tall { height: 46px; }
 .lbx-row .lbx-score { text-align: right; }
 
+/* Always a white tile, as on the old board: brand marks are drawn for a light ground and the
+   OpenAI mark is black, so a theme-coloured tile made it vanish in dark mode. */
 .lbx-logo { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 7px; background: var(--terminal-black); }
+  border-radius: 7px; background: #ffffff; border: 1px solid var(--metal-silver); }
 .lbx-model { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .lbx-model-text { display: flex; flex-direction: column; min-width: 0; }
 .lbx-name { font-size: 13px; font-weight: 500; color: var(--phosphor-green); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-decoration: none; }
