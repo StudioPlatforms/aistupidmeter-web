@@ -39,6 +39,8 @@ export type Capability =
   | 'calibration'
   /** Cheaper models that can stand in for this one, and the measured cost of doing it. */
   | 'substitutes'
+  /** Long-context accuracy by length and position (pilot). */
+  | 'context-rot'
   /** Shared workspace, seats, projects, webhooks. */
   | 'team'
   /** SSO, SCIM and the audit trail. */
@@ -62,6 +64,8 @@ export const REQUIRED_PLAN: Record<Capability, Plan> = {
   // score comparison. Priced with calibration: both are analysis of runs we have
   // already paid for, and both belong to the cheapest paid plan.
   substitutes: 'pro',
+  // Pro Intelligence and up (owner, 2026-09-28): analysis of runs we pay for, like calibration.
+  'context-rot': 'pro',
   team: 'teams',
   governance: 'teams',
 };
@@ -75,6 +79,7 @@ export const CAPABILITY_LABEL: Record<Capability, string> = {
   'api-monitoring': 'API monitoring',
   calibration: 'Calibration and known-unknowns',
   substitutes: 'Cheaper substitutes',
+  'context-rot': 'Context rot (pilot)',
   team: 'Shared workspace',
   governance: 'Security and governance',
 };

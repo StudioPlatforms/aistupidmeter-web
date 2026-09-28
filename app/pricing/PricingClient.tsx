@@ -58,6 +58,8 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
       note: 'Per model: how often it invents an answer to a question that has none, and whether its stated confidence is worth anything' },
     { label: 'Cheaper substitutes',   get: p => planMeets(p, REQUIRED_PLAN.substitutes) ? 'Yes' : '—',
       note: 'Which cheaper models can do a given model’s work, and the measured share of working requests that would start failing if you switched' },
+    { label: 'Context rot (pilot)',   get: p => planMeets(p, REQUIRED_PLAN['context-rot']) ? 'Yes' : '—',
+      note: 'Long-context accuracy from 8K to 1M tokens, by length and by position, tracked weekly. Pilot: DeepSeek, Kimi and GLM' },
     { label: 'Custom alert thresholds', get: p => PLANS[p].customAlerts ? 'Yes' : '—' },
     { label: 'Exports',               get: p => PLANS[p].exports ? 'Yes' : '—', note: 'Model reports and routing analytics as CSV or JSON' },
   ] },
@@ -100,7 +102,8 @@ function highlights(p: Plan): { lead?: string; items: string[] } {
     ] };
     case 'pro': return { lead: 'Everything in Free, plus', items: [
       `${fmt(e.watchedModels)} tracked models and custom alert thresholds`, 'Full history and the drift diagnosis behind every change',
-      'Calibration and cheaper-substitute analysis', 'Routing analytics and CSV/JSON exports', router, dataApi,
+      'Calibration and cheaper-substitute analysis', 'Context-rot pilot: long-context accuracy up to 1M tokens',
+      'Routing analytics and CSV/JSON exports', router, dataApi,
     ] };
     case 'developer': return { lead: 'Everything in Pro, plus', items: [
       router, 'API monitoring: per-key logs, costs, prompt auditing and budget limits', `${e.routerDiagnosticDays}-day decision logs`, dataApi,

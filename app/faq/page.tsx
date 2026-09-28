@@ -135,6 +135,11 @@ const FAQ: FAQGroup[] = [
         a: 'Every number on the board carries a standard error, measured from how consistent the model has been. For each suite that is the spread of its last five runs on the current tests, combined using the composite\'s weights. On coding, two identical sweeps of the whole fleet differ by about 2 points on average. A combined score\'s standard error is typically 2–3 points, and the interval shown is ±1.96 standard errors. So "86 ± 4.5" means the same model measured again would land in that range 95% of the time.\n\nThis is why neighbouring places on the leaderboard are often ties.',
       },
       {
+        id: 'context-rot',
+        q: 'Do you track “lost in the middle”, or context rot?',
+        a: 'Yes, as a pilot. Each week every pilot model reads the same kind of long document at 8K, 32K, 128K, 256K, 512K and 1M tokens and answers sixteen questions graded exactly: finding a fact placed anywhere from 10% to 90% of the way through, linking facts across the document, tracking a value that changes, and counting across the whole of it. That shows how much of an advertised context window a model can really use, and whether the middle is weaker than the ends. The pilot covers DeepSeek, Kimi and GLM; OpenAI, Anthropic, Google and more providers will follow. Results are on the [context rot page](/context-rot) for Pro Intelligence and above.',
+      },
+      {
         id: 'median',
         q: 'Why use the median instead of the mean?',
         a: 'The median is not thrown off by outliers. If one attempt produces an unusual result, such as a timeout or an unusually good or bad answer, it does not skew the task\'s result. With seven attempts it describes typical performance better than the mean.',

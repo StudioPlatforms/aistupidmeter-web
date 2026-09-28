@@ -142,6 +142,7 @@ const TOC = [
   { id: 'community', label: 'Community-funded models' },
   { id: 'quick', label: 'Quick answers' },
   { id: 'extra', label: 'Other test suites' },
+  { id: 'context-rot', label: 'Context rot (pilot)' },
   { id: 'data', label: 'Data to date' },
   { id: 'api', label: 'Data API' },
   { id: 'compare', label: 'Compared with other benchmarks' },
@@ -361,6 +362,13 @@ export default async function MethodologyPage() {
           ['Bias detection', <>19 variants across gender, ethnicity and age, plus a neutral baseline. The nightly sweep takes one variant from each category.<span key="s" className="doc-fact-sub">{suiteStatusLine(status?.bias)}</span></>],
           ['Version tracking', 'Every score records the test version it ran under. Detecting a provider’s own model-version change is not yet implemented.'],
         ]} />
+      </Section>
+
+      <Section id="context-rot" title="Context rot (pilot)"
+        lead="Does a model get worse as its context gets longer? A weekly suite, separate from the leaderboard, measures it from 8K to 1M tokens.">
+        <Prose>
+          <p>Each week every pilot model reads the same kind of document — an archive of company records — at 8K, 32K, 128K, 256K, 512K and 1M tokens (as far as its context window allows), three times at each length, and answers sixteen questions graded exactly: finding a fact placed 10% to 90% of the way through, linking facts across the document, tracking a value that changes and is sometimes withdrawn, and counting across the whole archive. Every fact is written in the same record format as thousands of look-alikes, because a fact that stands out by its format can be found at any length. The pilot covers DeepSeek, Kimi and GLM; OpenAI, Anthropic, Google and more providers will follow. The results are on the <Link href="/context-rot">context rot page</Link> for Pro Intelligence and above.</p>
+        </Prose>
       </Section>
 
       <Section id="data" title="Data to date"

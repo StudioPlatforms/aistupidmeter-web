@@ -175,6 +175,11 @@ const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: s
     { title: 'Read per trial, not per verdict', description: 'A published verdict is the median of seven trials. One request is not seven, so this reads the trials underneath and reports the variance the median removes.' },
     { title: 'Bounded, not assumed', description: 'Each figure comes with the range it must fall in for any dependence between the two models’ failures, so nothing rests on an unstated assumption.' },
   ],
+  'context-rot': [
+    { title: 'Accuracy as the input grows', description: 'Every pilot model tested at 8K, 32K, 128K, 256K, 512K and 1M tokens of the same kind of document.' },
+    { title: 'What breaks first', description: 'Finding a fact, linking facts, tracking a value that changes, and counting across the whole document — scored separately.' },
+    { title: 'Where in the document', description: 'The same fact placed at 10% to 90% of the way through, so "lost in the middle" shows up if it is there.' },
+  ],
   'api-monitoring': [
     { title: 'Per-key request logs', description: 'See exactly how each key is used, by which model, at what cost and latency.' },
     { title: 'Prompt auditing', description: 'Opt-in prompt retention with automatic secret scrubbing.' },
