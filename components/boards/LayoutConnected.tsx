@@ -222,7 +222,10 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
     };
   });
 
-  const firstUnranked = rows.findIndex((r) => r.muted);
+  // A heading wherever the group changes: the community-funded models first, then any other
+  // model without a combined rank (one added recently and not yet run on every suite). A
+  // single heading at the first unranked row put those under "Community-funded" too.
+  const groupOf = (r: (typeof rows)[number]) => (r.m.community.length ? 'community' : r.muted ? 'other' : 'ranked');
 
   return (
     <div className="lbx-card lbx-rl">
@@ -232,9 +235,9 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
       </div>
       {rows.map((r, i) => (
         <div key={r.m.id}>
-          {i === firstUnranked && (
+          {groupOf(r) !== 'ranked' && (i === 0 || groupOf(rows[i - 1]) !== groupOf(r)) && (
             <div className="lbx-rl-group">
-              {r.m.community.length ? 'Community-funded · ranked on coding only' : 'Not ranked on every board'}
+              {groupOf(r) === 'community' ? 'Community-funded · ranked on coding only' : 'Not ranked on every board'}
             </div>
           )}
           <div className={`lbx-rl-row${r.muted ? ' is-muted' : ''}`}>

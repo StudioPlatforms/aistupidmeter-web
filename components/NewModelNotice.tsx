@@ -48,6 +48,7 @@ export default function NewModelNotice({
     return () => clearTimeout(t);
   }, [qualifies, storageKey]);
 
+  /** "Got it", ×, or Escape: the visitor has read it, so do not show it again for this model. */
   const dismiss = () => {
     try {
       localStorage.setItem(storageKey, 'true');
@@ -56,6 +57,12 @@ export default function NewModelNotice({
     }
     setIsOpen(false);
   };
+
+  /**
+   * A tap outside the card closes it for this visit only. On a phone that tap is often an
+   * accident while scrolling, and remembering it hid the notice on that device for good.
+   */
+  const close = () => setIsOpen(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -72,7 +79,7 @@ export default function NewModelNotice({
     days <= 0 ? 'less than a day' : days === 1 ? '1 day' : `${days} days`;
 
   return (
-    <div className="pro-modal" onClick={dismiss}>
+    <div className="pro-modal" onClick={close}>
       <div
         className="pro-modal-card nmn-card"
         onClick={(e) => e.stopPropagation()}
