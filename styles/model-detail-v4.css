@@ -1203,3 +1203,50 @@
   font-size: 11px; color: var(--phosphor-green); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12); z-index: 2; }
 .md-vb-tip-sub { display: block; color: var(--phosphor-dim); font-size: 10px; }
 .md-vb-foot { font-size: 10px; line-height: 1.6; color: var(--phosphor-dim); }
+
+/* ── Context rot (pilot) ───────────────────────────────────────────────────
+   Reuses the calibration strip and table; the heatmap and chart axes come from
+   styles/context-rot.css (crt-*), so the page and this panel draw them the same. */
+.md-crt-pill { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 9.5px; font-weight: 700;
+  letter-spacing: .05em; vertical-align: 1px; background: var(--accent-bg, #e8f0fe); color: var(--accent, #1a73e8); }
+.md-crt-absent { font-size: 13px; line-height: 1.6; color: var(--phosphor-dim); max-width: 78ch; }
+.md-crt-absent b { color: var(--phosphor-green); font-weight: 600; }
+.md-crt-absent a, .md-cal-intro a { color: var(--accent, #1a73e8); }
+.md-cal-table.md-crt-table { width: auto; margin-bottom: 4px; }
+.md-crt-caption { caption-side: top; text-align: left; font-size: 12.5px; font-weight: 600; color: var(--phosphor-green); padding-bottom: 8px; }
+.md-crt-table td:first-child { white-space: nowrap; }
+.md-crt-table th.md-crt-num, .md-crt-table td.md-crt-num { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; padding-left: 30px; }
+.md-crt-total td { font-weight: 600; }
+.md-crt-na { color: var(--phosphor-dim); opacity: .7; font-weight: 400; }
+
+.md-crt-figs { display: flex; gap: 28px 56px; margin: 4px 0 6px; align-items: flex-start; }
+.md-crt-col { display: flex; flex-direction: column; gap: 28px; min-width: 0; }
+.md-crt-col:last-child { flex: 0 1 560px; }
+.md-crt-figs .md-cal-table-wrap { margin-top: 0; }
+.md-crt-fig { margin: 0; position: relative; min-width: 0; }
+.md-crt-fig-title { font-size: 12.5px; font-weight: 600; color: var(--phosphor-green); margin-bottom: 8px; }
+.md-crt-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 11.5px; color: var(--phosphor-dim); margin-bottom: 4px; }
+.md-crt-key { display: inline-block; width: 14px; height: 2px; margin-right: 6px; vertical-align: 3px; background: var(--metal-silver, #c0c0c0); }
+.md-crt-key.is-mine { height: 3px; background: var(--accent, #1a73e8); }
+.md-crt-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.md-crt-other { fill: none; stroke: var(--phosphor-dim); stroke-width: 1.25; opacity: .35; stroke-linejoin: round; }
+.md-crt-mine { fill: none; stroke: var(--accent, #1a73e8); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.md-crt-dot { fill: var(--accent, #1a73e8); stroke: var(--terminal-black, #fff); stroke-width: 2; }
+.md-crt-endlabel { fill: var(--phosphor-green); font-size: 12px; font-weight: 600; }
+.md-crt-tip { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 8px; font-size: 12px; color: var(--phosphor-green); }
+.md-crt-tip-dim { color: var(--phosphor-dim); }
+.md-crt-fig .crt-heat { margin-top: 2px; }
+
+@media (max-width: 1000px) {
+  .md-crt-figs { flex-direction: column; align-items: stretch; }
+  .md-crt-col { display: contents; }
+  .md-crt-figs .md-cal-table-wrap { order: 1; }
+  .md-crt-chart { order: 2; }
+  .md-crt-heatfig { order: 3; }
+  .md-crt-defs { order: 4; }
+}
+@media (max-width: 520px) {
+  .md-crt-table th.md-crt-num, .md-crt-table td.md-crt-num { padding-left: 9px; }
+  .md-crt-svg .crt-axis { font-size: 16px; }
+  .md-crt-svg .md-crt-endlabel { font-size: 16px; }
+}

@@ -31,6 +31,7 @@ import ModelDetailSliceRegressions from '../../../components/model-detail/ModelD
 import ModelDetailCalibration from '../../../components/model-detail/ModelDetailCalibration';
 import ModelDetailVerbosity from '../../../components/model-detail/ModelDetailVerbosity';
 import ModelDetailSubstitutes from '../../../components/model-detail/ModelDetailSubstitutes';
+import ModelDetailContextRot from '../../../components/model-detail/ModelDetailContextRot';
 import ModelDetailCommunityTests from '../../../components/model-detail/ModelDetailCommunityTests';
 import ModelDetailCommunityFunding from '../../../components/model-detail/ModelDetailCommunityFunding';
 
@@ -201,7 +202,7 @@ export default function ModelDetailClient({
 
   // Pro modal
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration' | 'substitutes'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot'>('historical-data');
 
   // Visitor counts (same as main page TopBar)
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
@@ -634,6 +635,14 @@ export default function ModelDetailClient({
         modelId={modelId}
         plan={plan}
         hasProAccess={hasProAccess}
+        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+      />
+
+      {/* Context rot (pilot): how far the context window really goes. A measurement panel, so it
+          sits with calibration, before the decision panels. On a model outside the pilot it says
+          so in one line instead of offering an upgrade that would unlock nothing. */}
+      <ModelDetailContextRot
+        modelName={modelDetails.name}
         onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
       />
 

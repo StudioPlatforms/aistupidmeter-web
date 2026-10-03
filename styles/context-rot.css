@@ -49,7 +49,7 @@
 .crt-heat thead th { width: 32px; }
 .crt-heat thead th:first-child { width: 34px; }
 .crt-heat th { font-weight: 500; padding: 0 4px; text-align: right; }
-.crt-heat thead th { text-align: center; }
+.crt-heat thead th { text-align: center; padding: 0; }
 .crt-heat td { height: 18px; border-radius: 3px; }
 .crt-cell-empty { background: repeating-linear-gradient(45deg, transparent 0 3px, var(--metal-silver) 3px 4px); opacity: .6; }
 .crt-cell-0 { background: #cde2fb; } .crt-cell-1 { background: #9ec5f4; } .crt-cell-2 { background: #6da7ec; }
@@ -57,6 +57,11 @@
 [data-theme="dark"] .crt-cell-0 { background: #1b2a3f; } [data-theme="dark"] .crt-cell-1 { background: #1c3b62; }
 [data-theme="dark"] .crt-cell-2 { background: #1c5cab; } [data-theme="dark"] .crt-cell-3 { background: #2a78d6; }
 [data-theme="dark"] .crt-cell-4 { background: #5598e7; } [data-theme="dark"] .crt-cell-5 { background: #86b6ef; } [data-theme="dark"] .crt-cell-6 { background: #b7d3f6; }
+
+.crt-heatkey { display: flex; align-items: center; gap: 3px; margin-top: 8px; font-size: 11px; color: var(--phosphor-dim); }
+.crt-heatkey i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; }
+.crt-heatkey span { margin: 0 4px; }
+.crt-heatkey .crt-cell-empty { margin-left: 10px; }
 
 @media (max-width: 767px) {
   .crt-tip { position: static; margin-top: 8px; }

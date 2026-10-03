@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
@@ -66,6 +66,16 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
         'Read from per-trial outcomes, not run verdicts — a verdict is a median of seven and hides what one request sees',
         'A range across every possible dependence, so the estimate is bounded rather than assumed',
         'The reverse too: how much of what this model drops, the cheaper one completes',
+      ],
+    },
+    'context-rot': {
+      title: 'Unlock context rot (pilot)',
+      description: 'A context window is what a model accepts, not what it can use. This measures how far its answers hold up as the document grows.',
+      benefits: [
+        'Accuracy at each length from 8K to 1M tokens, measured weekly',
+        'What breaks first: finding a fact, linking facts, tracking updates or counting',
+        'Where in the document facts get lost, by position and length',
+        'Pilot: DeepSeek, Kimi and GLM models for now; more providers will follow',
       ],
     },
     'api-monitoring': {

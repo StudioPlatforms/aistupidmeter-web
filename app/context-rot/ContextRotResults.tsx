@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { upgradeHref } from '@/lib/checkout-url';
+import { HeatGrid, HeatLegend, SKILLS, k, pct, type CrtModel } from '@/components/context-rot/shared';
 
 /**
  * Context-rot results (Pro Intelligence and above). The page around it is public; this panel
@@ -14,26 +15,8 @@ import { upgradeHref } from '@/lib/checkout-url';
  * so every line is labelled directly and the table above the chart carries every value.
  */
 
-type Skill = 'retrieval' | 'linking' | 'tracking' | 'counting';
-interface Stat { accuracy: number; correct: number; total: number }
-interface Bucket {
-  bucket: number; runnable: boolean; trials: number; excluded: number;
-  accuracy: number | null; correct: number; total: number; tokens: number | null;
-  skills: Record<Skill, Stat | null>;
-}
-interface ModelRow {
-  name: string; displayName: string; vendor: string; window: number;
-  sweeps: number; latestSweep: string | null;
-  baseline: number | null; effectiveContext: number | null; effectiveIsLowerBound?: boolean; holdRatio: number;
-  buckets: Bucket[]; grid: Array<{ bucket: number; depth: number; correct: number; total: number }>; gridSweeps: number;
-}
+type ModelRow = CrtModel;
 interface Data { buckets: number[]; depths: number[]; models: ModelRow[] }
-
-const SKILLS: Array<[Skill, string]> = [
-  ['retrieval', 'Finding a fact'], ['linking', 'Linking facts'], ['tracking', 'Tracking updates'], ['counting', 'Counting'],
-];
-const k = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}K`);
-const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${Math.round(x * 100)}%`);
 
 export default function ContextRotResults() {
   const [state, setState] = useState<'loading' | 'ok' | 'signin' | 'upgrade' | 'error'>('loading');
@@ -220,30 +203,16 @@ function SkillTable({ data }: { data: Data }) {
 
 /** Lost in the middle: finding-a-fact accuracy by position (rows) and length (columns). */
 function PositionGrids({ data }: { data: Data }) {
-  const shade = (a: number | null) => (a === null ? 'crt-cell-empty' : `crt-cell-${Math.min(6, Math.floor(a * 6.999))}`);
   return (
     <figure className="crt-figure">
       <figcaption className="crt-fig-title">Where in the document — finding a fact, by position and length</figcaption>
-      <p className="crt-note">Darker is more accurate. Pooled over the last {Math.max(...data.models.map(m => m.gridSweeps), 1)} weekly run(s); hover a cell for the count.</p>
+      <HeatLegend />
+      <p className="crt-note">Pooled over the last {Math.max(...data.models.map(m => m.gridSweeps), 1)} weekly run(s); hover a cell for the count.</p>
       <div className="crt-grids">
         {data.models.map(m => (
           <div key={m.name} className="crt-gridbox">
             <div className="crt-gridname">{m.displayName}</div>
-            <table className="crt-heat" aria-label={`${m.displayName}: finding-a-fact accuracy by position and length`}>
-              <thead><tr><th />{data.buckets.map(b => <th key={b}>{k(b)}</th>)}</tr></thead>
-              <tbody>
-                {data.depths.map(d => (
-                  <tr key={d}>
-                    <th>{Math.round(d * 100)}%</th>
-                    {data.buckets.map(b => {
-                      const c = m.grid.find(g => g.bucket === b && g.depth === d);
-                      const a = c && c.total ? c.correct / c.total : null;
-                      return <td key={b} className={shade(a)} title={c && c.total ? `${Math.round(d * 100)}% through, ${k(b)}: ${c.correct}/${c.total}` : 'Not measured'} />;
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <HeatGrid model={m} buckets={data.buckets} depths={data.depths} />
           </div>
         ))}
       </div>
