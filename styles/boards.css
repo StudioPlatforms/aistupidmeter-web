@@ -267,10 +267,11 @@ a.lbx-name:hover { color: var(--accent); }
 .lbx-rl-axis span { width: 36px; text-align: center; }
 .lbx-rl-group { padding: 10px 14px; background: var(--terminal-black); border-bottom: 1px solid var(--metal-silver);
   font-size: 12px; font-weight: 600; color: var(--phosphor-dim); }
-.lbx-rl-row { height: 52px; padding: 0 14px; display: grid; grid-template-columns: minmax(0, 1fr) 144px; gap: 12px; align-items: center;
+.lbx-rl-row { min-height: 52px; padding: 6px 14px; display: grid; grid-template-columns: minmax(0, 1fr) 144px; gap: 12px; align-items: center;
   border-bottom: 1px solid var(--metal-silver); color: var(--phosphor-green); text-decoration: none; }
 .lbx-rl-row:hover { background: var(--terminal-black); }
-.lbx-rl-row .lbx-name { font-size: 13px; font-weight: 600; }
+/* Full names on phones: "DeepSeek V4 F…" hid the word that tells Flash from Pro. */
+.lbx-rl-row .lbx-name { font-size: 13px; font-weight: 600; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
 .lbx-rl-row.is-muted .lbx-name { color: var(--phosphor-dim); }
 .lbx-rl-row .lbx-prov { text-transform: none; }
 .lbx-rl-top { stroke: var(--metal-silver); stroke-width: 1; opacity: .6; }

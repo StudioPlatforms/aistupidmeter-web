@@ -49,7 +49,10 @@ interface AxisReading {
 
 interface DriftStatus {
   modelId: number;
+  /** The model id (claude-sonnet-5-5): builds the link to its page. */
   modelName: string;
+  /** What the reader sees (Claude Sonnet 5.5). */
+  label: string;
   provider: string;
   regime: 'STABLE' | 'VOLATILE' | 'DEGRADED' | 'RECOVERING';
   driftStatus: 'NORMAL' | 'WARNING' | 'ALERT';
@@ -62,7 +65,7 @@ interface DriftStatus {
 
 interface HeatmapProps {
   /** In leaderboard order for the selected sort — the default row order here. */
-  models: { id: string; name: string; provider: string }[];
+  models: { id: string; name: string; provider: string; displayName?: string | null }[];
   /** Window the movement is measured over; 'latest' is the 28-day alerting signature. */
   period?: 'latest' | '24h' | '7d' | '1m';
   /** The top-bar sort. Only used to reset the row order when it changes. */
@@ -161,6 +164,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
               rows.push({
                 modelId: item.modelId,
                 modelName: item.modelName || model?.name || `Model ${item.modelId}`,
+                label: model?.displayName || item.modelName || model?.name || `Model ${item.modelId}`,
                 provider: model?.provider || '',
                 regime: item.data.regime || 'STABLE',
                 driftStatus: item.data.driftStatus || 'NORMAL',
@@ -205,7 +209,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       return rows.sort((a, b) => biggestMove(b, axes) - biggestMove(a, axes));
     }
     if (sortKey === '__name') {
-      return rows.sort((a, b) => a.modelName.localeCompare(b.modelName));
+      return rows.sort((a, b) => a.label.localeCompare(b.label));
     }
     // Sorting by a dimension puts the steepest decline at the top.
     return rows.sort((a, b) => changeOf(a, sortKey) - changeOf(b, sortKey));
@@ -247,7 +251,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
   // rows are already on the client.
   const kpiEntries = useMemo(() => {
     const row = (m: DriftStatus, value?: string | number | null): DetailEntry => ({
-      label: m.modelName,
+      label: m.label,
       note: m.provider || null,
       value: value ?? null,
     });
@@ -257,7 +261,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
       const off = axes.filter(a => comparable(m.axes[a.key]) && m.axes[a.key].status !== 'STABLE');
       if (off.length === 0) continue;
       movedRows.push({
-        label: m.modelName,
+        label: m.label,
         note: off.map(a => a.label).join(', '),
         value: off.length,
       });
@@ -483,10 +487,10 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
               <tr
                 key={m.modelId}
                 onClick={() => router.push(`/models/${slugifyModelName(m.modelName)}`)}
-                title={`Open ${m.modelName}`}
+                title={`Open ${m.label}`}
               >
                 <td className="dm-model">
-                  <span className="dm-model-name">{m.modelName}</span>
+                  <span className="dm-model-name">{m.label}</span>
                   <span className="dm-model-meta">
                     {m.provider}
                     {m.axesSource !== 'measured' && (
@@ -525,7 +529,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                       key={a.key}
                       className={`dm-cell${ok && axis?.status !== 'STABLE' ? ' is-flagged' : ''}`}
                       style={ok ? tintFor(change as number) : undefined}
-                      title={cellTitle(m.modelName, a.label, axis)}
+                      title={cellTitle(m.label, a.label, axis)}
                     >
                       {measured(axis)
                         ? (
@@ -562,7 +566,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
             >
               <div className="dm-card-top">
                 <div className="dm-card-id">
-                  <span className="dm-model-name">{m.modelName}</span>
+                  <span className="dm-model-name">{m.label}</span>
                   <span className="dm-model-meta">
                     {m.provider}
                     {m.axesSource !== 'measured' && <span className="dm-modelled">modelled</span>}
