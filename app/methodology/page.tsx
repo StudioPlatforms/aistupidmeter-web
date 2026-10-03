@@ -335,7 +335,7 @@ export default async function MethodologyPage() {
         lead="For five models we stopped paying for the reasoning and tool-use suites. Anyone can fund those runs; the coding suite, the canary and drift monitoring continue on our account.">
         <Prose>
           <p>From 24 September 2026, the reasoning and tool-use runs for Claude Sonnet 4.6, Claude Opus 4.6, 4.7 and 4.8 and GPT-5.5 are funded by the community. A signed-in visitor can fund one run per test per model per day from the model&apos;s page, paying with their own API key. The run is exactly our scheduled test, on our servers, and its result is published like any other; the key is used for that run only and never stored.</p>
-          <p>On the boards these models stay ranked on <b>Coding</b>. On <b>Reasoning</b> and <b>Tool use</b> they sit in a community-funded group at the foot of the board, with the date of their last funded run, and are not ranked until a new run is funded. On <b>Combined</b> their score is coding only, so they are listed but not ranked against models measured on all three suites.</p>
+          <p>On the boards these models stay ranked on <b>Coding</b>. On <b>Reasoning</b> and <b>Tool use</b> they sit in a community-funded group at the foot of the board, with the date of their last funded run, and are not ranked until a new run is funded. On <b>Combined</b> they are listed without a rank: only their coding is measured on our schedule, and a combined rank needs all three suites.</p>
         </Prose>
       </Section>
 

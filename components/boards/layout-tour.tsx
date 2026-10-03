@@ -103,7 +103,7 @@ const STEPS: Record<BoardLayout, TourStep[]> = {
       body: [
         TIES,
         COVERAGE,
-        'The community-funded models are grouped at the bottom. We still test their coding every four hours; a grey reasoning or tool-use score is their last funded run, with its date, and is not ranked. “Coding only” under Combined means there is no complete combined score to rank.',
+        'The community-funded models are grouped at the bottom. We still test their coding every four hours; a grey reasoning or tool-use score is their last funded run, with its date, and is not ranked. “Not ranked” under Combined means their reasoning and tool use are community-funded, so there is no complete combined score to rank.',
       ],
       icon: ICON.people,
     },

@@ -16,7 +16,7 @@ function cell(boards: Boards, k: BoardKey, id: string): { big: string; small: st
   if (s.ranked) return { big: s.v, small: String(boards[k].ranked.find((x) => x.id === id)?.score ?? ''), muted: false, title: `${BOARD_TITLE[k]}: rank ${s.v}, ${s.sub}` };
   const c = boards[k].community.find((x) => x.id === id);
   if (c && k !== 'combined') return { big: String(c.score ?? '—'), small: c.when ?? '', muted: true, title: `${BOARD_TITLE[k]}: ${c.score} on the last funded run (${c.when}); not ranked` };
-  if (c) return { big: '—', small: '', muted: true, title: 'Combined: coding only, so no combined rank' };
+  if (c) return { big: '—', small: '', muted: true, title: 'Combined: not ranked. Their reasoning and tool-use runs are funded by the community, so there is no complete combined score to rank. We test their coding every 4 hours.' };
   return { big: '—', small: '', muted: true, title: `${BOARD_TITLE[k]}: not ranked right now` };
 }
 

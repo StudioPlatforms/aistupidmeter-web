@@ -23,16 +23,21 @@ const HEAD = 58;
 const LABEL = 34;
 
 type Group = 'ranked' | 'community' | 'other';
-type Item = { kind: 'row'; row: BoardRow; group: Group } | { kind: 'label'; text: string };
+type Item = { kind: 'row'; row: BoardRow; group: Group } | { kind: 'label'; text: string; title?: string };
 
 function columnItems(board: Board): Item[] {
   const items: Item[] = board.ranked.map((row) => ({ kind: 'row', row, group: 'ranked' as Group }));
   if (board.community.length) {
     const dates = Array.from(new Set(board.community.map((r) => r.when).filter(Boolean)));
+    // On Combined, say why they have no rank. "Community-funded · coding only" read as if only
+    // coding were community-funded, which is the reverse of the truth.
     const text = board.key === 'combined'
-      ? 'Community-funded · coding only'
+      ? 'Community-funded · no combined rank'
       : `Community-funded · ${dates.length === 1 ? `last run ${dates[0]}` : 'last funded run'}`;
-    items.push({ kind: 'label', text });
+    const title = board.key === 'combined'
+      ? 'Their reasoning and tool-use runs are funded by the community, so there is no complete combined score to rank. We test their coding every 4 hours.'
+      : 'Community-funded: these scores are from the last run someone funded, so they are not ranked against models we measure on schedule.';
+    items.push({ kind: 'label', text, title });
     board.community.forEach((row) => items.push({ kind: 'row', row, group: 'community' }));
   }
   if (board.other.length) {
@@ -118,7 +123,7 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
                 <p>{BOARD_CADENCE[board.key]} · {board.ranked.length} ranked</p>
               </header>
               {items.map((it, i) => it.kind === 'label'
-                ? <div key={`l${i}`} className="lbx-conn-label" style={{ height: LABEL }}>{it.text}</div>
+                ? <div key={`l${i}`} className="lbx-conn-label" style={{ height: LABEL }} title={it.title}>{it.text}</div>
                 : (
                   <div
                     key={it.row.id}
@@ -237,7 +242,7 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
         <div key={r.m.id}>
           {groupOf(r) !== 'ranked' && (i === 0 || groupOf(rows[i - 1]) !== groupOf(r)) && (
             <div className="lbx-rl-group">
-              {groupOf(r) === 'community' ? 'Community-funded · ranked on coding only' : 'Not ranked on every board'}
+              {groupOf(r) === 'community' ? 'Community-funded reasoning and tool use' : 'Not ranked on every board'}
             </div>
           )}
           <div className={`lbx-rl-row${r.muted ? ' is-muted' : ''}`}>

@@ -18,8 +18,9 @@ export { statisticalRanks };
  *   ranked     — measured on this board and ranked, with statistical ties
  *   community  — this board's suite is community-funded for the model (we stopped paying for
  *                it); shown with its last funded run, never ranked against measured models.
- *                On Combined that is any community-funded suite: its combined score is
- *                coding only.
+ *                On Combined that is any community-funded suite: without our reasoning and
+ *                tool-use runs there is no complete combined score, so it is "not ranked"
+ *                (never "coding only", which read as if only coding were community-funded).
  *   other      — not ranked for any other reason (stale, too few suites); the API's
  *                staleReason says why.
  */
@@ -72,7 +73,7 @@ export interface BoardRow {
   top: boolean;
   /** Short coverage note ("5/7 tasks"), amber, with the full sentence as its title. */
   note: string | null;
-  /** For an unranked row: the date of the measurement shown ("24 Sep") or "coding only". */
+  /** For an unranked row: the date of the measurement shown ("24 Sep") or "not ranked" (Combined). */
   when: string | null;
 }
 
@@ -148,7 +149,7 @@ export function buildBoard(key: BoardKey, raw: any[]): Board {
       board.ranked.push({ ...base, rank: r, rankText: `${tied ? '=' : ''}${r}`, top: r <= 3, note: shortCoverage(m.coverage) });
     } else if (isCommunity && score !== null) {
       const ts = key === 'combined' ? null : (suite && m.suiteUpdatedAt?.[suite]) || m.lastUpdated;
-      board.community.push({ ...base, when: key === 'combined' ? 'coding only' : dayLabel(ts) });
+      board.community.push({ ...base, when: key === 'combined' ? 'not ranked' : dayLabel(ts) });
     } else {
       board.other.push({ ...base, when: score === null ? 'no data' : 'not ranked' });
     }

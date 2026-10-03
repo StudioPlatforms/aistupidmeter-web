@@ -209,7 +209,11 @@ function ScoreCell({ entry, board }: { entry?: Entry; board: BoardKey }) {
     );
   }
   if (group === 'community') {
-    return <span className="lbx-cell"><b className="is-muted">{board === 'combined' ? '—' : row.score}</b><small>{row.when}</small></span>;
+    return (
+      <span className="lbx-cell" title={board === 'combined' ? 'Their reasoning and tool-use runs are funded by the community, so there is no complete combined score to rank. We test their coding every 4 hours.' : undefined}>
+        <b className="is-muted">{board === 'combined' ? '—' : row.score}</b><small>{row.when}</small>
+      </span>
+    );
   }
   return <span className="lbx-cell" title={row.staleReason || undefined}><b className="is-muted">{row.score ?? '—'}</b><small>not ranked</small></span>;
 }
@@ -217,7 +221,7 @@ function ScoreCell({ entry, board }: { entry?: Entry; board: BoardKey }) {
 function BigScore({ entry, board }: { entry?: Entry; board: BoardKey }) {
   if (!entry) return <span className="lbx-big is-muted">—</span>;
   if (entry.group === 'ranked') return <span className="lbx-big">{entry.row.score}</span>;
-  if (entry.group === 'community' && board === 'combined') return <span className="lbx-chip">coding only</span>;
+  if (entry.group === 'community' && board === 'combined') return <span className="lbx-chip" title='Their reasoning and tool-use runs are funded by the community, so there is no complete combined score to rank. We test their coding every 4 hours.'>not ranked</span>;
   return <span className="lbx-big is-muted">{entry.row.score ?? '—'}</span>;
 }
 

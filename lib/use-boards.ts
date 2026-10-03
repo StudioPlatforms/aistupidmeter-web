@@ -48,7 +48,7 @@ export function standingOn(boards: Boards, k: BoardKey, id: string): { v: string
   const r = boards[k].ranked.find((x) => x.id === id);
   if (r) return { v: r.rankText, sub: `score ${r.score}`, ranked: true };
   const c = boards[k].community.find((x) => x.id === id);
-  if (c) return { v: '—', sub: k === 'combined' ? 'coding only' : `${c.score} on ${c.when}`, ranked: false };
+  if (c) return { v: '—', sub: k === 'combined' ? 'not ranked' : `${c.score} on ${c.when}`, ranked: false };
   return { v: '—', sub: 'not ranked', ranked: false };
 }
 
