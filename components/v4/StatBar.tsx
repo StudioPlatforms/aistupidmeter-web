@@ -143,26 +143,26 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
       <StatCellDetail
         id="stat-degraded"
         className={`v4-stat-cell ${degradedCount > 0 ? 'color-red' : 'color-green'}`}
-        title="Score moved down since the previous measurement, in the period and benchmark currently selected."
+        title="Its latest runs on the selected benchmark score clearly below its own recent baseline: the median of its last day of coding runs (or last three daily reasoning or tool-use runs) is more than 5 points under the runs before them, and by more than its normal run-to-run variation. Only runs on the current benchmark configuration are compared."
         label="DEGRADED"
         value={<span style={{ color: degradedCount > 0 ? 'var(--red-alert)' : 'var(--phosphor-green)' }}>{degradedCount}</span>}
         detail={degradedCount > 0 ? 'needs attention' : 'none'}
-        caption="Scored lower than at the previous measurement"
+        caption="Clearly below its own recent baseline"
         entries={rows(grouped.degraded)}
-        emptyText="No model scored lower than last time."
+        emptyText="No model is clearly below its own recent baseline."
         {...cell('degraded')}
       />
 
       <StatCellDetail
         id="stat-improving"
         className={`v4-stat-cell ${recoveringCount > 0 ? 'color-blue' : 'color-green'}`}
-        title="Score moved up since the previous measurement. Not the same as 'recovering', which would require knowing it had been down."
+        title="Its latest runs on the selected benchmark score clearly above its own recent baseline, by the same test. Not the same as 'recovering', which would require knowing it had been down."
         label="IMPROVING"
         value={<span style={{ color: recoveringCount > 0 ? '#1a73e8' : 'var(--phosphor-green)' }}>{recoveringCount}</span>}
         detail={recoveringCount > 0 ? 'trending up' : 'none'}
-        caption="Scored higher than at the previous measurement"
+        caption="Clearly above its own recent baseline"
         entries={rows(grouped.improving)}
-        emptyText="No model scored higher than last time."
+        emptyText="No model is clearly above its own recent baseline."
         {...cell('improving')}
       />
 
