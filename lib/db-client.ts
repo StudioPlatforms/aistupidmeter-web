@@ -465,10 +465,13 @@ export function validateResetToken(token: string): User | null {
   
   const db = getDb();
   try {
+    // reset_token_expires is ISO ("2026-10-04T18:50:23.458Z"); datetime('now') is
+    // "2026-10-04 19:50:23". Compared as text, 'T' sorts after ' ', so every link stayed valid
+    // until midnight UTC instead of for its hour. Compare like with like.
     const user = db.prepare(`
       SELECT * FROM router_users 
       WHERE reset_token = ? 
-      AND reset_token_expires > datetime('now')
+      AND reset_token_expires > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
     `).get(tokenHash) as User | undefined;
     
     return user || null;
