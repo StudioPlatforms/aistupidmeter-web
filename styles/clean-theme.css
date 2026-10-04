@@ -702,6 +702,19 @@ a:hover { color: var(--accent-ink); }
 .auth-note--good { color: var(--good); background: var(--good-bg); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
 .auth-note--warn { color: var(--warn); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
 .auth-note b { color: inherit; }
+/* Settings → Delete account. */
+/* Settings buttons. md-ctrl-btn lives in the model-page stylesheet, which this page does not load. */
+.acct-btn { display: inline-flex; align-items: center; justify-content: center; padding: 7px 14px; border-radius: 6px;
+  border: 1px solid var(--metal-silver); background: var(--terminal-dark); color: var(--phosphor-green);
+  font: inherit; font-size: 0.88em; font-weight: 500; line-height: 1.3; cursor: pointer; white-space: nowrap; }
+.acct-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.acct-btn:disabled { opacity: .5; cursor: not-allowed; }
+.acct-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.acct-danger-btn { color: var(--red-alert); border-color: color-mix(in srgb, var(--red-alert) 45%, transparent); }
+.acct-danger-btn:hover:not(:disabled) { color: var(--red-alert); border-color: var(--red-alert); background: color-mix(in srgb, var(--red-alert) 8%, transparent); }
+.acct-danger-solid { background: var(--red-alert); color: #fff; border: 0; border-radius: 4px; padding: 9px 16px; font: inherit; font-size: 0.92em; font-weight: 600; cursor: pointer; }
+.acct-danger-solid:disabled { opacity: .45; cursor: not-allowed; }
+.acct-danger-solid:focus-visible { outline: 2px solid var(--red-alert); outline-offset: 2px; }
 .nmn-card { max-width: 430px; }
 /* Amber rather than the accent blue: this is a caveat, not a feature pitch. */
 .nmn-badge { color: var(--warn); background: var(--warn-bg); }

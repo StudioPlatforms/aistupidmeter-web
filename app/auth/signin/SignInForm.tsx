@@ -116,6 +116,11 @@ export function SignInForm() {
             Your watchlist, alerts, plan and the Smart Router — all in one account.
           </div>
           
+          {searchParams.get('deleted') === '1' && !unverified && !error && (
+            <div className="auth-note auth-note--good" role="status">
+              Your account has been deleted. We have sent a confirmation to your email address.
+            </div>
+          )}
           {verified === '1' && !unverified && !error && (
             <div className="auth-note auth-note--good" role="status">
               Your email is confirmed. Sign in to start using your account.

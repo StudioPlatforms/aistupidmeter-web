@@ -364,6 +364,42 @@ export async function sendVerificationEmail(email: string, verifyLink: string) {
 }
 
 
+/** Sent once an account has been deleted (app/api/account/delete), to the address it had. */
+export async function sendAccountDeletedEmail(email: string) {
+  // Short labels, so every row stays on one line on a phone.
+  const rows: Array<[string, string]> = [
+    ['Watchlist and alerts', 'Deleted'],
+    ['Smart Router data', 'Deleted'],
+    ['Data API keys', 'Deleted'],
+    ['Forum posts', 'Shown as “Deleted user”'],
+  ];
+  return deliver(
+    email,
+    'Your AI Stupid Level account has been deleted',
+    renderEmail({
+      heading: 'Your account has been deleted',
+      preheader: 'Your account and the data linked to it are gone.',
+      intro:
+        'As you asked, we have deleted your AI Stupid Level account and the data linked to it. You will ' +
+        'not receive any more email from us, and you can create a new account with this address at any time.',
+      rows,
+      signoff: true,
+      footnote:
+        'We keep only what we must: invoices for past payments (held by Stripe, our payment provider) ' +
+        'and any messages you sent us. If you did not ask for this, reply to this email straight away.',
+    }),
+    `Your AI Stupid Level account has been deleted.\n\n` +
+    `As you asked, we have deleted your account and the data linked to it. You will not receive any\n` +
+    `more email from us, and you can create a new account with this address at any time.\n\n` +
+    rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') + '\n\n' +
+    `We keep only what we must: invoices for past payments (held by Stripe) and any messages you sent us.\n` +
+    `If you did not ask for this, reply to this email straight away.\n\n` +
+    `Thank you,\nThe AI Stupid Level team\n${SITE}\n`,
+    CONTACT_INBOX,
+  );
+}
+
+
 // ─── Contact form ────────────────────────────────────────────────────────────
 
 /**

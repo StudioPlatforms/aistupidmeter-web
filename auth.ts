@@ -247,6 +247,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
+        return token;
+      }
+      // A deleted account's session ends on its next request, not when the 30-day token
+      // expires: returning null makes NextAuth clear the cookie. The email check covers an
+      // account deleted and then re-registered with the same address — the old token names
+      // the old id. (Ids are AUTOINCREMENT, so they are never reused.)
+      if (token.sub) {
+        const id = Number(token.sub);
+        const current = Number.isInteger(id) ? findUserById(id) : null;
+        if (!current) return null;
+        if (token.email && current.email.toLowerCase() !== String(token.email).toLowerCase()) return null;
       }
       return token;
     },

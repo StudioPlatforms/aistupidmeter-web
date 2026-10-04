@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, isPlan, type Plan } from '@/lib/entitlements';
 import {
@@ -67,6 +67,121 @@ function Toggle({ on, onChange, disabled }: { on: boolean; onChange: (v: boolean
         background: on ? '#fff' : 'var(--phosphor-dim)', transition: 'left .15s ease',
       }} />
     </button>
+  );
+}
+
+/**
+ * Delete account. Collapsed by default; opening it asks the server what deleting would need
+ * (GET /api/account/delete: blockers, whether a password is required) before showing the form.
+ */
+function DeleteAccount() {
+  const [open, setOpen] = useState(false);
+  const [info, setInfo] = useState<{ email: string; needsPassword: boolean; blockers: Array<{ message: string; href?: string }> } | null>(null);
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const start = async () => {
+    setOpen(true);
+    setError('');
+    try {
+      const r = await fetch('/api/account/delete', { cache: 'no-store' });
+      const j = await r.json();
+      if (j?.success) setInfo({ email: j.email, needsPassword: j.needsPassword, blockers: j.blockers ?? [] });
+      else setError(j?.error ?? 'Could not load this. Please try again.');
+    } catch {
+      setError('Could not load this. Please try again.');
+    }
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      const r = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmEmail, password }),
+      });
+      const j = await r.json().catch(() => null);
+      if (r.ok && j?.success) {
+        await signOut({ callbackUrl: '/auth/signin?deleted=1' });
+        return;
+      }
+      setError(j?.error ?? 'Your account was not deleted. Please try again.');
+    } catch {
+      setError('Your account was not deleted. Please try again.');
+    }
+    setBusy(false);
+  };
+
+  const emailMatches = !!info && confirmEmail.trim().toLowerCase() === info.email.trim().toLowerCase();
+  const ready = !!info && info.blockers.length === 0 && emailMatches && (!info.needsPassword || password.length > 0);
+  const input: React.CSSProperties = {
+    width: '100%', padding: '8px 10px', marginTop: 6, borderRadius: 4, fontSize: '0.9em',
+    border: '1px solid var(--metal-silver)', background: 'var(--terminal-black)', color: 'var(--phosphor-green)',
+  };
+
+  return (
+    <section className="acct-wide" style={card}>
+      <h2 style={h2}>Delete account</h2>
+      <p style={sub}>Permanently delete your account and the data linked to it. This cannot be undone.</p>
+
+      {!open ? (
+        <button type="button" className="acct-btn acct-danger-btn" onClick={start}>Delete account…</button>
+      ) : (
+        <div style={{ fontSize: '0.88em', lineHeight: 1.6 }}>
+          <p style={{ margin: '0 0 8px' }}>Deleting your account removes, straight away:</p>
+          <ul style={{ margin: '0 0 10px', paddingLeft: 20 }}>
+            <li>your watchlist, alerts and settings</li>
+            <li>your Smart Router keys, saved provider keys and request logs, and any unused credits</li>
+            <li>your Data API keys</li>
+            <li>your forum profile; your posts stay, shown as “Deleted user”</li>
+          </ul>
+          <p style={{ margin: '0 0 14px', color: 'var(--phosphor-dim)' }}>
+            We keep only invoices for past payments (held by Stripe) and any messages you sent us.
+            We email you once to confirm the deletion.
+          </p>
+
+          {info?.blockers.map((b, i) => (
+            <div key={i} className="auth-note auth-note--warn" role="alert">
+              {b.message}{' '}
+              {b.href && <Link href={b.href} style={{ color: 'inherit', textDecoration: 'underline' }}>Go there</Link>}
+            </div>
+          ))}
+
+          {info && info.blockers.length === 0 && (
+            <>
+              <label style={{ display: 'block', marginBottom: 10 }}>
+                Type your email, <b>{info.email}</b>, to confirm
+                <input type="email" autoComplete="off" value={confirmEmail} onChange={e => setConfirmEmail(e.target.value)} style={input} />
+              </label>
+              {info.needsPassword && (
+                <label style={{ display: 'block', marginBottom: 12 }}>
+                  Your password
+                  <input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} style={input} />
+                </label>
+              )}
+            </>
+          )}
+
+          {error && <div className="auth-note auth-note--warn" role="alert">{error}</div>}
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            {info && info.blockers.length === 0 && (
+              <button type="button" className="acct-danger-solid" disabled={!ready || busy} onClick={remove}>
+                {busy ? 'Deleting…' : 'Permanently delete my account'}
+              </button>
+            )}
+            <button type="button" className="acct-btn" disabled={busy}
+              onClick={() => { setOpen(false); setConfirmEmail(''); setPassword(''); setError(''); }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -169,8 +284,7 @@ export default function SettingsClient() {
           </div>
           {!verified && (
             <button
-              className="md-ctrl-btn"
-              style={{ fontSize: '0.82em', whiteSpace: 'nowrap' }}
+              className="acct-btn"
               disabled={sendingVerify}
               onClick={async () => {
                 setSendingVerify(true);
@@ -327,6 +441,9 @@ export default function SettingsClient() {
           ))}
         </div>
       </section>
+
+      {/* 6 — Delete account */}
+      <DeleteAccount />
       </div>
     </div>
   );
