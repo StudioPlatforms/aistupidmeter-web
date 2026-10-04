@@ -697,6 +697,11 @@ a:hover { color: var(--accent-ink); }
 }
 
 /* ── New-model notice ─────────────────────────────────────────────── */
+/* Sign-in notes: confirmed / link expired / confirm your email first. */
+.auth-note { margin-bottom: 16px; padding: 10px 12px; border-radius: 6px; border: 1px solid; font-size: 0.92em; line-height: 1.55; text-align: left; }
+.auth-note--good { color: var(--good); background: var(--good-bg); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+.auth-note--warn { color: var(--warn); background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.auth-note b { color: inherit; }
 .nmn-card { max-width: 430px; }
 /* Amber rather than the accent blue: this is a caveat, not a feature pitch. */
 .nmn-badge { color: var(--warn); background: var(--warn-bg); }

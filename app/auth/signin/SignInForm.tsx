@@ -2,21 +2,43 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+/**
+ * What each sign-in failure code (auth.ts, SignInFailure) means to the person.
+ * NextAuth only passes the code; the sentence is ours.
+ */
+const FAILURE: Record<string, string> = {
+  missing: 'Enter your email address and password.',
+  no_account: 'No account uses this email address. Check it for typos, or create a free account below.',
+  wrong_password: 'Incorrect password. Try again, or use “Forgot password?” to choose a new one.',
+  use_google: 'This account signs in with Google. Use “Continue with Google” below.',
+  use_github: 'This account signs in with GitHub. Use “Continue with GitHub” below.',
+  use_social: 'This account signs in with Google or GitHub. Use one of the buttons below.',
+};
+
+/** Where to go after signing in: the page that sent them here, if it is on this site. */
+function safeReturnPath(raw: string | null): string {
+  return raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/router';
+}
+
 export function SignInForm() {
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const verified = searchParams.get('verified');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
+  const [unverified, setUnverified] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setUnverified(false);
     setLoading(true);
 
     try {
@@ -27,16 +49,36 @@ export function SignInForm() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        if (result.code === 'unverified') {
+          setUnverified(true);
+          setResendState('idle');
+        } else {
+          setError(FAILURE[result.code ?? ''] ?? 'Sign-in failed. Please try again in a moment.');
+        }
         setLoading(false);
         return;
       }
 
       // Use window.location for hard redirect to ensure session is properly loaded
-      window.location.href = '/router';
+      window.location.href = safeReturnPath(searchParams.get('callbackUrl'));
     } catch (err) {
-      setError('An error occurred during sign in');
+      setError('Sign-in failed. Please try again in a moment.');
       setLoading(false);
+    }
+  };
+
+  /** Mail a fresh confirmation link to the address typed above. */
+  const resendConfirmation = async () => {
+    setResendState('sending');
+    try {
+      const r = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      setResendState(r.ok ? 'sent' : 'failed');
+    } catch {
+      setResendState('failed');
     }
   };
 
@@ -74,6 +116,46 @@ export function SignInForm() {
             Your watchlist, alerts, plan and the Smart Router — all in one account.
           </div>
           
+          {verified === '1' && !unverified && !error && (
+            <div className="auth-note auth-note--good" role="status">
+              Your email is confirmed. Sign in to start using your account.
+            </div>
+          )}
+          {verified === 'expired' && !unverified && !error && (
+            <div className="auth-note auth-note--warn" role="status">
+              That confirmation link has expired or was already used. If you have already confirmed,
+              just sign in. If not, sign in and we will offer you a new link.
+            </div>
+          )}
+
+          {unverified && (
+            <div className="auth-note auth-note--warn" role="alert">
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Confirm your email first</div>
+              <div>
+                We sent a confirmation link to <b>{formData.email}</b> when you signed up. Open it, then
+                sign in here.
+              </div>
+              <div style={{ marginTop: 10 }}>
+                {resendState === 'sent' ? (
+                  <span>A new link is on its way. It can take a minute; check your spam folder too.</span>
+                ) : (
+                  <button type="button" className="vintage-btn" onClick={resendConfirmation}
+                    disabled={resendState === 'sending'} style={{ padding: '7px 14px', fontSize: '0.9em' }}>
+                    {resendState === 'sending' ? 'Sending…' : 'Send a new link'}
+                  </button>
+                )}
+                {resendState === 'failed' && (
+                  <span style={{ marginLeft: 10 }}>That did not work. Please wait a minute and try again.</span>
+                )}
+              </div>
+              <div style={{ marginTop: 10, fontSize: '0.88em', opacity: 0.85 }}>
+                Still nothing? Some email providers block new senders.{' '}
+                <Link href="/contact" style={{ color: 'inherit', textDecoration: 'underline' }}>Contact us</Link>{' '}
+                and we will sort it out.
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="terminal-text--red" style={{ 
               marginBottom: '16px', 

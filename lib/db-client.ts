@@ -31,6 +31,8 @@ export interface User {
   last_payment_at: string | null;
   reset_token: string | null;
   reset_token_expires: string | null;
+  /** 1 for password sign-ups since 2026-10-04: they must confirm their email before signing in. */
+  verification_required?: number | null;
   reset_requested_at: string | null;
   created_at: string;
   updated_at: string;
@@ -100,10 +102,11 @@ export function createUserWithPassword(
         password_hash, 
         name,
         email_verified,
+        verification_required,
         subscription_status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, 0, 'trial', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, 0, 1, 'trial', datetime('now'), datetime('now'))
     `).run(email, passwordHash, name || null);
 
     const user = db.prepare('SELECT * FROM router_users WHERE id = ?').get(result.lastInsertRowid) as User;

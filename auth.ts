@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth';
+import NextAuth, { CredentialsSignin } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
@@ -9,12 +9,28 @@ import {
   createUserWithPassword,
   createUserWithOAuth,
   updateUserLastLogin,
-  hasActiveSubscription
+  hasActiveSubscription,
+  verifyUserEmail
 } from './lib/db-client';
+import { sendWelcomeEmail } from './lib/email-service';
 import { consumeTicket } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
 import { withWorkspace } from './lib/workspace-plan';
 import { verifyPassword } from './lib/password';
+
+/**
+ * Why a password sign-in failed, as a code the sign-in form turns into a sentence.
+ *
+ * NextAuth v5 passes only CredentialsSignin errors to the browser, and only their
+ * `code`. A plain `throw new Error('Incorrect password…')` reached the form as
+ * "Configuration", which is what every failed sign-in showed until 2026-10-04.
+ */
+class SignInFailure extends CredentialsSignin {
+  constructor(code: 'missing' | 'no_account' | 'use_google' | 'use_github' | 'use_social' | 'wrong_password' | 'unverified') {
+    super();
+    this.code = code;
+  }
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -35,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required');
+          throw new SignInFailure('missing');
         }
 
         const email = credentials.email as string;
@@ -45,22 +61,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = findUserByEmail(email);
 
         if (!user) {
-          throw new Error('No account found with this email address');
+          throw new SignInFailure('no_account');
         }
 
         // Check if user has a password (not OAuth-only account)
         if (!user.password_hash) {
-          if (user.oauth_provider) {
-            throw new Error(`This account uses ${user.oauth_provider === 'google' ? 'Google' : 'GitHub'} sign-in. Please use the social login button.`);
-          }
-          throw new Error('This account uses social login. Please sign in with Google or GitHub.');
+          if (user.oauth_provider === 'google') throw new SignInFailure('use_google');
+          if (user.oauth_provider === 'github') throw new SignInFailure('use_github');
+          throw new SignInFailure('use_social');
         }
 
         // Verify password
         const isValid = await verifyPassword(password, user.password_hash);
 
         if (!isValid) {
-          throw new Error('Incorrect password. Try again or reset your password.');
+          throw new SignInFailure('wrong_password');
+        }
+
+        // Password sign-ups since 2026-10-04 confirm their email first. Older accounts
+        // (verification_required = 0) are not locked out: they signed up when confirming
+        // was optional, and some cannot receive our mail at all.
+        if (user.verification_required && !user.email_verified) {
+          throw new SignInFailure('unverified');
         }
 
         // Update last login
@@ -150,10 +172,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               user.image || undefined
             );
             console.log('[AUTH] User created successfully', { userId: dbUser.id });
+            // Welcome mail for Google and GitHub sign-ups too. No confirmation link: the
+            // provider has already verified the address. Fire-and-forget, like the
+            // password sign-up's: a mail failure must never block a sign-in.
+            void sendWelcomeEmail(email, user.name ?? null, null).catch(() => {});
           } else {
             console.log('[AUTH] Updating existing user last login', { userId: dbUser.id });
             // Update last login for existing user
             updateUserLastLogin(dbUser.id);
+            // Google or GitHub just vouched for this address, so an unconfirmed password
+            // account with the same email is confirmed now.
+            if (!dbUser.email_verified) verifyUserEmail(dbUser.id);
             console.log('[AUTH] Last login updated');
           }
 

@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPasswordResetToken } from '@/lib/db-client';
+import { createPasswordResetToken, findUserByEmail } from '@/lib/db-client';
 import { sendPasswordResetEmail } from '@/lib/email-service';
+import { clientIp, limited, secondsSince } from '@/lib/ip-rate-limit';
+
+const SENT = 'If an account exists with this email, you will receive a password reset link.';
 
 export async function POST(request: NextRequest) {
   try {
+    // Every reset email costs sending reputation, and an unlimited form can flood an inbox
+    // from our server: five requests per IP per fifteen minutes.
+    if (limited(`forgot-password:${clientIp(request)}`, 5, 15 * 60_000)) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait a few minutes and try again.' },
+        { status: 429 }
+      );
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -22,6 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // One reset email per account a minute. The answer is the same as a sent one, so it
+    // reveals nothing about whether the account exists.
+    const since = secondsSince(findUserByEmail(email)?.reset_requested_at);
+    if (since !== null && since < 60) {
+      return NextResponse.json({ success: true, message: SENT });
+    }
+
     // Create reset token (returns null if user doesn't exist)
     const result = createPasswordResetToken(email);
 
@@ -31,7 +50,7 @@ export async function POST(request: NextRequest) {
       console.log(`[AUTH] Password reset requested for non-existent email: ${email}`);
       return NextResponse.json({
         success: true,
-        message: 'If an account exists with this email, you will receive a password reset link.',
+        message: SENT,
       });
     }
 
@@ -54,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'If an account exists with this email, you will receive a password reset link.',
+      message: SENT,
     });
   } catch (error) {
     console.error('[AUTH] Error in forgot-password:', error);

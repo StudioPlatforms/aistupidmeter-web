@@ -66,21 +66,21 @@ export async function sendPasswordResetEmail(
     'Reset your AI Stupid Level password',
     renderEmail({
       heading: 'Reset your password',
+      preheader: 'Choose a new password. The link is valid for one hour.',
       intro:
-        'We received a request to reset the password for this account. Choose a new one using ' +
-        'the button below. The link is valid for one hour.',
+        'We received a request to reset the password for your AI Stupid Level account. Choose a ' +
+        'new one using the button below. The link is valid for one hour and works once.',
       ctaLabel: 'Choose a new password',
       ctaUrl: resetLink,
       footnote:
-        'If the button does not work, paste this into your browser:<br>' +
-        `<span style="word-break:break-all;color:#1a73e8;">${resetLink}</span>` +
-        '<br><br>If you did not ask for this, you can ignore this email — your password ' +
-        'will not change until the link above is used. Never share the link with anyone; ' +
-        'it grants access to your account.',
+        linkFallback(resetLink) +
+        '<br><br>If you did not ask for this, you can ignore this email: your password will not ' +
+        'change until the link above is used. Never share the link with anyone; it grants access ' +
+        'to your account.',
     }),
     `Reset your AI Stupid Level password\n\n` +
-    `We received a request to reset the password for this account.\n` +
-    `Open the link below to choose a new one. It is valid for one hour.\n\n` +
+    `We received a request to reset the password for your AI Stupid Level account.\n` +
+    `Open the link below to choose a new one. It is valid for one hour and works once.\n\n` +
     `${resetLink}\n\n` +
     `If you did not ask for this you can ignore this email — your password will not\n` +
     `change until the link is used. Never share this link with anyone.\n`
@@ -104,14 +104,20 @@ export async function verifyEmailConfig(): Promise<boolean> {
 
 // ─── Transactional emails ────────────────────────────────────────────────────
 
+/** The ASL mark from the site header, transparent, legible on light and dark. */
+const LOGO_URL = 'https://aistupidlevel.info/asl-mark.png';
+const SITE = 'https://aistupidlevel.info';
+const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
+
 /**
- * Shared layout for customer-facing mail.
+ * Shared layout for customer-facing mail: the official look, as approved for the
+ * 2026-09-25 research invite (admin/mail/research-invite.js). A #f6f8fc page, a
+ * white 560px card, system fonts, one blue, the ASL mark linked to the site, a
+ * details table, one button, a grey footer. No tracking pixel. The logo carries
+ * alt text, so the brand still shows when a client blocks images.
  *
- * Deliberately plain: a light background, system fonts, no images, no tracking
- * pixel, one link colour. The older password-reset template renders neon green
- * on near-black, which several clients invert badly in dark mode and which spam
- * filters score against. Simple markup delivers better and reads the same
- * everywhere.
+ * `preheader` is the line inboxes show beside the subject; without it they show
+ * the first text in the body, which here would be the logo's alt text.
  *
  * Every message ships a text/plain alternative. A missing plain-text part is one
  * of the cheapest spam points to give away.
@@ -123,37 +129,49 @@ function renderEmail(opts: {
   ctaLabel?: string;
   ctaUrl?: string;
   footnote?: string;
+  preheader?: string;
+  signoff?: boolean;
 }): string {
-  const { heading, intro, rows = [], ctaLabel, ctaUrl, footnote } = opts;
+  const { heading, intro, rows = [], ctaLabel, ctaUrl, footnote, preheader, signoff } = opts;
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+<title>${heading}</title></head>
 <body style="margin:0;padding:0;background:#f6f8fc;">
+  ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f6f8fc;font-size:1px;line-height:1px;">${preheader}&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;&#8203;&nbsp;</div>` : ''}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f8fc;padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e3e6ea;border-radius:6px;">
-        <tr><td style="padding:24px 28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#202124;">
-          <div style="font-size:13px;font-weight:600;color:#1a73e8;letter-spacing:.4px;">AI STUPID LEVEL</div>
-          <h1 style="font-size:19px;line-height:1.35;margin:14px 0 10px;font-weight:600;">${heading}</h1>
+        <tr><td style="padding:24px 28px;font-family:${FONT};color:#202124;">
+          <a href="${SITE}" style="text-decoration:none;"><img src="${LOGO_URL}" width="104" height="22" alt="AI Stupid Level" style="display:block;border:0;outline:none;height:22px;width:104px;font-size:13px;font-weight:600;color:#1a73e8;"></a>
+          <h1 style="font-size:19px;line-height:1.35;margin:20px 0 10px;font-weight:600;color:#202124;">${heading}</h1>
           <p style="font-size:14px;line-height:1.65;color:#3c4043;margin:0 0 16px;">${intro}</p>
-          ${rows.length ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="font-size:14px;margin:0 0 18px;">
+          ${rows.length ? `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="font-size:14px;margin:0 0 20px;">
             ${rows.map(([k, v]) => `<tr>
               <td style="padding:7px 0;color:#5f6368;border-bottom:1px solid #eceff1;">${k}</td>
-              <td style="padding:7px 0;text-align:right;font-weight:600;border-bottom:1px solid #eceff1;">${v}</td>
+              <td style="padding:7px 0;text-align:right;font-weight:600;color:#202124;border-bottom:1px solid #eceff1;">${v}</td>
             </tr>`).join('')}
           </table>` : ''}
           ${ctaLabel && ctaUrl ? `<p style="margin:0 0 18px;">
             <a href="${ctaUrl}" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:4px;font-size:14px;font-weight:600;">${ctaLabel}</a>
           </p>` : ''}
+          ${signoff ? `<p style="font-size:14px;line-height:1.65;color:#3c4043;margin:0 0 18px;">Thank you,<br>The AI Stupid Level team</p>` : ''}
           ${footnote ? `<p style="font-size:12.5px;line-height:1.6;color:#5f6368;margin:0;">${footnote}</p>` : ''}
         </td></tr>
-        <tr><td style="padding:14px 28px 22px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11.5px;color:#80868b;border-top:1px solid #eceff1;">
+        <tr><td style="padding:14px 28px 22px;font-family:${FONT};font-size:11.5px;line-height:1.6;color:#80868b;border-top:1px solid #eceff1;">
           AI Stupid Level &middot; independent AI model benchmarking<br>
-          <a href="https://aistupidlevel.info" style="color:#1a73e8;text-decoration:none;">aistupidlevel.info</a>
+          <a href="${SITE}" style="color:#1a73e8;text-decoration:none;">aistupidlevel.info</a>
         </td></tr>
       </table>
     </td></tr>
   </table>
 </body></html>`;
+}
+
+/** A link a reader can copy when the button does not work. */
+function linkFallback(url: string): string {
+  return 'If the button does not work, paste this into your browser:<br>' +
+    `<a href="${url}" style="word-break:break-all;color:#1a73e8;text-decoration:none;">${url}</a>`;
 }
 
 async function deliver(to: string, subject: string, html: string, text: string, replyTo?: string) {
@@ -179,43 +197,76 @@ async function deliver(to: string, subject: string, html: string, text: string, 
   }
 }
 
-/** Sent once, immediately after an account is created. */
+/**
+ * Sent once, immediately after an account is created.
+ *
+ * Password sign-ups get it with a confirmation link: since 2026-10-04 they must confirm
+ * their email before they can sign in, so this email is how the account is finished.
+ * Google and GitHub sign-ups get it without one, because the provider has already
+ * verified the address.
+ */
 export async function sendWelcomeEmail(email: string, name?: string | null, verifyLink?: string | null) {
-  const who = name ? `${name}, ` : '';
-  const intro =
-    `${who}your account is ready. The fastest way to get value from it is to tell us which models ` +
-    `your work actually depends on — then we will tell you when their measured performance changes, ` +
-    `and just as usefully when it does not.`;
+  const hello = name ? `Hi ${esc(name)},` : '';
+  // Short enough that every row stays on one line on a phone.
+  const rows: Array<[string, string]> = [
+    ['Tracked models', '3 on the free plan'],
+    ['Weekly summary', 'Every Monday'],
+    ['Change alerts', 'When a model moves'],
+  ];
+  if (verifyLink) {
+    return deliver(
+      email,
+      'Welcome to AI Stupid Level: confirm your email',
+      renderEmail({
+        heading: 'Confirm your email to finish signing up',
+        preheader: 'One click and your account is ready.',
+        intro:
+          `${hello ? `${hello} w` : 'W'}elcome to AI Stupid Level. Confirm your email address to activate your ` +
+          `account; it takes one click. Then choose the models your work depends on, and we will ` +
+          `tell you when their measured performance changes, and just as usefully when it does not.`,
+        rows,
+        ctaLabel: 'Confirm my email',
+        ctaUrl: verifyLink,
+        signoff: true,
+        footnote:
+          linkFallback(verifyLink) +
+          '<br><br>The link is valid for 24 hours. If you did not create an account, you can ignore ' +
+          'this email and nothing will happen.',
+      }),
+      `${name ? `Hi ${name},\n\n` : ''}Welcome to AI Stupid Level. Confirm your email address to activate your account:\n\n` +
+      `${verifyLink}\n\n` +
+      `Then choose the models your work depends on, and we will tell you when their measured\n` +
+      `performance changes, and when it does not.\n\n` +
+      rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') + '\n\n' +
+      `The link is valid for 24 hours. If you did not create an account, ignore this email.\n\n` +
+      `Thank you,\nThe AI Stupid Level team\n${SITE}\n`
+    );
+  }
   return deliver(
     email,
     'Welcome to AI Stupid Level',
     renderEmail({
-      heading: 'Track the models you depend on',
-      intro,
-      rows: [
-        ['Models you can track', '3 on the free plan'],
-        ['Weekly summary', 'Every Monday'],
-        ['Change alerts', 'When a tracked model moves'],
-      ],
-      ctaLabel: verifyLink ? 'Confirm my address' : 'Choose your models',
-      ctaUrl: verifyLink ?? 'https://aistupidlevel.info/watchlist',
+      heading: 'Welcome to AI Stupid Level',
+      preheader: 'Choose the models you depend on, and we will watch them for you.',
+      intro:
+        `${hello ? `${hello} y` : 'Y'}our account is ready. The fastest way to get value from it is to choose ` +
+        `the models your work depends on. We will tell you when their measured performance changes, ` +
+        `and just as usefully when it does not.`,
+      rows,
+      ctaLabel: 'Choose your models',
+      ctaUrl: `${SITE}/watchlist`,
+      signoff: true,
       footnote:
-        (verifyLink
-          ? 'Confirming your address is what lets us send the digest and alerts — we only mail ' +
-            'confirmed addresses, which is how our email stays out of spam folders. The link is ' +
-            'valid for 24 hours.<br><br>'
-          : '') +
-        'You can turn off the summary and alerts at any time from your account settings. ' +
+        'You can turn off the weekly summary and alerts any time in your ' +
+        `<a href="${SITE}/account/settings" style="color:#1a73e8;text-decoration:none;">account settings</a>. ` +
         'We never sell your data and take no money from any model provider.',
     }),
-    `${who}your AI Stupid Level account is ready.\n\n` +
-    `Tell us which models your work depends on and we will tell you when their measured\n` +
-    `performance changes — and when it does not.\n\n` +
-    `  Models you can track: 3 on the free plan\n` +
-    `  Weekly summary: every Monday\n` +
-    `  Change alerts: when a tracked model moves\n\n` +
-    (verifyLink ? `Confirm your address: ${verifyLink}\n\n` : `Choose your models: https://aistupidlevel.info/watchlist\n\n`) +
-    `You can turn off the summary and alerts at any time in your account settings.\n`
+    `${name ? `Hi ${name},\n\n` : ''}Your AI Stupid Level account is ready.\n\n` +
+    `Choose the models your work depends on and we will tell you when their measured\n` +
+    `performance changes, and when it does not:\n${SITE}/watchlist\n\n` +
+    rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') + '\n\n' +
+    `You can turn off the summary and alerts any time in your account settings:\n${SITE}/account/settings\n\n` +
+    `Thank you,\nThe AI Stupid Level team\n${SITE}\n`
   );
 }
 
@@ -275,39 +326,40 @@ export async function sendTrialEndingEmail(
         ['Amount', opts.amount],
       ],
       ctaLabel: 'Review your account',
-      ctaUrl: 'https://aistupidlevel.info/router/subscription',
+      ctaUrl: `${SITE}/account/billing`,
       footnote:
         'We would rather you cancelled than paid for something you are not using — ' +
         'if it is not earning its place, tell us what was missing.',
     }),
     `Your ${opts.planLabel} trial ends on ${opts.chargeDate}, when it renews at ${opts.amount}.\n\n` +
     `No action is needed to continue. To cancel before being charged:\n` +
-    `https://aistupidlevel.info/router/subscription\n`
+    `${SITE}/account/billing\n`
   );
 }
 
-/** Confirm-your-address link. Sent on password signup and on request. */
+/** Confirm-your-address link, sent again on request (sign-in page, sign-up page, settings). */
 export async function sendVerificationEmail(email: string, verifyLink: string) {
   return deliver(
     email,
     'Confirm your email address',
     renderEmail({
       heading: 'Confirm your email address',
+      preheader: 'One click to finish setting up your account.',
       intro:
-        'One click and your weekly digest and change alerts can start arriving. ' +
-        'We only send those to confirmed addresses — it keeps our mail out of spam ' +
-        'folders, including for the people waiting on a receipt.',
-      ctaLabel: 'Confirm my address',
+        'Here is a new link to confirm your email address and finish setting up your AI Stupid ' +
+        'Level account. It takes one click.',
+      ctaLabel: 'Confirm my email',
       ctaUrl: verifyLink,
       footnote:
-        'If the button does not work, paste this into your browser:<br>' +
-        `<span style="word-break:break-all;color:#1a73e8;">${verifyLink}</span>` +
-        '<br><br>The link is valid for 24 hours. If you did not create an account, ignore this email.',
+        linkFallback(verifyLink) +
+        '<br><br>The link is valid for 24 hours, and any earlier link no longer works. If you did ' +
+        'not create an account, you can ignore this email.',
     }),
     `Confirm your email address\n\n` +
-    `One click and your weekly digest and change alerts can start arriving.\n` +
-    `We only send those to confirmed addresses.\n\n${verifyLink}\n\n` +
-    `The link is valid for 24 hours. If you did not create an account, ignore this email.\n`
+    `Open this link to confirm your email and finish setting up your AI Stupid Level account:\n\n` +
+    `${verifyLink}\n\n` +
+    `The link is valid for 24 hours, and any earlier link no longer works.\n` +
+    `If you did not create an account, ignore this email.\n`
   );
 }
 
