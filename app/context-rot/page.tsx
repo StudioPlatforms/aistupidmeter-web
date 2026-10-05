@@ -60,7 +60,7 @@ export default function ContextRotPage() {
           ['Lengths', '8K, 32K, 128K, 256K, 512K and 1M tokens — each model runs every length its context window can hold, with room left for its answer. The real token count is measured and shown.'],
           ['Same test for every model', 'Within a week every model gets the same facts, the same questions and the same distractors. Tokenizers differ, so the amount of filler is sized from each model’s own measured characters per token.'],
           ['Trials', 'Three documents per length per model, each week: 48 graded answers per length. The position grid pools the last four weeks.'],
-          ['Grading', 'Exact: the full name, the passphrase, the code or the number. No judge model. Only the visible answer counts, never the model’s reasoning; a reply with no answer counts as wrong. A provider error is excluded, never scored as zero.'],
+          ['Grading', 'Exact: the full name, the passphrase, the code or the number. No judge model. Only the visible answer counts, never the model’s reasoning. A reply with no answer counts as wrong in a model’s overall accuracy and in “holds up to”, and is marked where it happens; the per-skill figures and the position grid count only replies that answered, because an empty reply says nothing about which skill failed. A provider error is excluded, never scored as zero.'],
           ['Effective context', 'The longest length at which a model keeps at least 90% of its own 8K accuracy, counting up from 8K.'],
           ['Schedule', 'Weekly, Sunday morning (Berlin). Separate from the leaderboard: nothing here changes a model’s score or rank.'],
         ]} />

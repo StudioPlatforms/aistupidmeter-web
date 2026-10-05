@@ -10,6 +10,9 @@
 .crt-caption { caption-side: top; text-align: left; font-size: 15px; font-weight: 600; color: var(--phosphor-green); padding-bottom: 10px; }
 .crt-table td:first-child { white-space: nowrap; }
 .crt-na { color: var(--phosphor-dim); opacity: .7; }
+.crt-mark { margin-left: 1px; font-size: .75em; font-weight: 600; color: var(--phosphor-dim); }
+.crt-noanswer { margin: 6px 0 0; padding: 0; list-style: none; max-width: 80ch; font-size: 13px; line-height: 1.55; color: var(--phosphor-dim); }
+.crt-noanswer li { margin: 2px 0; }
 .crt-sub { color: var(--phosphor-dim); font-size: 12.5px; }
 .crt-arrow { color: var(--phosphor-dim); }
 

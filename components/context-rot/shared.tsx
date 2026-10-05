@@ -8,7 +8,13 @@ export type Skill = 'retrieval' | 'linking' | 'tracking' | 'counting';
 export interface SkillStat { accuracy: number; correct: number; total: number }
 export interface CrtBucket {
   bucket: number; runnable: boolean; trials: number; excluded: number;
+  /** Counts every scored run; a run with no answer within the output limit counts as all wrong. */
   accuracy: number | null; correct: number; total: number; tokens: number | null;
+  /** Runs that gave no visible answer within the output limit (part of `trials`). */
+  noAnswer?: number;
+  /** Accuracy over the runs that did answer. */
+  answeredAccuracy?: number | null;
+  /** Runs that answered only: an empty reply says nothing about which skill failed. */
   skills: Record<Skill, SkillStat | null>;
 }
 export interface CrtCell { bucket: number; depth: number; correct: number; total: number }
@@ -26,6 +32,32 @@ export const SKILLS: Array<[Skill, string]> = [
 /** 8000 → "8K", 1000000 → "1M". */
 export const k = (n: number) => (n >= 1_000_000 ? `${n / 1_000_000}M` : `${Math.round(n / 1000)}K`);
 export const pct = (x: number | null | undefined) => (x === null || x === undefined ? '—' : `${Math.round(x * 100)}%`);
+
+/** A run with no answer is a failure the totals count, not a wrong answer: say which it was. */
+export function noAnswerText(b: CrtBucket): string | null {
+  if (!b.noAnswer) return null;
+  const answered = b.trials - b.noAnswer;
+  return `${b.noAnswer} of ${b.trials} runs gave no answer within the output limit and count as wrong here.` +
+    (answered > 0 ? ` The ${answered === 1 ? 'run that answered' : `${answered} runs that answered`} scored ${pct(b.answeredAccuracy)}.` : '');
+}
+
+/** Every length of one model with runs that gave no answer, in one clause:
+ *  "1 of 3 runs at 512K (the 2 that answered scored 97%) and 2 of 3 at 1M (…)". */
+export function noAnswerSummary(buckets: CrtBucket[]): string | null {
+  const hit = buckets.filter(b => b.runnable && b.noAnswer);
+  if (!hit.length) return null;
+  return listJoin(hit.map((b, i) => {
+    const answered = b.trials - (b.noAnswer ?? 0);
+    const rest = answered === 0 ? 'none answered'
+      : `the ${answered === 1 ? 'one' : answered} that answered scored ${pct(b.answeredAccuracy)}`;
+    return `${b.noAnswer} of ${b.trials}${i === 0 ? ' runs' : ''} at ${k(b.bucket)} (${rest})`;
+  }));
+}
+
+/** The footnote mark on a total that includes runs with no answer. */
+export function NoAnswerMark({ b }: { b: CrtBucket }) {
+  return b.noAnswer ? <sup className="crt-mark" aria-hidden="true">*</sup> : null;
+}
 
 /** "A, B and C". */
 export const listJoin = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);

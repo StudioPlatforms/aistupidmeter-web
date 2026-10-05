@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { upgradeHref } from '@/lib/checkout-url';
-import { HeatGrid, HeatLegend, SKILLS, k, pct, type CrtModel } from '@/components/context-rot/shared';
+import { HeatGrid, HeatLegend, NoAnswerMark, SKILLS, k, noAnswerSummary, noAnswerText, pct, type CrtModel } from '@/components/context-rot/shared';
 
 /**
  * Context-rot results (Pro Intelligence and above). The page around it is public; this panel
@@ -68,32 +68,49 @@ function Locked({ signedIn }: { signedIn: boolean }) {
 
 /** One row per model: effective context, then overall accuracy at each length. */
 function SummaryTable({ data }: { data: Data }) {
+  // The notes sit outside the scroll box: inside it, a phone draws the table's scrollbar through their last line.
   return (
-    <div className="doc-table-wrap">
-      <table className="doc-table crt-table">
-        <caption className="crt-caption">Accuracy on all sixteen questions, latest weekly run</caption>
-        <thead>
-          <tr>
-            <th>Model</th><th>Holds up to</th>
-            {data.buckets.map(b => <th key={b} className="num">{k(b)}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {data.models.map((m, i) => (
-            <tr key={m.name}>
-              <td><span className={`crt-swatch s${i + 1}`} aria-hidden="true" />{m.displayName}</td>
-              <td title={m.effectiveIsLowerBound ? 'Held at every length measured so far; longer lengths not measured yet' : undefined}>{m.effectiveContext ? `${m.effectiveIsLowerBound ? '≥ ' : ''}${k(m.effectiveContext)}` : '—'}</td>
-              {m.buckets.map(b => (
-                <td key={b.bucket} className="num" title={b.runnable ? `${b.correct}/${b.total} correct${b.tokens ? ` · ${b.tokens.toLocaleString()} tokens` : ''}${b.excluded ? ` · ${b.excluded} trial(s) excluded (provider error)` : ''}` : `Beyond its ${m.window.toLocaleString()}-token window`}>
-                  {!b.runnable ? <span className="crt-na">n/a</span> : pct(b.accuracy)}
-                </td>
-              ))}
+    <div>
+      <div className="doc-table-wrap">
+        <table className="doc-table crt-table">
+          <caption className="crt-caption">Accuracy on all sixteen questions, latest weekly run</caption>
+          <thead>
+            <tr>
+              <th>Model</th><th>Holds up to</th>
+              {data.buckets.map(b => <th key={b} className="num">{k(b)}</th>)}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.models.map((m, i) => (
+              <tr key={m.name}>
+                <td><span className={`crt-swatch s${i + 1}`} aria-hidden="true" />{m.displayName}</td>
+                <td title={m.effectiveIsLowerBound ? 'Held at every length measured so far; longer lengths not measured yet' : undefined}>{m.effectiveContext ? `${m.effectiveIsLowerBound ? '≥ ' : ''}${k(m.effectiveContext)}` : '—'}</td>
+                {m.buckets.map(b => (
+                  <td key={b.bucket} className="num" title={b.runnable ? `${b.correct}/${b.total} correct${b.tokens ? ` · ${b.tokens.toLocaleString()} tokens` : ''}${b.excluded ? ` · ${b.excluded} trial(s) excluded (provider error)` : ''}${b.noAnswer ? ` · ${noAnswerText(b)}` : ''}` : `Beyond its ${m.window.toLocaleString()}-token window`}>
+                    {!b.runnable ? <span className="crt-na">n/a</span> : <>{pct(b.accuracy)}<NoAnswerMark b={b} /></>}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <NoAnswerNotes models={data.models} />
       <p className="crt-note">“Holds up to”: the longest length that keeps at least 90% of the model’s own 8K accuracy. n/a: longer than the model’s context window. Hover a value for the number of questions and the real token count.</p>
     </div>
+  );
+}
+
+/** One line per model whose totals include runs that gave no answer: say so, and what the rest scored. */
+function NoAnswerNotes({ models }: { models: ModelRow[] }) {
+  const items = models.map(m => ({ m, text: noAnswerSummary(m.buckets) })).filter(x => x.text);
+  if (!items.length) return null;
+  return (
+    <ul className="crt-noanswer">
+      {items.map(({ m, text }) => (
+        <li key={m.name}><sup className="crt-mark">*</sup> {m.displayName}: no answer within the output limit, counted as wrong: {text}.</li>
+      ))}
+    </ul>
   );
 }
 
@@ -165,7 +182,7 @@ function LengthChart({ data }: { data: Data }) {
           <b>{k(data.buckets[hover])}</b>
           {series.map(s => {
             const b = s.m.buckets[hover];
-            return <span key={s.m.name}><i className={`crt-swatch s${s.slot}`} />{s.m.displayName}: {!b.runnable ? 'beyond window' : pct(b.accuracy)}{b.runnable && b.total ? ` (${b.correct}/${b.total})` : ''}</span>;
+            return <span key={s.m.name}><i className={`crt-swatch s${s.slot}`} />{s.m.displayName}: {!b.runnable ? 'beyond window' : pct(b.accuracy)}{b.runnable && b.total ? ` (${b.correct}/${b.total})` : ''}{b.noAnswer ? ` · ${b.noAnswer} of ${b.trials} runs gave no answer` : ''}</span>;
           })}
         </div>
       )}
@@ -176,27 +193,30 @@ function LengthChart({ data }: { data: Data }) {
 /** What breaks first: each skill at 8K and at the longest length the model ran. */
 function SkillTable({ data }: { data: Data }) {
   return (
-    <div className="doc-table-wrap">
-      <table className="doc-table crt-table">
-        <caption className="crt-caption">What breaks first — 8K compared with the longest length each model ran</caption>
-        <thead><tr><th>Model</th>{SKILLS.map(([, label]) => <th key={label} className="num">{label}</th>)}</tr></thead>
-        <tbody>
-          {data.models.map(m => {
-            const runs = m.buckets.filter(b => b.runnable && b.accuracy !== null);
-            const first = runs[0], last = runs[runs.length - 1];
-            return (
-              <tr key={m.name}>
-                <td>{m.displayName}{last ? <span className="crt-sub"> · longest {k(last.bucket)}</span> : null}</td>
-                {SKILLS.map(([skill]) => (
-                  <td key={skill} className="num">
-                    {first && last ? <>{pct(first.skills[skill]?.accuracy)} <span className="crt-arrow">→</span> {pct(last.skills[skill]?.accuracy)}</> : '—'}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div>
+      <div className="doc-table-wrap">
+        <table className="doc-table crt-table">
+          <caption className="crt-caption">What breaks first — 8K compared with the longest length each model ran</caption>
+          <thead><tr><th>Model</th>{SKILLS.map(([, label]) => <th key={label} className="num">{label}</th>)}</tr></thead>
+          <tbody>
+            {data.models.map(m => {
+              const runs = m.buckets.filter(b => b.runnable && b.accuracy !== null);
+              const first = runs[0], last = runs[runs.length - 1];
+              return (
+                <tr key={m.name}>
+                  <td>{m.displayName}{last ? <span className="crt-sub"> · longest {k(last.bucket)}</span> : null}</td>
+                  {SKILLS.map(([skill]) => (
+                    <td key={skill} className="num">
+                      {first && last ? <>{pct(first.skills[skill]?.accuracy)} <span className="crt-arrow">→</span> {pct(last.skills[skill]?.accuracy)}</> : '—'}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="crt-note">Counted over the runs that gave an answer: a run with no answer says nothing about which skill failed.</p>
     </div>
   );
 }
@@ -207,7 +227,7 @@ function PositionGrids({ data }: { data: Data }) {
     <figure className="crt-figure">
       <figcaption className="crt-fig-title">Where in the document — finding a fact, by position and length</figcaption>
       <HeatLegend />
-      <p className="crt-note">Pooled over the last {Math.max(...data.models.map(m => m.gridSweeps), 1)} weekly run(s); hover a cell for the count.</p>
+      <p className="crt-note">Pooled over the last {Math.max(...data.models.map(m => m.gridSweeps), 1)} weekly run(s), counting the runs that gave an answer; hover a cell for the count.</p>
       <div className="crt-grids">
         {data.models.map(m => (
           <div key={m.name} className="crt-gridbox">

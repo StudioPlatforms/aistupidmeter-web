@@ -21,7 +21,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { PLANS } from '../../lib/entitlements';
 import { REQUIRED_PLAN } from '../../lib/capabilities';
-import { HeatGrid, HeatLegend, SKILLS, k, listJoin, pct, type CrtModel } from '../context-rot/shared';
+import { HeatGrid, HeatLegend, NoAnswerMark, SKILLS, k, listJoin, noAnswerSummary, noAnswerText, pct, type CrtModel } from '../context-rot/shared';
 import '../../styles/context-rot.css';
 
 interface Other { name: string; displayName: string; buckets: Array<{ bucket: number; runnable: boolean; accuracy: number | null }> }
@@ -189,13 +189,13 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
           <span className="md-cal-stat-v">{m.effectiveContext ? `${m.effectiveIsLowerBound ? '≥ ' : ''}${k(m.effectiveContext)}` : '—'}</span>
           <span className="md-cal-stat-k">holds up to</span>
         </div>
-        <div className="md-cal-stat" title={first ? `${first.correct}/${first.total} questions correct` : undefined}>
-          <span className="md-cal-stat-v">{pct(first?.accuracy)}</span>
+        <div className="md-cal-stat" title={first ? `${first.correct}/${first.total} questions correct${first.noAnswer ? ` · ${noAnswerText(first)}` : ''}` : undefined}>
+          <span className="md-cal-stat-v">{pct(first?.accuracy)}{first ? <NoAnswerMark b={first} /> : null}</span>
           <span className="md-cal-stat-k">accuracy at {first ? k(first.bucket) : '8K'}</span>
         </div>
         {last && last !== first && (
-          <div className="md-cal-stat" title={`${last.correct}/${last.total} questions correct${last.tokens ? ` · ${last.tokens.toLocaleString()} tokens sent` : ''}`}>
-            <span className="md-cal-stat-v">{pct(last.accuracy)}</span>
+          <div className="md-cal-stat" title={`${last.correct}/${last.total} questions correct${last.tokens ? ` · ${last.tokens.toLocaleString()} tokens sent` : ''}${last.noAnswer ? ` · ${noAnswerText(last)}` : ''}`}>
+            <span className="md-cal-stat-v">{pct(last.accuracy)}<NoAnswerMark b={last} /></span>
             <span className="md-cal-stat-k">accuracy at {k(last.bucket)}</span>
           </div>
         )}
@@ -228,7 +228,7 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
                   <td>All sixteen</td>
                   {m.buckets.map(b => (
                     <td key={b.bucket} className="md-crt-num" title={cellTitle(b, m.window)}>
-                      {!b.runnable ? <span className="md-crt-na">n/a</span> : pct(b.accuracy)}
+                      {!b.runnable ? <span className="md-crt-na">n/a</span> : <>{pct(b.accuracy)}<NoAnswerMark b={b} /></>}
                     </td>
                   ))}
                 </tr>
@@ -248,14 +248,20 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
               </tbody>
             </table>
           </div>
+          {noAnswerSummary(m.buckets) && (
+            <p className="md-cal-note md-crt-noanswer">
+              <sup className="crt-mark">*</sup> No answer within the output limit, counted as wrong in this row:{' '}
+              {noAnswerSummary(m.buckets)}. The skill rows count only the runs that answered.
+            </p>
+          )}
           <figure className="md-crt-fig md-crt-heatfig">
             <figcaption className="md-crt-fig-title">Where in the document facts get lost</figcaption>
             <HeatGrid model={m} buckets={data.buckets} depths={data.depths} />
             <HeatLegend />
             <p className="md-cal-note">
               Finding a fact, by how far through the document it sits (rows) and document length (columns).
-              Pooled over the last {m.gridSweeps} weekly run{m.gridSweeps === 1 ? '' : 's'}; hover a cell
-              for the count.
+              Pooled over the last {m.gridSweeps} weekly run{m.gridSweeps === 1 ? '' : 's'}, counting the runs
+              that gave an answer; hover a cell for the count.
             </p>
           </figure>
         </div>
@@ -263,7 +269,8 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
           <LengthChart data={data} />
           <div className="md-cal-note md-crt-defs">
             Holds up to: the longest length that keeps at least {Math.round(m.holdRatio * 100)}% of the model’s own
-            8K accuracy. n/a: longer than its context window. Provider errors are left out, never counted as wrong.
+            8K accuracy. n/a: longer than its context window. A run with no answer within the output limit counts
+            as wrong in the totals. Provider errors are left out, never counted as wrong.
           </div>
         </div>
       </div>
@@ -274,7 +281,7 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
 function cellTitle(b: CrtModel['buckets'][number], window: number) {
   if (!b.runnable) return `Beyond its ${window.toLocaleString()}-token window`;
   if (!b.total) return b.excluded ? `${b.excluded} trial(s) excluded (provider error)` : 'Not measured';
-  return `${b.correct}/${b.total} correct${b.tokens ? ` · ${b.tokens.toLocaleString()} tokens sent` : ''}${b.excluded ? ` · ${b.excluded} trial(s) excluded (provider error)` : ''}`;
+  return `${b.correct}/${b.total} correct${b.tokens ? ` · ${b.tokens.toLocaleString()} tokens sent` : ''}${b.excluded ? ` · ${b.excluded} trial(s) excluded (provider error)` : ''}${b.noAnswer ? ` · ${noAnswerText(b)}` : ''}`;
 }
 
 /** This model in the accent colour; the other pilot models as thin grey lines for scale. */
@@ -341,7 +348,7 @@ function LengthChart({ data }: { data: PanelData }) {
       {hoverInfo ? (
         <div className="md-crt-tip" role="status">
           <b>{k(data.buckets[hover as number])}</b>
-          <span>{m.displayName}: {!hoverInfo.b.runnable ? 'beyond its window' : `${pct(hoverInfo.b.accuracy)}${hoverInfo.b.total ? ` (${hoverInfo.b.correct}/${hoverInfo.b.total})` : ''}`}</span>
+          <span>{m.displayName}: {!hoverInfo.b.runnable ? 'beyond its window' : `${pct(hoverInfo.b.accuracy)}${hoverInfo.b.total ? ` (${hoverInfo.b.correct}/${hoverInfo.b.total})` : ''}${hoverInfo.b.noAnswer ? ` · ${hoverInfo.b.noAnswer} of ${hoverInfo.b.trials} runs gave no answer` : ''}`}</span>
           {hoverInfo.n > 0 && (
             <span className="md-crt-tip-dim">
               Other pilot models: {hoverInfo.lo === hoverInfo.hi ? pct(hoverInfo.lo) : `${pct(hoverInfo.lo)}–${pct(hoverInfo.hi)}`}
