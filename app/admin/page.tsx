@@ -52,23 +52,31 @@ interface UserStats {
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // Who may see this page is decided by the server: /api/admin/users answers 401 to visitors who
+  // are not signed in and 403 to accounts without the admin role (lib/admin-auth). Until
+  // 2026-10-05 this page compared a password typed here against one written into the page's own
+  // JavaScript, which every visitor's browser downloads.
+  const [access, setAccess] = useState<'checking' | 'signin' | 'forbidden' | 'error'>('checking');
   const [loading, setLoading] = useState(false);
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null);
   const [recentVisitors, setRecentVisitors] = useState<RecentVisitor[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password === 'Password123$') {
-      setIsAuthenticated(true);
-      setError('');
-      fetchVisitorData();
-    } else {
-      setError('Invalid password');
-    }
-  };
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/admin/users', { cache: 'no-store' });
+        if (r.status === 401) { setAccess('signin'); return; }
+        if (r.status === 403) { setAccess('forbidden'); return; }
+        if (!r.ok) { setAccess('error'); return; }
+        setIsAuthenticated(true);
+        fetchVisitorData();
+      } catch {
+        setAccess('error');
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getApiUrl = () => {
     // Always use the production API URL since we're running in production
@@ -87,8 +95,8 @@ export default function AdminPage() {
         setVisitorStats(statsData);
       }
 
-      // Fetch recent visitors
-      const recentResponse = await fetch(`${apiUrl}/visitors/recent`);
+      // Fetch recent visitors (admin-only: through the signed-in route)
+      const recentResponse = await fetch('/api/admin/visitors/recent', { cache: 'no-store' });
       if (recentResponse.ok) {
         const recentData = await recentResponse.json();
         setRecentVisitors(recentData.visitors || []);
@@ -112,9 +120,7 @@ export default function AdminPage() {
   const updateDailyStats = async () => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/visitors/update-daily-stats`, {
-        method: 'POST'
-      });
+      const response = await fetch('/api/admin/update-daily-stats', { method: 'POST' });
       if (response.ok) {
         alert('Daily stats updated successfully');
         fetchVisitorData();
@@ -127,54 +133,21 @@ export default function AdminPage() {
   };
 
   if (!isAuthenticated) {
+    const message = access === 'checking' ? 'Checking access…'
+      : access === 'signin' ? 'Sign in with an administrator account to see visitor statistics.'
+      : access === 'forbidden' ? 'This page is for administrators only.'
+      : 'Could not check access right now. Try again in a moment.';
     return (
       <div className="vintage-container" style={{ maxWidth: '400px', margin: '0 auto', paddingTop: '100px' }}>
         <div className="crt-monitor">
-          <div className="terminal-text">
-            <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
+          <div className="terminal-text" style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5em', marginBottom: '16px' }}>
               <span className="terminal-text--amber">ADMIN ACCESS</span>
-              <span className="blinking-cursor"></span>
             </div>
-            <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px' }}>
-              Enter password to access visitor statistics
-            </div>
-            
-            <form onSubmit={handleLogin}>
-              <div style={{ marginBottom: '16px' }}>
-                <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                  PASSWORD:
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter admin password"
-                  autoComplete="new-password"
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    background: 'var(--terminal-black)',
-                    border: '1px solid var(--metal-silver)',
-                    borderRadius: '4px',
-                    color: 'var(--phosphor-green)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-              
-              {error && (
-                <div className="terminal-text--red" style={{ marginBottom: '16px', textAlign: 'center' }}>
-                  {error}
-                </div>
-              )}
-              
-              <div style={{ textAlign: 'center' }}>
-                <button type="submit" className="vintage-btn">
-                  LOGIN
-                </button>
-              </div>
-            </form>
+            <div className="terminal-text--dim" style={{ marginBottom: '20px' }}>{message}</div>
+            {access === 'signin' && (
+              <a href="/auth/signin?callbackUrl=%2Fadmin" className="vintage-btn">SIGN IN</a>
+            )}
           </div>
         </div>
       </div>
@@ -200,7 +173,7 @@ export default function AdminPage() {
             <button onClick={updateDailyStats} className="vintage-btn">
               UPDATE DAILY STATS
             </button>
-            <button onClick={() => setIsAuthenticated(false)} className="vintage-btn vintage-btn--warning">
+            <button onClick={() => { window.location.href = '/'; }} className="vintage-btn vintage-btn--warning">
               LOGOUT
             </button>
           </div>
@@ -279,6 +252,23 @@ export default function AdminPage() {
                   {page}: {count}
                 </div>
               ))}
+
+              <div style={{ margin: '12px 0 8px' }}>
+                <span className="terminal-text--amber">TOP COUNTRIES:</span>
+              </div>
+              {Object.keys(visitorStats.today.topCountries || {}).length === 0 && (
+                <div className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '12px' }}>
+                  Locating today&apos;s visitors — filled in within a minute of each visit.
+                </div>
+              )}
+              {Object.entries(visitorStats.today.topCountries || {}).slice(0, 8).map(([country, count]) => (
+                <div key={country} className="terminal-text--dim" style={{ fontSize: '0.9em', marginLeft: '12px' }}>
+                  {country}: {count}
+                </div>
+              ))}
+              <div className="terminal-text--dim" style={{ fontSize: '0.75em', marginTop: '10px' }}>
+                <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">IP Geolocation by DB-IP</a>
+              </div>
             </div>
           </div>
 
@@ -348,7 +338,7 @@ export default function AdminPage() {
                 </div>
                 <div className="terminal-text--dim">
                   {new Date(visitor.timestamp).toLocaleString()}
-                  {visitor.country && ` • ${visitor.country}`}
+                  {visitor.country && ` • ${visitor.city ? `${visitor.city}, ` : ''}${visitor.country}`}
                   {visitor.referer && (() => {
                     try {
                       return ` • From: ${new URL(visitor.referer).hostname}`;

@@ -9,34 +9,16 @@ export default function VisitorTracker() {
   useEffect(() => {
     const trackVisit = async () => {
       try {
-        // Get client IP and user agent
-        const userAgent = navigator.userAgent;
-        const referer = document.referrer || null;
-        const timestamp = new Date().toISOString();
-        
-        // Get client IP from a service (fallback to unknown)
-        let clientIP = 'unknown';
-        try {
-          const ipResponse = await fetch('https://api.ipify.org?format=json');
-          const ipData = await ipResponse.json();
-          clientIP = ipData.ip;
-        } catch (error) {
-          console.log('Could not get IP address:', error);
-        }
-
-        // Track the visit
-        await fetch('https://aistupidlevel.info/track-visit', {
+        // Only what the server cannot see for itself. The visitor's IP, user agent and the time
+        // are taken by the API from the request (and the IP geolocated there): until 2026-10-05
+        // the browser looked its own IP up at api.ipify.org — a third party told about every
+        // visit, blocked by most ad blockers — and the API stored whatever IP and clock it was
+        // sent, so rows could be forged or dated days ahead.
+        await fetch('/track-visit', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ip: clientIP,
-            userAgent,
-            referer,
-            path: pathname,
-            timestamp,
-          }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ referer: document.referrer || null, path: pathname }),
+          keepalive: true,
         });
       } catch (error) {
         // Silently fail - don't break the user experience

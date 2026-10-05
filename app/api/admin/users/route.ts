@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { openIdentityDb } from '@/lib/identity-db';
+import { requireAdminSession } from '@/lib/admin-auth';
 
+// Per-request: the answer depends on who is signed in, and must never be prerendered or cached.
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const admin = await requireAdminSession();
+  if (admin instanceof NextResponse) return admin;
   try {
     const db = openIdentityDb();
     
