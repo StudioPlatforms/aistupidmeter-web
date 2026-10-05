@@ -46,7 +46,7 @@ interface HourBucket { t: string; total: number; down: number; degraded: number;
 interface ProviderStatus {
   provider: string;
   status: 'operational' | 'degraded' | 'down' | 'unmeasured';
-  cause: 'provider' | 'our-account' | 'probe' | null;
+  cause: 'provider' | 'our-account' | 'probe' | 'our-server' | null;
   responseTime: number | null;
   lastChecked: string;
   error: string | null;
@@ -62,7 +62,7 @@ interface ProviderStatus {
 interface Episode {
   provider: string;
   kind: 'down' | 'slow';
-  cause: 'provider' | 'our-account' | 'probe' | 'latency';
+  cause: 'provider' | 'our-account' | 'probe' | 'our-server' | 'latency';
   startedAt: string;
   endedAt: string;
   checks: number;
@@ -197,6 +197,7 @@ const CAUSE_TEXT: Record<Episode['cause'], string> = {
   provider: 'provider did not answer',
   'our-account': 'our key or our bill',
   probe: 'our probe was wrong for this model',
+  'our-server': 'our server or its connection',
   latency: 'slow response',
 };
 
@@ -222,7 +223,7 @@ export default async function StatusPage() {
   const unmeasured = data.providers.filter(p => p.status === 'unmeasured');
 
   const outages = data.episodes.filter(e => e.kind === 'down' && e.cause === 'provider');
-  const notMeasured = data.episodes.filter(e => e.cause === 'our-account' || e.cause === 'probe');
+  const notMeasured = data.episodes.filter(e => e.cause === 'our-account' || e.cause === 'probe' || e.cause === 'our-server');
   const slow = data.episodes.filter(e => e.cause === 'latency');
 
   const headline =
@@ -335,7 +336,7 @@ export default async function StatusPage() {
           <h2 className="status-h2">Checks we could not make</h2>
           <p className="status-note">
             These are our failures, not the providers&rsquo;. We publish them because leaving them out would
-            turn our own expired keys, unpaid invoices and broken probes into somebody else&rsquo;s downtime —
+            turn our own expired keys, unpaid invoices, broken probes and server trouble into somebody else&rsquo;s downtime —
             and because a gap in the record is a fact about the record. Each line says how long it
             lasted and when it last happened: anything not marked ongoing is over, and stays listed
             only until it falls out of the {data.meta.retentionDays}-day window.
@@ -404,6 +405,16 @@ export default async function StatusPage() {
             <dd>
               The provider returned usable content. It does not mean the model was correct, fast, or good —
               that is what the <Link href="/">benchmarks</Link> are for.
+            </dd>
+
+            <dt>When a check fails</dt>
+            <dd>
+              We ask again fifteen seconds later and record the second answer, so one dropped connection is not
+              published as ten minutes of outage. If the provider still cannot be reached, we test our own side
+              before blaming theirs: whether our server stalled while the check was in flight, whether other
+              providers failed to connect at the same moment, and whether two independent control endpoints
+              answer. Any of those means the failure was ours — it is listed under checks we could not make
+              and counts as neither uptime nor downtime.
             </dd>
 
             <dt>What we do not claim</dt>
