@@ -277,7 +277,7 @@ function RouterDashboardContent() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
                     { title: 'LIVE BENCHMARK DATA', desc: 'The same scores as the leaderboard: coding every 4 hours, reasoning and tool use daily' },
-                    { title: '13 ROUTING STRATEGIES', desc: 'Best quality, best value, speed and stability — or match each request, or your own traffic split' },
+                    { title: '14 ROUTING STRATEGIES', desc: 'Best quality, best value, speed and stability — or match each request, or your own traffic split' },
                     { title: 'COST AWARENESS', desc: `Prefers cheaper models when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements` },
                     { title: 'AUTO FAILOVER', desc: 'If a model fails, the next is tried automatically; models failing right now are skipped' },
                   ].map((f, i) => (
