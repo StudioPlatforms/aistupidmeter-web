@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
-import SubscriptionGuard from '@/components/SubscriptionGuard';
+import SubscriptionGuard, { useCapability } from '@/components/SubscriptionGuard';
 import { apiClient } from '@/lib/api-client';
 import type { AnalyticsOverview, TimelineData, CostSavings, RecentRequest } from '@/lib/api-client';
 
@@ -17,15 +17,16 @@ export default function RouterAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const access = useCapability('routing-analytics');
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
+    if (status === 'authenticated' && session?.user?.id && access.allowed) {
       apiClient.setUserId(session.user.id);
       fetchAnalytics();
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
       setLoading(false);
     }
-  }, [status, session, timeRange]);
+  }, [status, session, timeRange, access.allowed]);
 
   const fetchAnalytics = async () => {
     try {
@@ -48,6 +49,15 @@ export default function RouterAnalyticsPage() {
       setLoading(false);
     }
   };
+
+  // A lower plan sees the upgrade screen, not a failed fetch.
+  if (access.ready && !access.allowed) {
+    return (
+      <RouterLayout>
+        <SubscriptionGuard feature="Routing analytics" requires="routing-analytics"><></></SubscriptionGuard>
+      </RouterLayout>
+    );
+  }
 
   const handleExport = (format: 'csv' | 'json') => {
     if (!overview) return;

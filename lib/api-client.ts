@@ -29,10 +29,12 @@ export interface ProviderKey {
   lastValidated: string | null;
 }
 
+export type RoutingStrategyId = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
+  | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling'
+  | 'best_consistent' | 'fastest_quality' | 'match_task' | 'custom_split';
+
 export interface UserPreferences {
-  routingStrategy: 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
-    | 'best_value' | 'best_value_coding' | 'best_value_reasoning' | 'best_value_tooling'
-    | 'best_consistent' | 'fastest_quality';
+  routingStrategy: RoutingStrategyId;
   fallbackEnabled: boolean;
   maxCostPer1kTokens: number | null;
   maxLatencyMs: number | null;
@@ -42,7 +44,37 @@ export interface UserPreferences {
   excludedModels: string[];
   /** Deprioritise models with an active drift alert (default on). */
   avoidDrifting?: boolean;
+  /** Models tried, in this order, when the primary fails — before the automatic fallbacks. */
+  fallbackOrder?: string[];
+  /** custom_split: the caller's weighted traffic split. */
+  trafficSplit?: Array<{ model: string; weight: number }>;
 }
+
+/** One ranked model as the router sees it for this caller (POST /router/preferences/preview). */
+export interface PreviewCandidate {
+  model: string; provider: string; score: number; rankable: boolean;
+  costPer1kBlended: number; latencyMs: number | null; latencyMeasured: boolean;
+  status: 'eligible' | 'no_key' | 'excluded' | 'over_cost' | 'over_latency' | 'no_tools' | 'no_forced_tools';
+  driftFlag: string | null; circuitOpen: boolean;
+}
+
+export type PreferencesPreview =
+  | {
+      ok: true;
+      primary: { model: string; provider: string; score: number; reasoning: string };
+      fallbacks: Array<{ model: string; provider: string; reasoning: string }>;
+      providers: string[];
+      details: {
+        requestedStrategy: string; effectiveStrategy: string; taskRule?: string;
+        candidates: PreviewCandidate[];
+        split?: Array<{ model: string; weight: number; share: number; usable: boolean; reason?: string }>;
+      };
+    }
+  | {
+      ok: false; error: 'no_provider_keys' | 'no_candidates'; message: string;
+      /** Present when models exist but none qualify: every model's status, for the page. */
+      details?: { requestedStrategy: string; effectiveStrategy: string; taskRule?: string; candidates: PreviewCandidate[]; split?: Array<{ model: string; weight: number; share: number; usable: boolean; reason?: string }> };
+    };
 
 export interface AnalyticsOverview {
   overview: {
@@ -531,6 +563,11 @@ class ApiClient {
    * `name` is the model id used to pin a model on /v1/chat/completions and the
    * value stored in the excludedModels preference.
    */
+  /** What these (unsaved) preferences would route to right now. Spends nothing. */
+  async previewPreferences(prefs: Partial<UserPreferences> & { samplePrompt?: string; sampleHasTools?: boolean }): Promise<PreferencesPreview> {
+    return this.request('/api/router/preferences/preview', { method: 'POST', body: JSON.stringify(prefs) });
+  }
+
   async getAvailableModels(): Promise<{
     models: Array<{
       modelId: number;

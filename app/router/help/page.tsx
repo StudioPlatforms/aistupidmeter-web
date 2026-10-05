@@ -171,12 +171,13 @@ export default function HelpPage() {
         {/* FAQ */}
         <HelpPanel title="💬 FREQUENTLY ASKED QUESTIONS" isOpen={openSection === 'faq'} onToggle={() => toggle('faq')}>
           {[
-            { q: 'How much does it cost?', a: 'The router itself is free. You pay only for actual API usage via your provider keys. Intelligent routing typically saves 30-60% compared to always using the most expensive model.' },
-            { q: 'Is my data secure?', a: 'Provider keys are encrypted at rest with HKDF-derived subkeys. Prompt logging (opt-in) uses separate encryption domains. PII is automatically scrubbed before storage.' },
-            { q: 'What happens if a model fails?', a: 'Automatic failover: if the primary model fails, the router tries up to 2 fallbacks from different providers. Configure fallback behavior in Preferences.' },
-            { q: 'Does streaming work?', a: 'Yes — set stream: true. Streaming is currently simulated (sentence-level chunking). True token-level streaming is a future enhancement.' },
-            { q: 'How often are benchmarks updated?', a: 'Continuous 24/7 benchmarking. Model rankings update in real-time as new results arrive.' },
-            { q: 'Can I use a specific model directly?', a: 'Yes — send any real model ID (e.g., "claude-opus-4-7", "gpt-5.5") instead of an auto-* strategy. The router forwards directly to that provider.' },
+            { q: 'How much does it cost?', a: 'You pay the providers directly for tokens, with your own keys; we add nothing to token prices. Your plan includes routed requests each month (Free 1,000, Pro Intelligence 10,000, Developer 100,000, Teams 1,000,000), and prepaid credits cover any beyond that at $5 per 10,000. Only successful requests count.' },
+            { q: 'Is my data secure?', a: 'Provider keys are encrypted at rest (AES-256-GCM) and never shown again. Prompt logging is off unless you turn it on; when it is on, API keys, tokens, email addresses and phone numbers are removed before the prompt is encrypted and stored.' },
+            { q: 'What happens if a model fails?', a: 'Automatic fallback: if the chosen model fails before answering, the router tries the rest of your traffic split (if you use one), then your own fallback order (if you set one), then up to 2 automatic fallbacks from different providers. A model that is failing right now is skipped without waiting for a timeout. Configure it in Preferences.' },
+            { q: 'Does streaming work?', a: 'Yes — set stream: true. Text arrives as the model writes it, for every provider; tool calls arrive once each is complete, then usage if you ask for it with stream_options.include_usage.' },
+            { q: 'How often are benchmarks updated?', a: 'Coding runs every 4 hours, reasoning and tool use daily, and a small canary every hour. Rankings refresh after each run, and the router reads the same scores the leaderboard shows.' },
+            { q: 'Can I use a specific model directly?', a: 'Yes — send any real model ID (e.g. "claude-opus-4-7", "gpt-5.5") instead of an auto-* strategy. The router forwards directly to that provider; your plan allowance and key budgets still apply.' },
+            { q: 'Does tool calling work with agents?', a: 'Yes. Send OpenAI-format tools and return results as role "tool" messages with tool_call_id. The router keeps each model\'s own turn (such as Claude\'s thinking) between requests, so multi-step agent loops work, and a loop stays on the model that started it.' },
             { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like. xAI/Grok is not currently routable — none of its models are in the benchmark lineup.' },
             { q: 'Does it work with embeddings?', a: 'Yes — POST /v1/embeddings proxies to OpenAI embedding models. Required by Continue, LibreChat, and Open WebUI for RAG.' },
           ].map((faq, i) => (

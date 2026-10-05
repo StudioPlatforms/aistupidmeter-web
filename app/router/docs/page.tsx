@@ -193,7 +193,7 @@ console.log(response.choices[0].message.content);`} />}
     "completion_tokens_details": { "reasoning_tokens": 0 }
   }
 }`} />
-          <P>Response headers include <code className="doc-code">X-AISM-Provider</code>, <code className="doc-code">X-AISM-Model</code>, and <code className="doc-code">X-AISM-Latency</code> for transparency.</P>
+          <P>Response headers include <code className="doc-code">X-AISM-Provider</code> and <code className="doc-code">X-AISM-Model</code> (the model that answered), <code className="doc-code">X-AISM-Reasoning</code> (why it was chosen, including any fallback), <code className="doc-code">X-AISM-Latency</code>, and <code className="doc-code">X-AISM-Request-Id</code> (the completion id, for feedback).</P>
         </DocPanel>
 
         {/* Virtual Models */}
@@ -205,11 +205,13 @@ console.log(response.choices[0].message.content);`} />}
               <tbody>
                 {[
                   { id: 'auto', cat: 'Default', desc: 'Uses your saved routing strategy from Preferences' },
+                  { id: 'auto-task', cat: 'Per request', desc: 'Reads each request and picks the matching benchmark: tools → tool use, design or long sessions → reasoning, code → coding, else overall; simple requests use the Best value version. The routing reason names the rule' },
+                  { id: 'auto-split', cat: 'Your split', desc: 'Your own weighted traffic split across models you choose (set it in Preferences); the rest of the split is the first fallback' },
                   { id: 'auto-coding', cat: 'Coding', desc: 'Best for code generation, debugging, refactoring' },
                   { id: 'auto-reasoning', cat: 'Reasoning', desc: 'Best for complex analysis, math, logic' },
                   { id: 'auto-consistent', cat: 'Consistency', desc: 'Among models within 5 points of the best one you can use, the one whose score swings least from run to run' },
                   { id: 'auto-fastest-quality', cat: 'Speed', desc: 'Among models within 5 points of the best one you can use, the fastest (measured latency) — auto-fastest has no quality bar' },
-                  { id: 'auto-creative', cat: 'Legacy', desc: 'Still accepted, same ranking as auto-best — there is no creative-writing benchmark' },
+                  { id: 'auto-creative', cat: 'Legacy', desc: 'Still accepted and routed as auto-best — there is no creative-writing benchmark' },
                   { id: 'auto-cheapest', cat: 'Cost', desc: 'Lowest list price per token among your providers — no quality bar' },
                   { id: 'auto-value', cat: 'Value', desc: 'Most combined-score points per measured dollar, among models within 5 points of the best one you can use' },
                   { id: 'auto-value-coding', cat: 'Value', desc: 'Most coding points per dollar (measured cost of a coding run), near-top models only' },
@@ -249,6 +251,21 @@ console.log(response.choices[0].message.content);`} />}
           <P>Tools like Roo Code, Continue, Open WebUI, and LibreChat call this endpoint to populate their model dropdowns.</P>
         </DocPanel>
 
+        {/* Tools, JSON, streaming */}
+        <DocPanel title="🧰 TOOLS, JSON AND STREAMING" isOpen={openSection === 'features'} onToggle={() => toggle('features')}>
+          <P><strong>Tool calling works end to end.</strong> Send OpenAI-format <code className="doc-code">tools</code>; the response carries <code className="doc-code">tool_calls</code> with the provider&apos;s own ids. Send the results back as <code className="doc-code">role: &quot;tool&quot;</code> messages with <code className="doc-code">tool_call_id</code>, exactly as with OpenAI. The router remembers each model&apos;s own turn for 24 hours (Claude&apos;s thinking blocks, OpenAI reasoning items, Gemini thought signatures), so multi-step agent loops keep working, and a tool loop stays on the model that started it.</P>
+          <P><strong>tool_choice:</strong> <code className="doc-code">auto</code> and <code className="doc-code">none</code> work everywhere. <code className="doc-code">required</code> and a named function are honoured by OpenAI, Gemini and most Claude models; DeepSeek, Kimi, GLM, Claude Fable 5.1 and Claude Sonnet 5.5 do not support forcing a tool, so a routed request that forces one only goes to models that honour it, and a request pinned to one of those models is sent as <code className="doc-code">auto</code>.</P>
+          <P><strong>JSON output:</strong> <code className="doc-code">response_format</code> <code className="doc-code">json_object</code> and <code className="doc-code">json_schema</code> are supported for every provider. The schema is enforced natively by OpenAI, Gemini and the Claude models that support structured output (when every object sets <code className="doc-code">additionalProperties: false</code>); DeepSeek, Kimi and GLM receive the schema as an instruction in JSON mode.</P>
+          <P><strong>Streaming</strong> (<code className="doc-code">stream: true</code>) is real: text arrives as the model writes it (<code className="doc-code">X-AISM-Streaming-Mode: native</code>). Tool calls arrive in one chunk each once the model has finished them, then the finish reason, then usage if you set <code className="doc-code">stream_options.include_usage</code>. If the chosen model fails before sending anything, the next fallback is tried; after the first byte a failure ends the stream with an error event.</P>
+          <P><strong>Not supported yet:</strong> image, audio and file inputs (a request containing them gets a 400), and <code className="doc-code">n</code> greater than 1.</P>
+          <P><strong>Rate a response</strong> to help routing learn from real use:</P>
+          <CodeBlock id="feedback-ex" lang="bash" onCopy={copyCode} copied={copiedCode} code={`curl -X POST https://aistupidlevel.info/v1/router/feedback \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer aism_your_key_here" \\
+  -d '{"id": "chatcmpl-...", "rating": "up"}'`} />
+          <P>Use the <code className="doc-code">id</code> from the completion (also in <code className="doc-code">X-AISM-Request-Id</code>); <code className="doc-code">rating</code> is <code className="doc-code">&quot;up&quot;</code>/<code className="doc-code">1</code> or <code className="doc-code">&quot;down&quot;</code>/<code className="doc-code">-1</code>. Ratings nudge rankings only slightly, and only once enough have accumulated.</P>
+        </DocPanel>
+
         {/* Embeddings */}
         <DocPanel title="📐 POST /v1/embeddings" isOpen={openSection === 'embeddings'} onToggle={() => toggle('embeddings')}>
           <P>Generate embeddings via OpenAI's embedding models. Required by Continue, LibreChat, Open WebUI, and AnythingLLM for RAG features.</P>
@@ -256,7 +273,7 @@ console.log(response.choices[0].message.content);`} />}
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer aism_your_key_here" \\
   -d '{"model": "text-embedding-3-small", "input": "Hello world"}'`} />
-          <P>Requires an active OpenAI provider key. Supported models: <code className="doc-code">text-embedding-3-small</code>, <code className="doc-code">text-embedding-3-large</code>.</P>
+          <P>Requires an active OpenAI provider key. Supported models: <code className="doc-code">text-embedding-3-small</code> (also <code className="doc-code">auto-embedding</code>), <code className="doc-code">text-embedding-3-large</code>. Each call counts as one request against your plan, and per-key budgets apply.</P>
         </DocPanel>
 
         {/* Anthropic Messages */}
@@ -284,10 +301,15 @@ console.log(response.choices[0].message.content);`} />}
               <thead><tr><th>HTTP Code</th><th>error.type</th><th>error.code</th><th>Description</th></tr></thead>
               <tbody>
                 {[
-                  { http: 400, type: 'invalid_request_error', code: 'various', desc: 'Bad request (missing params, unknown model)' },
-                  { http: 401, type: 'authentication_error', code: 'invalid_api_key', desc: 'Missing or invalid API key' },
-                  { http: 429, type: 'rate_limit_error', code: 'insufficient_quota', desc: 'Budget exceeded or rate limited' },
-                  { http: 502, type: 'server_error', code: 'model_unavailable', desc: 'All models failed (check provider keys)' },
+                  { http: 400, type: 'invalid_request_error', code: 'invalid_messages / invalid_tools / unsupported_content / model_not_found', desc: 'The request cannot be routed as sent (the message says what to change)' },
+                  { http: 400, type: 'invalid_request_error', code: 'provider_rejected_request', desc: 'The provider rejected the request itself; its own words are in the message' },
+                  { http: 400, type: 'invalid_request_error', code: 'provider_key_rejected / no_provider_keys', desc: 'Your provider key is missing or was refused — add or update it in Providers' },
+                  { http: 400, type: 'invalid_request_error', code: 'no_routable_model', desc: 'Your preferences exclude every model (the message names the setting)' },
+                  { http: 401, type: 'authentication_error', code: 'invalid_api_key', desc: 'Missing or invalid aism_ key' },
+                  { http: 429, type: 'rate_limit_error', code: 'allowance_exhausted', desc: "This month's requests are used up and you have no prepaid credits" },
+                  { http: 429, type: 'rate_limit_error', code: 'insufficient_quota', desc: "This key's monthly hard budget would be exceeded" },
+                  { http: 429, type: 'rate_limit_error', code: 'provider_quota_exceeded', desc: 'Your provider account refused for credit or rate limits' },
+                  { http: 502, type: 'api_error', code: 'model_unavailable', desc: 'Every model tried failed on the provider side' },
                   { http: 500, type: 'server_error', code: 'internal_error', desc: 'Internal server error' },
                 ].map((e, i) => (
                   <tr key={i}>

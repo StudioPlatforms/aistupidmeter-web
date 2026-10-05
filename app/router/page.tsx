@@ -6,7 +6,6 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
-import DashboardPreview from '@/components/DashboardPreview';
 import { apiClient } from '@/lib/api-client';
 import type { AnalyticsOverview, RecentRequest, CostSavings } from '@/lib/api-client';
 
@@ -22,8 +21,6 @@ function RouterDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkingSubscription, setCheckingSubscription] = useState(true);
-  const [showSalesOverlay, setShowSalesOverlay] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   useEffect(() => {
@@ -36,43 +33,19 @@ function RouterDashboardContent() {
       setTimeout(() => setShowSuccessBanner(false), 10000);
     }
 
-    if (status === 'authenticated' && session?.user?.email) {
-      checkUserSubscription();
+    // Routing — keys, providers and this dashboard — is part of every plan, Free included
+    // (lib/capabilities REQUIRED_PLAN.routing). This page used to show Free accounts a sales
+    // overlay instead, while the same accounts could create keys and route.
+    if (status === 'authenticated' && session?.user?.id) {
+      apiClient.setUserId(session.user.id);
+      setCheckingSubscription(false);
+      fetchDashboardData();
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
       setLoading(false);
       setCheckingSubscription(false);
     }
   }, [status, session, searchParams]);
-
-  const checkUserSubscription = async () => {
-    try {
-      setCheckingSubscription(true);
-      const response = await fetch('/api/subscription/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: session!.user!.email! })
-      });
-      const result = await response.json();
-      if (!response.ok || !result.success) throw new Error(result.error || 'Failed to check subscription');
-      if (!result.data.hasAccess) {
-        setShowSalesOverlay(true);
-        setHasAccess(false);
-        setLoading(false);
-        return;
-      }
-      setHasAccess(true);
-      if (session?.user?.id) {
-        apiClient.setUserId(session.user.id);
-        fetchDashboardData();
-      }
-    } catch (err) {
-      setError('Failed to verify subscription status');
-      setLoading(false);
-    } finally {
-      setCheckingSubscription(false);
-    }
-  };
 
   const fetchDashboardData = async () => {
     try {
@@ -92,14 +65,6 @@ function RouterDashboardContent() {
       setLoading(false);
     }
   };
-
-  if (showSalesOverlay && !hasAccess) {
-    return (
-      <RouterLayout>
-        <DashboardPreview />
-      </RouterLayout>
-    );
-  }
 
   if (checkingSubscription || (loading && !overview)) {
     return (
@@ -152,8 +117,8 @@ function RouterDashboardContent() {
           <div className="rv4-success-banner" style={{ marginBottom: '14px' }}>
             <span>✓</span>
             <div>
-              <strong>SUBSCRIPTION ACTIVATED</strong>
-              <span style={{ fontWeight: 'normal', marginLeft: '8px', opacity: 0.8 }}>Welcome to AI Router Pro • 7-day trial started • Full access unlocked</span>
+              <strong>Subscription active</strong>
+              <span style={{ fontWeight: 'normal', marginLeft: '8px', opacity: 0.8 }}>Thank you. Your plan&apos;s features are unlocked.</span>
             </div>
             <button onClick={() => setShowSuccessBanner(false)} className="rv4-ctrl-btn" style={{ marginLeft: 'auto', fontSize: '10px' }}>×</button>
           </div>
@@ -186,7 +151,7 @@ function RouterDashboardContent() {
           <div className="rv4-stat-cell accent-green">
             <div className="rv4-stat-label">Success Rate</div>
             {loading ? <div className="rv4-stat-value" style={{ opacity: 0.4 }}>...</div>
-              : <div className="rv4-stat-value">{stats?.successRate || '0%'}</div>}
+              : <div className="rv4-stat-value">{stats?.successRate == null ? '0%' : String(stats.successRate).endsWith('%') ? stats.successRate : `${stats.successRate}%`}</div>}
           </div>
           <div className="rv4-stat-cell accent-blue">
             <div className="rv4-stat-label">Total Tokens</div>
@@ -311,10 +276,10 @@ function RouterDashboardContent() {
               <div className="rv4-panel-body">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {[
-                    { title: 'LIVE BENCHMARK DATA', desc: 'Real-time performance data from AI Stupid Level 9-axis testing' },
-                    { title: '8 ROUTING STRATEGIES', desc: 'Best Overall, Coding, Reasoning, Creative, Cheapest, Fastest, Tool-use or Agentic' },
+                    { title: 'LIVE BENCHMARK DATA', desc: 'The same scores as the leaderboard: coding every 4 hours, reasoning and tool use daily' },
+                    { title: '13 ROUTING STRATEGIES', desc: 'Best quality, best value, speed and stability — or match each request, or your own traffic split' },
                     { title: 'COST AWARENESS', desc: `Prefers cheaper models when the measured quality is equivalent — a ${SAVINGS_PCT}% gap in our own measurements` },
-                    { title: 'AUTO FAILOVER', desc: 'Zero downtime with intelligent fallback to alternatives' },
+                    { title: 'AUTO FAILOVER', desc: 'If a model fails, the next is tried automatically; models failing right now are skipped' },
                   ].map((f, i) => (
                     <div key={i} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: i < 3 ? '1px solid rgba(192,192,192,0.08)' : 'none' }}>
                       <span style={{ fontSize: '11px', color: 'var(--phosphor-green)', flexShrink: 0, marginTop: '1px' }}>→</span>
@@ -331,7 +296,7 @@ function RouterDashboardContent() {
         </div>
 
         <div className="rv4-footer">
-          Powered by AI Stupid Level • Real-time model intelligence from 24 models re-tested every 4 hours • <a href="/">View Live Rankings</a>
+          Powered by AI Stupid Level • Routing on live benchmark scores • <a href="/">View Live Rankings</a>
         </div>
       </div>
     </RouterLayout>

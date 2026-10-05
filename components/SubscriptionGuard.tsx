@@ -25,6 +25,19 @@ import { REQUIRED_PLAN, CAPABILITY_LABEL, type Capability } from '@/lib/capabili
 import { upgradeHref } from '@/lib/checkout-url';
 import { monthlyLong, planName } from '@/lib/pricing-display';
 
+/**
+ * Whether the signed-in account's plan unlocks `requires`. `ready` is false while the session
+ * loads. Pages that FETCH gated data use it to skip the fetch on a lower plan: since 2026-10-05
+ * the API refuses those requests (403), and a page that fetched first showed that refusal as a
+ * red error banner instead of this guard's upgrade screen.
+ */
+export function useCapability(requires: Capability): { ready: boolean; allowed: boolean } {
+  const { data: session, status } = useSession();
+  if (status === 'loading') return { ready: false, allowed: false };
+  const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
+  return { ready: true, allowed: planMeets(plan, REQUIRED_PLAN[requires]) };
+}
+
 interface SubscriptionGuardProps {
   children: React.ReactNode;
   /** Display name of the locked page. */
@@ -66,7 +79,8 @@ export default function SubscriptionGuard({ children, feature, requires }: Subsc
             {planName(plan)} today.
           </div>
           <div className="rv4-upgrade-price">{price}</div>
-          <Link href={upgradeHref(needed, 'monthly')} className="rv4-upgrade-cta" style={{ textDecoration: 'none' }}>
+          {/* An API route (Stripe checkout): prefetching it as a page only logs a failed RSC fetch. */}
+          <Link href={upgradeHref(needed, 'monthly')} prefetch={false} className="rv4-upgrade-cta" style={{ textDecoration: 'none' }}>
             Upgrade to {neededLabel}
           </Link>
           <div className="rv4-upgrade-fine-print">

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
-import SubscriptionGuard from '@/components/SubscriptionGuard';
+import SubscriptionGuard, { useCapability } from '@/components/SubscriptionGuard';
 import { apiClient } from '@/lib/api-client';
 import type { KeyActivity, KeySummary, BudgetAlert, PromptAuditEntry, EfficiencyMetrics, KeyCostBreakdown } from '@/lib/api-client';
 
@@ -62,12 +62,13 @@ function MonitoringPageContent() {
   // Efficiency state
   const [efficiency, setEfficiency] = useState<EfficiencyMetrics[]>([]);
 
+  const access = useCapability('api-monitoring');
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
+    if (status === 'authenticated' && session?.user?.id && access.allowed) {
       apiClient.setUserId(session.user.id);
       loadInitialData();
     }
-  }, [status, session]);
+  }, [status, session, access.allowed]);
 
   useEffect(() => {
     if (keys.length > 0) {
@@ -170,6 +171,15 @@ function MonitoringPageContent() {
       setAlerts(prev => prev.filter(a => a.id !== alertId));
     } catch {}
   };
+
+  // A lower plan sees the upgrade screen, not an endless loader or a failed fetch.
+  if (access.ready && !access.allowed) {
+    return (
+      <RouterLayout>
+        <SubscriptionGuard feature="API monitoring" requires="api-monitoring"><></></SubscriptionGuard>
+      </RouterLayout>
+    );
+  }
 
   if (loading && keys.length === 0) {
     return (
@@ -671,9 +681,10 @@ function MonitoringPageContent() {
                               </div>
                             )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px', fontSize: '9px', color: 'var(--phosphor-dim)' }}>
-                              <span>{k.budgetHardLimit ? '🔒 HARD LIMIT' : '📊 SOFT LIMIT'}</span>
+                              <span>{k.budgetLimit ? (k.budgetHardLimit ? '🔒 HARD LIMIT: requests over budget are refused' : '📊 SOFT LIMIT: alerts only') : 'No budget set'}</span>
                               {util !== null && <span>{util.toFixed(1)}%</span>}
                             </div>
+                            <BudgetEditor keyRow={k} onSaved={loadBudgets} />
                           </div>
                         );
                       })}
@@ -683,7 +694,7 @@ function MonitoringPageContent() {
                       <div className="rv4-empty-icon">💰</div>
                       <div className="rv4-empty-title">No Keys</div>
                       <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
-                        Create API keys and set budgets in the API Keys page
+                        Create a Smart Router key on the SR API Key page; its budget can then be set here.
                       </div>
                     </div>
                   )}
@@ -760,5 +771,73 @@ export default function MonitoringPage() {
     }>
       <MonitoringPageContent />
     </Suspense>
+  );
+}
+
+/**
+ * Set or change one key's monthly budget (Developer and above; the API enforces the plan too).
+ * A hard limit refuses a request whose reserved cost would take the month over budget; a soft one
+ * only sends alerts at the threshold and at 100%.
+ */
+function BudgetEditor({ keyRow, onSaved }: { keyRow: any; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [limit, setLimit] = useState<string>(keyRow.budgetLimit ? String(keyRow.budgetLimit) : '');
+  const [hard, setHard] = useState<boolean>(!!keyRow.budgetHardLimit);
+  const [threshold, setThreshold] = useState<string>(String(Math.round((keyRow.budgetAlertThreshold ?? 0.8) * 100)));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async (clear = false) => {
+    setError(null);
+    const value = clear ? null : limit.trim() === '' ? null : Number(limit);
+    if (value !== null && !(value >= 0.01)) { setError('Enter a monthly budget of at least $0.01, or leave it empty for no budget.'); return; }
+    const pct = Number(threshold);
+    if (!(pct >= 10 && pct <= 100)) { setError('The alert threshold must be between 10% and 100%.'); return; }
+    setSaving(true);
+    try {
+      await apiClient.updateKey(keyRow.id, { budgetLimitMonthly: value, budgetHardLimit: value === null ? false : hard, budgetAlertThreshold: pct / 100 });
+      setOpen(false);
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the budget.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button type="button" className="rv4-ctrl-btn" style={{ marginTop: 6, fontSize: 11 }} onClick={() => setOpen(true)}>
+        {keyRow.budgetLimit ? 'Edit budget' : 'Set a budget'}
+      </button>
+    );
+  }
+  return (
+    <div style={{ marginTop: 8, padding: 12, border: '1px solid var(--metal-silver)', borderRadius: 8, background: 'var(--terminal-dark)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
+        <span style={{ minWidth: 150 }}>Monthly budget (USD)</span>
+        <input type="number" min={0.01} step={1} className="rv4-input" style={{ width: 140 }} value={limit}
+          placeholder="No budget" onChange={e => setLimit(e.target.value)} aria-label="Monthly budget in US dollars" />
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
+        <span style={{ minWidth: 150 }}>Alert at</span>
+        <input type="number" min={10} max={100} step={5} className="rv4-input" style={{ width: 90 }} value={threshold}
+          onChange={e => setThreshold(e.target.value)} aria-label="Alert threshold in percent" />
+        <span style={{ color: 'var(--phosphor-dim)' }}>% of the budget</span>
+      </label>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, cursor: 'pointer' }}>
+        <input type="checkbox" className="rv4-checkbox" checked={hard} onChange={e => setHard(e.target.checked)} />
+        <span>
+          <b>Refuse requests over budget</b>
+          <span style={{ display: 'block', color: 'var(--phosphor-dim)', marginTop: 2 }}>Off: alerts only. On: a request that would take the month past the budget is refused with HTTP 429 before any model is called.</span>
+        </span>
+      </label>
+      {error && <div role="alert" style={{ color: 'var(--red-alert)', fontSize: 12 }}>{error}</div>}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button type="button" className="rv4-ctrl-btn primary" disabled={saving} onClick={() => save(false)}>{saving ? 'Saving…' : 'Save budget'}</button>
+        {keyRow.budgetLimit && <button type="button" className="rv4-ctrl-btn" disabled={saving} onClick={() => save(true)}>Remove budget</button>}
+        <button type="button" className="rv4-ctrl-btn" disabled={saving} onClick={() => { setOpen(false); setError(null); }}>Cancel</button>
+      </div>
+    </div>
   );
 }
