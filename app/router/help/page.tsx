@@ -143,7 +143,7 @@ export default function HelpPage() {
             </table>
           </div>
           <p style={{ fontSize: '9.5px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-            You can also pin specific models (e.g., <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-4-7</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-5.5</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gemini-3.5-flash</code>) to bypass routing entirely.
+            You can also pin specific models (e.g., <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-5-5</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-6-sol</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gemini-3.8-flash</code>) to bypass routing entirely.
           </p>
         </HelpPanel>
 
@@ -176,7 +176,7 @@ export default function HelpPage() {
             { q: 'What happens if a model fails?', a: 'Automatic fallback: if the chosen model fails before answering, the router tries the rest of your traffic split (if you use one), then your own fallback order (if you set one), then up to 2 automatic fallbacks from different providers. A model that is failing right now is skipped without waiting for a timeout. Configure it in Preferences.' },
             { q: 'Does streaming work?', a: 'Yes — set stream: true. Text arrives as the model writes it, for every provider; tool calls arrive once each is complete, then usage if you ask for it with stream_options.include_usage.' },
             { q: 'How often are benchmarks updated?', a: 'Coding runs every 4 hours, reasoning and tool use daily, and a small canary every hour. Rankings refresh after each run, and the router reads the same scores the leaderboard shows.' },
-            { q: 'Can I use a specific model directly?', a: 'Yes — send any real model ID (e.g. "claude-opus-4-7", "gpt-5.5") instead of an auto-* strategy. The router forwards directly to that provider; your plan allowance and key budgets still apply.' },
+            { q: 'Can I use a specific model directly?', a: 'Yes — send any real model ID (e.g. "claude-opus-5-5", "gpt-6-sol") instead of an auto-* strategy. The router forwards directly to that provider; your plan allowance and key budgets still apply.' },
             { q: 'Does tool calling work with agents?', a: 'Yes. Send OpenAI-format tools and return results as role "tool" messages with tool_call_id. The router keeps each model\'s own turn (such as Claude\'s thinking) between requests, so multi-step agent loops work, and a loop stays on the model that started it. Forcing a call with tool_choice works on every model: where a provider cannot enforce it, the router asks the model in words and checks that the answer really is the tool call.' },
             { q: 'Can I send images, audio or files?', a: 'No — the router routes text only, on purpose. It picks a model from our benchmark results for coding, reasoning and tool use, and none of those measure image, audio or file understanding, so we would be guessing. Such a request gets a clear 400. Call the provider directly for multimodal work.' },
             { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like. xAI/Grok is not currently routable — none of its models are in the benchmark lineup.' },

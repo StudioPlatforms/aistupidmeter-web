@@ -44,7 +44,7 @@
 .doc-prose ul, .doc-prose ol { margin: 0 0 14px; padding-left: 22px; }
 .doc-prose li { margin-bottom: 6px; }
 .doc-prose a, .doc-qa a { color: var(--accent); }
-.doc-prose code, .doc-qa code, .doc-facts code { font-family: var(--font-code); font-size: .9em; padding: 1px 5px; border-radius: 4px; background: var(--terminal-black); border: 1px solid var(--metal-silver); }
+.doc-prose code, .doc-qa code, .doc-facts code { font-family: var(--font-code); font-size: .9em; padding: 1px 5px; border-radius: 4px; background: var(--terminal-black); border: 1px solid var(--metal-silver); overflow-wrap: anywhere; }
 .doc-prose .doc-muted, .doc-muted { color: var(--phosphor-dim); }
 
 .doc-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 18px; }

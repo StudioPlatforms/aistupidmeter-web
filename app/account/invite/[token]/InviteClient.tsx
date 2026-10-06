@@ -25,7 +25,7 @@ interface Invite {
   plan: string;
 }
 
-const wrap: React.CSSProperties = { maxWidth: 560, margin: '0 auto', padding: '48px 20px 70px' };
+const wrap: React.CSSProperties = { width: '100%', boxSizing: 'border-box', maxWidth: 560, margin: '0 auto', padding: '48px 20px 70px', overflowWrap: 'anywhere' };
 const card: React.CSSProperties = {
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6, padding: '24px 24px 22px',
   background: 'var(--terminal-dark)',

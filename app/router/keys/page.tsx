@@ -18,11 +18,14 @@ export default function RouterKeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // The models a request can name right now, best first (the router's own ranking table).
+  const [lineup, setLineup] = useState<Array<{ name: string; provider: string }>>([]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       apiClient.setUserId(session.user.id);
       fetchKeys();
+      apiClient.getAvailableModels().then(r => setLineup((r.models || []).map(m => ({ name: m.name, provider: m.provider })))).catch(() => setLineup([]));
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
       setLoading(false);
@@ -133,6 +136,23 @@ export default function RouterKeysPage() {
               </div>
             </div>
           </div>
+
+          {/* Project keys live on the project page: they follow the project's rules and budget,
+              and the project report attributes their spend. Personal keys stay here. */}
+          {(session?.user as any)?.workspace && (
+            <div className="rv4-info-banner blue" style={{ marginBottom: '14px' }}>
+              <span className="rv4-info-banner-icon">⇢</span>
+              <div className="rv4-info-banner-content">
+                <div className="rv4-info-banner-title">WORKING ON A TEAM PROJECT?</div>
+                <div className="rv4-info-banner-text">
+                  The keys on this page are yours alone and follow your own Routing Preferences. For work in one of
+                  your workspace&rsquo;s projects, make the key on the project&rsquo;s page (<a href="/account/team" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Workspace</a> → the
+                  project → Smart Router): it follows the project&rsquo;s routing rules, pays with its provider keys,
+                  counts against its budget, and shows up in its report.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stat bar */}
           <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '14px' }}>
@@ -293,6 +313,23 @@ export default function RouterKeysPage() {
                     copiedSnippet={copiedSnippet}
                     setCopiedSnippet={setCopiedSnippet}
                   />
+                  <SetupSnippet
+                    title="curl"
+                    code={`curl https://aistupidlevel.info/v1/chat/completions \\\n  -H "Authorization: Bearer aism_your_key_here" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model": "auto", "messages": [{"role": "user", "content": "Hello!"}]}'`}
+                    copiedSnippet={copiedSnippet}
+                    setCopiedSnippet={setCopiedSnippet}
+                  />
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.6 }}>
+                    <code style={{ fontFamily: 'var(--font-mono)' }}>"auto"</code> follows your{' '}
+                    <a href="/router/preferences" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Routing Preferences</a>; an{' '}
+                    <code style={{ fontFamily: 'var(--font-mono)' }}>auto-*</code> name picks a strategy per request. Streaming
+                    (<code style={{ fontFamily: 'var(--font-mono)' }}>stream: true</code>), tool calls (including a forced{' '}
+                    <code style={{ fontFamily: 'var(--font-mono)' }}>tool_choice</code>), JSON mode and structured outputs work as in the
+                    OpenAI API. Every response says which model answered and why, in the headers{' '}
+                    <code style={{ fontFamily: 'var(--font-mono)' }}>X-AISM-Model</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>X-AISM-Provider</code>,{' '}
+                    <code style={{ fontFamily: 'var(--font-mono)' }}>X-AISM-Reasoning</code> and <code style={{ fontFamily: 'var(--font-mono)' }}>X-AISM-Request-Id</code>.
+                    Text only: requests with images or audio are refused, because nothing we benchmark measures them.
+                  </div>
                 </div>
 
                 {/* IDE Extensions */}
@@ -347,6 +384,16 @@ export default function RouterKeysPage() {
                         'URL: https://aistupidlevel.info/v1',
                         'Paste key in OpenAI API Key field',
                         '+ Add Model → auto-coding'
+                      ]}
+                    />
+                    <ToolCard
+                      name="Claude Code"
+                      subtitle="Anthropic CLI (uses /v1/messages)"
+                      steps={[
+                        'export ANTHROPIC_BASE_URL="https://aistupidlevel.info"',
+                        'export ANTHROPIC_API_KEY="aism_your_key_here"',
+                        'Run claude as usual',
+                        'Goes to Anthropic with your Anthropic key (no routing between providers); allowance, budgets and logs still apply'
                       ]}
                     />
                   </div>
@@ -409,18 +456,21 @@ export default function RouterKeysPage() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '6px' }}>
                     {[
-                      { id: 'auto', desc: 'Uses your saved preference' },
-                      { id: 'auto-coding', desc: 'Best on the code benchmark' },
+                      { id: 'auto', desc: 'Your saved Routing Preferences' },
+                      { id: 'auto-best', desc: 'Best overall (coding, reasoning and tool use)' },
+                      { id: 'auto-coding', desc: 'Best on the coding benchmark' },
                       { id: 'auto-reasoning', desc: 'Best on the reasoning benchmark' },
-                      { id: 'auto-tooling', desc: 'Best on the tool-use benchmark' },
-                      { id: 'auto-value', desc: 'Most points per dollar, near-top models' },
-                      { id: 'auto-value-coding', desc: 'Best value on the code benchmark' },
+                      { id: 'auto-tooling', desc: 'Best on the tool-use benchmark (alias: auto-agentic)' },
+                      { id: 'auto-value', desc: 'Most points per dollar among near-top models' },
+                      { id: 'auto-value-coding', desc: 'Best value on the coding benchmark' },
                       { id: 'auto-value-reasoning', desc: 'Best value on the reasoning benchmark' },
                       { id: 'auto-value-tooling', desc: 'Best value on the tool-use benchmark' },
                       { id: 'auto-consistent', desc: 'Steadiest near-top model' },
                       { id: 'auto-fastest-quality', desc: 'Fastest model near the top' },
+                      { id: 'auto-task', desc: 'Coding, reasoning or tool use, judged from each request' },
+                      { id: 'auto-split', desc: 'Your own weighted traffic split (Preferences)' },
                       { id: 'auto-cheapest', desc: 'Lowest list price, no quality bar' },
-                      { id: 'auto-fastest', desc: 'Lowest measured latency' },
+                      { id: 'auto-fastest', desc: 'Lowest measured latency, no quality bar' },
                     ].map(m => (
                       <div key={m.id} style={{
                         background: 'var(--bg-tertiary)', borderRadius: '3px', padding: '8px 10px',
@@ -431,9 +481,19 @@ export default function RouterKeysPage() {
                       </div>
                     ))}
                   </div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginTop: '10px', lineHeight: 1.6 }}>
+                    Or name a model to skip routing: the request goes to that model only, with no fallback. The models you
+                    can name right now{lineup.length ? ', best first:' : ' are listed by GET /v1/models.'}
+                  </div>
+                  {lineup.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', marginTop: '6px' }}>
+                      {lineup.map(m => (
+                        <code key={m.name} title={m.provider} style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--phosphor-green)' }}>{m.name}</code>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '6px' }}>
-                    You can also pin a specific model (e.g. <code style={{ fontFamily: 'var(--font-mono)' }}>claude-opus-5</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gpt-5.6-sol</code>, <code style={{ fontFamily: 'var(--font-mono)' }}>gemini-3.1-pro-preview</code>) to bypass routing entirely.
-                    Call <code style={{ fontFamily: 'var(--font-mono)' }}>GET /v1/models</code> — or open your tool's model dropdown — for the current list.
+                    <code style={{ fontFamily: 'var(--font-mono)' }}>GET /v1/models</code> returns the same list, and is what most tools use to fill their model dropdown.
                   </div>
                 </div>
 
@@ -443,10 +503,24 @@ export default function RouterKeysPage() {
                   <div className="rv4-info-banner-content">
                     <div className="rv4-info-banner-title">API ENDPOINTS</div>
                     <div className="rv4-info-banner-text" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>POST /v1/chat/completions</code> — Chat (auto-routing or direct pin)</div>
-                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>GET /v1/models</code> — List available models</div>
-                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>POST /v1/embeddings</code> — Embeddings (proxied to OpenAI)</div>
-                      <div><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>POST /v1/messages</code> — Native Anthropic Messages API</div>
+                      {[
+                        ['POST /v1/chat/completions', 'OpenAI-compatible chat: routed (auto, auto-*) or a named model; streaming, tools, JSON'],
+                        ['GET /v1/models', 'The auto-* strategies and every model you can name'],
+                        ['POST /v1/messages', 'Anthropic Messages API, sent straight to Anthropic with your Anthropic key (Claude Code)'],
+                        ['POST /v1/messages/count_tokens', 'Anthropic\u2019s token counter (free; not counted against your plan)'],
+                        ['POST /v1/embeddings', 'OpenAI embeddings: text-embedding-3-small (or auto-embedding) and -large'],
+                        ['POST /v1/router/feedback', 'Rate an answer up or down by its completion id; ratings nudge routing'],
+                        ['POST /v1/explain', 'Which model “auto” would pick for a prompt, without sending it'],
+                        ['POST /v1/compare', 'What every strategy would pick for a prompt'],
+                        ['POST /v1/analyze', 'How the router classifies a prompt (task, language, complexity)'],
+                      ].map(([ep, what]) => (
+                        <div key={ep}><code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>{ep}</code> — {what}</div>
+                      ))}
+                      <div style={{ marginTop: '4px' }}>
+                        Everything accepts the key as <code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>Authorization: Bearer aism_…</code>
+                        {' '}(<code style={{ fontFamily: 'var(--font-mono)', fontSize: '10px' }}>x-api-key</code> too, on the Anthropic routes).{' '}
+                        <a href="/router/docs" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>Full API reference →</a>
+                      </div>
                     </div>
                   </div>
                 </div>

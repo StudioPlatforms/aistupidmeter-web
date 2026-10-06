@@ -72,10 +72,13 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
     { label: 'Decision-log history',  get: p => `${PLANS[p].routerDiagnosticDays} days`, note: 'How far back you can see why each request went to the model it did' },
     { label: 'Data API',              get: p => { const t = DATA_API_LIMITS[PLANS[p].dataApiTier]; return `${fmt(t.daily)}/day · ${fmt(t.perMinute)}/min`; },
       note: 'Keyed JSON access to scores, history and drift. The free tier is for building against, not for running on' },
-    { label: 'Webhooks',              get: p => PLANS[p].webhooks ? 'Yes' : '—', note: 'Signed callbacks when a model you watch regresses' },
+    { label: 'Webhooks',              get: p => PLANS[p].webhooks ? 'Yes' : '—', note: 'Signed callbacks when a watched model regresses, or a project reaches a budget threshold or someone their cap' },
   ] },
   { title: 'Team', rows: [
     { label: 'Editor seats',          get: p => fmt(PLANS[p].seats), note: 'On Teams and Enterprise every editor gets the plan’s features and limits. Viewers are unlimited and read-only' },
+    { label: 'Projects',              get: p => PLANS[p].projects === 0 ? '—' : fmt(PLANS[p].projects),
+      note: 'One per client or product: its own people, watchlist and alerts, Smart Router keys, routing rules, provider keys, budget and per-person caps, and a report of what it spent and who spent it' },
+    { label: 'Team watchlist',        get: p => PLANS[p].projects === 0 ? '—' : 'Yes', note: 'Models the whole workspace watches, with alerts to everyone in it, viewers included' },
     { label: 'SSO, SCIM & audit trail', get: p => planMeets(p, REQUIRED_PLAN.governance) ? 'Yes' : '—', note: 'OIDC or SAML, directory provisioning, exportable audit log' },
   ] },
 ];
@@ -85,7 +88,7 @@ const PITCH: Record<Plan, string> = {
   free: 'The public evidence, plus a watchlist of three models with email alerts and a weekly summary.',
   pro: 'Full history, the diagnosis behind every change, calibration and substitute analysis, exports and custom alerts.',
   developer: 'For running the Smart Router in production: ten times the requests, API monitoring and 30-day decision logs.',
-  teams: 'Five editors, each with the full Teams plan, plus webhooks, single sign-on and an audit trail.',
+  teams: 'Five editors, each with the full Teams plan, three projects with their own router keys, budgets and spend reports, plus webhooks, single sign-on and an audit trail.',
   enterprise: 'Contracted scope, unlimited seats and requests, 365-day decision logs and invoicing.',
   legacy_pro: '',
 };
@@ -107,13 +110,16 @@ function highlights(p: Plan): { lead?: string; items: string[] } {
     ] };
     case 'developer': return { lead: 'Everything in Pro, plus', items: [
       router, 'API monitoring: per-key logs, costs, prompt auditing and budget limits', `${e.routerDiagnosticDays}-day decision logs`, dataApi,
+      'A workspace with one project and a shared watchlist; viewers free',
     ] };
     case 'teams': return { lead: 'Everything in Developer, plus', items: [
-      `${fmt(e.seats)} editors, each with the full Teams plan`, router, `${e.routerDiagnosticDays}-day decision logs`, dataApi,
-      'Webhooks when a watched model regresses', 'Single sign-on (OIDC or SAML), SCIM and an audit trail',
+      `${fmt(e.seats)} editors, each with the full Teams plan`,
+      `${fmt(e.projects)} projects, each with its own router keys, rules, budget and spend report`,
+      'A team watchlist with alerts to everyone', router, `${e.routerDiagnosticDays}-day decision logs`, dataApi,
+      'Webhooks for regressions and budgets', 'Single sign-on (OIDC or SAML), SCIM and an audit trail',
     ] };
     case 'enterprise': return { items: [
-      'Unlimited editor seats', router, dataApi, `${e.routerDiagnosticDays}-day decision logs`, 'Contract and invoicing',
+      'Unlimited editor seats and projects', router, dataApi, `${e.routerDiagnosticDays}-day decision logs`, 'Contract and invoicing',
     ] };
     default: return { items: [] };
   }

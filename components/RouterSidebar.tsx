@@ -56,8 +56,10 @@ export default function RouterSidebar() {
 
   const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
   const projects = PLANS[plan].projects;
-  const hasTeam = isUnlimited(projects) || projects >= 1;
-  const hasGovernance = planMeets(plan, REQUIRED_PLAN.governance);
+  // In a workspace (any role, viewers included), or on a plan that can make one.
+  const workspace = (session?.user as any)?.workspace as { role: string; name: string } | null | undefined;
+  const hasTeam = isUnlimited(projects) || projects >= 1 || !!workspace;
+  const hasGovernance = planMeets(plan, REQUIRED_PLAN.governance) && (!workspace || workspace.role === 'owner');
 
   /**
    * Grouped rather than one flat list of twelve.
@@ -165,7 +167,7 @@ export default function RouterSidebar() {
             <NavLink
               key={item.href}
               item={item}
-              active={pathname === item.href}
+              active={pathname === item.href || (item.href === '/account/team' && !!pathname?.startsWith('/account/team/'))}
               collapsed={collapsed && !isMobile}
               onClick={isMobile ? () => setMobileOpen(false) : undefined}
             />

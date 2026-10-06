@@ -56,6 +56,17 @@ async function proxyRequest(request: NextRequest, path: string[], method: string
     }
 
     const res = await fetch(backendUrl, { method, headers, body, cache: 'no-store' });
+    // Downloads (the audit trail and a project's request log as CSV) pass through as they are:
+    // parsing them as JSON turned every export into "Bad gateway response".
+    const type = res.headers.get('content-type') || '';
+    if (!type.includes('application/json')) {
+      const out = new NextResponse(await res.arrayBuffer(), { status: res.status });
+      out.headers.set('Content-Type', type || 'application/octet-stream');
+      const disposition = res.headers.get('content-disposition');
+      if (disposition) out.headers.set('Content-Disposition', disposition);
+      out.headers.set('Cache-Control', 'no-store');
+      return out;
+    }
     const payload = await res.json().catch(() => ({ success: false, error: 'Bad gateway response' }));
     return NextResponse.json(payload, { status: res.status });
   } catch (error) {

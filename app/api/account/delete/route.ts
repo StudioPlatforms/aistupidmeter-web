@@ -4,7 +4,7 @@ import { findUserById } from '@/lib/db-client';
 import { verifyPassword } from '@/lib/password';
 import { sendAccountDeletedEmail } from '@/lib/email-service';
 import { clientIp, limited } from '@/lib/ip-rate-limit';
-import { deletionBlockers, deletedUserPlaceholderId, deleteIdentityAccount } from '@/lib/account-deletion';
+import { deletionBlockers, deletedUserPlaceholderId, deleteIdentityAccount, ownedWorkspaceIds } from '@/lib/account-deletion';
 
 /**
  * Delete the signed-in account (Settings → Delete account).
@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
     const r = await fetch(`${apiBase}/api/account-purge`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-pro-token': token },
-      body: JSON.stringify({ userId: user.id, placeholderId }),
+      body: JSON.stringify({ userId: user.id, placeholderId, ...(() => {
+        const w = ownedWorkspaceIds(user.id);
+        return { ownedOrgIds: w.orgIds, ownedProjectIds: w.projectIds };
+      })() }),
       cache: 'no-store',
     });
     const j = await r.json().catch(() => null);

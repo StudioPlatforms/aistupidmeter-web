@@ -51,3 +51,38 @@ export function withWorkspace<T extends object>(userId: number | string | null |
   if (!subject) return null;
   return { ...subject, workspace_tier: workspaceTierFor(userId) };
 }
+
+/**
+ * The workspace this account is in and its role there, for navigation: a viewer gets no plan
+ * from a workspace, but still needs a way into it (the team watchlist, their projects).
+ * Owned first, else joined and active — the same rule as the API's orgFor().
+ */
+const roleCache = new Map<number, { ws: { role: 'owner' | 'editor' | 'viewer'; name: string } | null; at: number }>();
+
+export function workspaceFor(userId: number | string | null | undefined): { role: 'owner' | 'editor' | 'viewer'; name: string } | null {
+  const id = Number(userId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  const hit = roleCache.get(id);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.ws;
+  let ws: { role: 'owner' | 'editor' | 'viewer'; name: string } | null = null;
+  let db: ReturnType<typeof openIdentityDb> | null = null;
+  try {
+    db = openIdentityDb();
+    const owned = db.prepare('SELECT name FROM organizations WHERE owner_user_id = ?').get(id) as { name: string } | undefined;
+    if (owned) ws = { role: 'owner', name: owned.name };
+    else {
+      const m = db.prepare(`
+        SELECT m.role, o.name FROM organization_members m JOIN organizations o ON o.id = m.org_id
+         WHERE m.user_id = ? AND m.joined_at IS NOT NULL AND m.active = 1 LIMIT 1
+      `).get(id) as { role: string; name: string } | undefined;
+      if (m) ws = { role: m.role === 'editor' ? 'editor' : 'viewer', name: m.name };
+    }
+  } catch {
+    ws = null;
+  } finally {
+    db?.close();
+  }
+  if (roleCache.size > 5_000) roleCache.clear();
+  roleCache.set(id, { ws, at: Date.now() });
+  return ws;
+}

@@ -16,6 +16,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { PLANS, isPlan, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
+// Ruled tables, and the phone rules (16px fields, stacked audit rows) the team pages share.
+import '@/styles/workspace.css';
 
 interface ScimToken {
   id: number; token_prefix: string; name: string | null;
@@ -247,7 +249,7 @@ export default function SecurityClient() {
   };
 
   return (
-    <div style={{ maxWidth: 820, margin: '0 auto', padding: '26px 20px 70px' }}>
+    <div className="ws-phone-fields" style={{ width: '100%', boxSizing: 'border-box', maxWidth: 820, margin: '0 auto', padding: '26px 16px 96px' }}>
       <h1 style={{ fontSize: '1.4em', margin: '0 0 6px' }}>Security &amp; governance</h1>
       <p style={{ color: 'var(--phosphor-dim)', margin: '0 0 22px', fontSize: '0.92em', lineHeight: 1.6 }}>
         Single sign-on, directory provisioning and the audit trail for your workspace.{' '}
@@ -488,25 +490,19 @@ export default function SecurityClient() {
             Nothing recorded yet. Changes to members, projects, webhooks and these settings appear here.
           </p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82em', minWidth: 520 }}>
+          <div className="ws-table-wrap">
+            {/* On a phone each entry stacks: when, then who, what and to what (styles/workspace.css). */}
+            <table className="ws-table ws-stack" style={{ fontSize: '0.86em' }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--phosphor-dim)' }}>
-                  <th style={{ padding: '6px 8px 6px 0' }}>When</th>
-                  <th style={{ padding: '6px 8px' }}>Who</th>
-                  <th style={{ padding: '6px 8px' }}>Action</th>
-                  <th style={{ padding: '6px 8px' }}>Target</th>
-                </tr>
+                <tr><th>When</th><th>Who</th><th>Action</th><th>Target</th></tr>
               </thead>
               <tbody>
                 {audit.map(r => (
-                  <tr key={r.id} style={{ borderTop: '1px solid var(--border-subtle, #2a2a2a)' }}>
-                    <td style={{ padding: '7px 8px 7px 0', color: 'var(--phosphor-dim)', whiteSpace: 'nowrap' }}>
-                      {new Date(r.createdAt).toLocaleString()}
-                    </td>
-                    <td style={{ padding: '7px 8px' }}>{r.actorLabel ?? r.actorKind}</td>
-                    <td style={{ padding: '7px 8px' }}><code style={{ fontSize: '0.95em' }}>{r.action}</code></td>
-                    <td style={{ padding: '7px 8px', color: 'var(--phosphor-dim)' }}>{r.targetLabel ?? '—'}</td>
+                  <tr key={r.id}>
+                    <td className="dim nowrap">{new Date(r.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td data-label="Who" style={{ overflowWrap: 'anywhere' }}>{r.actorLabel ?? r.actorKind}</td>
+                    <td data-label="Action"><code style={{ fontSize: '0.95em' }}>{r.action}</code></td>
+                    <td className="dim" data-label="Target" style={{ overflowWrap: 'anywhere' }}>{r.targetLabel ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -65,6 +65,13 @@ export default function DocsPage() {
           <P>
             Some tools enforce an <code className="doc-code">sk-</code> prefix for API keys. The router accepts <code className="doc-code">sk-aism_...</code> — the prefix is stripped automatically.
           </P>
+          <P>
+            <strong>Project keys.</strong> A key made on a workspace project&rsquo;s page works the same way, but follows the
+            project&rsquo;s routing rules (strategy, allowed models, limits), pays with the project&rsquo;s or workspace&rsquo;s
+            provider keys, and counts against the project&rsquo;s budget and the holder&rsquo;s cap in it — see the{' '}
+            <a href="/docs/teams#keys" style={{ color: 'var(--phosphor-green)' }}>workspace guide</a>. Keys can also expire;
+            an expired key gets a 401 saying when it expired.
+          </P>
           <Heading>Endpoints</Heading>
           <div className="rv4-table-wrapper">
             <table className="rv4-table">
@@ -73,7 +80,12 @@ export default function DocsPage() {
                 <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/chat/completions</td><td className="td-dim">Chat completions (auto-routing or direct pin)</td></tr>
                 <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>GET</td><td className="td-mono">/v1/models</td><td className="td-dim">List available models (requires auth)</td></tr>
                 <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/embeddings</td><td className="td-dim">Embeddings (proxied to OpenAI)</td></tr>
-                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/messages</td><td className="td-dim">Native Anthropic Messages API passthrough</td></tr>
+                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/messages</td><td className="td-dim">Native Anthropic Messages API passthrough (Claude Code)</td></tr>
+                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/messages/count_tokens</td><td className="td-dim">Anthropic token counter (free; not counted against your plan)</td></tr>
+                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/router/feedback</td><td className="td-dim">Rate an answer up or down by its completion id</td></tr>
+                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/explain</td><td className="td-dim">Which model &ldquo;auto&rdquo; would pick for a prompt, without sending it</td></tr>
+                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/compare</td><td className="td-dim">What every strategy would pick for a prompt</td></tr>
+                <tr><td style={{ color: 'var(--phosphor-green)', fontWeight: 700 }}>POST</td><td className="td-mono">/v1/analyze</td><td className="td-dim">How the router classifies a prompt</td></tr>
               </tbody>
             </table>
           </div>
@@ -101,7 +113,7 @@ export default function DocsPage() {
               <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
               <tbody>
                 {[
-                  { n: 'model', t: 'string', r: true, d: '"auto-coding", "auto-reasoning", or a real model ID like "claude-opus-4-8"' },
+                  { n: 'model', t: 'string', r: true, d: '"auto-coding", "auto-reasoning", or a real model ID like "claude-opus-5-5"' },
                   { n: 'messages', t: 'array', r: true, d: 'Array of {role, content} message objects' },
                   { n: 'temperature', t: 'number', r: false, d: 'Sampling temperature (0-2). Default varies by provider.' },
                   { n: 'max_tokens', t: 'number', r: false, d: 'Max tokens to generate. For reasoning models use max_completion_tokens.' },
@@ -172,7 +184,7 @@ console.log(response.choices[0].message.content);`} />}
   "id": "chatcmpl-1748250000000",
   "object": "chat.completion",
   "created": 1748250000,
-  "model": "claude-opus-4-7",
+  "model": "claude-opus-5-5",
   "system_fingerprint": "aism_v1_anthropic",
   "service_tier": "default",
   "choices": [{
@@ -233,7 +245,7 @@ console.log(response.choices[0].message.content);`} />}
             </table>
           </div>
           <P style={{ marginTop: '8px' }}>
-            <strong>Direct pin routing:</strong> Send any real model ID (e.g., <code className="doc-code">claude-opus-4-7</code>, <code className="doc-code">gpt-5.5</code>, <code className="doc-code">gemini-3.5-flash</code>) to bypass the strategy router and forward directly to that provider.
+            <strong>Direct pin routing:</strong> Send any real model ID (e.g., <code className="doc-code">claude-opus-5-5</code>, <code className="doc-code">gpt-6-sol</code>, <code className="doc-code">gemini-3.8-flash</code>; <code className="doc-code">GET /v1/models</code> lists them all) to bypass the strategy router and forward directly to that provider.
           </P>
           <P style={{ marginTop: '8px' }}>
             <strong>Near-top strategies</strong> (<code className="doc-code">auto-value*</code>, <code className="doc-code">auto-consistent</code>, <code className="doc-code">auto-fastest-quality</code>) only choose among models within 5 points of the best model <em>you</em> can use — after your keys, exclusions and limits — so a cheaper, steadier or faster pick is never a much weaker one. Value is measured: the benchmark score divided by what one identical benchmark run actually cost that model, not its list price per token.
@@ -281,13 +293,18 @@ console.log(response.choices[0].message.content);`} />}
           <P>
             Native Anthropic Messages API passthrough. Unlocks Claude Code, Cline's Anthropic provider, Roo Code's Anthropic provider, and TypingMind's Anthropic preset.
           </P>
-          <P>Accepts <code className="doc-code">aism_</code> keys via either <code className="doc-code">x-api-key</code> or <code className="doc-code">Authorization: Bearer</code> header. Forwards <code className="doc-code">anthropic-version</code> header (defaults to <code className="doc-code">2023-06-01</code>).</P>
+          <P>Accepts <code className="doc-code">aism_</code> keys via either <code className="doc-code">x-api-key</code> or <code className="doc-code">Authorization: Bearer</code> header. Forwards the <code className="doc-code">anthropic-version</code> header (defaults to <code className="doc-code">2023-06-01</code>) and any <code className="doc-code">anthropic-beta</code> header as sent. <code className="doc-code">POST /v1/messages/count_tokens</code> is passed through too; it is free at Anthropic, so it is not counted against your plan.</P>
+          <P><strong>Claude Code:</strong></P>
+          <CodeBlock id="claude-code" lang="bash" onCopy={copyCode} copied={copiedCode} code={`export ANTHROPIC_BASE_URL="https://aistupidlevel.info"
+export ANTHROPIC_API_KEY="aism_your_key_here"
+claude`} />
+          <P>There is no routing on this path: the request goes to Anthropic, with your Anthropic key, for the Claude model it names. Your plan allowance, budgets and request logs apply as on the other endpoints.</P>
           <CodeBlock id="anthro-ex" lang="bash" onCopy={copyCode} copied={copiedCode} code={`curl -X POST https://aistupidlevel.info/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: aism_your_key_here" \\
   -H "anthropic-version: 2023-06-01" \\
   -d '{
-    "model": "claude-opus-4-7",
+    "model": "claude-sonnet-5-5",
     "max_tokens": 1024,
     "messages": [{"role": "user", "content": "Hello!"}]
   }'`} />
@@ -306,6 +323,13 @@ console.log(response.choices[0].message.content);`} />}
                   { http: 400, type: 'invalid_request_error', code: 'provider_key_rejected / no_provider_keys', desc: 'Your provider key is missing or was refused — add or update it in Providers' },
                   { http: 400, type: 'invalid_request_error', code: 'no_routable_model', desc: 'Your preferences exclude every model (the message names the setting)' },
                   { http: 401, type: 'authentication_error', code: 'invalid_api_key', desc: 'Missing or invalid aism_ key' },
+                  { http: 401, type: 'authentication_error', code: 'expired_api_key', desc: 'The key had an expiry date and it has passed (the message says when)' },
+                  { http: 400, type: 'invalid_request_error', code: 'pinning_not_allowed / model_not_allowed / provider_not_allowed', desc: 'Project keys: the project routes every request, or does not allow that model or provider' },
+                  { http: 403, type: 'permission_error', code: 'not_in_workspace / not_in_project / seat_required / project_deleted / plan_lapsed', desc: 'Project keys: the holder left, lost their seat, or the project or its plan is gone' },
+                  { http: 429, type: 'rate_limit_error', code: 'rate_limited', desc: 'Project keys: the project\u2019s requests-per-minute limit for this key (see Retry-After)' },
+                  { http: 429, type: 'rate_limit_error', code: 'project_budget_exceeded', desc: 'Project keys: the request could take the project past its monthly budget' },
+                  { http: 429, type: 'rate_limit_error', code: 'member_cap_reached', desc: 'Project keys: you reached your monthly cap in the project' },
+                  { http: 429, type: 'rate_limit_error', code: 'budget_downgraded', desc: 'Project keys: the budget is spent and the project now routes only (cheapest models); naming a model is refused' },
                   { http: 429, type: 'rate_limit_error', code: 'allowance_exhausted', desc: "This month's requests are used up and you have no prepaid credits" },
                   { http: 429, type: 'rate_limit_error', code: 'insufficient_quota', desc: "This key's monthly hard budget would be exceeded" },
                   { http: 429, type: 'rate_limit_error', code: 'provider_quota_exceeded', desc: 'Your provider account refused for credit or rate limits' },

@@ -6,15 +6,33 @@ import type { User } from '@/lib/db-client';
  * POST /api/account-purge; app/api/account/delete runs both, that one first).
  *
  * What goes: the account and everything that is only about it — watchlists, alert
- * preferences and deliveries, activation events, UI preferences, workspace memberships,
- * router credits, SSO tickets (all ON DELETE CASCADE), the forum profile and reactions, and
- * workspaces the person owns alone. What stays, without a link to the person: forum posts
- * and topics (re-attributed to the "Deleted user" placeholder so threads still read),
- * contact messages, assessment requests and audit events (ON DELETE SET NULL). Stripe keeps
- * invoices, as it must.
+ * preferences and deliveries, activation events, UI preferences, workspace and project
+ * memberships (project_members), router credits, SSO tickets (all ON DELETE CASCADE), the
+ * forum profile and reactions, and workspaces the person owns alone. What stays, without a
+ * link to the person: forum posts and topics (re-attributed to the "Deleted user" placeholder
+ * so threads still read), contact messages, assessment requests, audit events and the team
+ * watchlist entries they added (ON DELETE SET NULL). Stripe keeps invoices, as it must.
  */
 
 export const DELETED_USER_EMAIL = 'deleted-user@aistupidlevel.invalid';
+
+/**
+ * Workspaces this account owns (deletionBlockers has already refused any with other members),
+ * and their projects: the benchmark-database half deletes their shared provider keys and
+ * budget counters, which live there.
+ */
+export function ownedWorkspaceIds(userId: number): { orgIds: number[]; projectIds: number[] } {
+  const db = openIdentityDb();
+  try {
+    const orgIds = (db.prepare('SELECT id FROM organizations WHERE owner_user_id = ?').all(userId) as Array<{ id: number }>).map(r => r.id);
+    const projectIds = orgIds.length
+      ? (db.prepare(`SELECT id FROM projects WHERE org_id IN (${orgIds.map(() => '?').join(',')})`).all(...orgIds) as Array<{ id: number }>).map(r => r.id)
+      : [];
+    return { orgIds, projectIds };
+  } finally {
+    db.close();
+  }
+}
 
 export interface DeletionBlocker {
   code: 'subscription' | 'workspace';

@@ -15,7 +15,7 @@ import {
 import { sendWelcomeEmail } from './lib/email-service';
 import { consumeTicket, ssoRequiredFor } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
-import { withWorkspace } from './lib/workspace-plan';
+import { withWorkspace, workspaceFor } from './lib/workspace-plan';
 import { verifyPassword } from './lib/password';
 
 /**
@@ -241,6 +241,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (session.user as any).subscriptionTier = user.subscription_tier;
             (session.user as any).plan = plan;
             (session.user as any).entitlements = entitlements;
+            // The workspace and role, for navigation (a viewer inherits no plan but is still in
+            // a workspace, with a team watchlist and projects to open).
+            (session.user as any).workspace = workspaceFor(user.id);
             // Needed by settings: bulk mail (digest, alerts) is only sent to
             // verified addresses, so the UI has to be able to say so and offer
             // to re-send the verification.
