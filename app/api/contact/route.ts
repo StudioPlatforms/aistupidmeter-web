@@ -4,6 +4,7 @@ import { openIdentityDb } from '@/lib/identity-db';
 import { sendContactNotification, sendContactAcknowledgement } from '@/lib/email-service';
 import { findUserByEmail } from '@/lib/db-client';
 import { planFor } from '@/lib/entitlements';
+import { clientIp } from '@/lib/ip-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,13 +38,6 @@ function rateLimited(ip: string): boolean {
     });
   }
   return false;
-}
-
-function clientIp(request: NextRequest): string {
-  // nginx sets X-Forwarded-For; the first entry is the original client.
-  const fwd = request.headers.get('x-forwarded-for');
-  if (fwd) return fwd.split(',')[0].trim();
-  return request.headers.get('x-real-ip') ?? 'unknown';
 }
 
 /**

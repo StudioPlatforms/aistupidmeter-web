@@ -26,11 +26,19 @@ export function limited(key: string, max: number, windowMs: number): boolean {
   return false;
 }
 
-/** The visitor's IP: nginx sets X-Forwarded-For, and its first entry is the original client. */
-export function clientIp(request: NextRequest): string {
+/**
+ * The visitor's IP, as nginx saw the connection. nginx overwrites X-Real-IP with $remote_addr,
+ * so a client cannot choose it. The FIRST X-Forwarded-For entry, which this used until
+ * 2026-10-06, is whatever the client sent: a fresh fake address per request escaped every
+ * per-IP limit (password resets, verification resends, account deletion). The last entry is
+ * the one nginx appended, used only if X-Real-IP is somehow missing.
+ */
+export function clientIp(request: { headers: { get(name: string): string | null } }): string {
+  const real = request.headers.get('x-real-ip')?.trim();
+  if (real) return real;
   const fwd = request.headers.get('x-forwarded-for');
-  if (fwd) return fwd.split(',')[0].trim();
-  return request.headers.get('x-real-ip') ?? 'unknown';
+  if (fwd) return fwd.split(',').map(s => s.trim()).filter(Boolean).pop() ?? 'unknown';
+  return 'unknown';
 }
 
 /** Seconds since a stored timestamp ("2026-10-04 17:50:23" UTC or ISO), or null if unusable. */
