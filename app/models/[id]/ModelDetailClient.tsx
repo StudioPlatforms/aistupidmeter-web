@@ -20,7 +20,6 @@ import ModelDetailSuiteTasks from '../../../components/model-detail/ModelDetailS
 import { isPlan, type Plan } from '../../../lib/entitlements';
 import ModelDetailControls from '../../../components/model-detail/ModelDetailControls';
 import TrackModelButton from '../../../components/TrackModelButton';
-import ModelDetailMeter from '../../../components/model-detail/ModelDetailMeter';
 import ModelDetailChart from '../../../components/model-detail/ModelDetailChart';
 import ModelDetailQuickStats from '../../../components/model-detail/ModelDetailQuickStats';
 import ModelDetailPricing from '../../../components/model-detail/ModelDetailPricing';
@@ -573,13 +572,6 @@ export default function ModelDetailClient({
         onPeriodChange={setSelectedPeriod}
         onScoringModeChange={setSelectedScoringMode}
         onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-      />
-
-      {/* Stupid meter bar */}
-      <ModelDetailMeter
-        currentScore={currentScore}
-        trend={trend}
-        status={status}
       />
 
       {/* Performance chart */}

@@ -204,66 +204,6 @@
   gap: 6px;
 }
 
-/* ═══ MODEL METER BAR ═══ */
-.md-meter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  background: var(--terminal-dark);
-  border-bottom: 1px solid rgba(192, 192, 192, 0.1);
-}
-.md-meter-labels {
-  display: flex;
-  flex-direction: column;
-  font-size: 9px;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-.md-meter-labels .stupid { color: var(--red-alert); }
-.md-meter-labels .smart { color: var(--phosphor-green); }
-.md-meter-track {
-  flex: 1;
-  height: 22px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(192, 192, 192, 0.2);
-  position: relative;
-  overflow: hidden;
-}
-.md-meter-fill {
-  height: 100%;
-  transition: width 1.5s ease-out;
-  position: relative;
-  background: linear-gradient(90deg, var(--red-alert) 0%, var(--amber-warning) 40%, var(--phosphor-green) 70%, var(--phosphor-green) 100%);
-}
-.md-meter-fill::after {
-  content: '';
-  position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 3px;
-  background: white;
-  box-shadow: 0 0 6px white, 0 0 12px var(--phosphor-green);
-}
-.md-meter-notches {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-}
-.md-meter-notches span { flex: 1; border-right: 1px solid rgba(0, 0, 0, 0.3); }
-.md-meter-value {
-  font-size: 24px;
-  font-weight: bold;
-  text-shadow: 0 0 8px currentColor;
-  min-width: 44px;
-  text-align: center;
-}
-.md-meter-info {
-  font-size: 10px;
-  color: var(--phosphor-dim);
-  text-align: right;
-  min-width: 80px;
-}
-
 /* ═══ CHART SECTION ═══ */
 .md-chart-section {
   padding: 16px;
@@ -652,11 +592,6 @@
   .md-ctrl-sep { display: none; }
   .md-ctrl-right { margin-left: 6px; flex-shrink: 0; }
 
-  .md-meter-bar { padding: 6px 10px; gap: 8px; }
-  .md-meter-value { font-size: 20px; min-width: 36px; }
-  .md-meter-info { font-size: 9px; min-width: 50px; }
-  .md-meter-track { height: 18px; }
-
   .md-chart-section { padding: 12px 8px; }
 
   .md-info-grid { grid-template-columns: 1fr; }
@@ -683,10 +618,6 @@
 
   .md-ctrl-btn { padding: 6px 8px; font-size: 9px; min-height: 34px; }
 
-  .md-meter-labels { font-size: 8px; }
-  .md-meter-value { font-size: 18px; }
-  .md-meter-track { height: 16px; }
-
   .md-chart-section { padding: 8px 4px; min-height: 250px; }
 }
 
@@ -696,8 +627,6 @@
   .md-stat-bar .md-stat-cell:nth-child(n+3) { display: none; }
   .md-stat-value { font-size: 14px; }
   .md-model-name { font-size: 11px; }
-  .md-meter-bar { flex-wrap: wrap; }
-  .md-meter-info { display: none; }
 }
 
 /* Desktop enhancement */

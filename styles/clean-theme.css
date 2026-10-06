@@ -380,14 +380,7 @@ a:hover { color: var(--accent-ink); }
 /* ── Generic: soften any leftover heavy 2px borders on cards ───────── */
 .crt-monitor, .rv4-panel, .control-panel { border-width: 1px !important; }
 
-/* ── Model detail page: meter + KPI cells ──────────────────────────── */
-.md-meter-track { background: var(--metal-silver) !important; border-radius: 999px !important; }
-.md-meter-fill {
-  background: linear-gradient(90deg, var(--accent), var(--accent-ink)) !important;
-  box-shadow: none !important; border-radius: 999px !important;
-}
-.md-meter-fill::after { display: none !important; }
-.md-meter-value { font-weight: 700 !important; }
+/* ── Model detail page: KPI cells ──────────────────────────────────── */
 .md-stat-cell::before { display: none !important; }        /* drop glowing accent lines */
 .md-stat-value { font-weight: 600 !important; }
 .md-stat-label, .md-stat-detail { color: var(--phosphor-dim) !important; }
@@ -1153,4 +1146,16 @@ a:hover { color: var(--accent-ink); }
   background: var(--terminal-black);
   border: 1px solid var(--metal-silver);
   box-shadow: none;
+}
+
+/* ── Native dropdown lists ───────────────────────────────────────────
+   A <select> styled with a translucent background and `color: inherit` hands both to its
+   option list. In the dark theme, Chrome on Windows then drew that list on its own light
+   popup with the inherited light text: white on white (reported on /account/team,
+   2026-10-06). Every option gets the theme's opaque surface and ink instead, in both themes
+   and on every page. */
+select option,
+select optgroup {
+  background-color: var(--terminal-dark);
+  color: var(--phosphor-green);
 }

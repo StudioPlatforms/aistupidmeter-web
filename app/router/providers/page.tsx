@@ -13,22 +13,22 @@ type Provider = 'openai' | 'anthropic' | 'google' | 'glm' | 'deepseek' | 'kimi';
 /**
  * Providers the router can actually route to.
  *
- * `models` must name models that are currently in the benchmark lineup
- * (models.show_in_rankings = 1) — the router can only select from those, so
- * advertising anything else sends users off to buy a key we will never use.
- * Last reconciled against the live lineup 2026-08-08.
+ * Each card lists the provider's models that are in the benchmark lineup right now, read from
+ * /api/models (models.show_in_rankings = 1) — the router can only select from those. The lists
+ * used to be written here by hand; last reconciled 2026-08-08, they still advertised GPT-5.4,
+ * GPT-5.3-Codex and Gemini 3.1 two months later and missed GPT-6, Opus 5.5 and Sonnet 5.5.
  *
  * xAI was removed on 2026-08-08: none of its models are benchmarked any more,
  * so a Grok key could never be selected. Existing xAI keys are still shown
  * below under "retired" so they can be deleted.
  */
 const PROVIDERS = [
-  { id: 'openai' as Provider, name: 'OpenAI', desc: 'GPT-5.6 Sol / Terra / Luna, GPT-5.5, GPT-5.4, GPT-5.3-Codex', keyFormat: 'sk-proj-...', docsUrl: 'platform.openai.com/api-keys' },
-  { id: 'anthropic' as Provider, name: 'Anthropic', desc: 'Claude Opus 5, Sonnet 5, Fable 5, Opus 4.8 / 4.7 / 4.6', keyFormat: 'sk-ant-...', docsUrl: 'console.anthropic.com/settings/keys' },
-  { id: 'google' as Provider, name: 'Google', desc: 'Gemini 3.1 Pro, Gemini 3.1 Flash-Lite', keyFormat: 'AIza...', docsUrl: 'aistudio.google.com/apikey' },
-  { id: 'deepseek' as Provider, name: 'DeepSeek', desc: 'DeepSeek V4-Pro, V4-Flash — MoE reasoning', keyFormat: 'sk-...', docsUrl: 'platform.deepseek.com/api_keys' },
-  { id: 'kimi' as Provider, name: 'Kimi', desc: 'Kimi K3, Kimi K2.7-Code — Moonshot AI', keyFormat: 'sk-...', docsUrl: 'platform.moonshot.ai/console/api-keys' },
-  { id: 'glm' as Provider, name: 'GLM', desc: 'GLM-5.3 — Z.ai, 1M context', keyFormat: 'API key varies', docsUrl: 'z.ai/manage-apikey/apikey-list' },
+  { id: 'openai' as Provider, name: 'OpenAI', maker: 'OpenAI', keyFormat: 'sk-proj-...', docsUrl: 'platform.openai.com/api-keys' },
+  { id: 'anthropic' as Provider, name: 'Anthropic', maker: 'Anthropic', keyFormat: 'sk-ant-...', docsUrl: 'console.anthropic.com/settings/keys' },
+  { id: 'google' as Provider, name: 'Google', maker: 'Google', keyFormat: 'AIza...', docsUrl: 'aistudio.google.com/apikey' },
+  { id: 'deepseek' as Provider, name: 'DeepSeek', maker: 'DeepSeek', keyFormat: 'sk-...', docsUrl: 'platform.deepseek.com/api_keys' },
+  { id: 'kimi' as Provider, name: 'Kimi', maker: 'Moonshot AI', keyFormat: 'sk-...', docsUrl: 'platform.moonshot.ai/console/api-keys' },
+  { id: 'glm' as Provider, name: 'GLM', maker: 'Z.ai', keyFormat: 'API key varies', docsUrl: 'z.ai/manage-apikey/apikey-list' },
 ];
 
 /** Providers we used to support. Keys stay visible so users can remove them. */
@@ -46,6 +46,23 @@ export default function RouterProvidersPage() {
   const [apiKey, setApiKey] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{ success: boolean; message: string; models?: string[] } | null>(null);
+  // Benchmarked models per provider (null until loaded), for the card descriptions — newest
+  // first (/api/models lists them in the order they were added).
+  const [lineup, setLineup] = useState<Record<string, string[]> | null>(null);
+
+  useEffect(() => {
+    fetch('/api/models')
+      .then(r => (r.ok ? r.json() : []))
+      .then((models: Array<{ vendor?: string; name?: string; displayName?: string }>) => {
+        const byVendor: Record<string, string[]> = {};
+        for (const m of Array.isArray(models) ? models : []) {
+          if (!m.vendor) continue;
+          (byVendor[m.vendor] ??= []).push(m.displayName || m.name || '');
+        }
+        setLineup(byVendor);
+      })
+      .catch(() => setLineup(null));
+  }, []);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
@@ -183,9 +200,15 @@ export default function RouterProvidersPage() {
                         </div>
                         <div className="rv4-provider-card-name">{prov.name}</div>
                         {connected && <span className="rv4-badge green" style={{ fontSize: '8px' }}>✓ CONNECTED</span>}
-                        <div className="rv4-provider-card-desc">{prov.desc}</div>
+                        <div className="rv4-provider-card-desc">
+                          {lineup === null
+                            ? prov.maker
+                            : (lineup[prov.id]?.length ? [...lineup[prov.id]].reverse().join(', ') : 'No models from this provider are benchmarked right now')}
+                        </div>
+                        {/* The action area sits at the bottom of the card (margin-top: auto), so buttons line
+                            up across a row whatever the length of each card's model list. */}
                         {connected && key ? (
-                          <>
+                          <div style={{ marginTop: 'auto', width: '100%' }}>
                             <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', marginTop: '4px' }}>
                               Added: {new Date(key.createdAt).toLocaleDateString()}
                               {key.lastValidated && <><br />Validated: {new Date(key.lastValidated).toLocaleDateString()}</>}
@@ -194,12 +217,12 @@ export default function RouterProvidersPage() {
                               <button onClick={() => handleValidateKey(key.id)} className="rv4-ctrl-btn" style={{ flex: 1, fontSize: '9px' }}>VALIDATE</button>
                               <button onClick={() => handleDeleteKey(key.id)} className="rv4-ctrl-btn danger" style={{ flex: 1, fontSize: '9px' }}>REMOVE</button>
                             </div>
-                          </>
+                          </div>
                         ) : (
                           <button
                             onClick={() => { setSelectedProvider(prov.id); setShowAddModal(true); setValidationResult(null); }}
                             className="rv4-ctrl-btn primary"
-                            style={{ width: '100%', marginTop: '8px', fontSize: '10px' }}
+                            style={{ width: '100%', marginTop: 'auto', fontSize: '10px' }}
                           >
                             + ADD {prov.name.toUpperCase()}
                           </button>
@@ -237,23 +260,6 @@ export default function RouterProvidersPage() {
               </div>
             </div>
           )}
-
-          {/* Benefits */}
-          <div className="rv4-cols-3">
-            {[
-              { icon: '💰', title: 'SAVE MONEY', desc: 'Automatically use the most cost-effective model for each request' },
-              { icon: '🎯', title: 'BEST PERFORMANCE', desc: 'Route to the best-performing model based on real-time benchmarks' },
-              { icon: '🔄', title: 'AUTO FAILOVER', desc: 'Zero downtime with automatic failover when models are unavailable' },
-            ].map((b, i) => (
-              <div key={i} className="rv4-panel">
-                <div className="rv4-panel-body" style={{ textAlign: 'center', padding: '16px' }}>
-                  <div style={{ fontSize: '28px', marginBottom: '8px' }}>{b.icon}</div>
-                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '0.5px', marginBottom: '6px' }}>{b.title}</div>
-                  <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.4' }}>{b.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
 
           {/* Security notice */}
           <div className="rv4-info-banner amber" style={{ marginTop: '4px' }}>
