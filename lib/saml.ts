@@ -18,8 +18,30 @@
  *     skew should not look like an attack.
  */
 import { SAML } from '@node-saml/node-saml';
+import { createHash } from 'crypto';
 import type { SsoConnection } from '@/lib/sso';
 import { samlAcsUrl, samlEntityId } from '@/lib/sso';
+
+/**
+ * Responses already used to sign in, by hash. An assertion stays valid for its NotOnOrAfter
+ * window (typically five minutes, plus our 60 s clock skew), and within it the same POSTed
+ * response would otherwise sign in again. Kept for 15 minutes, in this process — the web app
+ * runs as one, and a restart only reopens the window for responses already in flight.
+ */
+const usedResponses = new Map<string, number>();
+const USED_TTL_MS = 15 * 60_000;
+
+function seenBefore(samlResponse: string): boolean {
+  const now = Date.now();
+  if (usedResponses.size > 10_000) {
+    usedResponses.forEach((until, k) => { if (until < now) usedResponses.delete(k); });
+  }
+  const key = createHash('sha256').update(samlResponse).digest('hex');
+  const until = usedResponses.get(key);
+  if (until !== undefined && until > now) return true;
+  usedResponses.set(key, now + USED_TTL_MS);
+  return false;
+}
 
 function samlFor(conn: SsoConnection): SAML {
   if (!conn.sso_url || !conn.idp_cert) {
@@ -59,6 +81,9 @@ export async function completeSaml(
 ): Promise<{ email: string; name: string | null }> {
   const { profile } = await samlFor(conn).validatePostResponseAsync({ SAMLResponse: samlResponse });
   if (!profile) throw new Error('SAML response carried no profile');
+  // Only after the signature checked out: a response that has already signed someone in
+  // is refused, so one copied from a browser or a log cannot be posted again.
+  if (seenBefore(samlResponse)) throw new Error('SAML response was already used');
 
   const p = profile as Record<string, unknown>;
   const raw =

@@ -16,6 +16,7 @@ const FAILURE: Record<string, string> = {
   use_google: 'This account signs in with Google. Use “Continue with Google” below.',
   use_github: 'This account signs in with GitHub. Use “Continue with GitHub” below.',
   use_social: 'This account signs in with Google or GitHub. Use one of the buttons below.',
+  use_sso: 'Your organisation signs in with single sign-on. Use “Continue with SSO” below with your work email.',
 };
 
 /** Where to go after signing in: the page that sent them here, if it is on this site. */
@@ -124,6 +125,12 @@ export function SignInForm() {
           {verified === '1' && !unverified && !error && (
             <div className="auth-note auth-note--good" role="status">
               Your email is confirmed. Sign in to start using your account.
+            </div>
+          )}
+          {searchParams.get('sso') === 'required' && !unverified && !error && (
+            <div className="auth-note auth-note--warn" role="status">
+              Your organisation signs in with single sign-on. Use &ldquo;Continue with SSO&rdquo; below
+              with your work email.
             </div>
           )}
           {verified === 'expired' && !unverified && !error && (

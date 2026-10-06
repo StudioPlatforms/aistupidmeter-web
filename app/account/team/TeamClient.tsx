@@ -14,7 +14,11 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
-interface Member { id: number; role: string; email: string | null; name: string | null; pending: boolean }
+interface Member {
+  id: number; role: string; email: string | null; name: string | null; pending: boolean;
+  invitedAt?: string; expired?: boolean; expiresAt?: string | null; deactivated?: boolean;
+  provisionedBy?: string; self?: boolean; inviteUrl?: string | null;
+}
 interface Project { id: number; name: string; created_at: string }
 interface Hook { id: number; url: string; events: string; active: number; last_sent_at: string | null; last_status: number | null }
 interface Org { id: number; name: string; plan: string; createdAt: string }
@@ -23,6 +27,7 @@ interface Data {
   seatLimit: number; seatsUsed?: number; projectLimit: number;
   canCreate?: boolean;
   members?: Member[]; projects?: Project[]; webhooks?: Hook[];
+  inviteTtlDays?: number;
 }
 
 const card: React.CSSProperties = {
@@ -42,6 +47,15 @@ function plural(n: number | undefined, noun: string): string {
   return `${n} ${noun}${n === 1 ? '' : 's'}`;
 }
 
+/** "2 of 5 editor seats used", or "2 editor seats used — no limit on your plan" (-1 = unlimited). */
+function usage(used: number, limit: number | undefined, noun: string): string {
+  if (limit === -1) return `${plural(used, noun)} used — no limit on your plan`;
+  return `${used} of ${limit ?? 0} ${noun}${limit === 1 ? '' : 's'} used`;
+}
+
+const day = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+
 const field: React.CSSProperties = {
   padding: '8px 10px', background: 'rgba(0,0,0,0.04)',
   border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 3,
@@ -55,7 +69,7 @@ export default function TeamClient() {
   const [msg, setMsg] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
 
-  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 3500); };
+  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 7000); };
   const load = () => fetch('/api/account/org', { cache: 'no-store' })
     .then(r => r.json()).then(j => { if (j?.success) setD(j.data); }).finally(() => setLoading(false));
 
@@ -69,15 +83,19 @@ export default function TeamClient() {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const j = await r.json();
-    if (j?.success) { flash(ok); if (j.data?.secret) setSecret(j.data.secret); load(); }
+    if (j?.success) { flash(j?.message ?? ok); if (j.data?.secret) setSecret(j.data.secret); load(); }
     else flash(j?.message ?? j?.error ?? 'Something went wrong');
     return j;
   };
   const del = async (path: string, ok: string) => {
     const r = await fetch(`/api/account/org${path}`, { method: 'DELETE' });
     const j = await r.json();
-    flash(j?.success ? ok : (j?.error ?? 'Failed'));
+    flash(j?.success ? ok : (j?.message ?? j?.error ?? 'Failed'));
     load();
+  };
+  const copy = async (text: string) => {
+    try { await navigator.clipboard.writeText(text); flash('Invitation link copied'); }
+    catch { window.prompt('Copy the invitation link:', text); }
   };
 
   if (status === 'unauthenticated') {
@@ -137,14 +155,23 @@ export default function TeamClient() {
   }
 
   const isOwner = d.role === 'owner';
+  // Projects need a seat (owner or editor); the API refuses viewers.
+  const canEdit = d.role === 'owner' || d.role === 'editor';
   const seatsUsed = d.seatsUsed ?? 0;
 
   return (
     <div style={{ maxWidth: 780, margin: '0 auto', padding: '26px 20px 70px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 20, gap: 12 }}>
         <h1 style={{ fontSize: '1.4em', margin: 0 }}>{d.org.name}</h1>
-        {msg && <span style={{ fontSize: '0.82em', color: 'var(--phosphor-green)' }}>{msg}</span>}
+        <Link href="/docs/teams" style={{ fontSize: '0.85em', color: 'var(--accent, #1a73e8)', whiteSpace: 'nowrap' }}>
+          How workspaces work →
+        </Link>
       </div>
+      {msg && (
+        <div role="status" style={{ ...card, padding: '10px 14px', fontSize: '0.86em', borderColor: 'rgba(26,115,232,0.35)', background: 'rgba(26,115,232,0.06)' }}>
+          {msg}
+        </div>
+      )}
 
       {secret && (
         <div style={{ ...card, borderColor: 'var(--amber-warning)' }}>
@@ -163,35 +190,71 @@ export default function TeamClient() {
       <section style={card}>
         <h2 style={h2}>Members</h2>
         <p style={sub}>
-          {seatsUsed} of {d.seatLimit} editor seats used. <strong>Owners and editors take a seat;
-          viewers are unlimited</strong>, and a pending invite holds its seat until it is accepted
-          or removed.
+          {usage(seatsUsed, d.seatLimit, 'editor seat')}. <strong>Owners and editors take a seat and
+          get the workspace&rsquo;s plan; viewers do not use a seat.</strong> A pending invitation holds
+          its seat until it is accepted or removed. Invitations are emailed with a link that works for{' '}
+          {d.inviteTtlDays ?? 14} days, for the invited address only.
         </p>
         {(d.members ?? []).map((m, i) => (
-          <div key={m.id} style={{ ...rowS, ...(i === 0 ? { borderTop: 'none' } : {}) }}>
-            <div>
-              <div style={{ fontSize: '0.88em' }}>{m.email ?? '—'}{m.pending && <span style={{ color: 'var(--amber-warning)', marginLeft: 8, fontSize: '0.85em' }}>pending</span>}</div>
-              <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 2, textTransform: 'capitalize' }}>{m.role}</div>
+          <div key={m.id} style={{ ...rowS, ...(i === 0 ? { borderTop: 'none' } : {}), flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.88em', wordBreak: 'break-all' }}>
+                {m.email ?? '—'}
+                {m.self && <span style={{ color: 'var(--phosphor-dim)', marginLeft: 6 }}>(you)</span>}
+                {m.pending && !m.expired && <span style={{ color: 'var(--amber-warning)', marginLeft: 8, fontSize: '0.85em' }}>invited</span>}
+                {m.pending && m.expired && <span style={{ color: 'var(--red-alert)', marginLeft: 8, fontSize: '0.85em' }}>invitation expired</span>}
+                {m.deactivated && <span style={{ color: 'var(--red-alert)', marginLeft: 8, fontSize: '0.85em' }}>deactivated</span>}
+              </div>
+              <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 2 }}>
+                <span style={{ textTransform: 'capitalize' }}>{m.role}</span>
+                {m.pending && !m.expired && m.expiresAt && <> · link works until {day(m.expiresAt)}</>}
+                {m.provisionedBy === 'scim' && <> · managed by your directory</>}
+                {m.provisionedBy === 'sso' && <> · joined through single sign-on</>}
+              </div>
             </div>
-            {isOwner && m.role !== 'owner' && (
-              <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }} onClick={() => del(`/members/${m.id}`, 'Member removed')}>Remove</button>
-            )}
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              {isOwner && m.pending && (
+                <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }}
+                  onClick={() => post(`/members/${m.id}/resend`, {}, 'Invitation sent again')}>Resend</button>
+              )}
+              {isOwner && m.pending && m.inviteUrl && !m.expired && (
+                <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }} onClick={() => copy(m.inviteUrl!)}>Copy link</button>
+              )}
+              {isOwner && m.role !== 'owner' && (
+                <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }}
+                  onClick={() => del(`/members/${m.id}`, m.pending ? 'Invitation withdrawn' : 'Member removed')}>
+                  {m.pending ? 'Withdraw' : 'Remove'}
+                </button>
+              )}
+            </div>
           </div>
         ))}
         {isOwner && (
           <form onSubmit={async e => {
             e.preventDefault();
-            const f = new FormData(e.currentTarget);
-            await post('/members', { email: f.get('email'), role: f.get('role') }, 'Invitation recorded');
-            (e.target as HTMLFormElement).reset();
+            const form = e.currentTarget;
+            const f = new FormData(form);
+            const j = await post('/members', { email: f.get('email'), role: f.get('role') }, 'Invitation sent');
+            if (j?.success) form.reset();
           }} style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
             <input name="email" type="email" required placeholder="colleague@company.com" style={{ ...field, flex: 1, minWidth: 190 }} />
-            <select name="role" style={field} defaultValue="viewer">
+            <select name="role" style={field} defaultValue="viewer" aria-label="Role">
               <option value="viewer">Viewer (free)</option>
               <option value="editor">Editor (uses a seat)</option>
             </select>
-            <button className="md-ctrl-btn" style={{ padding: '8px 14px' }}>Invite</button>
+            <button className="md-ctrl-btn" style={{ padding: '8px 14px' }}>Send invitation</button>
           </form>
+        )}
+        {!isOwner && (
+          <div style={{ marginTop: 14 }}>
+            <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }}
+              onClick={async () => {
+                if (!window.confirm(`Leave ${d.org!.name}? You will lose access to it and to any plan it gives you.`)) return;
+                const r = await fetch('/api/account/org/leave', { method: 'POST' });
+                const j = await r.json().catch(() => ({}));
+                if (j?.success) { window.location.reload(); } else { flash(j?.message ?? j?.error ?? 'Could not leave'); }
+              }}>Leave workspace</button>
+          </div>
         )}
       </section>
 
@@ -199,24 +262,26 @@ export default function TeamClient() {
       <section style={card}>
         <h2 style={h2}>Projects</h2>
         <p style={sub}>
-          {(d.projects ?? []).length} of {d.projectLimit} used. Projects are names for organising your
-          team&rsquo;s work; watchlists, keys and reports are not yet scoped to a project.
+          {usage((d.projects ?? []).length, d.projectLimit, 'project')}. Projects are names for organising
+          your team&rsquo;s work; watchlists, keys and reports are not yet scoped to a project.
         </p>
         {(d.projects ?? []).map((p, i) => (
           <div key={p.id} style={{ ...rowS, ...(i === 0 ? { borderTop: 'none' } : {}) }}>
             <span style={{ fontSize: '0.88em' }}>{p.name}</span>
-            <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }} onClick={() => del(`/projects/${p.id}`, 'Project deleted')}>Delete</button>
+            {canEdit && <button className="md-ctrl-btn" style={{ fontSize: '0.8em' }} onClick={() => del(`/projects/${p.id}`, 'Project deleted')}>Delete</button>}
           </div>
         ))}
-        <form onSubmit={async e => {
-          e.preventDefault();
-          const name = new FormData(e.currentTarget).get('name');
-          await post('/projects', { name }, 'Project created');
-          (e.target as HTMLFormElement).reset();
-        }} style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-          <input name="name" required placeholder="Client A" style={{ ...field, flex: 1, minWidth: 190 }} />
-          <button className="md-ctrl-btn" style={{ padding: '8px 14px' }}>Add project</button>
-        </form>
+        {canEdit && (
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const name = new FormData(e.currentTarget).get('name');
+            await post('/projects', { name }, 'Project created');
+            (e.target as HTMLFormElement).reset();
+          }} style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            <input name="name" required placeholder="Client A" style={{ ...field, flex: 1, minWidth: 190 }} />
+            <button className="md-ctrl-btn" style={{ padding: '8px 14px' }}>Add project</button>
+          </form>
+        )}
       </section>
 
       {/* Webhooks */}

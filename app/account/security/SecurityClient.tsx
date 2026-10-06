@@ -26,7 +26,9 @@ interface Sso {
   issuer: string | null; clientId: string | null; hasClientSecret: boolean;
   ssoUrl: string | null; hasCertificate: boolean;
   jitProvisioning: boolean; defaultRole: string; enabled: boolean; lastUsedAt: string | null;
+  verification?: DnsRecord;
 }
+interface DnsRecord { type: string; name: string; value: string }
 interface Endpoints {
   scimBaseUrl: string; oidcRedirectUri: string; samlAcsUrl: string; samlEntityId: string;
 }
@@ -99,6 +101,9 @@ export default function SecurityClient() {
   const [jit, setJit] = useState(true);
   const [enabled, setEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
+  // A record to publish before a domain another workspace saved (unverified) can be claimed.
+  const [claimRecord, setClaimRecord] = useState<DnsRecord | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   const load = () => {
     Promise.all([
@@ -200,9 +205,27 @@ export default function SecurityClient() {
     });
     const payload = await res.json().catch(() => null);
     setSaving(false);
-    if (!payload?.success) { setMsg(payload?.message || payload?.error || 'Could not save.'); return; }
+    if (!payload?.success) {
+      setClaimRecord(payload?.data?.verification ?? null);
+      setMsg(payload?.message || payload?.error || 'Could not save.');
+      return;
+    }
+    setClaimRecord(null);
     setClientSecret(''); setCertificate('');
-    setMsg('Saved. We will verify you control the domain before sign-ins are routed to it — that usually takes one business day.');
+    setMsg(payload.data?.verified
+      ? `Saved. ${payload.data.domain} is verified${enabled ? ', and sign-ins for it now go to your identity provider' : ' — switch the connection on when you are ready'}.`
+      : `Saved. To verify ${payload.data?.domain ?? 'the domain'}, publish the DNS record shown below, then click Verify domain.`);
+    load();
+  };
+
+  const verifyDomain = async () => {
+    setVerifying(true); setMsg(null);
+    const res = await fetch('/api/account/org/sso/verify-domain', { method: 'POST' });
+    const payload = await res.json().catch(() => null);
+    setVerifying(false);
+    setMsg(payload?.success
+      ? `${sso?.domain ?? 'The domain'} is verified.${sso?.enabled ? '' : ' Switch the connection on to start routing sign-ins.'}`
+      : (payload?.message || payload?.error || 'Could not check DNS right now.'));
     load();
   };
 
@@ -227,7 +250,8 @@ export default function SecurityClient() {
     <div style={{ maxWidth: 820, margin: '0 auto', padding: '26px 20px 70px' }}>
       <h1 style={{ fontSize: '1.4em', margin: '0 0 6px' }}>Security &amp; governance</h1>
       <p style={{ color: 'var(--phosphor-dim)', margin: '0 0 22px', fontSize: '0.92em', lineHeight: 1.6 }}>
-        Single sign-on, directory provisioning and the audit trail for your workspace.
+        Single sign-on, directory provisioning and the audit trail for your workspace.{' '}
+        <Link href="/docs/teams#sso" style={{ color: 'var(--accent, #1a73e8)' }}>How to set these up →</Link>
       </p>
 
       {msg && (
@@ -241,8 +265,9 @@ export default function SecurityClient() {
       <section style={card}>
         <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Single sign-on</h2>
         <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
-          People whose email ends in your domain are sent to your identity provider instead of using a
-          password here.
+          Once your domain is verified and the connection is on, people whose email ends in that domain
+          sign in through your identity provider — a password or Google/GitHub sign-in is refused. As the
+          owner you keep your own password, so a broken provider can never lock you out of fixing it.
         </p>
 
         {sso && (
@@ -253,7 +278,37 @@ export default function SecurityClient() {
           }}>
             {sso.domainVerified
               ? <><strong>{sso.domain}</strong> is verified and {sso.enabled ? 'live' : 'configured but switched off'}.</>
-              : <><strong>{sso.domain}</strong> is saved but not yet verified. We confirm domain ownership by hand before routing sign-ins — it stops anyone claiming a domain they do not own.</>}
+              : <>
+                  <strong>{sso.domain}</strong> is saved but not verified yet, so sign-ins are not routed to your
+                  identity provider. Prove you control the domain by adding this TXT record at your DNS host,
+                  then click Verify domain. It stops anyone claiming a domain they do not own.
+                  {sso.verification && (
+                    <div style={{ marginTop: 10 }}>
+                      <Copyable label="Record name (host)" value={sso.verification.name} />
+                      <Copyable label="Record value (TXT)" value={sso.verification.value} />
+                    </div>
+                  )}
+                  <button type="button" onClick={verifyDomain} disabled={verifying}
+                    className="vintage-btn vintage-btn--primary" style={{ padding: '7px 16px', fontSize: '0.92em' }}>
+                    {verifying ? 'Checking DNS…' : 'Verify domain'}
+                  </button>
+                  <span style={{ marginLeft: 10, color: 'var(--phosphor-dim)' }}>
+                    New records can take a few minutes to an hour to appear. If your DNS host adds the
+                    domain for you, enter just <code>_asl-verification</code> as the name.
+                  </span>
+                </>}
+          </div>
+        )}
+        {claimRecord && (
+          <div style={{
+            marginBottom: 16, padding: '10px 12px', borderRadius: 4, fontSize: '0.83em', lineHeight: 1.6,
+            border: '1px solid var(--amber-warning, #f9ab00)', background: 'rgba(249,171,0,0.07)',
+          }}>
+            Publish this TXT record to prove the domain is yours, then save again:
+            <div style={{ marginTop: 10 }}>
+              <Copyable label="Record name (host)" value={claimRecord.name} />
+              <Copyable label="Record value (TXT)" value={claimRecord.value} />
+            </div>
           </div>
         )}
 

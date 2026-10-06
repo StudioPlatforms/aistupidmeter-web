@@ -13,7 +13,7 @@ import {
   verifyUserEmail
 } from './lib/db-client';
 import { sendWelcomeEmail } from './lib/email-service';
-import { consumeTicket } from '@/lib/sso';
+import { consumeTicket, ssoRequiredFor } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
 import { withWorkspace } from './lib/workspace-plan';
 import { verifyPassword } from './lib/password';
@@ -26,7 +26,7 @@ import { verifyPassword } from './lib/password';
  * "Configuration", which is what every failed sign-in showed until 2026-10-04.
  */
 class SignInFailure extends CredentialsSignin {
-  constructor(code: 'missing' | 'no_account' | 'use_google' | 'use_github' | 'use_social' | 'wrong_password' | 'unverified') {
+  constructor(code: 'missing' | 'no_account' | 'use_google' | 'use_github' | 'use_social' | 'use_sso' | 'wrong_password' | 'unverified') {
     super();
     this.code = code;
   }
@@ -62,6 +62,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) {
           throw new SignInFailure('no_account');
+        }
+
+        // An organisation that signs in through its own identity provider (lib/sso.ts).
+        if (ssoRequiredFor(email, user.id)) {
+          throw new SignInFailure('use_sso');
         }
 
         // Check if user has a password (not OAuth-only account)
@@ -160,6 +165,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // Check if user exists with this email
           let dbUser = findUserByEmail(email);
           console.log('[AUTH] User lookup result:', { found: !!dbUser, email });
+
+          // Addresses whose organisation requires single sign-on go through it (lib/sso.ts).
+          if (ssoRequiredFor(email, dbUser?.id ?? null)) {
+            return '/auth/signin?sso=required';
+          }
 
           if (!dbUser) {
             console.log('[AUTH] Creating new user with OAuth');

@@ -86,6 +86,31 @@ export function connectionForEmail(email: string): SsoConnection | null {
   }
 }
 
+/**
+ * Must this person sign in through their organisation's identity provider?
+ *
+ * Yes when their email domain has an enabled, verified connection — so password and
+ * Google/GitHub sign-ins are refused for them, and switching someone off in the directory
+ * actually ends their access. Until 2026-10-06 the security page said this happened and
+ * nothing enforced it.
+ *
+ * The workspace's owner is exempt: a break-glass account, so a broken or misconfigured
+ * identity provider can never lock out the one person who can fix the connection.
+ */
+export function ssoRequiredFor(email: string, userId: number | null): boolean {
+  const conn = connectionForEmail(email);
+  if (!conn) return false;
+  if (userId === null) return true;
+  try {
+    const owner = openIdentityDb()
+      .prepare('SELECT owner_user_id FROM organizations WHERE id = ?')
+      .get(conn.org_id) as { owner_user_id: number } | undefined;
+    return owner?.owner_user_id !== userId;
+  } catch {
+    return true;
+  }
+}
+
 export function connectionById(id: number): SsoConnection | null {
   try {
     return (openIdentityDb()

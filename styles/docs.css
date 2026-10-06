@@ -137,3 +137,6 @@
   .doc-table { font-size: 13.5px; }
   .doc-table th { font-size: 11px; letter-spacing: 0; }
 }
+
+/* code samples (the webhook signature check on /docs/teams): ruled like a table, no tinted box */
+.doc-code { max-width: 760px; margin: 12px 0 16px; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--metal-silver); border-radius: 6px; font-family: var(--font-code); font-size: 13px; line-height: 1.55; color: var(--phosphor-green); white-space: pre; }

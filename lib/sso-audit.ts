@@ -9,6 +9,7 @@
  */
 import type { NextRequest } from 'next/server';
 import { openIdentityDb } from '@/lib/identity-db';
+import { clientIp } from '@/lib/ip-rate-limit';
 import type { SsoConnection } from '@/lib/sso';
 
 export function recordSsoAudit(
@@ -19,9 +20,7 @@ export function recordSsoAudit(
   request: NextRequest,
 ): void {
   try {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      ?? request.headers.get('x-real-ip')
-      ?? null;
+    const ip = clientIp(request);
 
     openIdentityDb().prepare(`
       INSERT INTO audit_events

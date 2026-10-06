@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { clientIp } from '@/lib/ip-rate-limit';
 
 const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
@@ -37,6 +38,12 @@ async function proxyRequest(request: NextRequest, path: string[], method: string
     const headers: Record<string, string> = {
       'x-user-id': session.user.id,
       'x-internal-token': internalToken,
+      // Who is acting, for the workspace audit trail: without these the API saw only this
+      // server (127.0.0.1, "node"). Trusted there only alongside the internal token.
+      'x-asl-client-ip': clientIp(request),
+      // Printable ASCII only: fetch rejects a header value outside Latin-1, and a malformed
+      // User-Agent must not be able to fail the whole request.
+      'x-asl-client-ua': (request.headers.get('user-agent') ?? '').replace(/[^\x20-\x7e]/g, '').slice(0, 400),
     };
 
     let body: string | undefined;
