@@ -1863,3 +1863,51 @@
   .rv4-page-title { white-space: normal; }
   .rv4-page-header-right { flex-wrap: wrap; }
 }
+
+/* ═══ BEST AND WORST HOURS (performance timing) ═══
+   Colours validated with the dataviz palette checker on the light (#fff) and dark (#292a2d)
+   surfaces: all inside the lightness band, >= 3:1 against the surface, CVD separation >= 13.5. */
+.bh-panel { --bh-fast: #1a73e8; --bh-slow: #b06000; --bh-neutral: #80868b; }
+[data-theme="dark"] .bh-panel { --bh-fast: #4285f4; --bh-slow: #d56e0c; --bh-neutral: #80868b; }
+.bh-caption { font-size: 11px; color: var(--phosphor-dim); }
+.bh-body { padding: 16px 18px 14px; }
+.bh-muted { font-size: 13px; color: var(--phosphor-dim); }
+.bh-text { font-size: 13px; line-height: 1.6; color: var(--phosphor-dim); margin: 0 0 16px; max-width: 760px; }
+.bh-text strong { color: var(--phosphor-green); }
+.bh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.bh-tile { border: 1px solid var(--metal-silver); border-radius: 6px; padding: 12px 14px; }
+.bh-tile-label { font-size: 12px; color: var(--phosphor-dim); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.bh-tile-value { font-size: 22px; font-weight: 600; color: var(--phosphor-green); }
+.bh-tile-sub { font-size: 12px; color: var(--phosphor-dim); margin-top: 2px; }
+.bh-key { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+.bh-key-fast { background: var(--bh-fast); }
+.bh-key-slow { background: var(--bh-slow); }
+.bh-chart { margin: 22px 0 10px; padding-left: 36px; }
+.bh-plot { position: relative; height: 150px; border-bottom: 1px solid var(--metal-silver); }
+.bh-grid { position: absolute; left: 0; right: 0; border-top: 1px solid var(--metal-silver); opacity: 0.7; }
+.bh-grid span { position: absolute; left: -36px; top: -8px; width: 30px; text-align: right; font-size: 10px; color: var(--phosphor-dim); font-variant-numeric: tabular-nums; }
+.bh-cols { position: absolute; inset: 0; display: flex; }
+.bh-col { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: flex-end; justify-content: center; cursor: default; }
+/* <= 24px thick, 4px rounded data-end, square at the baseline; the slot's leftover is the gap. */
+.bh-bar { width: calc(100% - 2px); max-width: 24px; border-radius: 4px 4px 0 0; min-height: 1px; }
+.bh-neutral { background: var(--bh-neutral); }
+.bh-fast { background: var(--bh-fast); }
+.bh-slow { background: var(--bh-slow); }
+.bh-hover { filter: brightness(1.12); }
+.bh-label { position: absolute; top: -18px; left: 0; font-size: 11px; color: var(--phosphor-dim); white-space: nowrap; pointer-events: none; }
+.bh-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 5;
+  background: var(--terminal-dark); border: 1px solid var(--metal-silver); border-radius: 6px; padding: 8px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18); display: flex; flex-direction: column; gap: 2px; white-space: nowrap;
+  font-size: 12px; color: var(--phosphor-dim); pointer-events: none; }
+.bh-tip strong { font-size: 14px; color: var(--phosphor-green); }
+.bh-tip-end { left: auto; right: 0; transform: none; }
+.bh-tip-start { left: 0; transform: none; }
+.bh-axis { display: flex; margin-top: 4px; }
+.bh-axis span { flex: 1 1 0; min-width: 0; text-align: left; font-size: 10px; color: var(--phosphor-dim); font-variant-numeric: tabular-nums; overflow: visible; white-space: nowrap; }
+.bh-axis-title { font-size: 11px; color: var(--phosphor-dim); margin-top: 2px; text-align: center; }
+.bh-table { margin: 6px 0 8px; font-size: 12px; }
+.bh-table summary { cursor: pointer; color: var(--accent, #1a73e8); }
+.bh-table table { border-collapse: collapse; margin-top: 8px; width: 100%; max-width: 560px; }
+.bh-table th, .bh-table td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--metal-silver); font-variant-numeric: tabular-nums; }
+.bh-table th { color: var(--phosphor-dim); font-weight: 600; }
+.bh-note { font-size: 11px; line-height: 1.55; color: var(--phosphor-dim); margin: 6px 0 0; max-width: 760px; }

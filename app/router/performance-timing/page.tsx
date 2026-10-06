@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
+import BestHoursPanel from '@/components/BestHoursPanel';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import PerformanceChart from '@/components/PerformanceChart';
 
@@ -24,26 +25,6 @@ interface HistoryPoint {
   axes: Record<string, number>;
 }
 
-interface HourBucket {
-  hour: number;
-  avg: number | null;
-  min: number | null;
-  max: number | null;
-  count: number;
-}
-
-interface HourRecommendation {
-  bestHours: string;   // e.g. "14:00 – 18:00 UTC"
-  worstHours: string;  // e.g. "02:00 – 06:00 UTC"
-  peakHour: string;    // e.g. "16:00 UTC"
-  peakScore: number;
-  lowHour: string;     // e.g. "04:00 UTC"
-  lowScore: number;
-  avgScore: number;
-  variance: number;
-  coverage: number;    // % of hours with data
-}
-
 const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
 
 const toDisplayScore = (point: any): number | null => {
@@ -59,49 +40,6 @@ const toDisplayScore = (point: any): number | null => {
   return null;
 };
 
-const fmtHour = (h: number) => `${String(h).padStart(2, '0')}:00`;
-
-// Given sorted hour buckets with scores, find the best/worst contiguous window of ~4 hours
-function findHourWindow(buckets: Array<{ hour: number; avg: number }>, best: boolean): { start: number; end: number; avgScore: number } {
-  if (buckets.length === 0) return { start: 0, end: 0, avgScore: 0 };
-  if (buckets.length <= 4) {
-    const sorted = [...buckets].sort((a, b) => best ? b.avg - a.avg : a.avg - b.avg);
-    return { start: sorted[0].hour, end: sorted[sorted.length - 1].hour, avgScore: sorted[0].avg };
-  }
-
-  // Build a full 24-hour ring of scores
-  const hourScores: (number | null)[] = new Array(24).fill(null);
-  for (const b of buckets) {
-    hourScores[b.hour] = b.avg;
-  }
-
-  // Find best/worst 4-hour window (sliding window on circular array)
-  let bestStart = 0;
-  let bestSum = best ? -Infinity : Infinity;
-  const windowSize = Math.min(4, buckets.length);
-
-  for (let start = 0; start < 24; start++) {
-    let sum = 0;
-    let count = 0;
-    for (let offset = 0; offset < windowSize; offset++) {
-      const h = (start + offset) % 24;
-      if (hourScores[h] !== null) {
-        sum += hourScores[h]!;
-        count++;
-      }
-    }
-    if (count === 0) continue;
-    const avg = sum / count;
-    if (best ? avg > bestSum : avg < bestSum) {
-      bestSum = avg;
-      bestStart = start;
-    }
-  }
-
-  const endHour = (bestStart + windowSize - 1) % 24;
-  return { start: bestStart, end: endHour, avgScore: Math.round(bestSum) };
-}
-
 const periods: Array<{ key: HistoricalPeriod; label: string }> = [
   { key: 'latest', label: 'LATEST' },
   { key: '24h', label: '24H' },
@@ -116,14 +54,6 @@ const scoringModes: Array<{ key: ScoringMode; label: string }> = [
   { key: 'tooling', label: 'TOOLING' },
 ];
 
-// Map scoring mode to hour-analysis suite param
-const modeToSuite = (mode: ScoringMode): string => {
-  if (mode === 'speed' || mode === 'combined') return 'hourly';
-  if (mode === 'reasoning') return 'deep';
-  if (mode === 'tooling') return 'tooling';
-  return 'hourly';
-};
-
 export default function PerformanceTimingPage() {
   const { data: session, status } = useSession();
   const [models, setModels] = useState<Model[]>([]);
@@ -132,7 +62,6 @@ export default function PerformanceTimingPage() {
   const [scoringMode, setScoringMode] = useState<ScoringMode>('combined');
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [canonicalScore, setCanonicalScore] = useState<number | null>(null);
-  const [hourRec, setHourRec] = useState<HourRecommendation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -148,13 +77,6 @@ export default function PerformanceTimingPage() {
       fetchHistory();
     }
   }, [selectedModelId, period, scoringMode]);
-
-  // Fetch hour-of-day analysis (always 7d) when model or scoring mode changes
-  useEffect(() => {
-    if (selectedModelId) {
-      fetchHourAnalysis();
-    }
-  }, [selectedModelId, scoringMode]);
 
   const fetchModels = async () => {
     try {
@@ -216,65 +138,6 @@ export default function PerformanceTimingPage() {
       setHistory([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchHourAnalysis = async () => {
-    if (!selectedModelId) return;
-
-    try {
-      const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-      const suite = modeToSuite(scoringMode);
-      const response = await fetch(
-        `${apiUrl}/api/models/${selectedModelId}/hour-analysis?period=7d&suite=${suite}`
-      );
-
-      if (!response.ok) {
-        setHourRec(null);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (!data.hours || data.hours.length === 0) {
-        setHourRec(null);
-        return;
-      }
-
-      // Build hour buckets from the response
-      const validBuckets = data.hours
-        .filter((h: any) => h.avg !== null && h.avg !== undefined && h.hour !== undefined)
-        .map((h: any) => ({ hour: h.hour as number, avg: h.avg as number }));
-
-      if (validBuckets.length < 2) {
-        setHourRec(null);
-        return;
-      }
-
-      const allScores = validBuckets.map((b: { hour: number; avg: number }) => b.avg);
-      const avgScore = Math.round(allScores.reduce((a: number, b: number) => a + b, 0) / allScores.length);
-      const peakBucket = validBuckets.reduce((best: { hour: number; avg: number }, cur: { hour: number; avg: number }) => cur.avg > best.avg ? cur : best);
-      const lowBucket = validBuckets.reduce((worst: { hour: number; avg: number }, cur: { hour: number; avg: number }) => cur.avg < worst.avg ? cur : worst);
-      const variance = Math.round(peakBucket.avg - lowBucket.avg);
-      const coverage = Math.round((validBuckets.length / 24) * 100);
-
-      const bestWindow = findHourWindow(validBuckets, true);
-      const worstWindow = findHourWindow(validBuckets, false);
-
-      setHourRec({
-        bestHours: `${fmtHour(bestWindow.start)} – ${fmtHour((bestWindow.end + 1) % 24)} UTC`,
-        worstHours: `${fmtHour(worstWindow.start)} – ${fmtHour((worstWindow.end + 1) % 24)} UTC`,
-        peakHour: `${fmtHour(peakBucket.hour)} UTC`,
-        peakScore: Math.round(peakBucket.avg),
-        lowHour: `${fmtHour(lowBucket.hour)} UTC`,
-        lowScore: Math.round(lowBucket.avg),
-        avgScore,
-        variance,
-        coverage,
-      });
-    } catch (err) {
-      console.error('Failed to fetch hour analysis:', err);
-      setHourRec(null);
     }
   };
 
@@ -461,79 +324,8 @@ export default function PerformanceTimingPage() {
             </div>
           )}
 
-          {/* Hour-of-day recommendation banner (based on 7-day data) */}
-          {hourRec && hourRec.coverage >= 30 && (
-            <div className="rv4-panel" style={{ marginBottom: '16px' }}>
-              <div className="rv4-panel-header">
-                <span className="rv4-panel-title">⏰ OPTIMAL HOURS — {modeLabel} (7-DAY ANALYSIS)</span>
-                <span style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>
-                  {hourRec.coverage}% hourly coverage • {hourRec.variance} pt variance
-                </span>
-              </div>
-              <div className="rv4-panel-body" style={{ padding: '0' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'rgba(192,192,192,0.15)' }}>
-                  {/* Best hours */}
-                  <div style={{
-                    padding: '16px 18px',
-                    background: 'var(--terminal-dark)',
-                  }}>
-                    <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      ✅ BEST HOURS TO USE THIS MODEL
-                    </div>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--phosphor-green)', textShadow: '0 0 6px rgba(26, 115, 232,0.4)', marginBottom: '6px', letterSpacing: '1px' }}>
-                      {hourRec.bestHours}
-                    </div>
-                    <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
-                      Peak at <strong style={{ color: 'var(--phosphor-green)' }}>{hourRec.peakHour}</strong> with score <strong style={{ color: 'var(--phosphor-green)' }}>{hourRec.peakScore}</strong>
-                    </div>
-                  </div>
-
-                  {/* Worst hours */}
-                  <div style={{
-                    padding: '16px 18px',
-                    background: 'var(--terminal-dark)',
-                  }}>
-                    <div style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      ⚠️ WORST HOURS TO USE THIS MODEL
-                    </div>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--red-alert)', textShadow: '0 0 6px rgba(255,45,0,0.4)', marginBottom: '6px', letterSpacing: '1px' }}>
-                      {hourRec.worstHours}
-                    </div>
-                    <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
-                      Low at <strong style={{ color: 'var(--red-alert)' }}>{hourRec.lowHour}</strong> with score <strong style={{ color: 'var(--red-alert)' }}>{hourRec.lowScore}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recommendation text */}
-                <div style={{ padding: '12px 18px', borderTop: '1px solid rgba(192,192,192,0.15)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--phosphor-dim)', lineHeight: '1.6' }}>
-                    {hourRec.variance > 10 ? (
-                      <>
-                        <strong style={{ color: 'var(--amber-warning)' }}>⚡ Significant time-of-day impact.</strong>{' '}
-                        This model&apos;s {modeLabel.toLowerCase()} performance varies by <strong>{hourRec.variance} points</strong> depending on the hour.
-                        For best results, schedule important tasks during <strong style={{ color: 'var(--phosphor-green)' }}>{hourRec.bestHours}</strong>.
-                        Average score across all hours: <strong>{hourRec.avgScore}</strong>.
-                      </>
-                    ) : hourRec.variance > 5 ? (
-                      <>
-                        <strong style={{ color: 'var(--amber-warning)' }}>📊 Moderate time variation.</strong>{' '}
-                        Performance varies by <strong>{hourRec.variance} points</strong>. Slight preference for{' '}
-                        <strong style={{ color: 'var(--phosphor-green)' }}>{hourRec.bestHours}</strong>.
-                        Average score: <strong>{hourRec.avgScore}</strong>.
-                      </>
-                    ) : (
-                      <>
-                        <strong style={{ color: 'var(--phosphor-green)' }}>✅ Stable performance.</strong>{' '}
-                        Only <strong>{hourRec.variance} points</strong> of variation across the day.
-                        This model performs consistently regardless of time. Average score: <strong>{hourRec.avgScore}</strong>.
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Best and worst hours of the day, from the hourly canary (two weeks, every hour). */}
+          <BestHoursPanel modelId={selectedModelId} modelName={selectedModel?.displayName || selectedModel?.name} />
 
           {/* Stat bar with chart insights */}
           {insights && (
