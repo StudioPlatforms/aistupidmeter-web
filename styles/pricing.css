@@ -87,7 +87,9 @@
 .prc-offer .prc-btn { margin-top: 24px; }
 
 /* comparison table */
-.prc-table-wrap { overflow-x: auto; }
+/* position: relative keeps the table's .sr-only labels (position: absolute) inside this scroll box;
+   without it they escaped its clipping and made the whole page 614px wide on a 390px phone. */
+.prc-table-wrap { overflow-x: auto; position: relative; }
 .prc-table { width: 100%; min-width: 760px; table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 14px; }
 .prc-table th, .prc-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid var(--metal-silver); vertical-align: middle; }
 .prc-table th:first-child, .prc-table td:first-child { text-align: left; padding-left: 0; width: 32%; }
