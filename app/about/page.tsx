@@ -71,10 +71,16 @@ const TOC = [
   { id: 'independence', label: 'Funding and independence' },
   { id: 'honest', label: 'How we keep it honest' },
   { id: 'data', label: 'Data and licensing' },
+  { id: 'partners', label: 'Partners' },
   { id: 'contact', label: 'Contact' },
 ];
 
 const ext = { target: '_blank', rel: 'noopener noreferrer' } as const;
+
+// World Summit AI's partner page has no anchor on our entry, so the link carries a text fragment:
+// the browser scrolls to the first "AI Stupid Level (ASL)" on the page, which is our card's
+// heading, and highlights it. The parentheses are percent-encoded as the fragment syntax requires.
+const WSAI_PARTNER_URL = 'https://worldsummit.ai/commercial-partners/#:~:text=AI%20Stupid%20Level%20%28ASL%29';
 
 export default async function AboutPage() {
   const status = await getStatus();
@@ -167,6 +173,12 @@ export default async function AboutPage() {
         <Prose>
           <p>Custom extracts, bulk exports and support are available, with history back to 8 August 2025. If you need something we do not collect, say so — we would rather tell you it does not exist yet than sell you a promise. <a href="https://studioplatforms.eu/products/aistupidlevel/data-licensing" {...ext}>Licensing, pricing and contact</a>.</p>
         </Prose>
+      </Section>
+
+      <Section id="partners" title="Partners">
+        <Facts rows={[
+          ['World Summit AI', <>AI Stupid Level is an official partner of World Summit AI. <a key="w" href={WSAI_PARTNER_URL} {...ext}>See our entry on their partner page</a>.</>],
+        ]} />
       </Section>
 
       <Section id="contact" title="Contact">
