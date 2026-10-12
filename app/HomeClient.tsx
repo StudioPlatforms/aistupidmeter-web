@@ -1833,7 +1833,8 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
       'gemini-2.5-flash': 'GEMINI-2.5-FLASH',
       'gemini-2.5-flash-lite': 'GEMINI-2.5-LITE',
       'grok-4': 'GROK-4',
-      'grok-code-fast-1': 'GROK-CODE-FAST'
+      'grok-code-fast-1': 'GROK-CODE-FAST',
+      'deepseek-v4-flash': 'DEEPSEEK-V4.1-FLASH'
     };
     return nameMap[name.toLowerCase()] || name.toUpperCase();
   };

@@ -72,7 +72,7 @@ export default function ContextRotPage() {
       <Section id="pilot" title="The pilot"
         lead="The pilot starts with DeepSeek, Kimi and GLM while the method settles. OpenAI, Anthropic, Google and more providers will follow.">
         <Facts rows={[
-          ['DeepSeek V4 Pro · V4 Flash', '1,048,576-token context window'],
+          ['DeepSeek V4 Pro · V4.1 Flash', '1,048,576-token context window'],
           ['Kimi K3', '1,048,576-token context window'],
           ['Kimi K2.7 Code', '262,144-token context window — tested up to 256K'],
           ['GLM-5.3', '1M-token context window'],

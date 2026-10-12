@@ -96,12 +96,12 @@ function suiteStatusLine(stat: SuiteStat | undefined): string {
 const n = (v?: number) => (typeof v === 'number' ? v.toLocaleString('en-US') : '—');
 
 const CODING_WEIGHTS: [string, number, string][] = [
-  ['Correctness', 55, 'Does the fix work? Graded by running the project’s tests'],
+  ['Correctness', 60, 'Does the fix work? Graded by running the project’s tests'],
   ['Stability', 10, 'The same result attempt after attempt'],
   ['Edge cases', 10, 'Hidden tests the model never saw'],
   ['Debugging', 10, 'Did it find the real defect, not silence the symptom?'],
   ['Code quality', 5, 'Clean, maintainable code'],
-  ['Efficiency', 5, 'Output throughput'],
+  ['Efficiency', 0, 'Measured and shown; output includes hidden reasoning, so it rewarded length, not speed'],
   ['Format', 3, 'Guardrail: clean, parseable output'],
   ['Safety', 2, 'Guardrail: no dangerous operations'],
   ['Complexity', 0, 'Measured and shown, but cannot separate models (below)'],
@@ -225,7 +225,7 @@ export default async function MethodologyPage() {
           </table>
         </div>
         <Prose>
-          <p><b>Why these weights.</b> They follow what each measure can actually tell apart, not how important it sounds, measured by averaging each model over several sweeps and taking the spread between models. Complexity varies by four thousandths across the fleet, so it cannot move anyone&apos;s rank and carries no weight (it used to carry 20%); it is still measured and shown. Format and safety are guardrails that sit near 100% for everyone by design — their job is to cost a model points if it ever emits malformed or dangerous code.</p>
+          <p><b>Why these weights.</b> They follow what each measure can actually tell apart, not how important it sounds, measured by averaging each model over several sweeps and taking the spread between models. Complexity varies by four thousandths across the fleet, so it cannot move anyone&apos;s rank and carries no weight (it used to carry 20%); it is still measured and shown. Efficiency, output tokens per second, carries no weight either: providers count a model&apos;s hidden reasoning as output, so it rewarded answering at length rather than quickly; it is also still measured and shown. Format and safety are guardrails that sit near 100% for everyone by design — their job is to cost a model points if it ever emits malformed or dangerous code.</p>
           <h3>What the suite asks</h3>
           <p>Most tasks hand the model a small working project and a bug report written as a user complaint — not a diagnosis, and no file named. The cause sits a module away from the symptom, with a plausible decoy in between. The model must find the defect and return a corrected file, which is graded by running the project&apos;s own test suite.</p>
           <p><b>Hidden tests</b> the model never sees make up three quarters of each repository task&apos;s score. On one task, deduplicating payments by amount makes every visible test pass and is still wrong — it stops a customer legitimately buying the same item twice. Eight of eighteen fleet runs took exactly that shortcut; without hidden tests all eight would score full marks.</p>

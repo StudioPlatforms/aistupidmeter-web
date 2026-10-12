@@ -72,7 +72,7 @@ const PROVIDERS: { id: Provider; name: string; description: string }[] = [
   { id: 'openai',    name: 'OpenAI',    description: 'GPT-6 Astra, GPT-5.6 Sol / Terra / Luna, GPT-5.5' },
   { id: 'anthropic', name: 'Anthropic', description: 'Claude Opus 5, Sonnet 5, Fable 5.1' },
   { id: 'google',    name: 'Google',    description: 'Gemini 3.8 Flash, 3.1 Pro, 3.5 Flash-Lite' },
-  { id: 'deepseek',  name: 'DeepSeek',  description: 'DeepSeek V4 Pro and V4 Flash' },
+  { id: 'deepseek',  name: 'DeepSeek',  description: 'DeepSeek V4 Pro and V4.1 Flash' },
   { id: 'kimi',      name: 'Kimi',      description: 'Kimi K3 and K2.7 Code' },
   { id: 'glm',       name: 'GLM',       description: 'GLM-5.3' },
   { id: 'xai',       name: 'xAI',       description: 'Grok models' },

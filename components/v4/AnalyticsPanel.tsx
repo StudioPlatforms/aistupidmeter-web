@@ -28,20 +28,30 @@ const combinedAxisFullNames = ['Correctness', 'Complexity', 'Code Quality', 'Eff
  *   which means it cannot change anyone's position. It is still measured and still shown --
  *   it just does not pretend to rank you. It used to carry 20%.
  *
+ *   Efficiency carries no weight either (5% until 2026-10-12, moved to correctness). It is
+ *   output tokens per second, and output includes the hidden reasoning, so it rewarded a model
+ *   for thinking at length rather than for answering quickly.
+ *
  *   Format and Safety are guardrails. They sit near 100% for everybody by design; their job is
  *   to cost a model points if it ever starts emitting malformed or dangerous code. Reading the
  *   same for everyone is the intended outcome, not a broken axis.
  */
 const combinedAxisWeights: Record<string, number> = {
-  Correctness: 55, Stability: 10, 'Edge Cases': 10, Debugging: 10,
-  'Code Quality': 5, Efficiency: 5, Format: 3, Safety: 2, Complexity: 0,
+  Correctness: 60, Stability: 10, 'Edge Cases': 10, Debugging: 10,
+  'Code Quality': 5, Efficiency: 0, Format: 3, Safety: 2, Complexity: 0,
 };
 
-/** Label for a tooltip: "Correctness — 55% of score" / "Complexity — measured, not scored". */
+/** Why a measured axis carries no weight, in the tooltip's words. */
+const unweightedReason: Record<string, string> = {
+  Complexity: 'cannot separate models',
+  Efficiency: 'hidden reasoning counts as output',
+};
+
+/** Label for a tooltip: "Correctness — 60% of score" / "Complexity — measured, not scored". */
 export function axisWeightLabel(fullName: string): string {
   const w = combinedAxisWeights[fullName];
   if (w === undefined) return fullName;
-  if (w === 0) return `${fullName} — measured, not scored (cannot separate models)`;
+  if (w === 0) return `${fullName} — measured, not scored (${unweightedReason[fullName] ?? 'carries no weight'})`;
   if (fullName === 'Format' || fullName === 'Safety') return `${fullName} — ${w}% of score (guardrail)`;
   return `${fullName} — ${w}% of score`;
 }

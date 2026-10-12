@@ -24,8 +24,13 @@ const providerDotClass = (provider: string): string => {
   return map[provider?.toLowerCase()] || 'openai';
 };
 
+// Ids whose public name is not their formatted id. DeepSeek retired V4 Flash: requests to
+// deepseek-v4-flash are served by DeepSeek-V4.1-Flash (models.display_name says so too).
+const RENAMED: Record<string, string> = { 'deepseek-v4-flash': 'DeepSeek V4.1 Flash' };
+
 export const getCompactName = (name: string): string => {
   if (!name) return name;
+  if (RENAMED[name]) return RENAMED[name];
   // Auto-format: capitalize each segment, handle common patterns
   return name
     .split('-')

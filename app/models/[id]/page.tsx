@@ -338,7 +338,7 @@ function ModelSeoContent({
         The coding suite runs every four hours: seven tasks, seven attempts each, most of them real debugging jobs in
         which the model gets a small working project and a bug report and has to find and fix the fault. It is graded by
         running the project&apos;s own tests, including tests the model never sees, and scored on nine measures led by
-        correctness (55%) and stability, edge cases and debugging (10% each); complexity is measured but carries no
+        correctness (60%) and stability, edge cases and debugging (10% each); complexity and efficiency are measured but carry no
         weight. The reasoning suite runs daily: four long working sessions of five or six turns, scored on correctness,
         recovery after a failed step, and three continuity measures — memory retention, plan coherence and context use —
         checked by running code against rules stated earlier in the conversation. The tool-use suite runs daily: nine

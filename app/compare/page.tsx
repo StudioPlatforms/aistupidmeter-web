@@ -110,7 +110,7 @@ export default function ComparePage() {
               {
                 provider: 'DEEPSEEK',
                 items: [
-                  { model: 'V4 Pro / V4 Flash', desc: 'Open-weight-derived line that scores competitively on reasoning' },
+                  { model: 'V4 Pro / V4.1 Flash', desc: 'Open-weight-derived line that scores competitively on reasoning' },
                   { label: 'Typically strong at', value: 'Reasoning score relative to cost' },
                   { label: 'Best for', value: 'Analysis and reasoning work on a budget' },
                 ]
@@ -188,12 +188,13 @@ export default function ComparePage() {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }}>
             {[
-              { metric: 'Correctness (55%)', desc: 'Code is executed against the task\u2019s tests \u2014 including, on repo tasks, tests the model never sees' },
-              { metric: 'Complexity (20%)', desc: 'Whether the model actually grasped the algorithmic problem' },
-              { metric: 'Code Quality (15%)', desc: 'Static analysis, structure, maintainability' },
+              { metric: 'Correctness (60%)', desc: 'Code is executed against the task\u2019s tests \u2014 including, on repo tasks, tests the model never sees' },
               { metric: 'Stability (10%)', desc: 'Consistency across the 7 trials of each task' },
-              { metric: 'Efficiency (5%)', desc: 'Algorithmic complexity of the solution produced' },
-              { metric: 'Edge Cases, Debugging, Format, Safety', desc: 'The remaining 10%: boundary handling, fixing broken code, output discipline, and avoiding dangerous operations' },
+              { metric: 'Edge Cases (10%)', desc: 'Hidden tests the model never saw' },
+              { metric: 'Debugging (10%)', desc: 'Whether it found the real defect rather than silencing the symptom' },
+              { metric: 'Code Quality (5%)', desc: 'Clean, maintainable code' },
+              { metric: 'Format, Safety (5%)', desc: 'Guardrails: clean, parseable output and no dangerous operations' },
+              { metric: 'Complexity, Efficiency (0%)', desc: 'Measured and shown, but not scored' },
             ].map((item, i) => (
               <div key={i} style={{ padding: '10px 12px', background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(26, 115, 232,0.1)', borderRadius: '2px' }}>
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>{item.metric}</div>
