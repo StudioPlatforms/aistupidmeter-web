@@ -168,7 +168,7 @@ export default function ModelDetailVerbosity({ modelId, focus = null }: { modelI
               )}
               {m.unanswered.length > 0 && (
                 <div className="md-vb-sub md-vb-note">
-                  Left out: {m.unanswered.map(t => t.replace(/^py\//, '')).join(', ')} — it used its whole 24,000-token output budget reasoning and never returned an answer, so there are no words of its own to count.
+                  Left out: {m.unanswered.map(t => t.replace(/^py\//, '')).join(', ')} — it used its whole output budget reasoning and never returned an answer, so there are no words of its own to count.
                 </div>
               )}
             </div>
