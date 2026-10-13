@@ -17,9 +17,9 @@
  *   Where one is live it is noted in a comment.
  * - Long-context surcharge tiers are not modelled; the base tier is quoted.
  *
- * Verified 2026-07-31. Most recent change: GPT-6 Astra added 2026-09-05
- * ($10/$50, GA 2026-09-04). Before that, OpenAI cut GPT-5.6 Terra 20% and
- * Luna 80% on 2026-07-30.
+ * Verified 2026-07-31. Most recent change: GPT-6.1 Sol added 2026-10-13 ($2/$10,
+ * released 2026-09-29). Before that, GPT-6 Astra on 2026-09-05 ($10/$50, GA
+ * 2026-09-04), and OpenAI cut GPT-5.6 Terra 20% and Luna 80% on 2026-07-30.
  */
 
 export interface ModelPrice {
@@ -36,6 +36,8 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
     // Cached input is $1/MTok; we quote the cache-MISS rate per the convention
     // above. Fast mode ($20/$100) and Batch/Flex (-50%) tiers are not modelled.
     // Sol and Luna first: the generic gpt-6 branch is Astra's price (5x / 100x theirs).
+    // GPT-6.1 Sol (2026-09-29) is spelled with a dot, so 'gpt-6-sol' does not catch it.
+    if (name.includes('gpt-6.1-sol')) return { input: 2, output: 10 };
     if (name.includes('gpt-6-sol')) return { input: 2, output: 10 };
     if (name.includes('gpt-6-luna')) return { input: 0.10, output: 0.50 };
     if (name.includes('gpt-6')) return { input: 10, output: 50 };

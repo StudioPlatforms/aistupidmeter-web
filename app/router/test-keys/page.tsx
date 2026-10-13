@@ -69,7 +69,7 @@ interface HistoryRow {
 // Kept current deliberately: the old copy still advertised GPT-4o/o3, Gemini 2.5,
 // GLM-4.6, DeepSeek R1 and Kimi K2, several generations behind what is benchmarked.
 const PROVIDERS: { id: Provider; name: string; description: string }[] = [
-  { id: 'openai',    name: 'OpenAI',    description: 'GPT-6 Astra, GPT-5.6 Sol / Terra / Luna, GPT-5.5' },
+  { id: 'openai',    name: 'OpenAI',    description: 'GPT-6.1 Sol, GPT-6 Astra / Sol / Luna, GPT-5.6 Sol / Terra / Luna, GPT-5.5' },
   { id: 'anthropic', name: 'Anthropic', description: 'Claude Opus 5, Sonnet 5, Fable 5.1' },
   { id: 'google',    name: 'Google',    description: 'Gemini 3.8 Flash, 3.1 Pro, 3.5 Flash-Lite' },
   { id: 'deepseek',  name: 'DeepSeek',  description: 'DeepSeek V4 Pro and V4.1 Flash' },
