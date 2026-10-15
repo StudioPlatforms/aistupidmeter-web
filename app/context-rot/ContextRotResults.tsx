@@ -58,9 +58,9 @@ function Locked({ signedIn }: { signedIn: boolean }) {
     <div className="crt-locked">
       <p><b>The results are part of Pro Intelligence and above.</b> They include every pilot model’s accuracy at each length from 8K to 1M tokens, its effective context length, what breaks first — finding, linking, tracking or counting — and where in the document it loses facts.</p>
       <div className="crt-locked-actions">
-        <Link className="doc-btn is-primary" href={upgradeHref('pro', 'annual')}>Start free trial</Link>
-        {!signedIn && <Link className="doc-btn" href="/auth/signin?callbackUrl=/context-rot">Sign in</Link>}
-        <Link className="doc-btn" href="/pricing">Compare plans</Link>
+        <Link className="lp-btn lp-btn-primary" href={upgradeHref('pro', 'annual')}>Start free trial <span className="lp-ar" aria-hidden="true">→</span></Link>
+        {!signedIn && <Link className="lp-btn lp-btn-ghost" href="/auth/signin?callbackUrl=/context-rot">Sign in</Link>}
+        <Link className="lp-btn lp-btn-ghost" href="/pricing">Compare plans</Link>
       </div>
     </div>
   );
@@ -71,8 +71,8 @@ function SummaryTable({ data }: { data: Data }) {
   // The notes sit outside the scroll box: inside it, a phone draws the table's scrollbar through their last line.
   return (
     <div>
-      <div className="doc-table-wrap">
-        <table className="doc-table crt-table">
+      <div className="rd-table-wrap">
+        <table className="rd-table crt-table">
           <caption className="crt-caption">Accuracy on all sixteen questions, latest weekly run</caption>
           <thead>
             <tr>
@@ -194,8 +194,8 @@ function LengthChart({ data }: { data: Data }) {
 function SkillTable({ data }: { data: Data }) {
   return (
     <div>
-      <div className="doc-table-wrap">
-        <table className="doc-table crt-table">
+      <div className="rd-table-wrap">
+        <table className="rd-table crt-table">
           <caption className="crt-caption">What breaks first — 8K compared with the longest length each model ran</caption>
           <thead><tr><th>Model</th>{SKILLS.map(([, label]) => <th key={label} className="num">{label}</th>)}</tr></thead>
           <tbody>

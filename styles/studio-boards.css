@@ -527,7 +527,7 @@
 .st .sl-router-streaks i:nth-child(1) { left: 18%; width: 64px; } .st .sl-router-streaks i:nth-child(2) { left: 40%; width: 18px; } .st .sl-router-streaks i:nth-child(3) { left: 56%; width: 120px; opacity: .7; }
 .st .sl-router-text { flex: 1 1 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 15px; line-height: 1.55; color: var(--lp-fg2); }
 .st .sl-router-text .st-kicker { font-size: 12px; }
-.st .sl-router-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.st .sl-router-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; max-width: 300px; text-align: right; }
 .st .sl-router-price b { font-family: var(--lp-font-disp); font-size: 24px; font-weight: 700; letter-spacing: -.03em; color: var(--lp-fg); }
 .st .sl-router-price small { font-size: 12.5px; color: var(--lp-fg3); }
 .st .sl-router .st-btn { flex: none; }

@@ -123,3 +123,37 @@ export const PROVIDER_LABEL: Record<string, string> = {
   kimi: 'Moonshot AI',
   glm: 'Z.ai',
 };
+
+/** GET /dashboard/price (api: routes/dashboard-price.ts) — what a correct result costs, per model. */
+export interface PriceModel { id: number; name: string; displayName: string; vendor: string }
+
+export interface PriceCodingRow extends PriceModel {
+  attempts: number;
+  passed: number;
+  /** Share of attempts whose hidden tests passed, 0–1. */
+  passRate: number;
+  costPerAttempt: number;
+  costPerSuccess: number | null;
+  medianMs: number | null;
+}
+
+export interface PriceTaskRow extends PriceModel {
+  sessions: number;
+  /** The suite's measured score, 0–100. */
+  score: number;
+  costPerTask: number;
+  medianMs: number | null;
+}
+
+interface PriceSuite<R> { from: string; to: string; tasks: number; models: R[]; declined: PriceModel[] }
+
+export interface PriceSnapshot {
+  generatedAt: string;
+  coding: (PriceSuite<PriceCodingRow> & { trials: number }) | null;
+  reasoning: PriceSuite<PriceTaskRow> | null;
+  tooling: PriceSuite<PriceTaskRow> | null;
+  finding: { a: PriceCodingRow; b: PriceCodingRow; ratio: number } | null;
+}
+
+/** /dashboard/enhanced-suites → data.corpus: everything measured since the first run. */
+export interface Corpus { runs: number; toolSessions: number; deepSessions: number }

@@ -448,7 +448,9 @@ export default function RootLayout({
       <body>
         <Providers>
           <VisitorTracker />
-          {children}
+          {/* Grows to fill the window, so on a short page the footer sits at the bottom of the
+              window rather than straight under the content (styles/site-footer.css). */}
+          <div className="site-main">{children}</div>
           <SiteFooter />
         </Providers>
       </body>

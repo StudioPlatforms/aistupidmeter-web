@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
+import { routerPrice } from '@/lib/pricing-display';
 
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
@@ -146,8 +146,8 @@ export default function IntelligencePanel({
           in our benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less.
         </span>
         <span className="sl-cta-price">
-          <b>{annualMonthly(ROUTER_PLAN)}</b>
-          <small>billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}</small>
+          <b>{routerPrice().price}</b>
+          <small>{routerPrice().plan} · {routerPrice().free}</small>
         </span>
       </Link>
 

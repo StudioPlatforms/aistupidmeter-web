@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { DocPage, Section, Prose, Facts } from '@/components/docs/Doc';
+import { ReadingPage, RdSection, RdProse, RdFacts, RdCode, RdFinal, tocNumber } from '@/components/landing/Reading';
 
 export const metadata: Metadata = {
   title: 'Workspaces, projects, single sign-on and SCIM | Setup guide',
@@ -32,6 +32,8 @@ const TOC = [
   { id: 'limits', label: 'Current limits' },
 ];
 
+const num = (id: string) => tocNumber(TOC, id);
+
 const ORIGIN = 'https://aistupidlevel.info';
 
 const VERIFY_SNIPPET = `const crypto = require('crypto');
@@ -54,21 +56,42 @@ const KEY_SNIPPET = `curl ${ORIGIN}/v1/chat/completions \\
 
 export default function TeamsGuidePage() {
   return (
-    <DocPage
+    <ReadingPage
+      className="rd-teams"
       kicker="Guide"
-      title="Workspaces, projects, single sign-on and SCIM"
+      title="Workspaces, projects,"
+      accent="single sign-on and SCIM"
       lead="How to put your team on one plan, watch the models you depend on together, run each client or product as a project with its own Smart Router keys, rules and budget, see what each project and person spent, and connect your identity provider and directory."
       toc={TOC}
       actions={(
         <>
-          <Link className="doc-btn is-primary" href="/account/team">Open your workspace</Link>
-          <Link className="doc-btn" href="/account/security">Security settings</Link>
-          <Link className="doc-btn" href="/pricing">Compare plans</Link>
+          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/team">Open your workspace <span className="lp-ar" aria-hidden="true">→</span></Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/account/security">Security settings</Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/pricing">Compare plans</Link>
         </>
       )}
+      aside={(
+        <dl className="lp-facts">
+          <div><dt>5</dt><dd>editor seats on Teams, owner included. Viewers are unlimited and use no seat.</dd></div>
+          <div><dt>3</dt><dd>projects on Teams, each with its own keys, routing rules, budget and report</dd></div>
+          <div><dt>30&nbsp;s</dt><dd>for a person&apos;s project keys to stop working once your directory deactivates them</dd></div>
+        </dl>
+      )}
+      final={(
+        <RdFinal
+          title="Set up your workspace"
+          lead="Developer includes one project. Teams adds webhooks, single sign-on, directory sync and the audit trail."
+          actions={(
+            <>
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/team">Open your workspace <span className="lp-ar" aria-hidden="true">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/pricing">Compare plans</Link>
+            </>
+          )}
+        />
+      )}
     >
-      <Section id="workspace" title="What a workspace is">
-        <Prose>
+      <RdSection id="workspace" n={num('workspace')} title="What a workspace is">
+        <RdProse>
           <p>
             A workspace puts a team under one plan and gives it things to share. The owner holds the plan; the
             editors they invite get the same plan on their own accounts — its watched-model limit, history,
@@ -85,35 +108,35 @@ export default function TeamsGuidePage() {
             What stays personal: each person&apos;s own watchlist, alert settings, personal Smart Router keys and
             provider keys. Only project keys are shared rules and shared reporting.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="plans" title="Plans">
-        <div className="doc-table-wrap is-narrow">
-          <table className="doc-table">
+      <RdSection id="plans" n={num('plans')} title="Plans">
+        <div className="rd-table-wrap is-narrow lp-up">
+          <table className="rd-table rd-plans">
             <thead>
-              <tr><th></th><th>Developer</th><th>Teams</th><th>Enterprise</th></tr>
+              <tr><th><span className="lp-sr">Feature</span></th><th>Developer</th><th className="is-featured">Teams</th><th>Enterprise</th></tr>
             </thead>
             <tbody>
-              <tr><td>Editor seats, owner included</td><td>1</td><td>5</td><td>Unlimited</td></tr>
-              <tr><td>Viewers</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
-              <tr><td>Projects</td><td>1</td><td>3</td><td>Unlimited</td></tr>
-              <tr><td>Models on the team watchlist, and on each project&apos;s</td><td>20</td><td>Unlimited</td><td>Unlimited</td></tr>
-              <tr><td>Project keys, routing rules, budgets, reports</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
-              <tr><td>Webhooks, single sign-on, SCIM, audit trail</td><td className="doc-muted">—</td><td>Yes</td><td>Yes</td></tr>
+              <tr><th scope="row">Editor seats, owner included</th><td>1</td><td className="is-featured">5</td><td>Unlimited</td></tr>
+              <tr><th scope="row">Viewers</th><td>Unlimited</td><td className="is-featured">Unlimited</td><td>Unlimited</td></tr>
+              <tr><th scope="row">Projects</th><td>1</td><td className="is-featured">3</td><td>Unlimited</td></tr>
+              <tr><th scope="row">Models on the team watchlist, and on each project&apos;s</th><td>20</td><td className="is-featured">Unlimited</td><td>Unlimited</td></tr>
+              <tr><th scope="row">Project keys, routing rules, budgets, reports</th><td>Yes</td><td className="is-featured">Yes</td><td>Yes</td></tr>
+              <tr><th scope="row">Webhooks, single sign-on, SCIM, audit trail</th><td className="muted">—</td><td className="is-featured">Yes</td><td>Yes</td></tr>
             </tbody>
           </table>
         </div>
-        <Prose>
+        <RdProse>
           <p>
             Free and Pro accounts cannot create a workspace, but can be invited to one. If the owner&apos;s plan
             lapses below Developer, projects become read-only and project keys pause until it is renewed.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="members" title="Inviting people">
-        <Prose>
+      <RdSection id="members" n={num('members')} title="Inviting people">
+        <RdProse>
           <ol>
             <li>Open <Link href="/account/team">Account → Team</Link> and create the workspace.</li>
             <li>On the <b>People</b> tab, enter the person&apos;s email address, choose <b>Viewer</b> or <b>Editor</b>,
@@ -122,33 +145,33 @@ export default function TeamsGuidePage() {
               works for the address it was sent to, so a forwarded link is no use to anyone else.</li>
             <li>Add them to the projects they work on, from each project&apos;s <b>People</b> tab.</li>
           </ol>
-        </Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdFacts rows={[
           ['Link lifetime', '14 days. Resend makes a new link, which restarts the 14 days and stops the old one working.'],
           ['Email did not arrive', 'Ask them to check spam, or use Copy link on the People tab and send the link yourself.'],
           ['Seats', 'An invitation for an editor holds a seat until it is accepted or withdrawn.'],
           ['Leaving and removing', 'A member can leave from the People tab. The owner can remove anyone except themselves. Either way, the person leaves every project and their project keys are revoked.'],
           ['One workspace per account', 'Someone who owns a workspace, or is in one, has to leave it before accepting an invitation to another.'],
         ]} />
-      </Section>
+      </RdSection>
 
-      <Section id="roles" title="Roles">
-        <Prose><p>In the workspace:</p></Prose>
-        <Facts rows={[
+      <RdSection id="roles" n={num('roles')} title="Roles">
+        <RdProse><p>In the workspace:</p></RdProse>
+        <RdFacts rows={[
           ['Owner', 'One per workspace: the person whose plan it is. Invites and removes people, shares provider keys with every project, sets team alerts, manages webhooks and security, reads the audit trail, and manages every project without being added to it. Uses a seat.'],
           ['Editor', 'Uses a seat and gets the workspace’s plan on their own account. Can change the team watchlist and create projects (and manages the ones they create).'],
           ['Viewer', 'Free: no seat, and no plan from the workspace. Reads the team watchlist and the projects they are added to, and gets their alerts — the role for clients and stakeholders. Sees the owner and the people they share a project with, not everyone in the workspace.'],
         ]} />
-        <Prose><p>In a project:</p></Prose>
-        <Facts rows={[
+        <RdProse><p>In a project:</p></RdProse>
+        <RdFacts rows={[
           ['Manager', 'Runs the project: its people, routing rules, provider keys, budget and caps, alert settings and webhooks; can rename or delete it. Needs an editor seat.'],
           ['Member (editor)', 'Holds their own project keys and edits the project watchlist. Reads the rules, budget, report and activity.'],
           ['Member (viewer)', 'Reads everything above and gets the project’s alerts. Holds no keys.'],
         ]} />
-      </Section>
+      </RdSection>
 
-      <Section id="watchlist" title="Team watchlist">
-        <Prose>
+      <RdSection id="watchlist" n={num('watchlist')} title="Team watchlist">
+        <RdProse>
           <p>
             The models the whole team depends on, on the workspace page&apos;s <b>Team watchlist</b> tab. Everyone in
             the workspace sees each model&apos;s latest real score, its change over seven days, any open drift alert
@@ -161,12 +184,12 @@ export default function TeamsGuidePage() {
             editors, or to webhooks only — and each person can mute the team list for themselves. See{' '}
             <a href="#alerts">Alerts</a>.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="projects" title="Projects"
+      <RdSection id="projects" n={num('projects')} title="Projects"
         lead="One per client or product. Created by the owner or an editor from the workspace page; whoever creates it manages it.">
-        <Facts rows={[
+        <RdFacts rows={[
           ['People', 'Who works on it, as managers or members. Only the people in a project (and the owner) can open it.'],
           ['Watchlist', 'The models this project depends on, with its own alert threshold and recipients.'],
           ['Smart Router', 'Project keys, the routing rules every key follows, and which provider keys pay. See below.'],
@@ -175,26 +198,26 @@ export default function TeamsGuidePage() {
           ['Activity', 'Who changed what, and every request its keys made.'],
           ['Settings', 'Name and description, who sees per-person spend, the project’s own webhooks, deletion.'],
         ]} />
-        <Prose>
+        <RdProse>
           <p>
             Deleting a project revokes its keys and removes its provider keys, budget, watchlist and webhooks.
             Its request history stays in the workspace&apos;s records, and the deletion is in the audit trail.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="keys" title="Project keys and routing rules"
+      <RdSection id="keys" n={num('keys')} title="Project keys and routing rules"
         lead="A project key is a Smart Router key that follows the project’s rules and counts against its budget.">
-        <Prose>
+        <RdProse>
           <p>
             Each person with an editor seat in the project makes their own keys on its <b>Smart Router</b> tab, so the
             report can say who spent what. A key is shown once; it can expire after 7, 30, 90, 180 or 365 days, and
             its holder or a manager can revoke it. Use it anywhere a Smart Router key works:
           </p>
-        </Prose>
-        <pre className="doc-code">{KEY_SNIPPET}</pre>
-        <Prose><p>The rules a manager sets, which every key in the project follows:</p></Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdCode title="A project key in use" label="curl" code={KEY_SNIPPET} />
+        <RdProse><p>The rules a manager sets, which every key in the project follows:</p></RdProse>
+        <RdFacts rows={[
           ['Strategy', 'What “auto” means: best overall, best for coding, reasoning or tool use, best value, most consistent, fastest good model, cheapest, fastest, matched to each request, or your own weighted traffic split.'],
           ['Use it for every routed request', 'Requests asking for auto-coding, auto-cheapest and so on get the project’s strategy too.'],
           ['Naming a model', 'Allowed or not. When not, requests that name a model — and /v1/messages, which always does — are refused, and everything is routed.'],
@@ -208,7 +231,7 @@ export default function TeamsGuidePage() {
           ['Rate limit', 'Requests per minute, per key.'],
           ['Prompt logging', 'Each key’s own setting, off for every key, or on for every key (encrypted, with secrets scrubbed first).'],
         ]} />
-        <Prose>
+        <RdProse>
           <p>The <b>Preview</b> button shows where “auto” would go right now under unsaved rules, without sending anything.</p>
           <h3>Who pays the providers</h3>
           <p>
@@ -218,11 +241,11 @@ export default function TeamsGuidePage() {
             Providers page. Shared keys are stored encrypted and shown by their last four characters; <b>Check</b>{' '}
             asks the provider whether it still accepts one.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="budgets" title="Budgets and caps">
-        <Facts rows={[
+      <RdSection id="budgets" n={num('budgets')} title="Budgets and caps">
+        <RdFacts rows={[
           ['Monthly budget', 'For the whole project, in dollars, from the 1st of each month (UTC).'],
           ['Alert only', 'Requests continue past the budget.'],
           ['Switch to the cheapest models', 'Past the budget, routed requests go to the cheapest models and requests that name a model are refused, so work continues at the lowest cost.'],
@@ -230,18 +253,18 @@ export default function TeamsGuidePage() {
           ['Thresholds', 'The owner and the project’s managers are emailed when spend reaches each threshold you choose (25–90%) and 100%, once per month for each — raising the budget re-arms them.'],
           ['Caps per person', 'A monthly cap for everyone in the project, with a different one per person if needed. A person at their cap is refused, whatever the budget mode, and is emailed along with the managers.'],
         ]} />
-        <Prose>
+        <RdProse>
           <p>
             Spend is the provider&apos;s list price for the tokens each request used — the same figure as the report.
             A request reserves its most expensive possible cost before it is sent and settles to the actual cost
             after, so many requests at once cannot run past a budget that stops at its limit. Your provider&apos;s
             invoice is the final word: discounts and caching are not included.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="reports" title="Reports and activity">
-        <Prose>
+      <RdSection id="reports" n={num('reports')} title="Reports and activity">
+        <RdProse>
           <p>
             A project&apos;s <b>Overview</b> covers the last 7, 30 or 90 days, this month or last month: spend (and the change
             on the period before), requests and how many were answered, response times, cost per 1,000 tokens,
@@ -268,38 +291,38 @@ export default function TeamsGuidePage() {
             By default everyone in a project sees each person&apos;s spend. A manager can limit that to managers, so
             that members — clients who are viewers, say — see the project&apos;s totals and their own requests only.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="alerts" title="Alerts">
-        <Prose>
+      <RdSection id="alerts" n={num('alerts')} title="Alerts">
+        <RdProse>
           <p>
             Once a day (08:00, Berlin time) every watched model is checked against real measurements only: a model
             we could not measure that week is never reported as having changed. A model alerts when its score
             dropped by at least the list&apos;s threshold over seven days, or when a benchmark task started failing while
             the overall score held.
           </p>
-        </Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdFacts rows={[
           ['One email per finding', 'A model on your own watchlist, the team watchlist and a project gets you one email, naming every list it is on.'],
           ['Who is emailed', 'Team list: everyone in the workspace, the owner and editors, or nobody. Project list: everyone in the project, its managers and the owner, or nobody. Your own alert settings still apply: if you turned alert emails off, team lists do not override that.'],
           ['Muting', 'Anyone can mute the team list or a project’s list for themselves, on its page.'],
           ['Weekly summary', 'The Monday summary covers your own watchlist, the team’s and your projects’, grouped by list.'],
           ['Activity', 'Each alert is recorded in the project’s activity log (or the workspace trail, for the team list).'],
         ]} />
-      </Section>
+      </RdSection>
 
-      <Section id="webhooks" title="Webhooks"
+      <RdSection id="webhooks" n={num('webhooks')} title="Webhooks"
         lead="Teams and Enterprise. Alerts and budget notices as signed JSON, so they reach your own tooling without anyone reading an email.">
-        <Prose>
+        <RdProse>
           <p>
             The owner adds a workspace-wide endpoint on the workspace page; a project&apos;s managers can add endpoints
             for that project only, in its Settings. Each is shown its signing secret once, and can be limited to the
             events you choose (none chosen means all). A workspace-wide endpoint hears about the team list, every
             project and members&apos; own watchlists; a project&apos;s endpoint hears about that project only.
           </p>
-        </Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdFacts rows={[
           [<code key="e1">model.regression</code>, <span key="d1">A watched model alerted. <code>data</code>: <code>modelId</code>, <code>model</code>, <code>currentScore</code>, <code>deltaOver7d</code>, <code>openTaskRegressions</code>, <code>measuredAt</code>, <code>reason</code>, and <code>lists</code> — every list carrying the model (<code>{'{"type":"team"}'}</code>, <code>{'{"type":"project"}'}</code> with its id and name, or <code>{'{"type":"member"}'}</code> for a member&apos;s own watchlist, never naming them). Sent once per finding per endpoint.</span>],
           [<code key="e2">budget.threshold</code>, 'A project crossed one of its budget thresholds this month.'],
           [<code key="e3">budget.exceeded</code>, 'A project reached its budget, or a request was refused at it.'],
@@ -310,15 +333,15 @@ export default function TeamsGuidePage() {
           ['Signature', <span key="s"><code>sha256=</code> plus the hex HMAC-SHA256 of the timestamp, a full stop and the raw body, keyed with the endpoint&apos;s secret.</span>],
           ['Delivery', 'One attempt with a five-second timeout and no retries; the last result is shown next to each endpoint. Up to 20 endpoints per workspace and 5 per project, HTTPS only, never to private or loopback addresses.'],
         ]} />
-        <Prose>
+        <RdProse>
           <p>Checking a delivery in Node.js:</p>
-        </Prose>
-        <pre className="doc-code">{VERIFY_SNIPPET}</pre>
-      </Section>
+        </RdProse>
+        <RdCode title="Verify a delivery" label="Node.js" code={VERIFY_SNIPPET} />
+      </RdSection>
 
-      <Section id="sso" title="Single sign-on"
+      <RdSection id="sso" n={num('sso')} title="Single sign-on"
         lead="Teams and Enterprise, set up by the workspace owner. Works with any OIDC or SAML 2.0 identity provider.">
-        <Prose>
+        <RdProse>
           <ol>
             <li>
               In your identity provider, create an application:
@@ -343,44 +366,44 @@ export default function TeamsGuidePage() {
             <li>Test it: sign out, choose <b>Continue with SSO</b> on the sign-in page and enter your work email.</li>
           </ol>
           <h3>Where the values are</h3>
-        </Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdFacts rows={[
           ['Okta', <span key="o">An OIDC web app. The issuer is your authorization server, for example <code>https://acme.okta.com/oauth2/default</code>.</span>],
           ['Microsoft Entra ID', <span key="m">Register an app with a Web redirect URI and add a client secret. The issuer is <code>https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</code>. Add the optional <code>email</code> claim to the ID token (Token configuration).</span>],
           ['Google Workspace', <span key="g">An OAuth client of type Web application in Google Cloud. The issuer is <code>https://accounts.google.com</code>.</span>],
         ]} />
-        <Prose>
+        <RdProse>
           <h3>What changes once it is on</h3>
-        </Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdFacts rows={[
           ['Signing in', 'People whose email is in your domain sign in through your identity provider; password and Google/GitHub sign-ins are refused for them. The owner keeps password sign-in, so a broken provider cannot lock out the one person who can fix it.'],
           ['New people', 'With “Create accounts on first sign-in” on, someone without an account gets one at first sign-in and joins with the role you chose. With it off, only existing accounts can sign in.'],
           ['Existing accounts', 'An account with the same email is used as it is, and joins the workspace at its first SSO sign-in.'],
           ['Domain already claimed', 'If another workspace saved your domain without verifying it, publish your record and save again: the domain moves to you. A verified domain stays with its workspace.'],
         ]} />
-      </Section>
+      </RdSection>
 
-      <Section id="scim" title="Directory sync (SCIM)"
+      <RdSection id="scim" n={num('scim')} title="Directory sync (SCIM)"
         lead="Teams and Enterprise. Lets your directory add people and, more importantly, remove them the moment they leave.">
-        <Prose>
+        <RdProse>
           <ol>
             <li>On the <Link href="/account/security">Security</Link> page, create a SCIM token. It is shown once.</li>
             <li>In your identity provider&apos;s provisioning settings, enter the base URL
               <code>{ORIGIN}/api/scim/v2</code> and the token as an HTTP bearer token.</li>
             <li>Map the user name to the person&apos;s email address.</li>
           </ol>
-        </Prose>
-        <Facts rows={[
+        </RdProse>
+        <RdFacts rows={[
           ['Supported', <span key="s">Users: create, read, list (filtered by <code>userName eq &quot;…&quot;</code>), update and deactivate — PUT, PATCH of <code>active</code>, and DELETE.</span>],
           ['New people', 'Join as viewers. Change their role on the Team page.'],
           ['Deactivating', 'Switches the membership off: the person loses access to the workspace and its plan, and cannot sign in through single sign-on. Nothing is deleted, so reactivating restores them.'],
           ['Groups', 'Not supported, and the service-provider configuration says so.'],
           ['Tokens', 'Revoke one at any time on the Security page.'],
         ]} />
-      </Section>
+      </RdSection>
 
-      <Section id="audit" title="Audit trail">
-        <Prose>
+      <RdSection id="audit" n={num('audit')} title="Audit trail">
+        <RdProse>
           <p>
             On Teams and Enterprise the owner can read the workspace&apos;s audit trail on the Security page and
             download the latest 200 entries as CSV. Each entry records the time, who acted, what changed, and
@@ -390,15 +413,15 @@ export default function TeamsGuidePage() {
             its domain verification, SSO sign-ins and the accounts they create, SCIM tokens and SCIM changes.
             A project&apos;s own entries also appear on its Activity tab, without addresses.
           </p>
-          <p className="doc-muted">
+          <p className="rd-note">
             Entries recorded before 6 October 2026 show our own server&apos;s address and agent instead of the
             person&apos;s.
           </p>
-        </Prose>
-      </Section>
+        </RdProse>
+      </RdSection>
 
-      <Section id="limits" title="Current limits">
-        <Prose>
+      <RdSection id="limits" n={num('limits')} title="Current limits">
+        <RdProse>
           <ul>
             <li>An account belongs to one workspace at a time.</li>
             <li>Viewers do not get the workspace&apos;s plan and cannot hold project keys.</li>
@@ -410,8 +433,8 @@ export default function TeamsGuidePage() {
             <li>SAML: we do not sign authentication requests, assertions must be signed, and sign-in starts from
               our sign-in page (not from your provider&apos;s app launcher).</li>
           </ul>
-        </Prose>
-      </Section>
-    </DocPage>
+        </RdProse>
+      </RdSection>
+    </ReadingPage>
   );
 }

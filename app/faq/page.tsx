@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { DocPage, Section, QA } from '@/components/docs/Doc';
+import { ReadingPage, RdSection, RdFinal, tocNumber } from '@/components/landing/Reading';
+import FaqSearch from '@/components/landing/FaqSearch';
 
 export const metadata: Metadata = {
   title: 'FAQ | AI Benchmarking Questions Answered',
@@ -288,31 +289,56 @@ function Answer({ text }: { text: string }) {
   );
 }
 
+const TOC = FAQ.map((g) => ({ id: g.id, label: g.title }));
+
+/** Shown under the search before anything is typed: the questions that explain the board itself. */
+const START = ['home-page', 'tie', 'period', 'free', 'community', 'api'];
+
 export default function FAQPage() {
+  const entries = FAQ.flatMap((g) => g.items.map((item) => ({
+    id: item.id, q: item.q, group: g.title, text: stripLinks(item.a).replace(/\n+/g, ' '),
+  })));
+
   return (
-    <DocPage
+    <ReadingPage
+      className="rd-faq"
       kicker="FAQ"
-      title="Frequently asked questions"
+      title="Frequently asked"
+      accent="questions"
       lead="How to read the leaderboards, how models are tested, and what the numbers can and cannot tell you."
-      toc={FAQ.map((g) => ({ id: g.id, label: g.title }))}
+      toc={TOC}
       actions={(
         <>
-          <Link className="doc-btn is-primary" href="/methodology">Full methodology</Link>
-          <Link className="doc-btn" href="/">View the leaderboards</Link>
-          <Link className="doc-btn" href="/contact">Ask a question</Link>
+          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/methodology">Full methodology <span className="lp-ar" aria-hidden="true">→</span></Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/">View the leaderboards</Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/contact">Ask a question</Link>
         </>
       )}
+      aside={<FaqSearch entries={entries} start={START} />}
+      final={(
+        <RdFinal
+          title="Still have a question?"
+          lead="We are a small team and we answer our own email."
+          actions={(
+            <>
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/contact">Ask a question <span className="lp-ar" aria-hidden="true">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology">Full methodology</Link>
+            </>
+          )}
+        />
+      )}
     >
-      {FAQ.map((g) => (
-        <Section key={g.id} id={g.id} title={g.title}>
-          <div className="doc-qa-grid">
-            {g.items.map((item) => (
-              <QA key={item.id} id={item.id} q={item.q}>
-                <Answer text={item.a} />
-              </QA>
+      {FAQ.map((g, gi) => (
+        <RdSection key={g.id} id={g.id} n={tocNumber(TOC, g.id)} title={g.title}>
+          <div className="rd-qas lp-up">
+            {g.items.map((item, i) => (
+              <details key={item.id} id={item.id} className="rd-qa" open={gi === 0 && i === 0}>
+                <summary>{item.q}</summary>
+                <div className="rd-qa-a"><Answer text={item.a} /></div>
+              </details>
             ))}
           </div>
-        </Section>
+        </RdSection>
       ))}
 
       <script
@@ -329,6 +355,6 @@ export default function FAQPage() {
           }),
         }}
       />
-    </DocPage>
+    </ReadingPage>
   );
 }

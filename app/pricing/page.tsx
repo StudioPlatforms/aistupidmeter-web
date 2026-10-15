@@ -1,12 +1,16 @@
 import type { Metadata } from 'next';
 import SubpageLayout from '@/components/SubpageLayout';
+import LandingEffects from '@/components/landing/LandingEffects';
+import { lpBody, lpDisplay } from '@/lib/fonts';
 import PricingClient from './PricingClient';
 import { priceIdFor, type SellablePlan } from '@/lib/stripe-plans';
+import '@/styles/landing.css';
+import '@/styles/pricing.css';
 
 export const metadata: Metadata = {
   title: 'Pricing',
   description:
-    'Free public benchmarks and seven-day history. Paid plans add longer comparable history, diagnosis, more tracked models, routing and team workflows. Provider inference is billed by your provider, not by us.',
+    'Free public benchmarks and 30 days of history. Paid plans add the newest run as it lands, full comparable history, diagnosis, more tracked models, routing and team workflows. Provider inference is billed by your provider, not by us.',
   alternates: { canonical: '/pricing' },
   openGraph: {
     title: 'Pricing | AI Stupid Level',
@@ -26,7 +30,13 @@ export default function PricingPage() {
 
   return (
     <SubpageLayout>
-      <PricingClient buyable={buyable} />
+      {/* The landing page's look inside the site's own top bar, like /status and /contact. */}
+      <div className={`lp lp-sub lp-pricing ${lpBody.variable} ${lpDisplay.variable}`}>
+        {/* Reveal-on-scroll hides blocks only once scripts run; the failsafe shows everything if they never do. */}
+        <script dangerouslySetInnerHTML={{ __html: "(function(){var d=document.documentElement;d.classList.add('lp-js');setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();" }} />
+        <LandingEffects />
+        <PricingClient buyable={buyable} />
+      </div>
     </SubpageLayout>
   );
 }

@@ -1,0 +1,43 @@
+/* ═══════════════════════════════════════════════════════════════════
+   /context-rot in the landing page's look. The page is a reading page
+   (styles/reading.css); this restyles the results panel's pieces (crt-*,
+   styles/context-rot.css) to match it. Everything is scoped under .lp, so
+   the context-rot panel on model pages (.st, sq-crt-*) is untouched.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.lp .crt-pill { font-family: var(--lp-font-body); background: var(--lp-accent-bg); color: var(--lp-accent); }
+.lp .crt { gap: clamp(28px, 2.8vw, 40px); margin-top: 0; }
+.lp .crt-muted { margin: 0; font-size: 15.5px; line-height: 1.6; color: var(--lp-fg2); }
+.lp .crt-note { margin-top: 12px; max-width: 90ch; font-size: 13.5px; line-height: 1.6; color: var(--lp-fg3); }
+.lp .crt-noanswer { margin-top: 12px; font-size: 13.5px; color: var(--lp-fg2); }
+.lp .crt-na, .lp .crt-sub, .lp .crt-arrow, .lp .crt-mark { color: var(--lp-fg3); }
+
+/* tables: the reading page's raised sheet, with the caption as its title */
+.lp .crt-caption { padding: 16px 18px 12px; background: var(--lp-card); font-family: var(--lp-font-disp); font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: var(--lp-fg); }
+.lp .crt-table td:first-child { font-weight: 600; white-space: nowrap; }
+
+/* figures: the same sheet around the chart and the heat grids */
+.lp .crt-figure { padding: clamp(18px, 2vw, 26px); border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); }
+.lp .crt-fig-title { font-family: var(--lp-font-disp); font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: var(--lp-fg); }
+.lp .crt-legend { color: var(--lp-fg2); }
+.lp .crt-grid { stroke: var(--lp-line); }
+.lp .crt-axis { fill: var(--lp-fg3); }
+.lp .crt-crosshair { stroke: var(--lp-fg3); }
+.lp .crt-series circle { stroke: var(--lp-card); }
+.lp .crt-endlabel { fill: var(--lp-fg); }
+.lp .crt-tip { right: 20px; top: 56px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--lp-line); background: var(--lp-raise); color: var(--lp-fg); box-shadow: var(--lp-shadow-2); }
+.lp .crt-gridname { font-family: var(--lp-font-disp); font-size: 14.5px; color: var(--lp-fg); }
+
+/* below the plan: what the panel holds and how to get it, never the numbers */
+.lp .crt-locked {
+  max-width: 1000px; margin: 0; padding: clamp(22px, 2.6vw, 32px); border: 1px solid var(--lp-line); border-radius: 18px;
+  background: color-mix(in srgb, var(--lp-accent) 5%, var(--lp-card)); box-shadow: var(--lp-shadow-1);
+  font-size: 16px; line-height: 1.7; color: var(--lp-fg2);
+}
+.lp .crt-locked b { font-weight: 600; color: var(--lp-fg); }
+.lp .crt-locked-actions { margin-top: 20px; gap: 12px; }
+
+@media (max-width: 760px) {
+  .lp .crt-tip { position: static; margin-top: 10px; }
+  .lp .crt-locked-actions .lp-btn { flex: 1 1 100%; }
+}

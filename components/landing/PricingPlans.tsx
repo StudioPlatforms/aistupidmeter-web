@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { PLANS, ROUTER_CREDITS, DATA_API_LIMITS, type Plan } from '@/lib/entitlements';
 import { PITCH, highlights, money } from '@/lib/plan-highlights';
 import { upgradeHref } from '@/lib/checkout-url';
 import { planName } from '@/lib/pricing-display';
 
-type Interval = 'monthly' | 'annual';
+export type Interval = 'monthly' | 'annual';
 const CARDS: Plan[] = ['free', 'pro', 'developer', 'teams'];
 /** The plan /pricing features ("Most complete"); the two pages say the same thing. */
 const FEATURED: Plan = 'teams';
@@ -19,21 +19,38 @@ const Check = () => (
 
 /**
  * The plan cards, read from the plan table (lib/entitlements.ts) and the shared card text
- * (lib/plan-highlights.ts), so they always match /pricing. Annual first, as there. A paid plan
- * links to checkout only when its Stripe price exists (`buyable`), otherwise to /pricing.
+ * (lib/plan-highlights.ts), so the landing page and /pricing always match. Annual first.
+ *
+ * On the landing page a paid plan without a Stripe price (`buyable`) links to /pricing. On
+ * /pricing itself (`onPricingPage`) it says it is not open yet instead of linking to the page
+ * it is on, and the page drives the billing period, because its comparison table shows prices too.
  */
-export default function PricingPlans({ buyable, signUpHref }: { buyable: string[]; signUpHref: string }) {
-  const [interval, setInterval] = useState<Interval>('annual');
+export default function PricingPlans({
+  buyable, signUpHref, interval: controlled, onIntervalChange, onPricingPage = false, heading,
+}: {
+  buyable: string[];
+  signUpHref: string;
+  interval?: Interval;
+  onIntervalChange?: (i: Interval) => void;
+  onPricingPage?: boolean;
+  /** The heading beside the billing switch; the landing page's own by default. */
+  heading?: ReactNode;
+}) {
+  const [own, setOwn] = useState<Interval>('annual');
+  const interval = controlled ?? own;
+  const setInterval = (i: Interval) => { setOwn(i); onIntervalChange?.(i); };
   const annual = interval === 'annual';
   const ent = PLANS.enterprise;
 
   return (
     <>
       <div className="lp-pricing-top lp-up">
-        <div className="lp-head">
-          <p className="lp-kicker">Pricing</p>
-          <h2 className="lp-h2">Start free. Pay when the router earns it.</h2>
-        </div>
+        {heading ?? (
+          <div className="lp-head">
+            <p className="lp-kicker">Pricing</p>
+            <h2 className="lp-h2">Start free. Pay when the router earns it.</h2>
+          </div>
+        )}
         <div className="lp-bill" role="group" aria-label="Billing period">
           <button type="button" aria-pressed={annual} onClick={() => setInterval('annual')}>Annual <em>2 months free</em></button>
           <button type="button" aria-pressed={!annual} onClick={() => setInterval('monthly')}>Monthly</button>
@@ -56,15 +73,19 @@ export default function PricingPlans({ buyable, signUpHref }: { buyable: string[
             sub = e.priceAnnual !== null ? <>or {money(e.priceAnnual)} a year — two months free</> : null;
           }
           const paid = p !== 'free';
-          const href = !paid ? signUpHref : buyable.includes(p) ? upgradeHref(p, interval) : '/pricing';
-          const label = !paid ? 'Create free account' : buyable.includes(p) ? 'Start free trial' : 'See plan details';
+          const open = !paid || buyable.includes(p);
+          const href = !paid ? signUpHref : open ? upgradeHref(p, interval) : '/pricing';
+          const label = !paid ? 'Create free account' : open ? 'Start free trial' : onPricingPage ? 'Available shortly' : 'See plan details';
+          const btn = `lp-btn ${p === FEATURED ? 'lp-btn-primary' : 'lp-btn-ghost'}`;
           return (
             <div key={p} className={`lp-plan${p === FEATURED ? ' is-pop' : ''}`}>
               <p className="lp-plan-n">{planName(p)}{p === FEATURED && <span className="lp-badge">Most complete</span>}</p>
               <p className="lp-plan-p">{price}</p>
               <p className="lp-plan-sub">{sub}</p>
               <p className="lp-plan-pitch">{PITCH[p]}</p>
-              <a className={`lp-btn ${p === FEATURED ? 'lp-btn-primary' : 'lp-btn-ghost'}`} href={href}>{label}</a>
+              {!open && onPricingPage
+                ? <span className={`${btn} is-off`} title="This plan is not open for sign-up yet">{label}</span>
+                : <a className={btn} href={href}>{label}</a>}
               <p className="lp-plan-l">{h.lead ?? 'Includes'}</p>
               <ul>{h.items.map(i => <li key={i}><Check /><span>{i}</span></li>)}</ul>
             </div>
@@ -77,7 +98,8 @@ export default function PricingPlans({ buyable, signUpHref }: { buyable: string[
       </div>
       <p className="lp-credits lp-up">
         Past your router allowance? Top up credits from ${ROUTER_CREDITS.minimumUsd} — {ROUTER_CREDITS.requestsPerUsd.toLocaleString('en-US')} requests per $1, no expiry.
-        Providers bill your tokens directly; we never add to them. <a className="lp-more" href="/pricing">Compare every plan</a>
+        Providers bill your tokens directly; we never add to them.{' '}
+        <a className="lp-more" href={onPricingPage ? '#compare' : '/pricing'}>Compare every plan</a>
       </p>
     </>
   );

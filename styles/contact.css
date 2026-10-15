@@ -1,0 +1,70 @@
+/* ═══════════════════════════════════════════════════════════════════
+   /contact in the landing page's look (app/contact). Layout, type and tokens
+   come from landing.css (.lp, .lp-sub) and the form from landing-forms.css
+   (lf-*); this adds the layout, the topic chips, the sent card and the notes
+   beside the form. Everything is scoped under .lp.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── layout: introduction and notes on the left, the form on the right ── */
+.lp .ct-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+  grid-template-areas: 'intro form' 'notes form';
+  grid-template-rows: auto 1fr;
+  column-gap: clamp(40px, 6vw, 120px);
+  row-gap: clamp(30px, 3vw, 44px);
+  align-items: start;
+}
+.lp .ct-intro { grid-area: intro; display: grid; gap: 22px; }
+.lp .ct-form-col { grid-area: form; min-width: 0; }
+.lp .ct-notes { grid-area: notes; }
+.lp-contact .lp-h1 { font-size: clamp(36px, 4.2vw, 68px); }
+
+/* ── the form: card, fields and inputs are the shared landing-forms.css (lf-*); the topic chips are this page's ── */
+.lp .ct-topics { display: flex; flex-wrap: wrap; gap: 8px; }
+.lp .ct-topic {
+  height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--lp-line2); background: transparent; color: var(--lp-fg);
+  font-size: 13.5px; font-weight: 500; white-space: nowrap; cursor: pointer;
+  transition: border-color .2s, background-color .2s, color .2s;
+}
+.lp .ct-topic:hover { border-color: var(--lp-fg3); }
+.lp .ct-topic[aria-pressed='true'] {
+  border-color: var(--lp-accent); color: var(--lp-accent); font-weight: 600;
+  background: color-mix(in srgb, var(--lp-accent) 10%, transparent);
+}
+/* Keyed by topic in the markup, so it settles in again with each new choice. */
+.lp .ct-blurb { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); animation: ctBlurb .35s var(--lp-ease) both; }
+@keyframes ctBlurb { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ── sent ── */
+.lp .ct-sent { justify-items: start; gap: 14px; animation: lpIntro .6s var(--lp-ease) both; }
+.lp .ct-check { width: 52px; height: 52px; }
+.lp .ct-check circle { fill: var(--lp-good-bg); stroke: var(--lp-good); stroke-width: 2; }
+.lp .ct-check path { fill: none; stroke: var(--lp-good); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 34; stroke-dashoffset: 34; animation: ctTick .5s var(--lp-ease) .2s forwards; }
+@keyframes ctTick { to { stroke-dashoffset: 0; } }
+.lp .ct-title { font-size: 28px; font-weight: 700; letter-spacing: -.025em; line-height: 1.15; }
+.lp .ct-sent-p { font-size: 15.5px; line-height: 1.65; color: var(--lp-fg2); max-width: 52ch; }
+.lp .ct-sent-p strong { color: var(--lp-fg); font-weight: 600; overflow-wrap: anywhere; }
+.lp .ct-sent .lp-btn { margin-top: 6px; }
+
+/* ── the other routes, beside the form ── */
+.lp .ct-notes { display: grid; max-width: 62ch; border-top: 1px solid var(--lp-line); }
+.lp .ct-notes li { position: relative; display: grid; gap: 6px; padding: 18px 0 18px 32px; border-bottom: 1px solid var(--lp-line); }
+.lp .ct-notes li::before { content: ''; position: absolute; left: 2px; top: 29px; width: 16px; height: 3px; border-radius: 2px; background: var(--lp-accent); transform: skewX(-16deg); }
+.lp .ct-notes h2 { font-size: 17px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; }
+.lp .ct-notes p { font-size: 14.5px; line-height: 1.6; color: var(--lp-fg2); }
+.lp .ct-more { justify-self: start; margin-top: 2px; font-size: 14px; font-weight: 600; color: var(--lp-accent); }
+.lp .ct-more span { display: inline-block; transition: transform .25s var(--lp-ease); }
+.lp .ct-more:hover span { transform: translateX(3px); }
+
+/* ── responsive ── */
+@media (max-width: 1080px) {
+  .lp .ct-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'intro' 'form' 'notes'; grid-template-rows: none; }
+  .lp .ct-notes { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp .ct-blurb, .lp .ct-sent { animation: none; }
+  .lp .ct-check path { animation: none; stroke-dashoffset: 0; }
+}

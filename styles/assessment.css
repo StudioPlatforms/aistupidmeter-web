@@ -1,0 +1,69 @@
+/* ═══════════════════════════════════════════════════════════════════
+   /assessment and /assessment/confirmed in the landing page's look — as-*
+   Layout, type and tokens from landing.css (.lp, .lp-sub); the booking form is
+   the shared landing-forms.css (lf-*). This adds the price, the information
+   column with its timeline, and the form column that stays in view beside it.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.lp .as-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin-top: 28px; }
+.lp .as-price b { font-family: var(--lp-font-disp); font-size: clamp(40px, 3.6vw, 56px); font-weight: 700; letter-spacing: -.04em; line-height: 1; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.lp .as-price span { font-size: 14.5px; color: var(--lp-fg2); }
+.lp-asmt .lp-hero .lp-h1 { font-size: clamp(38px, 4.8vw, 76px); }
+
+/* ── information beside the form ── */
+.lp .as-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 470px); column-gap: clamp(40px, 6vw, 112px); align-items: start; }
+.lp .as-info { display: grid; gap: clamp(44px, 4.6vw, 68px); min-width: 0; }
+.lp .as-block { display: grid; gap: 14px; }
+.lp .as-h { font-size: clamp(26px, 2.4vw, 38px); font-weight: 700; letter-spacing: -.032em; line-height: 1.08; margin-bottom: 8px; text-wrap: balance; }
+.lp .as-list { display: grid; border-top: 1px solid var(--lp-line); }
+.lp .as-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 14px; padding: 17px 0; border-bottom: 1px solid var(--lp-line); font-size: 15.5px; line-height: 1.6; color: var(--lp-fg); }
+.lp .as-ic { width: 22px; height: 22px; margin-top: 1px; color: var(--lp-accent); }
+.lp .as-guarantees .as-ic { color: var(--lp-good); }
+
+/* the four steps: numbered, joined by a line that draws down as the block comes into view */
+.lp .as-steps { display: grid; counter-reset: as-step; }
+.lp .as-steps li { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 18px; padding-bottom: 26px; font-size: 15.5px; line-height: 1.6; color: var(--lp-fg2); }
+.lp .as-steps li:last-child { padding-bottom: 0; }
+.lp .as-steps li::before {
+  counter-increment: as-step; content: counter(as-step);
+  position: relative; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--lp-accent) 40%, var(--lp-line)); background: var(--lp-card);
+  font-family: var(--lp-font-disp); font-size: 16px; font-weight: 700; color: var(--lp-accent);
+}
+.lp .as-steps li:not(:last-child)::after {
+  content: ''; position: absolute; left: 19.5px; top: 40px; bottom: 0; width: 1px; background: var(--lp-line2);
+  transform-origin: 50% 0; transition: transform .7s var(--lp-ease); transition-delay: calc(var(--i, 0) * .14s + .2s);
+}
+.lp .as-steps li:nth-child(2)::after { --i: 1; } .lp .as-steps li:nth-child(3)::after { --i: 2; }
+.lp-js .as-block:not(.is-in) .as-steps li::after { transform: scaleY(0); }
+.lp .as-steps li > span { padding-top: 7px; }
+.lp .as-steps b { font-weight: 600; color: var(--lp-fg); }
+.lp .as-muted { padding: 16px 18px; border-radius: 14px; background: var(--lp-sunk); font-size: 14px; line-height: 1.65; color: var(--lp-fg2); }
+.lp .as-muted a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── the form column: stays in view while the information scrolls past ── */
+.lp .as-form-col { position: sticky; top: calc(56px + 24px); scroll-margin-top: calc(56px + 24px); min-width: 0; }
+.lp .as-num { max-width: 160px; }
+.lp .as-submit { width: 100%; white-space: normal; text-align: center; line-height: 1.3; }
+
+/* ── after payment ── */
+.lp .as-done .lp-wrap { max-width: min(var(--lp-max), 1100px); }
+.lp .as-next { margin-top: 36px; max-width: 780px; padding: clamp(22px, 2.6vw, 34px); border: 1px solid var(--lp-line); border-radius: 20px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); display: grid; gap: 18px; }
+.lp .as-done .lp-lead a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── responsive ── */
+@media (max-width: 1080px) {
+  .lp .as-grid { grid-template-columns: minmax(0, 1fr); row-gap: clamp(40px, 6vw, 56px); }
+  .lp .as-form-col { position: static; }
+}
+@media (max-width: 760px) {
+  .lp .as-list li { font-size: 15px; }
+  .lp .as-steps li { font-size: 15px; grid-template-columns: 36px minmax(0, 1fr); column-gap: 14px; }
+  .lp .as-steps li::before { width: 36px; height: 36px; font-size: 15px; }
+  .lp .as-steps li:not(:last-child)::after { left: 17.5px; top: 36px; }
+  .lp .as-steps li > span { padding-top: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp .as-steps li::after { transition: none; }
+  .lp-js .as-block:not(.is-in) .as-steps li::after { transform: none; }
+}

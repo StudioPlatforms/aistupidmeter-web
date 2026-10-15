@@ -1,5 +1,5 @@
 import { slugifyModelName } from '@/lib/model-slug';
-import type { LandingSnapshot, ProviderHealth, RosterModel } from './types';
+import type { Corpus, LandingSnapshot, PriceSnapshot, ProviderHealth, RosterModel } from './types';
 
 // Absolute URL straight to the API on loopback: a relative path has no origin server-side.
 const API = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
@@ -45,5 +45,43 @@ export async function getModelRoster(): Promise<RosterModel[]> {
       }));
   } catch {
     return [];
+  }
+}
+
+/** What a correct result costs per model, from the test records. null when the API cannot answer. */
+export async function getPriceSnapshot(): Promise<PriceSnapshot | null> {
+  try {
+    const res = await fetch(`${API}/dashboard/price`, { next: { revalidate: 600 }, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.success ? (json as PriceSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Runs, tool-use and reasoning sessions since the first run — the counts the About page shows. */
+export async function getCorpus(): Promise<Corpus | null> {
+  try {
+    const res = await fetch(`${API}/dashboard/enhanced-suites`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const c = (await res.json())?.data?.corpus;
+    return c && Number(c.runs) > 0
+      ? { runs: Number(c.runs) || 0, toolSessions: Number(c.toolSessions) || 0, deepSessions: Number(c.deepSessions) || 0 }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** All-time visits to the site — the figure the leaderboard footer shows. */
+export async function getVisitTotal(): Promise<number | null> {
+  try {
+    const res = await fetch(`${API}/visitors/stats`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const v = Number((await res.json())?.totals?.visits);
+    return Number.isFinite(v) && v > 0 ? v : null;
+  } catch {
+    return null;
   }
 }

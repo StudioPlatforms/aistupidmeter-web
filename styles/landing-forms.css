@@ -1,0 +1,50 @@
+/* ═══════════════════════════════════════════════════════════════════
+   FORMS in the landing page's look — lf-*
+   Shared by the forms on landing-style pages (/contact, /assessment): the raised
+   card, fields, inputs, the inline error and the send button's busy state.
+   Scoped under .lp; tokens from landing.css.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.lp .lf-card {
+  display: grid; gap: 20px; min-width: 0;
+  padding: clamp(22px, 2.6vw, 34px);
+  border: 1px solid var(--lp-line); border-radius: 20px;
+  background: var(--lp-card); box-shadow: var(--lp-shadow-2);
+}
+.lp .lf-card-wait { min-height: 640px; }
+.lp .lf-card h2.lf-title { font-size: clamp(22px, 1.9vw, 28px); font-weight: 700; letter-spacing: -.025em; line-height: 1.15; }
+.lp .lf-field { display: grid; gap: 8px; min-width: 0; }
+.lp .lf-label { font-size: 13.5px; font-weight: 600; line-height: 1.3; color: var(--lp-fg); }
+.lp .lf-req { color: var(--lp-bad); }
+.lp .lf-opt { font-weight: 500; color: var(--lp-fg3); }
+.lp .lf-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+.lp .lf-input {
+  width: 100%; height: 46px; padding: 0 14px; border-radius: 10px;
+  border: 1px solid var(--lp-line2); background: var(--lp-bg); color: var(--lp-fg);
+  font-size: 16px; transition: border-color .2s, box-shadow .2s;
+}
+.lp .lf-input::placeholder { color: var(--lp-fg3); }
+.lp .lf-input:focus { outline: none; border-color: var(--lp-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-accent) 18%, transparent); }
+.lp .lf-area { height: auto; min-height: 172px; padding: 12px 14px; line-height: 1.6; resize: vertical; }
+.lp .lf-count { justify-self: end; margin-top: -2px; font-size: 12px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.lp .lf-count.is-near { color: var(--lp-warn); }
+.lp .lf-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.lp .lf-note {
+  padding: 12px 14px; border-radius: 10px; font-size: 14px; line-height: 1.55;
+  color: var(--lp-bad); background: var(--lp-bad-bg);
+  border: 1px solid color-mix(in srgb, var(--lp-bad) 30%, transparent);
+}
+.lp .lf-note.is-warn { color: var(--lp-warn); background: var(--lp-warn-bg); border-color: color-mix(in srgb, var(--lp-warn) 30%, transparent); }
+.lp .lf-send { justify-self: start; }
+.lp .lf-send:disabled { opacity: .72; cursor: default; }
+.lp .lf-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: lfSpin .8s linear infinite; }
+@keyframes lfSpin { to { transform: rotate(360deg); } }
+.lp .lf-fine { font-size: 13px; line-height: 1.55; color: var(--lp-fg3); }
+.lp .lf-fine a { color: var(--lp-accent); }
+
+@media (max-width: 760px) {
+  .lp .lf-pair { grid-template-columns: minmax(0, 1fr); }
+  .lp .lf-card { border-radius: 16px; gap: 18px; }
+  .lp .lf-send { justify-self: stretch; }
+}

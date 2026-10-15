@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PROVIDER_LABEL } from '../landing/types';
 import { bucketOf, fleetTrend, VOLATILE_STANDARD_ERROR } from '../../lib/fleet-buckets';
 import StatCellDetail, { DetailEntry, type StatCellClasses } from './StatCellDetail';
 import CountUp from '../studio/CountUp';
@@ -11,6 +12,11 @@ interface StatBarProps {
   modelScores: any[];
   driftIncidents?: any[];
 }
+
+/** Names as the boards print them: "Claude Opus 5.5", "Anthropic" — not the API's ids. */
+const modelLabel = (m: any): string => m?.displayName || m?.name || 'unknown model';
+const providerLabel = (p: string | null | undefined): string | null =>
+  p ? PROVIDER_LABEL[p.toLowerCase()] ?? p.charAt(0).toUpperCase() + p.slice(1) : null;
 
 const scoreOf = (m: any): number | null =>
   typeof m?.currentScore === 'number' ? Math.round(m.currentScore) : null;
@@ -60,7 +66,7 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
   // ── The rows each cell reveals ────────────────────────────────────────────
   const rows = (list: any[]): DetailEntry[] =>
-    list.map(m => ({ label: m.name, note: m.provider, value: scoreOf(m) ?? '—' }));
+    list.map(m => ({ label: modelLabel(m), note: providerLabel(m.provider), value: scoreOf(m) ?? '—' }));
 
   const ranked = useMemo(() => [...availableModels].sort(byScoreDesc), [availableModels]);
   const indexEntries: DetailEntry[] = ranked.length
@@ -74,7 +80,7 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
   const unavailable = modelScores.filter(m => !availableModels.includes(m));
   const modelEntries: DetailEntry[] = [
     ...rows(ranked),
-    ...unavailable.map(m => ({ label: m.name, note: m.provider, value: 'no score' })),
+    ...unavailable.map(m => ({ label: modelLabel(m), note: providerLabel(m.provider), value: 'no score' })),
   ];
 
   const providerEntries: DetailEntry[] = useMemo(() => {
@@ -89,12 +95,13 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
     // Array.from, not spread: this project's tsconfig targets pre-ES2015 iteration.
     return Array.from(counts.entries())
       .sort((a, b) => b[1].total - a[1].total)
-      .map(([p, c]) => ({ label: p, note: `${c.scored} scored`, value: c.total }));
+      .map(([p, c]) => ({ label: providerLabel(p) ?? p, note: `${c.scored} scored`, value: c.total }));
   }, [modelScores]);
 
+  const nameOf = useMemo(() => new Map(modelScores.map(m => [m.name, modelLabel(m)])), [modelScores]);
   const incidentEntries: DetailEntry[] = (driftIncidents ?? []).map((i: any) => ({
-    label: i.modelName ?? i.model_name ?? 'unknown model',
-    note: i.provider ?? null,
+    label: nameOf.get(i.modelName ?? i.model_name) ?? i.modelName ?? i.model_name ?? 'unknown model',
+    note: providerLabel(i.provider),
     value: i.severity ?? null,
   }));
 
@@ -105,6 +112,47 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
     onClose: closeAll,
   });
 
+  // Phones: the strip scrolls sideways. A chevron at its right edge says so until the end is in
+  // view, and on the first visit the cells glide a little way left and back once — the one bit
+  // of motion here, so the eight figures read as a row that continues, not as three.
+  const strip = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+  const [nudge, setNudge] = useState(false);
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const update = () => setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let io: IntersectionObserver | undefined;
+    let seen = false;
+    try { seen = sessionStorage.getItem('asl-strip-nudged') === '1'; } catch { /* storage blocked: nudge anyway */ }
+    const phone = window.matchMedia('(max-width: 760px)').matches;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (phone && !reduced && !seen && el.scrollWidth > el.clientWidth + 8 && typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver(([e]) => {
+        if (!e.isIntersecting) return;
+        io?.disconnect();
+        timer = setTimeout(() => {
+          if (el.scrollLeft > 4) return; // already exploring: no need to show them
+          setNudge(true);
+          try { sessionStorage.setItem('asl-strip-nudged', '1'); } catch { /* fine */ }
+          timer = setTimeout(() => setNudge(false), 1300);
+        }, 700);
+      }, { threshold: 0.8 });
+      io.observe(el);
+    }
+    return () => {
+      el.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      io?.disconnect();
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   // Ink at 70 and above (the old "phosphor" colour was the theme's ink), amber from 50, red below;
   // no score at all is a dash, not a warning.
   const indexTone = !globalScore || globalScore >= 70 ? undefined : globalScore >= 50 ? 'warn' : 'bad';
@@ -112,9 +160,12 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
   const incidents = driftIncidents?.length || 0;
 
   return (
-    // The wrapper only draws the phone strip's "more this way" fade; the card is .sb-stats.
-    <div className="sb-stats-wrap">
-    <div className="sb-stats" role="group" aria-label="Fleet summary">
+    // The wrapper only draws the phone strip's "more this way" fade and chevron; the card is .sb-stats.
+    <div className={`sb-stats-wrap${atEnd ? ' is-end' : ''}`}>
+    <span className="sb-stats-more" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="14" height="14"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+    </span>
+    <div className={`sb-stats${nudge ? ' is-nudge' : ''}`} role="group" aria-label="Fleet summary" ref={strip}>
       <StatCellDetail
         id="stat-index"
         className={cellClass(indexTone as 'warn' | 'bad' | undefined)}

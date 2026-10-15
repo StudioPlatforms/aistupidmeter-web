@@ -261,18 +261,28 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
   const X = [18, 54, 90, 126];
   const yOf = (rank: number) => +(5 + ((rank - 1) / (maxRank - 1)) * 30).toFixed(1);
 
+  // The group is the Combined board's own bucket, as on the desktop columns. A community-funded
+  // model whose funded runs fall inside the period has a combined score and is ranked like any
+  // other; testing `community.length` put a "Community-funded" heading above each such row,
+  // wherever it ranked, so the heading repeated with non-community models between.
+  const bucket = new Map<string, Group>();
+  boards.combined.community.forEach((r) => bucket.set(r.id, 'community'));
+  boards.combined.other.forEach((r) => bucket.set(r.id, 'other'));
+
   const rows = everyone.map((m) => {
+    const group: Group = bucket.get(m.id) ?? 'ranked';
     const cells = BOARD_KEYS.map((k) => {
       const r = boards[k].ranked.find((x) => x.id === m.id);
       if (r) return { label: r.rankText, rank: r.rank as number };
       const c = boards[k].community.find((x) => x.id === m.id);
       return { label: c && k !== 'combined' ? (c.when || '—') : '—', rank: null as number | null };
     });
-    const isCommunity = m.community.length > 0;
+    const isCommunity = group === 'community';
     const pts = cells.map((c, i) => (c.rank ? { x: X[i], y: yOf(c.rank) } : null));
     const present = pts.filter(Boolean) as { x: number; y: number }[];
     return {
       m,
+      group,
       // A community row has one rank (coding); saying so is shorter and clearer than "— · =2 · 24 Sep · 24 Sep".
       sub: isCommunity
         ? `coding ${cells[1].rank ? cells[1].label : '—'}${cells[2].label !== '—' ? ` · ${cells[2].label}` : ''}`
@@ -280,14 +290,14 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
       line: present.length > 1 ? present.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ') : '',
       dots: present.map((p) => `M${p.x} ${p.y}h0`).join(' '),
       gaps: pts.map((p, i) => (p ? '' : `M${X[i]} 35h0`)).join(' '),
-      muted: m.community.length > 0 || cells[0].rank === null,
+      muted: group !== 'ranked',
     };
   });
 
-  // A heading wherever the group changes: the community-funded models first, then any other
-  // model without a combined rank (one added recently and not yet run on every suite). A
-  // single heading at the first unranked row put those under "Community-funded" too.
-  const groupOf = (r: (typeof rows)[number]) => (r.m.community.length ? 'community' : r.muted ? 'other' : 'ranked');
+  // A heading wherever the group changes: the community-funded models without a combined rank
+  // first, then any other model without one (added recently, not yet run on every suite).
+  // `everyone` is ranked, then community, then other, so each heading appears once.
+  const groupOf = (r: (typeof rows)[number]) => r.group;
   const list = useFlip<HTMLDivElement>([rows.map((r) => r.m.id).join(',')]);
 
   return (

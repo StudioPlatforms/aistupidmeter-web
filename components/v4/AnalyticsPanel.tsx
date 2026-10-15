@@ -1,6 +1,6 @@
 'use client';
 
-import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
+import { routerPrice } from '@/lib/pricing-display';
 
 
 import React from 'react';
@@ -404,8 +404,8 @@ export default function AnalyticsPanel({
           across every provider you already pay for.
         </span>
         <span className="sl-cta-price">
-          <b>{annualMonthly(ROUTER_PLAN)}</b>
-          <small>billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}</small>
+          <b>{routerPrice().price}</b>
+          <small>{routerPrice().plan} · {routerPrice().free}</small>
         </span>
       </Link>
     </div>

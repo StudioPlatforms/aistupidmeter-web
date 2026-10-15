@@ -15,8 +15,18 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { lpBody, lpDisplay } from '../../lib/fonts';
 // The popover's look (sb-pop-*); also loaded on the drift monitor, which shares this component.
 import '../../styles/studio-board.css';
+
+/**
+ * Phones: the strip scrolls sideways, so the detail opens as a sheet above the bottom bar, and it is
+ * rendered at the end of <body>. Inside the strip it was a fixed element in a scrolling container,
+ * which Safari on iPhone clips to that container — a tap opened nothing visible — and it shared the
+ * cell's stacking layer, so the floating Share button covered its corner.
+ */
+const SHEET_QUERY = '(max-width: 760px)';
 
 export interface DetailEntry {
   label: string;
@@ -77,8 +87,18 @@ export default function StatCellDetail({
     more: classes?.more ?? 'v4-stat-more',
   };
   const ref = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
   const [flip, setFlip] = useState(false);
+  const [sheet, setSheet] = useState(false);
   const interactive = !!entries || !!emptyText;
+
+  useEffect(() => {
+    const mq = window.matchMedia(SHEET_QUERY);
+    const on = () => setSheet(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
 
   // Keep the panel on screen: if it would overflow the right edge, anchor it to the right.
   useEffect(() => {
@@ -91,7 +111,10 @@ export default function StatCellDetail({
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     const onOutside = (e: PointerEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      const t = e.target as Node;
+      // The sheet is not inside the cell (it is portalled), so a touch on it is not "outside".
+      if (ref.current?.contains(t) || popRef.current?.contains(t)) return;
+      onClose();
     };
     document.addEventListener('keydown', onKey);
     document.addEventListener('pointerdown', onOutside);
@@ -104,56 +127,68 @@ export default function StatCellDetail({
   const shown = entries?.slice(0, MAX_ROWS) ?? [];
   const more = (entries?.length ?? 0) - shown.length;
 
-  return (
+  const panel = interactive && open ? (
     <div
-      ref={ref}
-      className={`${className}${interactive ? ' v4-stat-has-detail' : ''}${open ? ' is-open' : ''}`}
-      title={title}
-      onPointerEnter={e => { if (interactive && e.pointerType === 'mouse') onHover(true); }}
-      onPointerLeave={e => { if (interactive && e.pointerType === 'mouse') onHover(false); }}
-      onClick={() => { if (interactive) onToggle(); }}
-      onKeyDown={e => {
-        if (!interactive) return;
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); }
-      }}
-      tabIndex={interactive ? 0 : undefined}
-      role={interactive ? 'button' : undefined}
-      aria-expanded={interactive ? open : undefined}
-      aria-controls={interactive ? `${id}-detail` : undefined}
+      ref={popRef}
+      id={`${id}-detail`}
+      className={`sb-pop${flip && !sheet ? ' is-flipped' : ''}${sheet ? ` is-sheet st-tokens ${lpBody.variable} ${lpDisplay.variable}` : ''}`}
+      role="dialog"
+      aria-label={`${label} detail`}
+      onClick={e => e.stopPropagation()}
     >
-      {valueFirst && <div className={cls.value}>{value}</div>}
-      <div className={cls.label}>
-        {label}
-        {interactive && <span className={cls.more} aria-hidden="true">·</span>}
-      </div>
-      {!valueFirst && <div className={cls.value}>{value}</div>}
-      {detail != null && <div className={cls.detail}>{detail}</div>}
-
-      {interactive && open && (
-        <div
-          id={`${id}-detail`}
-          className={`sb-pop${flip ? ' is-flipped' : ''}`}
-          role="dialog"
-          aria-label={`${label} detail`}
-          onClick={e => e.stopPropagation()}
-        >
-          {caption && <div className="sb-pop-cap">{caption}</div>}
-          {shown.length > 0 ? (
-            <ul className="sb-pop-list">
-              {shown.map((e, i) => (
-                <li key={`${e.label}-${i}`}>
-                  <span className="sb-pop-name">{e.label}</span>
-                  {e.note && <span className="sb-pop-note">{e.note}</span>}
-                  {e.value != null && e.value !== '' && <span className="sb-pop-val">{e.value}</span>}
-                </li>
-              ))}
-              {more > 0 && <li className="sb-pop-more">+{more} more</li>}
-            </ul>
-          ) : (
-            <div className="sb-pop-empty">{emptyText}</div>
-          )}
+      {sheet && (
+        <div className="sb-pop-head">
+          <b>{label}</b>
+          <button type="button" className="sb-pop-x" aria-label="Close" onClick={onClose}>×</button>
         </div>
       )}
+      {caption && <div className="sb-pop-cap">{caption}</div>}
+      {shown.length > 0 ? (
+        <ul className="sb-pop-list">
+          {shown.map((e, i) => (
+            <li key={`${e.label}-${i}`}>
+              <span className="sb-pop-name">{e.label}</span>
+              {e.note && <span className="sb-pop-note">{e.note}</span>}
+              {e.value != null && e.value !== '' && <span className="sb-pop-val">{e.value}</span>}
+            </li>
+          ))}
+          {more > 0 && <li className="sb-pop-more">+{more} more</li>}
+        </ul>
+      ) : (
+        <div className="sb-pop-empty">{emptyText}</div>
+      )}
     </div>
+  ) : null;
+
+  return (
+    <>
+      <div
+        ref={ref}
+        className={`${className}${interactive ? ' v4-stat-has-detail' : ''}${open ? ' is-open' : ''}`}
+        title={title}
+        onPointerEnter={e => { if (interactive && e.pointerType === 'mouse') onHover(true); }}
+        onPointerLeave={e => { if (interactive && e.pointerType === 'mouse') onHover(false); }}
+        onClick={() => { if (interactive) onToggle(); }}
+        onKeyDown={e => {
+          if (!interactive) return;
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); }
+        }}
+        tabIndex={interactive ? 0 : undefined}
+        role={interactive ? 'button' : undefined}
+        aria-expanded={interactive ? open : undefined}
+        aria-controls={interactive ? `${id}-detail` : undefined}
+      >
+        {valueFirst && <div className={cls.value}>{value}</div>}
+        <div className={cls.label}>
+          {label}
+          {interactive && <span className={cls.more} aria-hidden="true">·</span>}
+        </div>
+        {!valueFirst && <div className={cls.value}>{value}</div>}
+        {detail != null && <div className={cls.detail}>{detail}</div>}
+
+        {!sheet && panel}
+      </div>
+      {sheet && panel && createPortal(panel, document.body)}
+    </>
   );
 }

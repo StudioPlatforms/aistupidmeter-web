@@ -77,6 +77,21 @@ export const fromMonthly = (plan: Plan): string => `from ${monthly(plan)}`;
 export const planName = (plan: Plan): string =>
   plan === 'legacy_pro' ? 'Pro' : PLANS[plan].label;
 
+/**
+ * The Smart Router cards' price, from the plan table. Routing is in every plan, so a card quotes
+ * where paid routing starts (Pro's monthly list price and allowance) and what Free already
+ * includes. Until 2026-10-15 the cards quoted Developer's annual rate per month ("$20.83/mo billed
+ * annually") without naming the plan — a figure none of the plan prices read as.
+ */
+export const routerPrice = (): { price: string; plan: string; free: string } => {
+  const n = (x: number) => x.toLocaleString('en-US');
+  return {
+    price: fromMonthly(ENTRY_PAID_PLAN),
+    plan: `${planName(ENTRY_PAID_PLAN)}, ${n(PLANS[ENTRY_PAID_PLAN].routerRequestsPerMonth)} requests a month`,
+    free: `Free includes ${n(PLANS.free.routerRequestsPerMonth)}`,
+  };
+};
+
 /** Bare number for structured data, which must not carry a currency symbol. */
 export const priceNumber = (plan: Plan): string =>
   PLANS[plan].priceMonthly === null ? '0' : String(PLANS[plan].priceMonthly);

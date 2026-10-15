@@ -11,10 +11,10 @@ function toggleTheme() {
 }
 
 const LINKS = [
-  ['#router', 'Smart Router'],
-  ['#benchmarks', 'Benchmarks'],
+  ['#price', 'Compare models'],
   ['#drift', 'Drift'],
-  ['#status', 'Status'],
+  ['#router', 'Smart Router'],
+  ['#assessment', 'For business'],
   ['#pricing', 'Pricing'],
   ['/methodology', 'Methodology'],
 ] as const;

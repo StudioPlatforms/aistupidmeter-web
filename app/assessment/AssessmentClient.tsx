@@ -5,16 +5,16 @@ import { useSession } from 'next-auth/react';
 import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
 
 /**
- * The assessment offer and its booking form.
+ * The assessment booking form (the offer around it is app/assessment/page.tsx).
  *
- * States exactly what is included, what happens after payment, and the two refund conditions —
- * a fixed-scope first purchase only works if nothing about it is vague. Submitting stores the
- * request and continues to Stripe Checkout (lib/assessment.ts).
+ * Submitting stores the request and continues to Stripe Checkout (lib/assessment.ts). Styled by
+ * the shared landing forms (styles/landing-forms.css, lf-*).
  */
 export default function AssessmentClient({ cancelled }: { cancelled: boolean }) {
   const { data: session } = useSession();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sessionEmail = session?.user?.email ?? '';
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,88 +38,47 @@ export default function AssessmentClient({ cancelled }: { cancelled: boolean }) 
   };
 
   return (
-    <div className="doc">
-      <header className="doc-head">
-        <div className="doc-kicker">Workload assessment</div>
-        <h1>Is the model you chose still the right one?</h1>
-        <p className="doc-lead">
-          A fixed-scope assessment of one workload against three candidate models, using your tasks rather than
-          ours. You get a decision report within seven business days of us having what we need — including, where
-          the evidence supports it, a recommendation to change nothing.
-        </p>
-      </header>
+    <form onSubmit={submit} className="lf-card as-form lp-up">
+      <h2 className="lf-title">Book your assessment</h2>
+      {cancelled && (
+        <p className="lf-note is-warn">Payment was not completed, so nothing was charged. You can book again below whenever you are ready.</p>
+      )}
 
-      <div className="asmt">
-        <div className="asmt-info doc-prose">
-          <p className="asmt-price"><b>{ASSESSMENT_PRICE_LABEL}</b> <span>one-off, fixed scope · USD, excluding any applicable tax</span></p>
-
-          <h3>What is included</h3>
-          <ul>
-            <li>One workload, up to 20 tasks you supply, with the answer keys held out of the prompts</li>
-            <li>Three candidate models, up to 1,000 standard execution units, several trials per task</li>
-            <li>Two hours of expert time, and a concise decision report</li>
-          </ul>
-
-          <h3>How it works</h3>
-          <ol>
-            <li><b>Book and pay</b> below. Payment is by card through Stripe, and an invoice with your company details is issued automatically.</li>
-            <li><b>We confirm the scope within two business days</b> — the tasks, the three models and what “good” means for your workload.</li>
-            <li><b>You send your tasks.</b> We build the suite and run it repeatedly against the candidates.</li>
-            <li><b>You get the report</b> within seven business days of us having your tasks.</li>
-          </ol>
-
-          <h3>Guarantees</h3>
-          <ul>
-            <li>If, once we have read your workload, we cannot measure it, we refund the full amount before any work starts.</li>
-            <li>If we cannot deliver the agreed report, we refund in full.</li>
-            <li>The full amount is credited against an annual plan bought within 30 days, up to that plan’s price — with Teams, the year costs nothing extra.</li>
-          </ul>
-          <p className="doc-muted">
-            Provider inference is billed to your own API keys under a cap you agree first, so the cost of running
-            the models is never hidden in our price. Your tasks stay yours: never published, never added to the
-            public benchmark.
-          </p>
-        </div>
-
-        <div className="asmt-form-col">
-          {cancelled && (
-            <p className="asmt-notice">Payment was not completed, so nothing was charged. You can book again below whenever you are ready.</p>
-          )}
-          <form onSubmit={submit} className="asmt-form">
-            <h2>Book your assessment</h2>
-            <label>
-              Your email
-              <input name="email" type="email" required defaultValue={session?.user?.email ?? ''} placeholder="you@company.com" />
-            </label>
-            <label>
-              Company <span>(optional)</span>
-              <input name="company" maxLength={200} />
-            </label>
-            <label>
-              What decision do you need to make?
-              <textarea name="workload" required rows={5} maxLength={4000}
-                placeholder="e.g. We use Claude Sonnet for support-ticket triage and are considering moving to a cheaper model. We need to know whether quality would hold." />
-            </label>
-            <label>
-              Candidate models <span>(optional)</span>
-              <input name="models" maxLength={500} placeholder="claude-sonnet-5, gpt-5.6-terra, deepseek-v4-pro" />
-            </label>
-            <label>
-              Roughly how many tasks? <span>(optional, up to 20)</span>
-              <input name="taskCount" type="number" min={1} max={20} />
-            </label>
-
-            {error && <p className="asmt-error" role="alert">{error}</p>}
-
-            <button type="submit" disabled={busy} className="doc-btn is-primary asmt-submit">
-              {busy ? 'Opening secure checkout…' : `Continue to secure payment — ${ASSESSMENT_PRICE_LABEL}`}
-            </button>
-            <p className="asmt-fine">
-              You will be taken to Stripe to pay. Questions first? <a href="/contact?topic=sales">Contact us</a>.
-            </p>
-          </form>
-        </div>
+      <div className="lf-field">
+        <label className="lf-label" htmlFor="as-email">Your email <span className="lf-req" aria-hidden="true">*</span></label>
+        {/* Keyed by the session's address: the session usually arrives after the first render, and
+            an uncontrolled field only reads its default once. */}
+        <input key={sessionEmail || 'anon'} id="as-email" name="email" type="email" required className="lf-input"
+          defaultValue={sessionEmail} placeholder="you@company.com" autoComplete="email" />
       </div>
-    </div>
+      <div className="lf-field">
+        <label className="lf-label" htmlFor="as-company">Company <span className="lf-opt">(optional)</span></label>
+        <input id="as-company" name="company" maxLength={200} className="lf-input" autoComplete="organization" />
+      </div>
+      <div className="lf-field">
+        <label className="lf-label" htmlFor="as-workload">What decision do you need to make? <span className="lf-req" aria-hidden="true">*</span></label>
+        <textarea id="as-workload" name="workload" required rows={5} maxLength={4000} className="lf-input lf-area"
+          placeholder="e.g. We use Claude Sonnet for support-ticket triage and are considering moving to a cheaper model. We need to know whether quality would hold." />
+      </div>
+      <div className="lf-field">
+        <label className="lf-label" htmlFor="as-models">Candidate models <span className="lf-opt">(optional)</span></label>
+        <input id="as-models" name="models" maxLength={500} className="lf-input" placeholder="claude-sonnet-5, gpt-5.6-terra, deepseek-v4-pro" />
+      </div>
+      <div className="lf-field">
+        <label className="lf-label" htmlFor="as-tasks">Roughly how many tasks? <span className="lf-opt">(optional, up to 20)</span></label>
+        <input id="as-tasks" name="taskCount" type="number" min={1} max={20} className="lf-input as-num" inputMode="numeric" />
+      </div>
+
+      {error && <p className="lf-note" role="alert">{error}</p>}
+
+      <button type="submit" disabled={busy} className="lp-btn lp-btn-primary lp-btn-lg lf-send as-submit">
+        {busy
+          ? <><span className="lf-spin" aria-hidden="true" />Opening secure checkout…</>
+          : <>Continue to secure payment — {ASSESSMENT_PRICE_LABEL}</>}
+      </button>
+      <p className="lf-fine">
+        You will be taken to Stripe to pay. Questions first? <a href="/contact?topic=sales">Contact us</a>.
+      </p>
+    </form>
   );
 }

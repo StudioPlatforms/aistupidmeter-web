@@ -172,6 +172,11 @@
   .sb-pop, .sb-pop.is-flipped { position: fixed; z-index: 140; left: 12px; right: 12px; top: auto; bottom: calc(56px + 12px + env(safe-area-inset-bottom, 0px));
     width: auto; max-width: none; max-height: min(60vh, 440px); overflow-y: auto; padding: 14px 16px 12px; border-radius: 16px; animation: sbLift .24s var(--lp-ease, ease) both; }
   .sb-pop-list li { padding: 7px 0; font-size: 14px; }
+  /* the sheet (StatCellDetail renders it at the end of <body> on phones) says what it is and closes */
+  .sb-pop-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+  .sb-pop-head b { font-size: 15px; font-weight: 600; color: var(--lp-fg, var(--phosphor-green)); }
+  .sb-pop-x { flex: none; display: grid; place-items: center; width: 32px; height: 32px; margin: -4px -6px -4px 0; padding: 0; border-radius: 999px;
+    border: 1px solid var(--lp-line, var(--metal-silver)); background: transparent; color: var(--lp-fg2, var(--phosphor-dim)); font-size: 19px; line-height: 1; cursor: pointer; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -229,6 +234,8 @@
 .st .sb-trend.is-good { font-weight: 600; color: var(--lp-good); }
 .st .sb-trend.is-bad { font-weight: 600; color: var(--lp-bad); }
 .st .sb-stats-wrap { position: relative; min-width: 0; }
+.st .sb-stats-more { display: none; }
+@keyframes sbNudge { 0% { transform: none; } 45% { transform: translateX(-68px); } 100% { transform: none; } }
 
 @media (min-width: 761px) and (max-width: 1180px) {
   .st .sb-stats { --n: 4; }
@@ -245,6 +252,15 @@
   .st .sb-stats-wrap::after { content: ''; position: absolute; top: 1px; right: 1px; bottom: 1px; width: 36px; border-radius: 0 15px 15px 0; pointer-events: none;
     background: linear-gradient(90deg, color-mix(in srgb, var(--lp-card) 0%, transparent), var(--lp-card) 85%); }
   .st .sb-stats::-webkit-scrollbar { display: none; }
+  /* "more this way": the fade and a chevron, both gone once the last figure is in view (StatBar) */
+  .st .sb-stats-wrap::after { transition: opacity .25s; }
+  .st .sb-stats-wrap.is-end::after { opacity: 0; }
+  .st .sb-stats-more { position: absolute; z-index: 2; top: 50%; right: 7px; display: grid; place-items: center; width: 26px; height: 26px; margin-top: -13px; border-radius: 50%;
+    border: 1px solid var(--lp-line); background: var(--lp-card); color: var(--lp-fg2); box-shadow: var(--lp-shadow-1); pointer-events: none;
+    transition: opacity .25s, transform .25s var(--lp-ease); }
+  .st .sb-stats-wrap.is-end .sb-stats-more { opacity: 0; transform: translateX(6px); }
+  /* the first visit's one glide left and back (StatBar sets is-nudge once; never with reduced motion) */
+  .st .sb-stats.is-nudge > * { animation: sbNudge 1.2s var(--lp-ease) both; }
   .st .sb-stat { flex: 0 0 auto; min-width: 132px; padding: 14px 18px 13px 16px; scroll-snap-align: start; }
   .st .sb-stat:first-child { border-radius: 15px 0 0 15px; }
   .st .sb-stat:last-child { border-radius: 0 15px 15px 0; }

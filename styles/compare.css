@@ -1,0 +1,78 @@
+/* ═══════════════════════════════════════════════════════════════════
+   /compare in the landing page's look — cp-*
+   Bands, type and tokens from landing.css (.lp, .lp-sub); the weights table,
+   ticks and closing band from reading.css. This adds the families beside the
+   hero, the five categories, and the family sheets with the live model lists.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.lp .cp-kicker { margin-bottom: 22px; }
+
+/* ── the families we track, beside the hero ── */
+.lp .cp-provs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--lp-line); }
+.lp .cp-provs li { display: flex; align-items: center; gap: 14px; padding: 18px 12px 18px 0; border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.lp .cp-provs li:nth-child(even) { padding-left: 20px; border-left: 1px solid var(--lp-line); }
+.lp .cp-provs .lp-lgc { width: 42px; height: 42px; border-radius: 11px; }
+.lp .cp-provs .lp-lgc img { width: 22px; height: 22px; }
+.lp .cp-provs b { display: block; font-family: var(--lp-font-disp); font-size: 16.5px; font-weight: 600; letter-spacing: -.01em; color: var(--lp-fg); }
+.lp .cp-provs small { display: block; margin-top: 2px; font-size: 13px; color: var(--lp-fg2); }
+
+/* ── five categories, each pointing at its live answer ── */
+.lp .cp-leaders { border-top: 1px solid var(--lp-line); }
+.lp .cp-leaders li {
+  display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; align-items: center; column-gap: clamp(20px, 3vw, 48px);
+  padding: 26px 0; border-bottom: 1px solid var(--lp-line);
+}
+.lp .cp-n { font-family: var(--lp-font-disp); font-size: clamp(30px, 2.6vw, 42px); font-weight: 700; letter-spacing: -.04em; line-height: 1; color: var(--lp-line2); font-variant-numeric: tabular-nums; transition: color .3s; }
+.lp .cp-leaders li:hover .cp-n { color: var(--lp-accent); }
+.lp .cp-leaders h3 { font-size: clamp(19px, 1.5vw, 23px); font-weight: 600; letter-spacing: -.015em; line-height: 1.25; }
+.lp .cp-leaders p { margin-top: 6px; max-width: 70ch; font-size: 15px; line-height: 1.6; color: var(--lp-fg2); }
+.lp .cp-go { display: grid; justify-items: end; gap: 6px; white-space: nowrap; }
+.lp .cp-how { font-size: 13.5px; color: var(--lp-fg3); }
+.lp .cp-how:hover { color: var(--lp-fg); }
+
+/* ── the families: ruled sheets, three to a row ── */
+.lp .cp-fams { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--lp-line); }
+.lp .cp-fam { display: grid; align-content: start; gap: 18px; padding: 30px 30px 34px 0; border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.lp .cp-fam:not(:nth-child(3n+1)) { padding-left: 30px; border-left: 1px solid var(--lp-line); }
+.lp .cp-fam header { display: flex; align-items: center; gap: 14px; }
+.lp .cp-fam .lp-lgc { width: 42px; height: 42px; border-radius: 11px; }
+.lp .cp-fam .lp-lgc img { width: 22px; height: 22px; }
+.lp .cp-fam h3 { font-size: clamp(19px, 1.5vw, 23px); font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+.lp .cp-fam dl { display: grid; gap: 12px; }
+.lp .cp-fam dt { font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.lp .cp-fam dd { margin: 2px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--lp-fg2); }
+.lp .cp-fam .is-note { display: grid; gap: 3px; }
+.lp .cp-fam .is-note dt { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--lp-fg3); line-height: 1.5; }
+.lp .cp-fam .is-note dd { margin: 0; font-size: 14px; color: var(--lp-fg); }
+.lp .cp-tracked { display: grid; gap: 10px; padding-top: 16px; border-top: 1px dashed var(--lp-line2); }
+.lp .cp-tracked > p { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--lp-fg3); }
+.lp .cp-tracked .rd-tags a { height: 30px; padding: 0 11px; font-size: 13px; }
+
+/* ── transparency ── */
+.lp .cp-h { font-size: clamp(26px, 2.3vw, 36px); font-weight: 700; letter-spacing: -.03em; margin-top: 16px; }
+.lp .cp-read { margin-top: 18px; max-width: 56ch; font-size: 15px; line-height: 1.7; color: var(--lp-fg2); }
+.lp .cp-read a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .lp-two .rd-ticks { margin-top: 0; }
+
+/* ── responsive ── */
+@media (max-width: 1180px) {
+  .lp .cp-provs { margin-top: 44px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lp .cp-provs li:nth-child(even) { padding-left: 0; border-left: 0; }
+  .lp .cp-provs li:not(:nth-child(3n+1)) { padding-left: 18px; border-left: 1px solid var(--lp-line); }
+  .lp .cp-fams { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lp .cp-fam:not(:nth-child(3n+1)) { padding-left: 0; border-left: 0; }
+  .lp .cp-fam:nth-child(even) { padding-left: 28px; border-left: 1px solid var(--lp-line); }
+}
+@media (max-width: 760px) {
+  .lp .cp-provs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lp .cp-provs li:not(:nth-child(3n+1)) { padding-left: 0; border-left: 0; }
+  .lp .cp-provs li:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--lp-line); }
+  .lp .cp-provs li { gap: 10px; padding-block: 14px; }
+  .lp .cp-provs .lp-lgc { width: 34px; height: 34px; }
+  .lp .cp-provs .lp-lgc img { width: 18px; height: 18px; }
+  .lp .cp-provs b { font-size: 14.5px; }
+  .lp .cp-leaders li { grid-template-columns: 44px minmax(0, 1fr); row-gap: 12px; padding: 20px 0; align-items: start; }
+  .lp .cp-go { grid-column: 2; justify-items: start; }
+  .lp .cp-fams { grid-template-columns: minmax(0, 1fr); }
+  .lp .cp-fam, .lp .cp-fam:nth-child(even) { padding: 24px 0 26px; border-left: 0; }
+}

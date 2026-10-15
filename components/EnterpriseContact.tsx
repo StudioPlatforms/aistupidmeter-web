@@ -26,8 +26,9 @@ function address(): string {
 const SUBJECT = 'AIStupidLevel Data API — Enterprise access';
 
 interface Props {
-  /** 'button' for a standalone CTA, 'inline' to sit inside a table cell. */
-  variant?: 'button' | 'inline';
+  /** 'button' for a standalone CTA, 'inline' to sit inside a table cell, 'landing' for a page in the
+   *  landing page's look (styled by its classes instead of inline styles). */
+  variant?: 'button' | 'inline' | 'landing';
   label?: string;
 }
 
@@ -50,6 +51,23 @@ export default function EnterpriseContact({ variant = 'button', label = 'Contact
       // Clipboard blocked — the address is on screen at this point anyway.
     }
   };
+
+  if (variant === 'landing') {
+    return (
+      <span className="ec-mail">
+        <button type="button" onClick={open} className="lp-btn lp-btn-primary" aria-label="Email us about Enterprise access">
+          <MailIcon />
+          {label}
+        </button>
+        {revealed && (
+          <span className="ec-to">
+            <span className="ec-addr">{revealed}</span>
+            <button type="button" onClick={copy} className="lp-btn lp-btn-ghost">{copied ? 'Copied' : 'Copy address'}</button>
+          </span>
+        )}
+      </span>
+    );
+  }
 
   const isInline = variant === 'inline';
 

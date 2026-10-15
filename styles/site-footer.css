@@ -1,5 +1,14 @@
 /* The site footer (components/SiteFooter.tsx) is rendered once by the root layout and styled by
-   the original .v4-footer rules in v4-layout.css / clean-theme.css. This file only hides it while
-   a page is showing its full-screen loading state (marked data-page-loading), where a footer under
-   a loading panel reads as a finished, empty page. */
+   the original .v4-footer rules in v4-layout.css / clean-theme.css. This file hides it while a page
+   is showing its full-screen loading state (marked data-page-loading), where a footer under a
+   loading panel reads as a finished, empty page, and keeps it at the bottom of the window. */
 body:has([data-page-loading]) .site-footer { display: none; }
+
+/* The footer stays at the bottom of the window on a page shorter than the window. The page itself
+   is wrapped in one .site-main (app/layout.tsx), so this flex column has two items and every page's
+   own layout inside the wrapper is untouched: a centred, max-width page root directly under a flex
+   body would shrink to its content instead. */
+body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.site-main { flex: 1 0 auto; }
+.site-footer { flex-shrink: 0; }
+

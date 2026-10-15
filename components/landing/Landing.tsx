@@ -6,8 +6,9 @@ import { darkDefaultScript } from '@/lib/theme-config';
 import DarkDefault from '@/components/DarkDefault';
 import { priceIdFor, type SellablePlan } from '@/lib/stripe-plans';
 import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
-import { getLandingSnapshot, getModelRoster, getProviderHealth } from './data';
-import { PROVIDER_LABEL, compactHealth } from './types';
+import { getCorpus, getLandingSnapshot, getModelRoster, getPriceSnapshot, getProviderHealth, getVisitTotal } from './data';
+import { PROVIDER_LABEL, compactHealth, type PriceSnapshot } from './types';
+import { dayRange, duration, logoFor, pct, per1k, times } from './price-format';
 import LandingNav from './LandingNav';
 import RouterDemo, { type DemoScenario } from './RouterDemo';
 import RouterExplorer from './RouterExplorer';
@@ -17,12 +18,16 @@ import StatusBoard from './StatusBoard';
 import PricingPlans from './PricingPlans';
 import ConsentBar from './ConsentBar';
 import LandingEffects from './LandingEffects';
+import PriceFinding from './PriceFinding';
+import RealPrice from './RealPrice';
 
 const SITE = 'https://aistupidlevel.info';
 const SIGN_IN = '/auth/signin?callbackUrl=%2F';
 const SIGN_UP = '/auth/signup?callbackUrl=%2F';
 const SIGN_UP_ROUTER = '/auth/signup?callbackUrl=%2Frouter';
 const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
+/** The first benchmark run, 8 August 2025. */
+const FIRST_RUN = Date.UTC(2025, 7, 8);
 
 /** The demo's requests are examples; each one's ranking and pick come from the live router. */
 const DEMO: Array<{ id: string; q: string; meta: string; key: string }> = [
@@ -34,15 +39,32 @@ const DEMO: Array<{ id: string; q: string; meta: string; key: string }> = [
   { id: 'auto-value-coding', q: 'Write unit tests for parseDate()', meta: 'code', key: 'best_value_coding' },
 ];
 
+/**
+ * Changes the test record shows, newest first. Re-derived from the runs on 2026-10-15: the same
+ * tasks before and after each date, means per run (api: the 12-month observability analysis).
+ */
+const CHANGES: Array<{ when: string; model: string; big: string; cap: string; text: string }> = [
+  { when: '12 Aug 2026', model: 'DeepSeek V4 Pro', big: '2×', cap: 'longer answers',
+    text: 'A new build overnight. Answers twice as long (728 → 1,478 tokens) and 72% slower, under the same model name.' },
+  { when: '31 Jul 2026', model: 'DeepSeek V4 Flash', big: '2×', cap: 'cost per correct answer',
+    text: 'A new build overnight. Answers twice as long (510 → 1,045 tokens), 64% slower, and each correct answer cost almost twice as much at the same price per token.' },
+  { when: 'March 2026', model: 'GLM-4.6', big: '−6 pts', cap: 'pass rate',
+    text: 'Answers about a quarter longer (907 → 1,149 tokens), and its pass rate on the same tasks fell from 94% to 87%.' },
+];
+
 const FAQ: Array<[string, string]> = [
   ['Are AI models really getting worse over time?',
     'Sometimes — and usually without notice. Providers change weights, safety layers and serving infrastructure behind the same model name. AI Stupid Level re-runs the same tasks on every model on a fixed schedule and compares each one with its own history, so a drop shows up as data instead of a hunch.'],
   ['Is ChatGPT getting worse? Is Claude getting worse?',
     'Check the live scores. Every OpenAI and Anthropic model we track is re-tested on coding every 4 hours and on reasoning and tool use every day, and a model is flagged only when a change holds up statistically — not after one bad run.'],
+  ['What does “cost per correct fix” mean?',
+    'What we paid the provider, at its list price, for every attempt at a task, divided by the attempts that passed the hidden tests. A model that is cheap per token but fails often can cost more per correct result than a pricier one that gets it right, so this is the number that tells you what the work really costs.'],
   ['Which AI model is best for coding right now?',
     'It changes, which is the point. The leaderboard ranks every model we track on real repository bug fixes every 4 hours, and the router’s auto-coding mode sends your request to the current leader among the models you have keys for.'],
   ['How is the Smart Router different from other LLM routers?',
     'It routes on measured quality, not just price and uptime. Rankings come from our own continuous benchmarks, drift-flagged models drop behind healthy ones, and every response explains its pick in an X-AISM-Reasoning header. You keep your own provider keys and pay providers directly.'],
+  ['Can you test the models on our own tasks?',
+    'Yes. A workload assessment runs up to 20 of your real tasks on three models in our harness, with a report in 7 days. Our team can also build a custom benchmark around your workflow, run it continuously alongside our public suites, and connect it to your Smart Router, so your requests keep going to the model that is best on your work.'],
   ['Do you mark up tokens or resell inference?',
     'No. Requests are sent with your own provider keys and billed to you by the provider at their list price. Plans include a monthly number of routed requests; past that you can top up credits or move up a plan.'],
   ['Which providers and models do you cover?',
@@ -55,8 +77,60 @@ const FAQ: Array<[string, string]> = [
 const up = (d?: string, cls = ''): { className: string; style?: CSSProperties } =>
   ({ className: `${cls} lp-up`.trim(), ...(d ? { style: { '--d': d } as CSSProperties } : {}) });
 
+/** The router's selling points: in the hero when there is no measured finding to show, else in the router section. */
+function RouterFacts({ className = '', style }: { className?: string; style?: CSSProperties }) {
+  return (
+    <dl className={`lp-facts ${className}`.trim()} style={style}>
+      <div><dt>0%</dt><dd>markup on tokens. Providers bill you directly, at their own list price.</dd></div>
+      <div><dt>15</dt><dd>auto routing modes, from <code>auto-coding</code> to <code>auto-cheapest</code>.</dd></div>
+      <div><dt>10&nbsp;min</dt><dd>between health checks on every provider the router can pick.</dd></div>
+    </dl>
+  );
+}
+
+/**
+ * What an assessment report shows, built from our own public coding results (labelled as a sample,
+ * never a customer's): the most accurate model, the hero's two, and what the numbers say.
+ */
+function SampleReport({ price }: { price: PriceSnapshot }) {
+  const c = price.coding;
+  const f = price.finding;
+  if (!c || !f || f.b.costPerSuccess == null) return null;
+  const top = c.models.reduce((x, y) => (y.passRate > x.passRate ? y : x));
+  const picks = [top, f.b, f.a].filter((m, i, all) => all.findIndex(x => x.name === m.name) === i);
+  const asOften = f.b.passRate - f.a.passRate >= 0.02 ? 'more often than' : 'about as often as';
+  return (
+    <figure className="lp-report lp-up">
+      <figcaption className="lp-report-head"><b>Sample report</b><span>Built from our public coding tasks, {dayRange(c.from, c.to)}</span></figcaption>
+      <div className="lp-report-scroll">
+        <table>
+          <thead><tr><th scope="col">Model</th><th scope="col">Passed</th><th scope="col">Per 1,000 correct</th><th scope="col">Typical attempt</th></tr></thead>
+          <tbody>
+            {picks.map(m => (
+              <tr key={m.name} className={m.name === f.b.name ? 'is-pick' : undefined}>
+                <th scope="row"><span className="lp-lgc"><img src={logoFor(m.vendor)} alt="" width={16} height={16} loading="lazy" /></span>{m.displayName}</th>
+                <td>{pct(m.passRate)}</td>
+                <td>{m.costPerSuccess != null ? per1k(m.costPerSuccess) : '—'}</td>
+                <td>{duration(m.medianMs)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="lp-report-rec">
+        <b>What the numbers say</b>
+        {f.b.displayName} passed {asOften} {f.a.displayName}, and each correct fix cost {times(f.ratio)} less.
+        {top.name !== f.b.name && top.costPerSuccess != null && <> {top.displayName} passed the most attempts, at {times(top.costPerSuccess / f.b.costPerSuccess)} the cost of {f.b.displayName} per correct fix.</>}
+        {' '}On your own tasks the answer can be different, and that is what an assessment measures.
+      </p>
+    </figure>
+  );
+}
+
 export default async function Landing() {
-  const [snapshot, health, roster] = await Promise.all([getLandingSnapshot(), getProviderHealth(), getModelRoster()]);
+  const [snapshot, health, roster, price, corpus, visits] = await Promise.all([
+    getLandingSnapshot(), getProviderHealth(), getModelRoster(), getPriceSnapshot(), getCorpus(), getVisitTotal(),
+  ]);
   const buyable = (['pro', 'developer', 'teams'] as SellablePlan[]).filter(p => priceIdFor(p, 'monthly') || priceIdFor(p, 'annual'));
 
   const modelCount = snapshot?.modelCount || roster.length || 24;
@@ -67,6 +141,22 @@ export default async function Landing() {
   });
   const models = [...roster].sort((a, b) =>
     (PROVIDERS.indexOf(a.vendor) - PROVIDERS.indexOf(b.vendor)) || a.displayName.localeCompare(b.displayName));
+
+  const finding = price?.finding && price.coding ? price : null;
+  const coded = (price?.coding?.models ?? []).filter(m => m.costPerSuccess != null).map(m => m.costPerSuccess as number);
+  const spread = coded.length > 1 ? { lo: Math.min(...coded), hi: Math.max(...coded) } : null;
+
+  const months = Math.max(1, Math.floor((Date.now() - FIRST_RUN) / (30.44 * 86_400_000)));
+  const tests = corpus ? Math.floor((corpus.runs + corpus.toolSessions + corpus.deepSessions) / 1000) * 1000 : 0;
+  const visitsText = visits == null ? null
+    : visits >= 1_000_000 ? `${(Math.floor(visits / 100_000) / 10).toFixed(1)}M+` : `${Math.floor(visits / 1000)}K+`;
+  const stats: Array<{ count?: number; text?: string; suffix?: string; label: string }> = [
+    { count: months, label: 'months of real API tests, since August 2025' },
+    ...(tests ? [{ count: tests, suffix: '+', label: 'tests run: code fixes, reasoning sessions and agent tasks' }] : []),
+    { count: modelCount, label: `models from ${providerCount} providers, on the same tests and schedule` },
+    ...(visitsText ? [{ text: visitsText, label: 'visits since launch' }] : []),
+    { text: '$0', label: 'from AI model providers, and no affiliate links' },
+  ];
 
   const jsonLd = [
     {
@@ -95,37 +185,32 @@ export default async function Landing() {
       <LandingEffects />
       <LandingNav signInHref={SIGN_IN} signUpHref={SIGN_UP} />
 
-      {/* ── hero ── */}
+      {/* ── hero: the question, and one measured answer beside it ── */}
       <header className="lp-hero lp-textured" id="top">
         <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
         <div className="lp-wrap">
-          <div className="lp-hero-top">
-            <p className="lp-live lp-intro" style={{ '--d': '.05s' } as CSSProperties}><i /><span><b>Live</b> · {modelCount} models re-ranked after every run</span></p>
-            <h1 className="lp-h1 lp-intro" style={{ '--d': '.12s' } as CSSProperties}>Models change overnight. <span className="lp-b">Your router should know.</span></h1>
-            <div className="lp-hero-row">
-              <div>
-                <p className="lp-lead lp-intro" style={{ '--d': '.22s' } as CSSProperties}>
-                  AI Stupid Level benchmarks {modelCount} frontier models around the clock and routes every request to whichever one
-                  is <strong>measurably best right now</strong> — for code, reasoning, tool use, speed or cost. One OpenAI-compatible
-                  endpoint. Your own provider keys. Zero markup on tokens.
-                </p>
-                <div className="lp-cta lp-intro" style={{ '--d': '.3s' } as CSSProperties}>
-                  <Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGN_UP_ROUTER}>Get your router key <span className="lp-ar">→</span></Link>
-                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href={SIGN_UP}>See today’s leaderboard</Link>
-                </div>
-                <p className="lp-fine lp-intro" style={{ '--d': '.36s' } as CSSProperties}>Free account: every ranking, a 3-model watchlist and 1,000 routed requests a month. No card.</p>
+          <p className="lp-live lp-intro" style={{ '--d': '.05s' } as CSSProperties}><i /><span><b>Live</b> · {modelCount} models · real API tests since August 2025</span></p>
+          <h1 className="lp-h1 is-q lp-intro" style={{ '--d': '.12s' } as CSSProperties}>Is your AI worth what you’re paying? <span className="lp-b">And is it still as good as last month?</span></h1>
+          <div className="lp-hero-row">
+            <div>
+              <p className="lp-lead lp-intro" style={{ '--d': '.22s' } as CSSProperties}>
+                AI Stupid Level has tested AI models on a fixed schedule since August 2025: every model on the same tasks, through
+                each provider’s own API. Not votes, measurements. See which models <strong>get the job done</strong>, what a
+                correct result really costs, and when a model changes. Our Smart Router puts it to work, sending every request to
+                the model that is measurably best right now.
+              </p>
+              <div className="lp-cta lp-intro" style={{ '--d': '.3s' } as CSSProperties}>
+                <a className="lp-btn lp-btn-primary lp-btn-lg" href="#price">Check your AI <span className="lp-ar">→</span></a>
+                <a className="lp-btn lp-btn-ghost lp-btn-lg" href="#router">Explore the Smart Router</a>
               </div>
-              <dl className="lp-facts lp-intro" style={{ '--d': '.42s' } as CSSProperties}>
-                <div><dt>0%</dt><dd>markup on tokens. Providers bill you directly, at their own list price.</dd></div>
-                <div><dt>15</dt><dd>auto routing modes, from <code>auto-coding</code> to <code>auto-cheapest</code>.</dd></div>
-                <div><dt>10&nbsp;min</dt><dd>between health checks on every provider the router can pick.</dd></div>
-              </dl>
+              <p className="lp-fine lp-intro" style={{ '--d': '.36s' } as CSSProperties}>
+                Building on AI? <a className="lp-fine-a" href="#assessment">We benchmark the models on your own work</a>, and keep it running.
+                Free account: every ranking, a 3-model watchlist and 1,000 routed requests a month. No card.
+              </p>
             </div>
-          </div>
-          <div className="lp-intro" style={{ '--d': '.5s' } as CSSProperties}>
-            {scenarios.length
-              ? <RouterDemo scenarios={scenarios} modelCount={modelCount} />
-              : <div className="lp-rv"><p className="lp-rv-fallback">Live routing decisions are refreshing. <Link className="lp-more" href="/router/docs">Read how the Smart Router decides</Link></p></div>}
+            {finding
+              ? <div className="lp-intro" style={{ '--d': '.42s' } as CSSProperties}><PriceFinding price={finding} /></div>
+              : <RouterFacts className="lp-intro" style={{ '--d': '.42s' } as CSSProperties} />}
           </div>
         </div>
       </header>
@@ -143,11 +228,95 @@ export default async function Landing() {
           </div>
           <div {...up('.1s')}>
             <div className="lp-stats">
-              <div className="lp-stat"><b data-count={modelCount}>{modelCount}</b><span>frontier models scored continuously</span></div>
-              <div className="lp-stat"><b data-count="144">144</b><span>health checks per provider, every day</span></div>
-              <div className="lp-stat"><b data-count="24">24</b><span>canary drift probes per model, every day</span></div>
-              <div className="lp-stat"><b data-count="6">6</b><span>coding runs per model, every day</span></div>
-              <div className="lp-stat"><b data-count="15">15</b><span>routing modes behind one endpoint</span></div>
+              {stats.map(s => (
+                <div key={s.label} className="lp-stat">
+                  <b>{s.count != null ? <><span data-count={s.count}>{s.count.toLocaleString('en-US')}</span>{s.suffix}</> : s.text}</b>
+                  <span>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── the real price of AI ── */}
+      <section className="lp-sec lp-C" id="price" aria-labelledby="lp-price-h">
+        <div className="lp-wrap">
+          <div className="lp-head lp-head-split lp-up">
+            <p className="lp-kicker">The real price of AI</p>
+            <h2 className="lp-h2" id="lp-price-h">Price per token isn’t price per result.</h2>
+            <p className="lp-lead">
+              Every model gets the same tasks, and every attempt is priced at the provider’s list price. Divide what the attempts
+              cost by the ones that succeeded and you get what a correct result really costs
+              {spread ? <>: on our coding tasks, from <strong>{per1k(spread.lo)}</strong> to <strong>{per1k(spread.hi)}</strong> per 1,000 correct fixes</> : null}.
+              Pick the model you use and see what does as well for less.
+            </p>
+          </div>
+          {price
+            ? <div className="lp-up"><RealPrice price={price} /></div>
+            : <p className="lp-lead">The cost comparison is refreshing. <Link className="lp-more" href="/compare">Compare the models</Link></p>}
+        </div>
+      </section>
+
+      {/* ── drift ── */}
+      <section className="lp-sec lp-B lp-textured" id="drift">
+        <div className="lp-wrap">
+          <div className="lp-head lp-head-split lp-up">
+            <p className="lp-kicker">AI drift detection</p>
+            <h2 className="lp-h2">When a model quietly changes, you see it — and the router moves on.</h2>
+            <p className="lp-lead">Providers change models without changing the name. We have tested every model on a fixed schedule since August 2025, so a change leaves its mark in the record: in quality, in speed and in what each answer costs. A few of them:</p>
+          </div>
+          <ol className="lp-log lp-up" aria-label="Changes in the record">
+            {CHANGES.map(c => (
+              <li key={c.when}>
+                <p className="lp-log-when">{c.when}</p>
+                <p className="lp-log-big"><b>{c.big}</b><span>{c.cap}</span></p>
+                <h3 className="lp-log-m">{c.model}</h3>
+                <p className="lp-log-t">{c.text}</p>
+              </li>
+            ))}
+          </ol>
+          <DriftPanel />
+          <div className="lp-trio lp-up">
+            <div><b>Per suite, per model</b><p>Coding, reasoning and tool use each run their own Page-Hinkley detector against the model’s own baseline, tuned on real run-to-run noise.</p></div>
+            <div><b>An hourly canary</b><p>Fixed probes run every hour; a sustained shift has to pass Welch’s t-test before it opens an incident.</p></div>
+            <div><b>Evidence, not vibes</b><p>Every flag points to the runs behind it. Full history and the diagnosis behind each change come with Pro.</p></div>
+          </div>
+          <p {...up()}><Link className="lp-more" href="/ai-drift-detection" style={{ marginTop: 32 }}>AI drift detection: is your model getting worse?</Link></p>
+        </div>
+      </section>
+
+      {/* ── workload assessment and custom benchmarks ── */}
+      <section className="lp-sec lp-A" id="assessment">
+        <div className="lp-wrap">
+          <div className="lp-head lp-head-split lp-up">
+            <p className="lp-kicker">For teams building on AI</p>
+            <h2 className="lp-h2">Benchmark the models on your own work.</h2>
+            <p className="lp-lead">Public scores tell you which model is best on our tasks. An assessment tells you which one is best on yours — measured by the same harness, the same scoring rules and the same statistics.</p>
+          </div>
+          <ol className="lp-steps">
+            <li {...up('', 'lp-step')}><p className="lp-step-n">01</p><h3 className="lp-h3">Send up to 20 real tasks</h3><p>Prompts, files and the answers you would accept. We confirm the scope within 2 business days.</p></li>
+            <li {...up('.08s', 'lp-step')}><p className="lp-step-n">02</p><h3 className="lp-h3">We run 3 models of your choice</h3><p>In the same sandbox as the public leaderboard, with repeated trials so a lucky run can’t decide the result.</p></li>
+            <li {...up('.16s', 'lp-step')}><p className="lp-step-n">03</p><h3 className="lp-h3">Report in 7 days</h3><p>Per-task results, cost and latency for each model, and our recommendation.</p></li>
+          </ol>
+          <div className="lp-asm">
+            {price && <SampleReport price={price} />}
+            <div {...up('.08s', 'lp-keep')}>
+              <p className="lp-kicker">Then keep it running</p>
+              <h3 className="lp-h3">Your own benchmark, wired into your router.</h3>
+              <p>Our team builds a custom benchmark around your workflow — your tasks, your acceptance rules, your formats — and runs it continuously alongside our public suites. It connects to your Smart Router, so your requests keep going to whichever model is best on your work, and you hear about it when that changes.</p>
+              <ul className="lp-ticks">
+                <li><b>Built by our team</b> for your use case, from your real tasks.</li>
+                <li><b>Runs on our schedule</b>, with drift alerts on your own suite.</li>
+                <li><b>Drives your router</b>: the model that wins on your work gets your traffic.</li>
+              </ul>
+            </div>
+          </div>
+          <div className="lp-offer lp-up">
+            <div className="lp-offer-price"><b>{ASSESSMENT_PRICE_LABEL}</b><span>One-off, paid at booking. Full refund if your tasks can’t be measured. Credited against an annual plan within 30 days.</span></div>
+            <div className="lp-offer-go">
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/assessment">Book an assessment <span className="lp-ar">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/contact">Discuss your workload</Link>
             </div>
           </div>
         </div>
@@ -159,13 +328,20 @@ export default async function Landing() {
         <div className="lp-wrap">
           <div className="lp-head lp-head-split lp-up">
             <p className="lp-kicker">Smart Router</p>
-            <h2 className="lp-h2">One endpoint. Fifteen ways to decide.</h2>
-            <p className="lp-lead">Point any OpenAI-compatible client at ASL and choose how each request is routed with the <code>model</code> name. Rankings come from the same scores as the leaderboard and refresh after every benchmark run. Pick a mode to see what it would do right now.</p>
+            <h2 className="lp-h2">Models change overnight. Your router should know.</h2>
+            <p className="lp-lead">Point any OpenAI-compatible client at ASL and every request goes to the model that is measurably best right now — for code, reasoning, tool use, speed or cost — ranked on the same results as this page. One endpoint, your own provider keys, zero markup on tokens.</p>
+          </div>
+          {finding && <RouterFacts {...up('', 'is-row')} />}
+          <div {...up('.06s', 'lp-router-demo')}>
+            {scenarios.length
+              ? <RouterDemo scenarios={scenarios} modelCount={modelCount} />
+              : <div className="lp-rv"><p className="lp-rv-fallback">Live routing decisions are refreshing. <Link className="lp-more" href="/router/docs">Read how the Smart Router decides</Link></p></div>}
           </div>
           {snapshot
             ? <RouterExplorer snapshot={snapshot} />
             : <p className="lp-lead">Live routing data is refreshing — <Link className="lp-more" href="/router/docs">read the router documentation</Link></p>}
           <p className="lp-compat lp-up">Also speaks Anthropic: native <code>/v1/messages</code> passthrough, plus <code>/v1/embeddings</code>. Works with any client that lets you set a base URL. <Link className="lp-more" href="/router/docs">Router documentation</Link></p>
+          <p {...up('', 'lp-router-go')}><Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGN_UP_ROUTER}>Get your router key <span className="lp-ar">→</span></Link></p>
         </div>
       </section>
 
@@ -180,7 +356,7 @@ export default async function Landing() {
           <div className="lp-fgrid">
             <div {...up('', 'lp-fi')}><span className="lp-spec">0% markup</span><h3 className="lp-h3">Your keys, your bill</h3><p>Requests go out with your own OpenAI, Anthropic, Google, DeepSeek, Moonshot and Z.ai keys, so providers bill you directly. We add nothing to token prices — plans include a number of routed requests.</p></div>
             <div {...up('.06s', 'lp-fi')}><span className="lp-spec">Per suite</span><h3 className="lp-h3">Drift-aware by default</h3><p>When a model’s detector fires on the suite your strategy depends on — or it has an open canary incident — it drops behind healthy models. The routing reason names who was passed over.</p></div>
-            <div {...up('.12s', 'lp-fi')}><span className="lp-spec">Up to 5 fallbacks</span><h3 className="lp-h3">Outages route around you</h3><p>Your own fallback order of up to 10 models, then automatic picks from other providers. A circuit opens after 5 straight failures and probes again after 60 seconds.</p></div>
+            <div {...up('.12s', 'lp-fi')}><span className="lp-spec">5 fallbacks per request</span><h3 className="lp-h3">Outages route around you</h3><p>Each request carries up to 5 fallbacks: first from your own fallback order (a list of up to 10 models, skipping any that are unavailable), then the best models at other providers. A circuit opens after 5 straight failures and probes again after 60 seconds.</p></div>
             <div {...up('', 'lp-fi')}><span className="lp-spec">All six providers</span><h3 className="lp-h3">Tool loops that don’t derail</h3><p>Native tool calls with the provider’s own call ids, each model’s reasoning carried between turns, and a loop that stays on the model that started it. Forced <code>tool_choice</code> and <code>json_schema</code> work everywhere — natively, or emulated and checked.</p></div>
             <div {...up('.06s', 'lp-fi')}><span className="lp-spec">32 MB · 15 min</span><h3 className="lp-h3">Long context, long thinking</h3><p>Native streaming on every provider, request bodies up to 32 MB for 1M-token contexts, and a 15-minute timeout for models that think before they answer.</p></div>
             <div {...up('.12s', 'lp-fi')}><span className="lp-spec">Per key · per project</span><h3 className="lp-h3">Budgets that hold</h3><p>Hard and soft monthly budgets on every key and project, a maximum price per 1M tokens, a maximum latency, and provider or model exclusions — all checked before a request is sent.</p></div>
@@ -240,26 +416,8 @@ export default async function Landing() {
         </section>
       )}
 
-      {/* ── drift ── */}
-      <section className="lp-sec lp-B lp-textured" id="drift">
-        <div className="lp-wrap">
-          <div className="lp-head lp-head-split lp-up">
-            <p className="lp-kicker">AI drift detection</p>
-            <h2 className="lp-h2">When a model quietly changes, you see it — and the router moves on.</h2>
-            <p className="lp-lead">Providers ship silent updates. AI Stupid Level compares every model with its own history instead of guessing from one bad run: a Page-Hinkley change-point detector on each suite, plus an hourly canary.</p>
-          </div>
-          <DriftPanel />
-          <div className="lp-trio lp-up">
-            <div><b>Per suite, per model</b><p>Coding, reasoning and tool use each run their own Page-Hinkley detector against the model’s own baseline, tuned on real run-to-run noise.</p></div>
-            <div><b>An hourly canary</b><p>Fixed probes run every hour; a sustained shift has to pass Welch’s t-test before it opens an incident.</p></div>
-            <div><b>Evidence, not vibes</b><p>Every flag points to the runs behind it. Full history and the diagnosis behind each change come with Pro.</p></div>
-          </div>
-          <p {...up()}><Link className="lp-more" href="/ai-drift-detection" style={{ marginTop: 32 }}>AI drift detection: is your model getting worse?</Link></p>
-        </div>
-      </section>
-
       {/* ── provider status ── */}
-      <section className="lp-sec lp-A" id="status">
+      <section className="lp-sec lp-C" id="status">
         <div className="lp-wrap">
           <div className="lp-head lp-head-split lp-up">
             <p className="lp-kicker">Provider status</p>
@@ -276,27 +434,6 @@ export default async function Landing() {
             <div><b>Our server</b><p>Several providers failing together, or our own network down. The router keeps routing.</p></div>
           </div>
           <p {...up()}><Link className="lp-more" href="/status" style={{ marginTop: 32 }}>Open the live status page</Link></p>
-        </div>
-      </section>
-
-      {/* ── workload assessment ── */}
-      <section className="lp-sec lp-C" id="assessment">
-        <div className="lp-wrap">
-          <div className="lp-head lp-head-split lp-up">
-            <p className="lp-kicker">Workload assessment</p>
-            <h2 className="lp-h2">Benchmark the models on your own work.</h2>
-            <p className="lp-lead">Public scores tell you which model is best on our tasks. An assessment tells you which one is best on yours — measured by the same harness, the same scoring rules and the same statistics.</p>
-          </div>
-          <ol className="lp-steps">
-            <li {...up('', 'lp-step')}><p className="lp-step-n">01</p><h3 className="lp-h3">Send up to 20 real tasks</h3><p>Prompts, files and the answers you would accept. We confirm the scope within 2 business days.</p></li>
-            <li {...up('.08s', 'lp-step')}><p className="lp-step-n">02</p><h3 className="lp-h3">We run 3 models of your choice</h3><p>In the same sandbox as the public leaderboard, with repeated trials so a lucky run can’t decide the result.</p></li>
-            <li {...up('.16s', 'lp-step')}><p className="lp-step-n">03</p><h3 className="lp-h3">Report in 7 days</h3><p>Per-task results, cost and latency for each model, and our recommendation.</p></li>
-          </ol>
-          <div className="lp-offer lp-up">
-            <div className="lp-offer-price"><b>{ASSESSMENT_PRICE_LABEL}</b><span>One-off, paid at booking. Full refund if your tasks can’t be measured. Credited against an annual plan within 30 days.</span></div>
-            <div><Link className="lp-btn lp-btn-primary lp-btn-lg" href="/assessment">Book an assessment <span className="lp-ar">→</span></Link></div>
-          </div>
-          <p className="lp-cont lp-up">Need it continuously? Custom continuous benchmarking runs your tasks on our schedule, with drift alerts on your own suite. <Link href="/contact">Talk to us</Link>.</p>
         </div>
       </section>
 

@@ -8,7 +8,7 @@ import { RadarChart, axesForSort, axisWeightLabel, getAveragedAxes, scoreBg, sco
 import { providerStatus, useProviderHealth } from '../v4/ProviderStrip';
 import { getModelPricing } from '../../lib/model-pricing';
 import { slugifyModelName } from '../../lib/model-slug';
-import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
+import { routerPrice } from '@/lib/pricing-display';
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 import '../../styles/studio-boards.css';
 
@@ -334,8 +334,8 @@ export default function InsightsGrid({
           <span>Every request goes to the model measuring best right now. Bring your own provider keys: in our benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less.</span>
         </span>
         <span className="sl-router-price">
-          <b>{annualMonthly(ROUTER_PLAN)}</b>
-          <small>billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}</small>
+          <b>{routerPrice().price}</b>
+          <small>{routerPrice().plan}<br />{routerPrice().free}</small>
         </span>
         <span className="st-btn is-primary">See Smart Router <span className="st-ar" aria-hidden="true">→</span></span>
       </Link>

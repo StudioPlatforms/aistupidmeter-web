@@ -13,13 +13,17 @@ export default function SubpageLayout({ children }: SubpageLayoutProps): React.J
   const pathname = usePathname();
 
   // Drives which nav item renders as active. 'pricing' and 'watchlist' are not
-  // view modes of the dashboard, but the nav needs to highlight them.
-  const selectedView = (pathname === '/about' || pathname === '/methodology') ? 'about'
-    : pathname === '/faq' ? 'faq'
-    : pathname === '/pricing' ? 'pricing'
-    : pathname === '/watchlist' ? 'watchlist'
-    : pathname === '/contact' ? 'contact'
-    : 'dashboard';
+  // view modes of the dashboard, but the nav needs to highlight them. The assessment is
+  // sold from the pricing page; a page that is not in the nav at all (status, drift
+  // detection, API docs) highlights nothing — it used to light up "Leaderboard".
+  const path = pathname || '';
+  const selectedView = (path === '/about' || path === '/methodology') ? 'about'
+    : path === '/faq' ? 'faq'
+    : path === '/pricing' || path.startsWith('/assessment') ? 'pricing'
+    : path === '/watchlist' ? 'watchlist'
+    : path === '/contact' ? 'contact'
+    : path === '/' ? 'dashboard'
+    : '';
 
   const handleViewChange = (view: 'dashboard' | 'about' | 'faq') => {
     switch (view) {

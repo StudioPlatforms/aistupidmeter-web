@@ -51,13 +51,23 @@ const RULES: Array<[string, string, RegExp]> = [
   ['Everything else', 'best_value', /short general/],
 ];
 
+/** Where most people start; the other modes are one click away. */
+const STARTERS: Array<[string, string, string]> = [
+  ['auto-best', 'Best performance', 'The highest combined score'],
+  ['auto-value', 'Best value', 'Most quality per measured dollar'],
+  ['auto-consistent', 'Most consistent', 'The steadiest results, run to run'],
+];
+
 const TASK_SAMPLES: Array<[string, string]> = [['match_task', 'Code'], ['match_task_design', 'Design'], ['match_task_tools', 'Tools']];
 const SPLIT_COLORS = ['var(--lp-accent)', 'var(--lp-good)', 'var(--lp-warn)'];
 
 export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot }) {
   const reduced = useReducedMotion();
   const available = useMemo(() => MODES.filter(m => snapshot.strategies[m.key]), [snapshot]);
-  const [modeId, setModeId] = useState(() => (available.find(m => m.id === 'auto-coding') ?? available[0])?.id);
+  const starters = useMemo(() => STARTERS.filter(([id]) => available.some(m => m.id === id)), [available]);
+  const [all, setAll] = useState(starters.length < 2);
+  const shown = useMemo(() => (all ? available : available.filter(m => starters.some(([id]) => id === m.id))), [all, available, starters]);
+  const [modeId, setModeId] = useState(() => (starters[0]?.[0] ?? available.find(m => m.id === 'auto-coding')?.id ?? available[0]?.id));
   const [taskKey, setTaskKey] = useState('match_task');
   const [tab, setTab] = useState<'py' | 'ts' | 'sh'>('py');
   const [flash, setFlash] = useState(0);
@@ -86,13 +96,13 @@ export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot
     const t = setInterval(() => {
       if (!autoRef.current || !inViewRef.current || document.hidden) return;
       setModeId(prev => {
-        const i = available.findIndex(m => m.id === prev);
-        return available[(i + 1) % available.length]?.id ?? prev;
+        const i = shown.findIndex(m => m.id === prev);
+        return shown[(i + 1) % shown.length]?.id ?? prev;
       });
       setFlash(f => f + 1);
     }, 4600);
     return () => clearInterval(t);
-  }, [available, reduced]);
+  }, [shown, reduced]);
 
   const mode = available.find(m => m.id === modeId);
   if (!mode) return null;
@@ -103,8 +113,8 @@ export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) return;
     e.preventDefault();
-    const i = available.findIndex(m => m.id === modeId);
-    const next = available[(i + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : available.length - 1)) % available.length];
+    const i = shown.findIndex(m => m.id === modeId);
+    const next = shown[(i + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : shown.length - 1)) % shown.length];
     choose(next.id);
     (rootRef.current?.querySelector(`[data-mode="${next.id}"]`) as HTMLElement | null)?.focus();
   };
@@ -121,7 +131,22 @@ export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot
 
   return (
     <div ref={rootRef}>
-      <div className="lp-board lp-up" role="tablist" aria-label="Routing modes" onKeyDown={onKey}>
+      {!all && (
+        <div className="lp-start lp-up">
+          <div className="lp-start-row" role="tablist" aria-label="Routing modes" onKeyDown={onKey}>
+            {starters.map(([id, name, sub]) => (
+              <button key={id} type="button" role="tab" className="lp-start-b" data-mode={id}
+                aria-selected={id === modeId} aria-controls="lp-ex-panel" tabIndex={id === modeId ? 0 : -1}
+                onClick={() => choose(id)}>
+                <b>{name}</b><span>{sub}</span><code>{id}</code>
+              </button>
+            ))}
+          </div>
+          <button type="button" className="lp-start-all" onClick={() => setAll(true)}>All {available.length} routing modes</button>
+        </div>
+      )}
+      {/* Opened by a click, the full board mounts after the scroll reveals were wired, so it carries no lp-up. */}
+      {all && <div className={`lp-board${starters.length < 2 ? ' lp-up' : ''}`} role="tablist" aria-label="Routing modes" onKeyDown={onKey}>
         {GROUPS.map((g, gi) => (
           <div className="lp-board-g" key={g}>
             <p>{g}</p>
@@ -134,7 +159,7 @@ export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       <div className="lp-ex lp-up" style={{ '--d': '.08s' } as CSSProperties}>
         <div className="lp-pane" role="tabpanel" id="lp-ex-panel">

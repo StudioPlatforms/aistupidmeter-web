@@ -1,0 +1,49 @@
+/* ═══════════════════════════════════════════════════════════════════
+   /api-docs in the landing page's look — da-*
+   The page is a reading page (styles/reading.css, rd-*) with the landing's
+   code cards (.lp-codecard, .lp-code). This adds the endpoint list, the
+   status column, the Enterprise panel and the contact button's landing form.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.lp .rd-aside .lp-codecard { margin-top: 0; }
+.lp .da-hero-code { box-shadow: var(--lp-shadow-2); }
+.lp .da-hero-code .lp-code { font-size: 12.5px; }
+
+/* ── endpoints: method, path, what it returns, the query it takes ── */
+.lp .da-eps { max-width: 1000px; border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); overflow: hidden; }
+.lp .da-eps li {
+  display: grid; grid-template-columns: 50px minmax(0, 330px) minmax(0, 1fr) 128px; align-items: baseline; column-gap: 18px; row-gap: 4px;
+  padding: 15px 20px; border-bottom: 1px solid var(--lp-line); transition: background-color .2s;
+}
+.lp .da-eps li:last-child { border-bottom: 0; }
+.lp .da-eps li:hover { background: color-mix(in srgb, var(--lp-accent) 4%, var(--lp-card)); }
+.lp .da-m { justify-self: start; padding: 2px 7px; border-radius: 6px; font-family: var(--font-code) !important; font-size: 11.5px; font-weight: 600; letter-spacing: .04em; color: var(--lp-good); background: var(--lp-good-bg); }
+.lp .da-path { font-family: var(--font-code) !important; font-size: 13.5px; font-weight: 500; color: var(--lp-fg); overflow-wrap: anywhere; }
+.lp .da-eps p { font-size: 14.5px; line-height: 1.55; color: var(--lp-fg2); }
+.lp .da-q { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.lp .da-q code { font-family: var(--font-code) !important; font-size: 12px; padding: 2px 7px; border-radius: 6px; color: var(--lp-accent); background: color-mix(in srgb, var(--lp-accent) 9%, transparent); }
+.lp .da-none { color: var(--lp-fg3); }
+
+/* ── tables ── */
+.lp .da-errors .da-status { width: 90px; text-align: left; font-family: var(--lp-font-disp); font-variant-numeric: tabular-nums; }
+.lp .da-tiers th[scope='row'] { white-space: nowrap; }
+
+/* ── Enterprise: one panel, with the contact button that assembles the address on click ── */
+.lp .da-ent { display: grid; gap: 20px; justify-items: start; max-width: 1000px; padding: clamp(22px, 2.6vw, 32px); border: 1px solid var(--lp-line); border-radius: 18px; background: color-mix(in srgb, var(--lp-accent) 5%, var(--lp-card)); box-shadow: var(--lp-shadow-1); }
+.lp .da-ent > p { max-width: 70ch; font-size: 16px; line-height: 1.7; color: var(--lp-fg); }
+.lp .ec-mail { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.lp .ec-mail svg { width: 16px; height: 16px; }
+.lp .ec-to { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 15px; color: var(--lp-fg); }
+.lp .ec-addr { user-select: all; font-weight: 600; }
+.lp .ec-to .lp-btn { height: 36px; padding: 0 14px; font-size: 13.5px; }
+
+@media (max-width: 1180px) {
+  .lp .da-eps li { grid-template-columns: 50px minmax(0, 1fr) auto; }
+  .lp .da-eps p { grid-column: 2 / -1; grid-row: 2; }
+}
+@media (max-width: 760px) {
+  .lp .da-eps li { grid-template-columns: auto minmax(0, 1fr); padding: 14px 16px; }
+  .lp .da-eps p { grid-column: 1 / -1; }
+  .lp .da-q { grid-column: 1 / -1; justify-content: flex-start; }
+  .lp .da-hero-code .lp-code { font-size: 11.5px; }
+}
