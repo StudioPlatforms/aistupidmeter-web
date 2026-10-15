@@ -28,9 +28,11 @@
  * it calls, which resolves the session and plan server-side.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PLANS, planMeets, type Plan } from '../../lib/entitlements';
 import { REQUIRED_PLAN } from '../../lib/capabilities';
+import { Pane, Loader, Empty, Note, Locked, Tag, ProviderMark, PROVIDER_LABEL } from '@/components/studio';
+import '@/styles/studio-model-panels.css';
 
 type Verdict = 'safe' | 'caution' | 'unsafe' | 'insufficient';
 
@@ -103,6 +105,13 @@ const SUITE_ORDER: Suite[] = ['coding', 'tooling', 'reasoning'];
 const SUITE_ABBR: Record<Suite, string> = { coding: 'cod', tooling: 'tool', reasoning: 'rsn' };
 const SUITE_NAME: Record<Suite, string> = { coding: 'coding', tooling: 'tool use', reasoning: 'reasoning' };
 
+const VERDICT_TONE: Record<Verdict, 'good' | 'warn' | 'bad' | undefined> = {
+  safe: 'good',
+  caution: 'warn',
+  unsafe: 'bad',
+  insufficient: undefined,
+};
+
 const VERDICT_HINT: Record<Verdict, string> = {
   safe: 'Every suite with enough runs breaks under 2% of what this model completes, and under 5% even on the worst-case reading.',
   caution: 'At least one suite loses a measurable share of working requests. Worth the saving only if you can absorb that.',
@@ -121,6 +130,19 @@ const savings = (x: number | null): string => {
   if (x >= 10) return `${Math.round(x)}× cheaper`;
   return `${x.toFixed(1)}× cheaper`;
 };
+
+/** The pane every state renders in (module level, so a state change never remounts it). */
+function Section({ children, foot }: { children: ReactNode; foot?: ReactNode }) {
+  return (
+    <Pane
+      title="Cheaper substitutes"
+      sub="Cheaper models that can do this one’s work, and what switching costs"
+      foot={foot}
+    >
+      {children}
+    </Pane>
+  );
+}
 
 export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, onShowProModal }: Props) {
   const required = REQUIRED_PLAN.substitutes;
@@ -159,34 +181,17 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
     return () => { cancelled = true; };
   }, [modelId, unlocked]);
 
-  const Section = ({ children }: { children: React.ReactNode }) => (
-    <div className="md-chart-section">
-      <div className="md-chart-title">CHEAPER SUBSTITUTES</div>
-      {children}
-    </div>
-  );
-
   if (!unlocked) {
     return (
       <Section>
-        <div
-          className="md-chart-empty"
-          role="button"
-          tabIndex={0}
-          style={{ cursor: 'pointer' }}
-          onClick={() => onShowProModal('substitutes')}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onShowProModal('substitutes'); }}
+        <Locked
+          plan={PLANS[required]?.label ?? 'Pro Intelligence'}
+          title="Substitution analysis"
+          onOpen={() => onShowProModal('substitutes')}
         >
-          <div className="md-chart-empty-inner">
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Substitution analysis is a {PLANS[required]?.label ?? 'paid'} feature
-            </div>
-            <div style={{ color: 'var(--phosphor-dim)', fontSize: 12, maxWidth: 480, margin: '0 auto' }}>
-              Which cheaper models can do this one&rsquo;s work, and the measured share of
-              requests that would start failing if you switched.
-            </div>
-          </div>
-        </div>
+          Which cheaper models can do this one&rsquo;s work, and the measured share of
+          requests that would start failing if you switched.
+        </Locked>
       </Section>
     );
   }
@@ -194,11 +199,7 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
   if (loading) {
     return (
       <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            Loading substitution analysis…
-          </div>
-        </div>
+        <Loader label="Loading substitution analysis…" minHeight={160} />
       </Section>
     );
   }
@@ -206,9 +207,7 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
   if (error) {
     return (
       <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner"><div>{error}</div></div>
-        </div>
+        <Note tone="warn">{error}</Note>
       </Section>
     );
   }
@@ -216,15 +215,10 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
   if (measured === false || !report) {
     return (
       <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            <div style={{ marginBottom: 6 }}>Not enough per-trial history yet.</div>
-            <div style={{ fontSize: '0.85em', opacity: 0.85 }}>
-              This compares trial-by-trial outcomes on the repository-repair tasks, which this
-              model has not run on the current benchmark configuration.
-            </div>
-          </div>
-        </div>
+        <Empty title="Not enough per-trial history yet.">
+          This compares trial-by-trial outcomes on the repository-repair tasks, which this
+          model has not run on the current benchmark configuration.
+        </Empty>
       </Section>
     );
   }
@@ -233,11 +227,11 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
   if (rows.length === 0) {
     return (
       <Section>
-        <div className="md-sub-clear">
+        <Note>
           <strong>Nothing cheaper can replace it.</strong>{' '}
           No model priced below {money(report.blendedCostPer1M)}/1M has enough paired runs on
           the current configuration to be judged.
-        </div>
+        </Note>
       </Section>
     );
   }
@@ -257,138 +251,145 @@ export default function ModelDetailSubstitutes({ modelId, plan, hasProAccess, on
       : null;
 
   return (
-    <Section>
-      {/* The recommendation, stated once, in money. Everything below is the evidence
-          for it — a reader who stops here should still have the answer. */}
-      {best && best.cheaperBy && best.cheaperBy > 1.5 && (
-        <div className="md-sub-lede">
-          <strong>{best.name}</strong> does this model&rsquo;s work at{' '}
-          <strong>{savings(best.cheaperBy)}</strong>, failing at worst{' '}
-          <strong>{pct1(best.regret)}</strong> of what it completes
-          {best.governingSuite && <> (on {SUITE_NAME[best.governingSuite]}, its weakest suite)</>}
-          {best.rescue >= 0.2 && <> — and completing <strong>{pct0(best.rescue)}</strong> of what it drops</>}.
-          {/* The cheapest option is often one tier below safe. Saying so is the difference
-              between a recommendation and a recommendation you can act on: a reader who
-              can absorb 3% should not have to work it out of the table themselves. */}
-          {cheaperRisk && (
-            <>
-              {' '}
-              <span className="md-sub-lede-alt">
-                <strong>{cheaperRisk.name}</strong> is {savings(cheaperRisk.cheaperBy)} again, at{' '}
-                <strong>{pct1(cheaperRisk.regret)}</strong>
-                {cheaperRisk.governingSuite && <> on {SUITE_NAME[cheaperRisk.governingSuite]}</>} — worth
-                it only if you can absorb that.
-              </span>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="md-sub-head">
-        <span>
-          {report.name} costs {money(report.blendedCostPer1M)}/1M blended
-        </span>
-        <span className="md-sub-head-sub">
-          {(['coding', 'tooling', 'reasoning'] as Suite[])
-            .filter(x => report.basis.tasksBySuite[x])
-            .map(x => `${report.basis.tasksBySuite[x]} ${SUITE_NAME[x]}`)
-            .join(' · ')}{' '}
-          tasks · config {report.basis.benchConfigId}
-        </span>
-      </div>
-
-      <div className="md-sub-table" role="table">
-        <div className="md-sub-row md-sub-row-head" role="row">
-          <span role="columnheader">Model</span>
-          <span role="columnheader">Price</span>
-          <span role="columnheader" title="Of the requests this model completes, the share the substitute would fail — taken from its weakest suite, never averaged across them. The strip underneath gives every suite.">
-            Would fail
-          </span>
-          <span role="columnheader" title="Of the requests this model fails, the share the substitute completes.">
-            Rescues
-          </span>
-          <span role="columnheader">Verdict</span>
-        </div>
-
-        {shown.map(s => (
-          <div key={s.modelId} className="md-sub-row" role="row">
-            {/* data-save carries the saving into the name cell for phones, where the
-                price column is dropped for width. Without it the one fact the panel
-                exists to deliver disappears on mobile. */}
-            <span className="md-sub-name" role="cell" data-save={savings(s.cheaperBy)}>
-              {s.name}
-              <span className="md-sub-vendor">{s.vendor}</span>
-            </span>
-
-            <span className="md-sub-price" role="cell">
-              {money(s.blendedCostPer1M)}
-              <span className="md-sub-save">{savings(s.cheaperBy)}</span>
-            </span>
-
-            <span className="md-sub-regret" role="cell">
-              <span className={`md-sub-regret-v md-sub-${s.verdict}`}>
-                {s.verdict === 'insufficient' ? '—' : pct1(s.regret)}
-              </span>
-              {s.governingSuite && (
-                <span className="md-sub-gov">
-                  {SUITE_NAME[s.governingSuite]}
-                  {s.governingIsProvisional && <span className="md-sub-prov" title="Decided by a suite still below the run floor: it cannot confirm safety, but the sample already rules it out.">&deg;</span>}
-                </span>
-              )}
-              {/* Every suite, so the headline can be checked rather than trusted.
-                  Never averaged: a good coding number must not be able to hide a
-                  bad tool-use one, which is the whole reason the verdict takes the
-                  worst rather than the middle. */}
-              <span className="md-sub-suites">
-                {/* Fixed order, not worst-first: a strip that reorders per row cannot be
-                    compared down the column, and which suite decided is already said above. */}
-                {SUITE_ORDER.map(name => s.suites.find(q => q.suite === name)).filter(Boolean).map(q => (q!)).map(q => (
-                  <span
-                    key={q.suite}
-                    className={`md-sub-suite${q.counts ? '' : ' md-sub-suite-prov'}`}
-                    title={
-                      `${SUITE_NAME[q.suite]}: ${pct1(q.regret)} of what this model completes would fail` +
-                      ` — ${q.pairedCells} paired tasks, ${q.trials} trial${q.trials === 1 ? '' : 's'}.` +
-                      (q.counts
-                        ? ''
-                        : ` Below the run floor, so it cannot grant a verdict; it is read on its lower bound of ${pct1(q.regretFloor)}, which can still deny one.`)
-                    }
-                  >
-                    {SUITE_ABBR[q.suite]} {pct1(q.regret)}{q.counts ? '' : '\u00b0'}
-                  </span>
-                ))}
-              </span>
-            </span>
-
-            <span className="md-sub-rescue" role="cell">
-              {s.verdict === 'insufficient' ? '—' : pct0(s.rescue)}
-            </span>
-
-            <span role="cell">
-              <span
-                className={`md-sub-chip md-sub-${s.verdict}`}
-                title={`${VERDICT_HINT[s.verdict]} Measured over ${s.pairedCells} paired tasks (${s.trials} trials).`}
-              >
-                {VERDICT_LABEL[s.verdict]}
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {rows.length > 5 && (
-        <button type="button" className="md-sub-more" onClick={() => setShowAll(v => !v)}>
-          {showAll ? 'Show fewer' : `Show all ${rows.length}`}
-        </button>
-      )}
-
-      <div className="md-sub-foot">
+    <Section foot={(
+      <>
         Read from per-trial outcomes, not run verdicts — a verdict is the median of seven
         trials and hides the variance a single request sees. Each suite stands on its own and
         the headline takes the worst, never the average, because a safe coding score must not
         be able to cover a bad tool-use one. A degree mark (&deg;) means a suite has too few
         runs to confirm safety yet; it is judged on its lower bound, so it can still rule
         safety out. {report.basis.note}
+      </>
+    )}>
+      <div className="sq-stack">
+        {/* The recommendation, stated once, in money. Everything below is the evidence
+            for it — a reader who stops here should still have the answer. */}
+        {best && best.cheaperBy && best.cheaperBy > 1.5 && (
+          <Note tone="good">
+            <strong>{best.name}</strong> does this model&rsquo;s work at{' '}
+            <strong>{savings(best.cheaperBy)}</strong>, failing at worst{' '}
+            <strong>{pct1(best.regret)}</strong> of what it completes
+            {best.governingSuite && <> (on {SUITE_NAME[best.governingSuite]}, its weakest suite)</>}
+            {best.rescue >= 0.2 && <> — and completing <strong>{pct0(best.rescue)}</strong> of what it drops</>}.
+            {/* The cheapest option is often one tier below safe. Saying so is the difference
+                between a recommendation and a recommendation you can act on: a reader who
+                can absorb 3% should not have to work it out of the table themselves. */}
+            {cheaperRisk && (
+              <>
+                {' '}
+                <span className="sq-sub-alt">
+                  <strong>{cheaperRisk.name}</strong> is {savings(cheaperRisk.cheaperBy)} again, at{' '}
+                  <strong>{pct1(cheaperRisk.regret)}</strong>
+                  {cheaperRisk.governingSuite && <> on {SUITE_NAME[cheaperRisk.governingSuite]}</>} — worth
+                  it only if you can absorb that.
+                </span>
+              </>
+            )}
+          </Note>
+        )}
+
+        <div>
+          <div className="sq-sub-head">
+            <span>
+              <b>{report.name}</b> costs {money(report.blendedCostPer1M)}/1M blended
+            </span>
+            <span>
+              {(['coding', 'tooling', 'reasoning'] as Suite[])
+                .filter(x => report.basis.tasksBySuite[x])
+                .map(x => `${report.basis.tasksBySuite[x]} ${SUITE_NAME[x]}`)
+                .join(' · ')}{' '}
+              tasks · config {report.basis.benchConfigId}
+            </span>
+          </div>
+
+          <div className="sq-bleed sq-sub-table" role="table" aria-label="Cheaper substitutes">
+            <div className="sq-sub-row is-head" role="row">
+              <span role="columnheader">Model</span>
+              <span role="columnheader">Price</span>
+              <span role="columnheader" title="Of the requests this model completes, the share the substitute would fail — taken from its weakest suite, never averaged across them. The strip underneath gives every suite.">
+                Would fail
+              </span>
+              <span role="columnheader" title="Of the requests this model fails, the share the substitute completes.">
+                Rescues
+              </span>
+              <span role="columnheader">Verdict</span>
+            </div>
+
+            {shown.map(s => (
+              <div key={s.modelId} className="sq-sub-row" role="row">
+                {/* data-save carries the saving into the name cell for phones, where the
+                    price column is dropped for width. Without it the one fact the panel
+                    exists to deliver disappears on mobile. */}
+                <span className="sq-sub-name" role="cell">
+                  <ProviderMark provider={s.vendor} size="sm" />
+                  <span className="sq-sub-name-t" data-save={savings(s.cheaperBy)}>
+                    {s.name}
+                    <span className="sq-sub-vendor">{PROVIDER_LABEL[s.vendor] ?? s.vendor}</span>
+                  </span>
+                </span>
+
+                <span className="sq-sub-price" role="cell">
+                  {money(s.blendedCostPer1M)}
+                  <span className="sq-sub-save">{savings(s.cheaperBy)}</span>
+                </span>
+
+                <span className="sq-sub-regret" role="cell">
+                  <span className={`sq-sub-v is-${s.verdict}`}>
+                    {s.verdict === 'insufficient' ? '—' : pct1(s.regret)}
+                  </span>
+                  {s.governingSuite && (
+                    <span className="sq-sub-gov">
+                      {SUITE_NAME[s.governingSuite]}
+                      {s.governingIsProvisional && <span className="sq-sub-prov" title="Decided by a suite still below the run floor: it cannot confirm safety, but the sample already rules it out.">&deg;</span>}
+                    </span>
+                  )}
+                  {/* Every suite, so the headline can be checked rather than trusted.
+                      Never averaged: a good coding number must not be able to hide a
+                      bad tool-use one, which is the whole reason the verdict takes the
+                      worst rather than the middle. */}
+                  <span className="sq-sub-suites">
+                    {/* Fixed order, not worst-first: a strip that reorders per row cannot be
+                        compared down the column, and which suite decided is already said above. */}
+                    {SUITE_ORDER.map(name => s.suites.find(q => q.suite === name)).filter(Boolean).map(q => (q!)).map(q => (
+                      <span
+                        key={q.suite}
+                        className={`sq-sub-suite${q.counts ? '' : ' is-prov'}`}
+                        title={
+                          `${SUITE_NAME[q.suite]}: ${pct1(q.regret)} of what this model completes would fail` +
+                          ` — ${q.pairedCells} paired tasks, ${q.trials} trial${q.trials === 1 ? '' : 's'}.` +
+                          (q.counts
+                            ? ''
+                            : ` Below the run floor, so it cannot grant a verdict; it is read on its lower bound of ${pct1(q.regretFloor)}, which can still deny one.`)
+                        }
+                      >
+                        {SUITE_ABBR[q.suite]} {pct1(q.regret)}{q.counts ? '' : '\u00b0'}
+                      </span>
+                    ))}
+                  </span>
+                </span>
+
+                <span className="sq-sub-rescue" role="cell">
+                  {s.verdict === 'insufficient' ? '—' : pct0(s.rescue)}
+                </span>
+
+                <span className="sq-sub-verdict" role="cell">
+                  <Tag
+                    tone={VERDICT_TONE[s.verdict]}
+                    title={`${VERDICT_HINT[s.verdict]} Measured over ${s.pairedCells} paired tasks (${s.trials} trials).`}
+                  >
+                    {VERDICT_LABEL[s.verdict]}
+                  </Tag>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {rows.length > 5 && (
+            <button type="button" className="st-btn is-sm sq-mt" onClick={() => setShowAll(v => !v)} aria-expanded={showAll}>
+              {showAll ? 'Show fewer' : `Show all ${rows.length}`}
+            </button>
+          )}
+        </div>
       </div>
     </Section>
   );

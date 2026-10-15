@@ -2,71 +2,38 @@
 
 import { Suspense, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { SignInForm } from './SignInForm';
+import { useSearchParams } from 'next/navigation';
+import AuthShell from '@/components/auth/AuthShell';
+import { SignInForm, safeReturnPath } from './SignInForm';
 
 export const dynamic = 'force-dynamic'; // critical - prevent static caching
 
+function Busy({ text }: { text: string }) {
+  return (
+    <AuthShell mode="signin">
+      <p className="au-busy" role="status">{text}</p>
+    </AuthShell>
+  );
+}
+
 function SignInContent() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+  const { status } = useSession();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/router';
+  const callbackUrl = safeReturnPath(searchParams.get('callbackUrl'));
 
   useEffect(() => {
-    // If user is authenticated, redirect to callback URL
-    if (status === 'authenticated') {
-      // Use window.location for hard redirect to ensure session is properly loaded
-      window.location.href = callbackUrl;
-    }
+    // Already signed in: go where they were heading (a hard redirect, so the session is loaded).
+    if (status === 'authenticated') window.location.href = callbackUrl;
   }, [status, callbackUrl]);
 
-  // Show loading while checking session
-  if (status === 'loading') {
-    return (
-      <div className="vintage-container" style={{ maxWidth: '500px', margin: '0 auto', paddingTop: '60px' }}>
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center' }}>
-            <div className="terminal-text--green">
-              CHECKING AUTHENTICATION<span className="vintage-loading"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // If authenticated, show redirecting message
-  if (status === 'authenticated') {
-    return (
-      <div className="vintage-container" style={{ maxWidth: '500px', margin: '0 auto', paddingTop: '60px' }}>
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center' }}>
-            <div className="terminal-text--green">
-              REDIRECTING<span className="vintage-loading"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  if (status === 'loading') return <Busy text="Checking your session…" />;
+  if (status === 'authenticated') return <Busy text="Signed in — taking you there…" />;
   return <SignInForm />;
 }
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={
-      <div className="vintage-container" style={{ maxWidth: '500px', margin: '0 auto', paddingTop: '60px' }}>
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center' }}>
-            <div className="terminal-text--green">
-              LOADING<span className="vintage-loading"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<Busy text="Loading…" />}>
       <SignInContent />
     </Suspense>
   );

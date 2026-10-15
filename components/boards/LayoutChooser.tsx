@@ -2,7 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import Modal from '../studio/Modal';
+import { Tag } from '../studio/Bits';
 import { BOARD_LAYOUTS, DEFAULT_LAYOUT, LAYOUT_INFO, type BoardLayout } from '../../lib/board-layout';
+import '../../styles/boards.css';
+import '../../styles/studio-boards.css';
 
 /**
  * Pick how the leaderboards are laid out. Opened once on a first visit (after the consent
@@ -13,6 +17,7 @@ import { BOARD_LAYOUTS, DEFAULT_LAYOUT, LAYOUT_INFO, type BoardLayout } from '..
  * everywhere and in Settings; without one it lives on this device only.
  */
 
+/** A small drawing of each layout. Also used by the Settings page (styles/studio-account.css). */
 export function LayoutSketch({ layout }: { layout: BoardLayout }) {
   const bar = (x: number, y: number, w: number, key: string, strong = false) =>
     <rect key={key} x={x} y={y} width={w} height="3" rx="1.5" className={strong ? 'lbx-sk-strong' : 'lbx-sk'} />;
@@ -75,63 +80,46 @@ export default function LayoutChooser({ isOpen, current, firstTime, signedIn, on
   const [pick, setPick] = useState<BoardLayout>(current);
   useEffect(() => { if (isOpen) setPick(current); }, [isOpen, current]);
 
+  // Escape, the backdrop, the close button and Keep/Cancel all land here.
   const dismiss = () => (firstTime ? onSave(current) : onClose());
 
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') dismiss(); };
-    window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, firstTime, current]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className="pro-modal" onClick={dismiss}>
-      <div className="pro-modal-card lbx-chooser" role="dialog" aria-modal="true" aria-labelledby="lbx-chooser-title"
-           onClick={(e) => e.stopPropagation()}>
-        <span className="pro-modal-badge">Leaderboard layout</span>
-        <div className="pro-modal-title" id="lbx-chooser-title">
-          {firstTime ? 'How would you like to see the leaderboards?' : 'Change the leaderboard layout'}
-        </div>
-        <p className="pro-modal-sub">
-          The same four boards — Combined, Coding, Reasoning and Tool use — shown four ways. You can change this any time with the Layout button above the board.
-        </p>
-
-        <div className="lbx-options" role="radiogroup" aria-label="Layouts">
-          {BOARD_LAYOUTS.map((l) => (
-            <button key={l} type="button" role="radio" aria-checked={pick === l}
-                    className={`lbx-option${pick === l ? ' is-picked' : ''}`} onClick={() => setPick(l)}>
-              <LayoutSketch layout={l} />
-              <span className="lbx-option-text">
-                <span className="lbx-option-name">
-                  {LAYOUT_INFO[l].name}
-                  {l === DEFAULT_LAYOUT && <span className="lbx-option-badge">Default</span>}
-                </span>
-                <span className="lbx-option-desc">{LAYOUT_INFO[l].description}</span>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <p className="lbx-chooser-note">
-          {signedIn
-            ? <>Saved to your account, so it follows you to any device. You can also change it in <Link href="/account/settings">Settings</Link>.</>
-            : <>Saved on this device only. <Link href="/auth/signup?callbackUrl=/">Create an account</Link> to keep it on every device and change it from your Settings page.</>}
-        </p>
-
-        <div className="lbx-chooser-actions">
-          <button type="button" className="pro-modal-btn ghost" onClick={dismiss}>
+    <Modal
+      open={isOpen}
+      onClose={dismiss}
+      title={firstTime ? 'How would you like to see the leaderboards?' : 'Change the leaderboard layout'}
+      sub="The same four boards — Combined, Coding, Reasoning and Tool use — shown four ways. You can change this any time with the Layout button above the board."
+      footer={(
+        <>
+          <button type="button" className="st-btn" onClick={dismiss}>
             {firstTime ? `Keep ${LAYOUT_INFO[current].name}` : 'Cancel'}
           </button>
-          <button type="button" className="pro-modal-btn primary" onClick={() => onSave(pick)}>
+          <button type="button" className="st-btn is-primary" onClick={() => onSave(pick)}>
             Use {LAYOUT_INFO[pick].name}
           </button>
-        </div>
+        </>
+      )}
+    >
+      <div className="sl-options" role="radiogroup" aria-label="Layouts">
+        {BOARD_LAYOUTS.map((l) => (
+          <button key={l} type="button" role="radio" aria-checked={pick === l}
+                  className="st-card sl-option" onClick={() => setPick(l)}>
+            <LayoutSketch layout={l} />
+            <span className="st-card-t">
+              {LAYOUT_INFO[l].name}
+              {l === DEFAULT_LAYOUT && <Tag tone="accent">Default</Tag>}
+              <span className="st-card-tick" aria-hidden="true" />
+            </span>
+            <span className="st-card-d">{LAYOUT_INFO[l].description}</span>
+          </button>
+        ))}
       </div>
-    </div>
+
+      <p className="sl-chooser-note">
+        {signedIn
+          ? <>Saved to your account, so it follows you to any device. You can also change it in <Link href="/account/settings">Settings</Link>.</>
+          : <>Saved on this device only. <Link href="/auth/signup?callbackUrl=/">Create an account</Link> to keep it on every device and change it from your Settings page.</>}
+      </p>
+    </Modal>
   );
 }

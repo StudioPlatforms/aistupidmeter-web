@@ -1,5 +1,8 @@
 'use client';
 
+import type React from 'react';
+import '../../styles/studio-boards.css';
+
 interface BelowLeaderboardProps {
   transparencyMetrics: any;
   modelScores: any[];
@@ -31,88 +34,55 @@ export default function BelowLeaderboard({ transparencyMetrics, modelScores }: B
   const providersLabel = providers > 0 ? String(providers) : '—';
 
   return (
-    <div className="v4-below-lb">
-      <div className="v4-info-grid">
+    <div className="v4-below-lb sl-info-wrap">
+      <div className="sl-info">
         {/* Data Transparency */}
-        <div className="v4-info-col">
-          <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '8px', textShadow: '0 0 2px var(--amber-warning)' }}>
-            DATA TRANSPARENCY
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Test Coverage</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{coverage}</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label" title="Share of ranked models on schedule, suite slots filled, and recent data volume. The statistical figure is the CI width below.">Data Completeness</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{confidence}</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Avg CI Width</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{ciWidth}</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Models Tracked</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{modelsLabel}</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Providers Monitored</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>{providersLabel}</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Detection Method</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Page-Hinkley (CUSUM-family)</span>
-          </div>
-        </div>
+        <section className="sl-pane st-up" aria-label="Data transparency">
+          <h3 className="sl-pane-t">Data transparency</h3>
+          <dl className="st-kv is-tight" style={{ marginTop: 12 }}>
+            <div><dt>Test coverage</dt><dd>{coverage}</dd></div>
+            <div>
+              <dt title="Share of ranked models on schedule, suite slots filled, and recent data volume. The statistical figure is the CI width below.">Data completeness</dt>
+              <dd>{confidence}</dd>
+            </div>
+            <div><dt>Avg CI width</dt><dd>{ciWidth}</dd></div>
+            <div><dt>Models tracked</dt><dd>{modelsLabel}</dd></div>
+            <div><dt>Providers monitored</dt><dd>{providersLabel}</dd></div>
+            <div><dt>Detection method</dt><dd>Page-Hinkley (CUSUM-family)</dd></div>
+          </dl>
+        </section>
 
         {/* Benchmark Schedule */}
-        <div className="v4-info-col">
-          <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--amber-warning)', marginBottom: '8px', textShadow: '0 0 2px var(--amber-warning)' }}>
-            BENCHMARK SCHEDULE
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Canary (drift detect)</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Every hour</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Full 9-axis (code)</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Every 4 hours</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Deep reasoning</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Daily 03:00 Europe/Berlin</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Tool calling</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Daily 04:00 Europe/Berlin</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Health monitoring</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>Every 10 minutes</span>
-          </div>
-          <div className="v4-info-row">
-            <span className="v4-info-label">Scoring</span>
-            <span className="v4-info-value" style={{ color: 'var(--phosphor-green)' }}>9-axis w/ 95% CI</span>
-          </div>
-        </div>
+        <section className="sl-pane st-up" aria-label="Benchmark schedule" style={{ '--d': '.06s' } as React.CSSProperties}>
+          <h3 className="sl-pane-t">Benchmark schedule</h3>
+          <dl className="st-kv is-tight" style={{ marginTop: 12 }}>
+            <div><dt>Canary (drift detect)</dt><dd>Every hour</dd></div>
+            <div><dt>Full 9-axis (code)</dt><dd>Every 4 hours</dd></div>
+            <div><dt>Deep reasoning</dt><dd>Daily 03:00 Europe/Berlin</dd></div>
+            <div><dt>Tool calling</dt><dd>Daily 04:00 Europe/Berlin</dd></div>
+            <div><dt>Health monitoring</dt><dd>Every 10 minutes</dd></div>
+            <div><dt>Scoring</dt><dd>9-axis w/ 95% CI</dd></div>
+          </dl>
+        </section>
       </div>
 
       {/* System description */}
-      <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(192,192,192,.06)', fontSize: '12px' }}>
-        <div style={{ fontWeight: 'bold', color: 'var(--phosphor-green)', marginBottom: '6px', textShadow: '0 0 2px var(--phosphor-green)' }}>
-          &gt; WHAT IS CONTINUOUS EVALUATION?
+      <section className="sl-pane sl-about st-up" aria-label="About the measurements">
+        <div>
+          <h3>What is continuous evaluation?</h3>
+          <p>
+            Continuous, independent measurement of whether AI models degrade behind a stable API name. We benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
+            Page-Hinkley change-point detection separates a sustained regression from run-to-run noise, and every composite score says how many suites actually contributed to it.
+          </p>
         </div>
-        <div style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
-          Continuous, independent measurement of whether AI models degrade behind a stable API name. We benchmark{hasCounts ? ` ${totalModels}+ AI models across ${providers} providers` : ' AI models across every major provider'} using automated coding challenges, deep reasoning tasks, and tool-calling evaluations.
-          Page-Hinkley change-point detection separates a sustained regression from run-to-run noise, and every composite score says how many suites actually contributed to it.
+        <div>
+          <h3>Test your own keys</h3>
+          <p>
+            Run the exact same benchmarks with your own API keys. Verify our results independently.
+            Compare your provider&apos;s performance against our public rankings.
+          </p>
         </div>
-        <div style={{ fontWeight: 'bold', color: 'var(--phosphor-green)', marginTop: '10px', marginBottom: '6px', textShadow: '0 0 2px var(--phosphor-green)' }}>
-          &gt; TEST YOUR OWN KEYS
-        </div>
-        <div style={{ color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
-          Run the exact same benchmarks with your own API keys. Verify our results independently.
-          Compare your provider&apos;s performance against our public rankings.
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

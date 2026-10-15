@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import ProviderLogo from '@/components/ProviderLogo';
 import { apiClient } from '@/lib/api-client';
 import type { ProviderKey } from '@/lib/api-client';
+import { PageHead, Pane, Modal, Loader, Note, Tag, Pill, ProviderMark } from '@/components/studio';
+import '@/styles/studio-keys.css';
 
 type Provider = 'openai' | 'anthropic' | 'google' | 'glm' | 'deepseek' | 'kimi';
 
@@ -35,6 +36,10 @@ const PROVIDERS = [
 const RETIRED_PROVIDERS: Record<string, string> = {
   xai: 'No Grok models are in the benchmark lineup, so the router cannot select one. This key is not being used — you can safely remove it.',
 };
+/** How a retired provider's name is written. */
+const RETIRED_NAMES: Record<string, string> = { xai: 'xAI' };
+
+const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
 export default function RouterProvidersPage() {
   const { data: session, status } = useSession();
@@ -49,6 +54,7 @@ export default function RouterProvidersPage() {
   // Benchmarked models per provider (null until loaded), for the card descriptions — newest
   // first (/api/models lists them in the order they were added).
   const [lineup, setLineup] = useState<Record<string, string[]> | null>(null);
+  const keyField = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/models')
@@ -73,6 +79,14 @@ export default function RouterProvidersPage() {
       setLoading(false);
     }
   }, [status, session]);
+
+  // The dialog focuses itself when it opens; put the caret in the key field after it, as the
+  // old dialog's autoFocus did. (Child effects run first, so this frame comes after the dialog's.)
+  useEffect(() => {
+    if (!showAddModal) return;
+    const raf = requestAnimationFrame(() => keyField.current?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [showAddModal]);
 
   const fetchProviderKeys = async () => {
     try {
@@ -130,6 +144,10 @@ export default function RouterProvidersPage() {
     }
   };
 
+  const resetAdd = () => { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); };
+  // Escape, the backdrop and the close button never interrupt a key being checked.
+  const closeAdd = () => { if (!isValidating) resetAdd(); };
+
   const hasProvider = (id: Provider) => providerKeys.some(k => k.provider === id);
   const getProviderKey = (id: Provider) => providerKeys.find(k => k.provider === id);
   const selectedProviderInfo = PROVIDERS.find(p => p.id === selectedProvider);
@@ -140,203 +158,181 @@ export default function RouterProvidersPage() {
   return (
     <RouterLayout>
       <SubscriptionGuard feature="Provider keys" requires="routing">
-        {/* Page header */}
-        <div className="rv4-page-header">
-          <div className="rv4-page-header-left">
-            <span style={{ fontSize: '18px' }}>🔌</span>
-            <div>
-              <div className="rv4-page-title">PROVIDER API KEYS<span className="blinking-cursor"></span></div>
-              <div className="rv4-page-title-sub">Connect your AI provider accounts to enable intelligent routing</div>
-            </div>
-          </div>
-          <div className="rv4-page-header-right">
-            <span className="rv4-badge green">{loading ? '...' : `${connectedCount}/${PROVIDERS.length}`} CONNECTED</span>
-          </div>
-        </div>
+        <PageHead
+          kicker="Smart Router"
+          title="Provider keys"
+          lead="Connect your AI provider accounts to enable intelligent routing."
+          actions={
+            <Pill tone={!loading && connectedCount > 0 ? 'good' : undefined}>
+              {loading ? '…' : `${connectedCount} of ${PROVIDERS.length}`} connected
+            </Pill>
+          }
+        />
 
-        <div className="rv4-body">
+        <div className="st-body">
           {error && (
-            <div className="rv4-error-banner" style={{ marginBottom: '14px' }}>
-              <span>⚠</span>
-              <div style={{ flex: 1 }}><div style={{ fontWeight: 'bold', marginBottom: '2px' }}>ERROR</div><div style={{ fontSize: '10px' }}>{error}</div></div>
-              <button onClick={fetchProviderKeys} className="rv4-ctrl-btn danger" style={{ marginLeft: 'auto', fontSize: '10px' }}>RETRY</button>
-            </div>
+            <Note tone="bad" title="Could not load your provider keys">
+              {error}
+              <div className="sk-note-act">
+                <button type="button" className="st-btn is-sm" onClick={fetchProviderKeys}>Retry</button>
+              </div>
+            </Note>
           )}
 
-          {/* How it works */}
-          <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
-            <span className="rv4-info-banner-icon">ℹ</span>
-            <div className="rv4-info-banner-content">
-              <div className="rv4-info-banner-title">HOW PROVIDER KEYS WORK</div>
-              <div className="rv4-info-banner-text">
-                Add your API keys from different providers. For each request the router picks the best model from the
-                providers you have connected, using the live benchmark scores on this site — so it can only route to
-                models that are currently being benchmarked. Connect more providers to give it more to choose from.
-                Your keys are encrypted with AES-256-GCM and are used only to call the provider on your behalf.
-              </div>
-            </div>
-          </div>
+          <Note title="How provider keys work">
+            Add your API keys from different providers. For each request the router picks the best model from the
+            providers you have connected, using the live benchmark scores on this site — so it can only route to
+            models that are currently being benchmarked. Connect more providers to give it more to choose from.
+            Your keys are encrypted with AES-256-GCM and are used only to call the provider on your behalf.
+          </Note>
 
-          {/* Providers grid */}
-          <div className="rv4-panel" style={{ marginBottom: '14px' }}>
-            <div className="rv4-panel-header">
-              <span className="rv4-panel-title">🔌 AVAILABLE PROVIDERS</span>
-            </div>
-            <div className="rv4-panel-body">
-              {loading ? (
-                <div className="rv4-loading">
-                  <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
-                  <span>LOADING PROVIDERS</span>
-                </div>
-              ) : (
-                <div className="rv4-provider-grid">
-                  {PROVIDERS.map((prov) => {
-                    const connected = hasProvider(prov.id);
-                    const key = getProviderKey(prov.id);
-                    return (
-                      <div key={prov.id} className={`rv4-provider-card${connected ? ' connected' : ''}`}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#ffffff', border: `1px solid ${connected ? 'var(--accent)' : 'var(--metal-silver)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                          <ProviderLogo provider={prov.id} size={22} />
+          <Pane title="Available providers" sub={`${PROVIDERS.length} providers the router can route to`} delay={0.04}>
+            {loading ? (
+              <Loader label="Loading providers" minHeight={260} />
+            ) : (
+              <div className="st-cards sk-provs">
+                {PROVIDERS.map((prov) => {
+                  const connected = hasProvider(prov.id);
+                  const key = getProviderKey(prov.id);
+                  const models = lineup?.[prov.id] ?? [];
+                  return (
+                    <div key={prov.id} className={`st-card sk-prov${connected ? ' is-connected' : ''}`}>
+                      <div className="sk-prov-head">
+                        <ProviderMark provider={prov.id} size="lg" />
+                        <div className="sk-prov-name">
+                          <span className="st-card-t">{prov.name}</span>
+                          {prov.maker !== prov.name && <span className="sk-prov-maker">{prov.maker}</span>}
                         </div>
-                        <div className="rv4-provider-card-name">{prov.name}</div>
-                        {connected && <span className="rv4-badge green" style={{ fontSize: '8px' }}>✓ CONNECTED</span>}
-                        <div className="rv4-provider-card-desc">
-                          {lineup === null
-                            ? prov.maker
-                            : (lineup[prov.id]?.length ? [...lineup[prov.id]].reverse().join(', ') : 'No models from this provider are benchmarked right now')}
-                        </div>
-                        {/* The action area sits at the bottom of the card (margin-top: auto), so buttons line
-                            up across a row whatever the length of each card's model list. */}
+                        {connected && <Pill tone="good">Connected</Pill>}
+                      </div>
+
+                      <div className="sk-prov-models">
+                        {lineup === null ? (
+                          <p className="st-card-d">{prov.maker}</p>
+                        ) : models.length ? (
+                          <>
+                            <p className="st-label">Benchmarked models</p>
+                            <div className="sk-tags">
+                              {[...models].reverse().map((name, i) => <Tag key={`${name}-${i}`}>{name}</Tag>)}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="st-card-d">No models from this provider are benchmarked right now</p>
+                        )}
+                      </div>
+
+                      {/* The action area sits at the bottom of the card (margin-top: auto), so buttons line
+                          up across a row whatever the length of each card's model list. */}
+                      <div className="sk-prov-foot">
                         {connected && key ? (
-                          <div style={{ marginTop: 'auto', width: '100%' }}>
-                            <div style={{ fontSize: '9px', color: 'var(--phosphor-dim)', marginTop: '4px' }}>
-                              Added: {new Date(key.createdAt).toLocaleDateString()}
-                              {key.lastValidated && <><br />Validated: {new Date(key.lastValidated).toLocaleDateString()}</>}
+                          <>
+                            <dl className="st-kv is-tight">
+                              <div><dt>Added</dt><dd>{day(key.createdAt)}</dd></div>
+                              {key.lastValidated && <div><dt>Validated</dt><dd>{day(key.lastValidated)}</dd></div>}
+                            </dl>
+                            <div className="sk-prov-act">
+                              <button type="button" className="st-btn is-sm" onClick={() => handleValidateKey(key.id)}>Validate</button>
+                              <button type="button" className="st-btn is-sm is-danger" onClick={() => handleDeleteKey(key.id)}>Remove</button>
                             </div>
-                            <div style={{ display: 'flex', gap: '4px', marginTop: '8px', width: '100%' }}>
-                              <button onClick={() => handleValidateKey(key.id)} className="rv4-ctrl-btn" style={{ flex: 1, fontSize: '9px' }}>VALIDATE</button>
-                              <button onClick={() => handleDeleteKey(key.id)} className="rv4-ctrl-btn danger" style={{ flex: 1, fontSize: '9px' }}>REMOVE</button>
-                            </div>
-                          </div>
+                          </>
                         ) : (
                           <button
+                            type="button"
+                            className="st-btn is-block"
                             onClick={() => { setSelectedProvider(prov.id); setShowAddModal(true); setValidationResult(null); }}
-                            className="rv4-ctrl-btn primary"
-                            style={{ width: '100%', marginTop: 'auto', fontSize: '10px' }}
                           >
-                            + ADD {prov.name.toUpperCase()}
+                            Add {prov.name} key
                           </button>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Pane>
 
           {/* Keys for providers we no longer route to */}
           {retiredKeys.length > 0 && (
-            <div className="rv4-panel" style={{ marginBottom: '14px' }}>
-              <div className="rv4-panel-header">
-                <span className="rv4-panel-title">RETIRED PROVIDERS</span>
-              </div>
-              <div className="rv4-panel-body">
+            <Pane title="Retired providers" ruled flush className="sk-retired">
+              <div className="st-rows">
                 {retiredKeys.map((key) => (
-                  <div key={key.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '220px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', marginBottom: '2px' }}>
-                        {key.provider}
-                      </div>
-                      <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: 1.5 }}>
+                  <div key={key.id} className="st-row">
+                    <ProviderMark provider={key.provider} />
+                    <div className="st-row-main">
+                      <div className="st-row-t">{RETIRED_NAMES[key.provider] ?? key.provider}</div>
+                      <p className="sk-row-text">
                         {RETIRED_PROVIDERS[key.provider] ?? 'This provider is no longer part of the routing pool.'}
-                      </div>
+                      </p>
                     </div>
-                    <button onClick={() => handleDeleteKey(key.id)} className="rv4-ctrl-btn danger" style={{ fontSize: '10px' }}>
-                      REMOVE
-                    </button>
+                    <div className="st-row-end">
+                      <button type="button" className="st-btn is-sm is-danger" onClick={() => handleDeleteKey(key.id)}>Remove</button>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </Pane>
           )}
 
-          {/* Security notice */}
-          <div className="rv4-info-banner amber" style={{ marginTop: '4px' }}>
-            <span className="rv4-info-banner-icon">🔒</span>
-            <div className="rv4-info-banner-content">
-              <div className="rv4-info-banner-title">YOUR KEYS ARE SECURE</div>
-              <div className="rv4-info-banner-text">
-                All provider API keys are encrypted using AES-256-GCM before being stored.
-                We never log or expose your keys. You can remove them at any time.
-              </div>
-            </div>
-          </div>
+          <Note tone="good" title="Your keys are secure">
+            All provider API keys are encrypted using AES-256-GCM before being stored. We never log or expose your keys.
+            You can remove them at any time.
+          </Note>
         </div>
 
-        {/* Add Provider Modal */}
-        {showAddModal && selectedProvider && selectedProviderInfo && (
-          <div className="rv4-modal-backdrop" onClick={() => { if (!isValidating) { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); } }}>
-            <div className="rv4-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="rv4-modal-header">
-                <span className="rv4-modal-title">🔌 ADD {selectedProviderInfo.name.toUpperCase()} KEY</span>
-                <button className="rv4-modal-close" onClick={() => { if (!isValidating) { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); } }}>✕ CLOSE</button>
-              </div>
-              <div className="rv4-modal-body">
-                {validationResult && (
-                  <div className={`rv4-${validationResult.success ? 'success' : 'error'}-banner`} style={{ marginBottom: '14px' }}>
-                    <span>{validationResult.success ? '✓' : '⚠'}</span>
-                    <div>
-                      <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{validationResult.success ? 'KEY VALIDATED!' : 'VALIDATION FAILED'}</div>
-                      <div style={{ fontSize: '10px' }}>{validationResult.message}</div>
-                      {validationResult.models && validationResult.models.length > 0 && (
-                        <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.7 }}>{validationResult.models.length} models available</div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div className="rv4-form-group">
-                  <label className="rv4-input-label">API KEY</label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={selectedProviderInfo.keyFormat}
-                    className="rv4-input"
-                    disabled={isValidating || (validationResult?.success ?? false)}
-                    autoFocus
-                  />
-                  <div className="rv4-input-hint">Your API key will be encrypted and stored securely</div>
-                </div>
-                <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
-                  <span className="rv4-info-banner-icon">🔑</span>
-                  <div className="rv4-info-banner-content">
-                    <div className="rv4-info-banner-title">WHERE TO FIND YOUR KEY</div>
-                    <div className="rv4-info-banner-text">{selectedProviderInfo.docsUrl}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => { setShowAddModal(false); setSelectedProvider(null); setApiKey(''); setValidationResult(null); }}
-                    disabled={isValidating}
-                    className="rv4-ctrl-btn"
-                  >
-                    {validationResult?.success ? 'DONE' : 'CANCEL'}
-                  </button>
-                  {!validationResult?.success && (
-                    <button
-                      onClick={handleSaveKey}
-                      disabled={!apiKey.trim() || isValidating}
-                      className="rv4-ctrl-btn primary"
-                    >
-                      {isValidating ? 'VALIDATING...' : 'ADD & VALIDATE KEY'}
-                    </button>
+        {/* Add a provider key, then check it with the provider before routing uses it. */}
+        <Modal
+          open={showAddModal && !!selectedProvider && !!selectedProviderInfo}
+          onClose={closeAdd}
+          size="narrow"
+          title={selectedProviderInfo ? (
+            <span className="sk-mtitle"><ProviderMark provider={selectedProviderInfo.id} />Add {selectedProviderInfo.name} key</span>
+          ) : ''}
+          footer={
+            <>
+              <button type="button" className="st-btn" onClick={resetAdd} disabled={isValidating}>
+                {validationResult?.success ? 'Done' : 'Cancel'}
+              </button>
+              {!validationResult?.success && (
+                <button type="button" className="st-btn is-primary" onClick={handleSaveKey} disabled={!apiKey.trim() || isValidating}>
+                  {isValidating ? 'Validating…' : 'Add & validate key'}
+                </button>
+              )}
+            </>
+          }
+        >
+          {selectedProviderInfo && (
+            <div className="sk-about">
+              {validationResult && (
+                <Note tone={validationResult.success ? 'good' : 'bad'} title={validationResult.success ? 'Key validated' : 'Validation failed'}>
+                  {validationResult.message}
+                  {validationResult.models && validationResult.models.length > 0 && (
+                    <div className="st-faint">{validationResult.models.length} models available</div>
                   )}
-                </div>
+                </Note>
+              )}
+              <div className="st-field">
+                <label className="st-field-label" htmlFor="sk-provider-key">API key</label>
+                <input
+                  ref={keyField}
+                  id="sk-provider-key"
+                  type="password"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder={selectedProviderInfo.keyFormat}
+                  className="st-input is-code sk-field-16"
+                  disabled={isValidating || (validationResult?.success ?? false)}
+                />
+                <p className="st-hint">Your API key will be encrypted and stored securely</p>
               </div>
+              <Note title="Where to find your key">
+                <span className="sk-where">
+                  <a href={`https://${selectedProviderInfo.docsUrl}`} target="_blank" rel="noopener noreferrer">{selectedProviderInfo.docsUrl}</a>
+                </span>
+              </Note>
             </div>
-          </div>
-        )}
+          )}
+        </Modal>
       </SubscriptionGuard>
     </RouterLayout>
   );

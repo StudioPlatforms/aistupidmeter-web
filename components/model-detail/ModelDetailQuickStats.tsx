@@ -1,5 +1,7 @@
 'use client';
 
+import { Pane, CountUp, Tag } from '@/components/studio';
+
 interface ModelDetailQuickStatsProps {
   currentScore: number;
   status: string;
@@ -10,18 +12,14 @@ interface ModelDetailQuickStatsProps {
   selectedPeriod: string;
 }
 
-const scoreColor = (score: number): string =>
-  score >= 80 ? 'var(--phosphor-green)' : score >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)';
-
-const statusColor = (status: string): string => {
-  switch (status) {
-    case 'excellent': return 'var(--phosphor-green)';
-    case 'good': return 'var(--phosphor-green)';
-    case 'warning': return 'var(--amber-warning)';
-    case 'critical': return 'var(--red-alert)';
-    default: return 'var(--phosphor-dim)';
-  }
+const STATUS_TONE: Record<string, 'good' | 'warn' | 'bad' | undefined> = {
+  excellent: 'good', good: 'good', warning: 'warn', critical: 'bad',
 };
+const PERIOD_WORDS: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '1m': '30 days' };
+
+/** Healthy values stay ink; below 80 reads as a warning, below 60 as a problem. */
+const toneClass = (value: number) => (value < 60 ? 'sm-kv-bad' : value < 80 ? 'sm-kv-warn' : undefined);
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 export default function ModelDetailQuickStats({
   currentScore,
@@ -33,88 +31,35 @@ export default function ModelDetailQuickStats({
   selectedPeriod,
 }: ModelDetailQuickStatsProps) {
   const periodLabel = selectedPeriod === 'latest'
-    ? 'CURRENT PERFORMANCE'
-    : `PERFORMANCE (${selectedPeriod.toUpperCase()})`;
+    ? 'Current performance'
+    : `Performance (${PERIOD_WORDS[selectedPeriod] ?? selectedPeriod})`;
 
   const periodDesc = selectedPeriod === 'latest'
     ? 'Latest benchmark results'
     : `Metrics within the last ${selectedPeriod === '24h' ? '24 hours' : selectedPeriod === '7d' ? '7 days' : '30 days'}`;
 
+  const correctness = Math.round((averageCorrectness || 0) * 100);
+
   return (
-    <div className="md-info-col">
-      <div className="md-info-title">{periodLabel}</div>
-
-      {/* Big Score Display */}
-      <div style={{
-        textAlign: 'center',
-        padding: '16px 0',
-        borderBottom: '1px solid rgba(192, 192, 192, 0.06)',
-        marginBottom: '10px',
-      }}>
-        <div style={{
-          fontSize: '52px',
-          fontWeight: 'bold',
-          color: scoreColor(currentScore),
-          textShadow: `0 0 12px ${scoreColor(currentScore)}`,
-          lineHeight: 1,
-          marginBottom: '4px',
-        }}>
-          {currentScore || 0}
-        </div>
-        <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '4px' }}>
-          LATEST SCORE
-        </div>
-        <div style={{
-          display: 'inline-block',
-          fontSize: '9px',
-          padding: '2px 8px',
-          border: `1px solid ${statusColor(status)}`,
-          color: statusColor(status),
-          fontWeight: 'bold',
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-        }}>
-          {status}
+    <Pane
+      title={periodLabel}
+      sub={periodDesc}
+      foot="Coding scores are a weighted composite of 9 axes."
+    >
+      <div className="sm-big">
+        <div className="sm-big-v"><CountUp value={currentScore || 0} /></div>
+        <div className="sm-big-l">
+          {selectedPeriod === 'latest' ? 'Latest score' : 'Average score'}
+          <Tag tone={STATUS_TONE[status]}>{cap(status)}</Tag>
         </div>
       </div>
 
-      <div className="md-info-row">
-        <span className="md-info-label">Total Runs</span>
-        <span className="md-info-value" style={{ color: 'var(--phosphor-green)' }}>
-          {totalRuns || 0}
-        </span>
-      </div>
-      <div className="md-info-row">
-        <span className="md-info-label">Success Rate</span>
-        <span className="md-info-value" style={{ color: successRate >= 80 ? 'var(--phosphor-green)' : successRate >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)' }}>
-          {successRate || 0}%
-        </span>
-      </div>
-      <div className="md-info-row">
-        <span className="md-info-label">Avg Latency</span>
-        <span className="md-info-value" style={{ color: '#1a73e8' }}>
-          {Math.round(averageLatency || 0)}ms
-        </span>
-      </div>
-      <div className="md-info-row">
-        <span className="md-info-label">Correctness</span>
-        <span className="md-info-value" style={{ color: averageCorrectness >= 0.8 ? 'var(--phosphor-green)' : averageCorrectness >= 0.6 ? 'var(--amber-warning)' : 'var(--red-alert)' }}>
-          {Math.round((averageCorrectness || 0) * 100)}%
-        </span>
-      </div>
-
-      <div style={{
-        marginTop: '10px',
-        padding: '8px',
-        background: 'rgba(26, 115, 232, 0.03)',
-        border: '1px solid rgba(26, 115, 232, 0.12)',
-        borderRadius: '3px',
-        fontSize: '9px',
-        color: 'var(--phosphor-dim)',
-        lineHeight: '1.5',
-      }}>
-        {periodDesc}. Scores represent weighted composite across 7 axes.
-      </div>
-    </div>
+      <dl className="st-kv sm-kv">
+        <div><dt>Total runs</dt><dd>{(totalRuns || 0).toLocaleString('en-US')}</dd></div>
+        <div><dt>Success rate</dt><dd className={toneClass(successRate || 0)}>{successRate || 0}%</dd></div>
+        <div><dt>Avg latency</dt><dd>{Math.round(averageLatency || 0).toLocaleString('en-US')} ms</dd></div>
+        <div><dt>Correctness</dt><dd className={toneClass(correctness)}>{correctness}%</dd></div>
+      </dl>
+    </Pane>
   );
 }

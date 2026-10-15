@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import AuthShell from '@/components/auth/AuthShell';
 
 interface ErrorCopy {
   title: string;
@@ -63,91 +64,25 @@ function ErrorContent() {
   const copy = ERRORS[code] || ERRORS.Default;
 
   return (
-    <div className="vintage-container" style={{
-      maxWidth: '500px',
-      margin: '0 auto',
-      paddingTop: '60px'
-    }}>
-      <style jsx>{`
-        @media (min-width: 768px) {
-          .vintage-container {
-            max-width: 650px !important;
-          }
-        }
-      `}</style>
-
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '10px', textAlign: 'center' }}>
-            {copy.title}
-          </div>
-
-          <div className="terminal-text--dim" style={{
-            textAlign: 'center',
-            marginBottom: '24px',
-            lineHeight: 1.55
-          }}>
-            {copy.body}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-            {copy.action && (
-              <Link href={copy.action.href} className="vintage-btn vintage-btn--primary" style={{
-                textDecoration: 'none',
-                textAlign: 'center',
-                padding: '12px'
-              }}>
-                {copy.action.label}
-              </Link>
-            )}
-
-            <Link href="/auth/signin" className="vintage-btn" style={{
-              textDecoration: 'none',
-              textAlign: 'center',
-              padding: '12px'
-            }}>
-              {copy.action ? 'Back to sign in' : 'Try again'}
-            </Link>
-
-            <Link href="/" className="vintage-btn" style={{
-              textDecoration: 'none',
-              textAlign: 'center',
-              padding: '12px'
-            }}>
-              Return to the leaderboard
-            </Link>
-          </div>
-
-          {/* Support needs the code; the reader does not need it shouted at them. */}
-          <div style={{
-            textAlign: 'center',
-            borderTop: '1px solid var(--metal-silver)',
-            paddingTop: '16px'
-          }}>
-            <div className="terminal-text--dim" style={{ fontSize: '0.8em' }}>
-              Reference: {code}
-            </div>
-          </div>
-        </div>
+    <AuthShell mode="account">
+      <h1 className="au-title">{copy.title}</h1>
+      <p className="au-sub">{copy.body}</p>
+      <div className="au-stack" style={{ marginTop: 24 }}>
+        {copy.action && <Link href={copy.action.href} className="au-btn au-btn-primary au-btn-block">{copy.action.label}</Link>}
+        <Link href="/auth/signin" className={`au-btn au-btn-block ${copy.action ? 'au-btn-ghost' : 'au-btn-primary'}`}>
+          {copy.action ? 'Back to sign in' : 'Try again'}
+        </Link>
+        <Link href="/" className="au-btn au-btn-ghost au-btn-block">Go to the home page</Link>
       </div>
-    </div>
+      {/* Support needs the code; the reader does not need it shouted at them. */}
+      <p className="au-ref">Reference: {code}</p>
+    </AuthShell>
   );
 }
 
 export default function AuthErrorPage() {
   return (
-    <Suspense fallback={
-      <div className="vintage-container" style={{
-        maxWidth: '500px',
-        margin: '0 auto',
-        paddingTop: '60px',
-        textAlign: 'center'
-      }}>
-        <div className="crt-monitor">
-          <div className="terminal-text terminal-text--dim">Loading…</div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<AuthShell mode="account"><p className="au-busy" role="status">Loading…</p></AuthShell>}>
       <ErrorContent />
     </Suspense>
   );

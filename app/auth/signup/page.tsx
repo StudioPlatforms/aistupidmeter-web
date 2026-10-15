@@ -3,26 +3,24 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
+import AuthShell from '@/components/auth/AuthShell';
 
 /**
  * Where to go once the account exists: the page that sent them here (?callbackUrl=, or the
  * older ?next= the watch star uses), so "Sign up to track this model" lands back on it. Only a
- * same-site path is honoured — never another origin. Read at submit time rather than with
- * useSearchParams, which would need a Suspense boundary on this statically rendered page.
+ * same-site path is honoured — never another origin. Otherwise the leaderboard, which is what the
+ * account unlocks. Read at submit time rather than with useSearchParams, which would need a
+ * Suspense boundary on this statically rendered page.
  */
 function returnPath(): string {
-  if (typeof window === 'undefined') return '/router';
+  if (typeof window === 'undefined') return '/';
   const sp = new URLSearchParams(window.location.search);
   const raw = sp.get('callbackUrl') || sp.get('next') || '';
-  return raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/router';
+  return raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/';
 }
 
 export default function SignUpPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   // Set once the account exists: the address the confirmation link went to.
@@ -30,18 +28,10 @@ export default function SignUpPage() {
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
 
   const validatePassword = (password: string): string | null => {
-    if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
-    }
-    if (!/[A-Z]/.test(password)) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!/[a-z]/.test(password)) {
-      return 'Password must contain at least one lowercase letter';
-    }
-    if (!/[0-9]/.test(password)) {
-      return 'Password must contain at least one number';
-    }
+    if (password.length < 8) return 'Password must be at least 8 characters long';
+    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter';
+    if (!/[0-9]/.test(password)) return 'Password must contain at least one number';
     return null;
   };
 
@@ -49,13 +39,10 @@ export default function SignUpPage() {
     e.preventDefault();
     setError('');
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
-    // Validate password strength
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       setError(passwordError);
@@ -63,34 +50,25 @@ export default function SignUpPage() {
     }
 
     setLoading(true);
-
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, password: formData.password }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         setError(data.error || 'Failed to create account');
         setLoading(false);
         return;
       }
-
       // Since 2026-10-04 a password account is finished by confirming the email: the
       // welcome email carries the link, and signing in waits until it has been opened.
       // (Google and GitHub sign-ups skip this; the provider has verified the address.)
       setSentTo(formData.email);
       setResendState('idle');
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('An error occurred during registration');
       setLoading(false);
     }
@@ -118,242 +96,74 @@ export default function SignUpPage() {
 
   if (sentTo) {
     return (
-      <div className="vintage-container" style={{ maxWidth: '500px', margin: '0 auto', paddingTop: '60px' }}>
-        <div className="crt-monitor">
-          <div className="terminal-text">
-            <div style={{ fontSize: '1.5em', marginBottom: '10px', textAlign: 'center' }}>
-              Check your inbox
+      <AuthShell mode="signup">
+        <h1 className="au-title">Check your inbox</h1>
+        <p className="au-sub">
+          We sent a confirmation link to <b>{sentTo}</b>. Open it to finish creating your account, then sign in.
+          The link is valid for 24 hours.
+        </p>
+        <div className="au-stack" style={{ marginTop: 24 }}>
+          {resendState === 'sent' ? (
+            <div className="au-note au-note-good" role="status" style={{ marginTop: 0 }}>
+              A new link is on its way. It can take a minute; check your spam folder too.
             </div>
-            <div style={{ textAlign: 'center', lineHeight: 1.6, marginBottom: '18px' }}>
-              We sent a confirmation link to <b>{sentTo}</b>. Open it to finish creating your account,
-              then sign in. The link is valid for 24 hours.
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center', marginBottom: '18px' }}>
-              {resendState === 'sent' ? (
-                <div className="auth-note auth-note--good" role="status" style={{ marginBottom: 0 }}>
-                  A new link is on its way. It can take a minute; check your spam folder too.
-                </div>
-              ) : (
-                <button type="button" className="vintage-btn" onClick={resendConfirmation}
-                  disabled={resendState === 'sending'} style={{ padding: '10px 22px' }}>
-                  {resendState === 'sending' ? 'Sending…' : 'Send the link again'}
-                </button>
-              )}
-              {resendState === 'failed' && (
-                <div className="auth-note auth-note--warn" role="alert" style={{ marginBottom: 0 }}>
-                  That did not work. Please wait a minute and try again.
-                </div>
-              )}
-              <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none', padding: '10px 22px' }}>
-                I have confirmed, sign in
-              </Link>
-            </div>
-
-            <div className="terminal-text--dim" style={{ textAlign: 'center', fontSize: '0.9em', lineHeight: 1.6 }}>
-              Wrong address?{' '}
-              <button type="button" onClick={() => { setSentTo(null); setFormData({ email: '', password: '', confirmPassword: '' }); }}
-                style={{ background: 'none', border: 0, padding: 0, color: 'var(--accent)', cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>
-                Start again
-              </button>
-              <br />
-              Nothing after a few minutes? Check your spam folder. Some email providers block new senders;{' '}
-              <Link href="/contact" style={{ color: 'var(--accent)' }}>contact us</Link> and we will sort it out.
-            </div>
-          </div>
+          ) : (
+            <button type="button" className="au-btn au-btn-ghost au-btn-block" onClick={resendConfirmation} disabled={resendState === 'sending'}>
+              {resendState === 'sending' ? 'Sending…' : 'Send the link again'}
+            </button>
+          )}
+          {resendState === 'failed' && (
+            <div className="au-note au-note-warn" role="alert" style={{ marginTop: 0 }}>That did not work. Please wait a minute and try again.</div>
+          )}
+          <Link href="/auth/signin" className="au-btn au-btn-primary au-btn-block">I have confirmed, sign in</Link>
         </div>
-      </div>
+        <p className="au-alt">
+          Wrong address?{' '}
+          <button type="button" className="au-text-btn" onClick={() => { setSentTo(null); setFormData({ email: '', password: '', confirmPassword: '' }); }}>
+            Start again
+          </button>
+          <br />
+          Nothing after a few minutes? Check your spam folder. Some email providers block new senders;{' '}
+          <Link href="/contact">contact us</Link> and we will sort it out.
+        </p>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="vintage-container" style={{ 
-      maxWidth: '500px', 
-      margin: '0 auto', 
-      paddingTop: '60px'
-    }}>
-      <style jsx>{`
-        @media (min-width: 768px) {
-          .vintage-container {
-            max-width: 650px !important;
-          }
-        }
-      `}</style>
-      
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '10px', textAlign: 'center' }}>
-            Create your free account
-          </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px', lineHeight: 1.55 }}>
-            Track three models, and we will tell you when their measured performance
-            changes — and when it does not. No card required.
-          </div>
-          
-          {error && (
-            <div className="terminal-text--red" style={{ 
-              marginBottom: '16px', 
-              textAlign: 'center',
-              padding: '8px',
-              border: '1px solid var(--red-alert)',
-              backgroundColor: 'rgba(255, 45, 0, 0.1)',
-              borderRadius: '4px'
-            }}>
-              ⚠ {error}
-            </div>
-          )}
-          
-          <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '16px' }}>
-              <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                Email address
-              </div>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="your@email.com"
-                required
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  background: 'var(--terminal-black)',
-                  border: '1px solid var(--metal-silver)',
-                  borderRadius: '4px',
-                  color: 'var(--phosphor-green)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
+    <AuthShell mode="signup">
+      <h1 className="au-title">Create your free account</h1>
+      <p className="au-sub">See every ranking, watch three models and route your first 1,000 requests. No card required.</p>
 
-            <div style={{ marginBottom: '16px' }}>
-              <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                Password
-              </div>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="Min 8 chars, 1 upper, 1 lower, 1 number"
-                required
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  background: 'var(--terminal-black)',
-                  border: '1px solid var(--metal-silver)',
-                  borderRadius: '4px',
-                  color: 'var(--phosphor-green)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
+      {error && <div className="au-note au-note-bad" role="alert">{error}</div>}
 
-            <div style={{ marginBottom: '20px' }}>
-              <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                Confirm password
-              </div>
-              <input
-                type="password"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                placeholder="Re-enter your password"
-                required
-                disabled={loading}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  background: 'var(--terminal-black)',
-                  border: '1px solid var(--metal-silver)',
-                  borderRadius: '4px',
-                  color: 'var(--phosphor-green)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-            
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <button type="submit" disabled={loading} className="vintage-btn" style={{ padding: '12px 32px', fontSize: '1.1em' }}>
-                {loading ? 'Creating your account…' : 'Create account'}
-              </button>
-            </div>
-          </form>
-
-          {/* Divider */}
-          <div style={{ 
-            textAlign: 'center', 
-            margin: '20px 0',
-            position: 'relative'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '0',
-              right: '0',
-              height: '1px',
-              background: 'var(--metal-silver)',
-              opacity: '0.3'
-            }}></div>
-            <span style={{
-              position: 'relative',
-              background: 'var(--terminal-black)',
-              padding: '0 16px',
-              color: 'var(--phosphor-dim)',
-              fontSize: '0.9em'
-            }}>OR</span>
-          </div>
-
-          {/* OAuth Buttons */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-            <button
-              onClick={() => handleOAuthSignIn('google')}
-              disabled={loading}
-              className="vintage-btn"
-              style={{ width: '100%', padding: '12px' }}
-            >
-              Continue with Google
-            </button>
-
-            <button
-              onClick={() => handleOAuthSignIn('github')}
-              disabled={loading}
-              className="vintage-btn"
-              style={{ width: '100%', padding: '12px' }}
-            >
-              Continue with GitHub
-            </button>
-          </div>
-
-          {/* Sign In Link - Fixed opacity */}
-          <div style={{ 
-            textAlign: 'center',
-            borderTop: '1px solid var(--metal-silver)',
-            paddingTop: '16px'
-          }}>
-            <div className="terminal-text--amber" style={{ marginBottom: '8px' }}>
-              Already have an account?
-            </div>
-            <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-              Sign in
-            </Link>
-          </div>
+      <form className="au-form" onSubmit={handleSubmit}>
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-email">Email address</label>
+          <input id="au-email" className="au-input" type="email" autoComplete="email" value={formData.email}
+            onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="you@company.com" required disabled={loading} />
         </div>
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-password">Password</label>
+          <input id="au-password" className="au-input" type="password" autoComplete="new-password" value={formData.password}
+            onChange={e => setFormData({ ...formData, password: e.target.value })} placeholder="At least 8 characters" required disabled={loading} />
+          <span className="au-hint">At least 8 characters, with an uppercase letter, a lowercase letter and a number.</span>
+        </div>
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-confirm">Confirm password</label>
+          <input id="au-confirm" className="au-input" type="password" autoComplete="new-password" value={formData.confirmPassword}
+            onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })} placeholder="Type it again" required disabled={loading} />
+        </div>
+        <button type="submit" className="au-btn au-btn-primary au-btn-block" disabled={loading}>{loading ? 'Creating your account…' : 'Create account'}</button>
+      </form>
+
+      <div className="au-or">or</div>
+      <div className="au-stack">
+        <button type="button" className="au-btn au-btn-ghost au-btn-block" onClick={() => handleOAuthSignIn('google')} disabled={loading}>Continue with Google</button>
+        <button type="button" className="au-btn au-btn-ghost au-btn-block" onClick={() => handleOAuthSignIn('github')} disabled={loading}>Continue with GitHub</button>
       </div>
 
-      {/* Footer */}
-      <div style={{ 
-        textAlign: 'center', 
-        marginTop: '20px',
-        fontSize: '0.8em'
-      }}>
-        <div className="terminal-text--dim">
-          Free forever on the basic plan. No card required to start.
-        </div>
-      </div>
-    </div>
+      <p className="au-alt">Already have an account? <Link href="/auth/signin">Sign in</Link></p>
+    </AuthShell>
   );
 }

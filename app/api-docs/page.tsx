@@ -152,7 +152,7 @@ export default function ApiDocsPage() {
               in your client.
             </p>
             <code style={s.code}>{`curl -H "Authorization: Bearer asl_live_your_key_here" \\
-  "https://aistupidlevel.info/api/v1/models?period=latest&sortBy=combined"`}</code>
+  "https://aistupidlevel.info/api/v1/models?period=24h&sortBy=combined"`}</code>
           </div>
 
           <div style={s.panel}>
@@ -188,7 +188,12 @@ export default function ApiDocsPage() {
             <p style={s.text}>
               <code style={s.inline}>period</code> — one of <code style={s.inline}>latest</code>,{' '}
               <code style={s.inline}>24h</code>, <code style={s.inline}>7d</code>,{' '}
-              <code style={s.inline}>1m</code>. Defaults to <code style={s.inline}>latest</code>.
+              <code style={s.inline}>1m</code>. The latest run is part of the paid plans: a paid key
+              defaults to <code style={s.inline}>latest</code>, while a free key defaults to{' '}
+              <code style={s.inline}>24h</code> and gets a 403 with{' '}
+              <code style={s.inline}>latest_requires_plan</code> when it asks for{' '}
+              <code style={s.inline}>latest</code>. On a free key,{' '}
+              <code style={s.inline}>/models/:id</code> leaves out <code style={s.inline}>latestScore</code>.
             </p>
             <p style={{ ...s.text, marginTop: '6px' }}>
               <code style={s.inline}>sortBy</code> — one of <code style={s.inline}>combined</code>,{' '}
@@ -208,7 +213,7 @@ export default function ApiDocsPage() {
   "version": "1.0.0",
   "generated_at": "2026-09-04T07:48:00.000Z",
   "license": "Attribution required — cite aistupidlevel.info as the source.",
-  "period": "latest",
+  "period": "24h",
   "sort_by": "combined",
   "count": 152,
   "data": [

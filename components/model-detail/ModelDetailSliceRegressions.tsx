@@ -17,6 +17,8 @@
  */
 
 import { useEffect, useState } from 'react';
+import { Pane, Loader, Empty, Note, Tag } from '@/components/studio';
+import '@/styles/studio-model-panels.css';
 
 interface SliceRegression {
   id: number;
@@ -57,9 +59,9 @@ interface Props {
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
-/** Severity by size of the drop, using the page's existing status colours. */
-const dropColor = (drop: number): string =>
-  drop >= 0.5 ? 'var(--red-alert)' : drop >= 0.35 ? 'var(--amber-warning)' : 'var(--phosphor-dim)';
+/** Severity by size of the drop, in the page's status colours. */
+const dropTone = (drop: number): 'bad' | 'warn' | 'dim' =>
+  drop >= 0.5 ? 'bad' : drop >= 0.35 ? 'warn' : 'dim';
 
 const formatDate = (iso: string): string => {
   const d = new Date(iso);
@@ -117,198 +119,156 @@ export default function ModelDetailSliceRegressions({
     };
   }, [modelId, limit, includeResolved]);
 
+
+  const baselineDays = coverage?.baselineDays ?? 30;
+
   return (
-    <div className="md-chart-section">
-      <div className="md-chart-title">TASK-LEVEL REGRESSIONS</div>
-
-      {loading && (
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            Loading task-level data…
-          </div>
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner">
-            <div>{error}</div>
-          </div>
-        </div>
-      )}
-
-      {!loading && !error && rows.length === 0 && tasks.length === 0 && (
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            {coverage && coverage.tasksTestable === 0 ? (
-              // Nothing could be tested. Saying "every task is passing at its usual rate" here
-              // would be a reassurance nobody measured -- the same phantom the rest of this
-              // codebase spends its time removing. The detector needs a run of history per
-              // task before it will look at that task at all, and eight coding tasks were
-              // retired and four added on 2026-09-13, so most of the corpus is legitimately
-              // too new to have one yet.
-              <>
-                <div style={{ marginBottom: 6 }}>Not enough history to test yet.</div>
-                <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
-                  This check compares each task against its own past, and needs at least{' '}
-                  {coverage.minBaselineRuns} runs of it within {coverage.baselineDays} days before
-                  it will judge one. None of this model&rsquo;s {coverage.tasksSeen || 'current'} tasks
-                  has reached that yet, so there is nothing to report either way &mdash; not an
-                  all-clear.
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ marginBottom: 6 }}>No task-level regressions detected.</div>
-                <div style={{ fontSize: '0.85em', opacity: 0.8 }}>
-                  {coverage
-                    ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test.`
-                    : ''}{' '}
-                  This check runs nightly and compares each task against its own recent history.
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* The per-task table. Rendered whenever we have rates, regressions or not: when
-          the detector finds nothing this is the evidence behind the all-clear, and when
-          it finds something it is the context the flagged rows sit in. Sorted weakest
-          first, because the one question this answers that the composite cannot is
-          "which task is this model worst at". */}
-      {/* All-clear as a single line, not a 132px box. The grid below is the evidence and
-          should lead; a grey slab restating the conclusion above it just pushes the data
-          down the page. */}
-      {!loading && !error && rows.length === 0 && tasks.length > 0 && (
-        <div className="md-sr-clear">
-          <strong>No task-level regressions detected.</strong>{' '}
-          {coverage
-            ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test.`
-            : ''}{' '}
-          Checked nightly against each task&rsquo;s own recent history.
-        </div>
-      )}
-
-      {!loading && !error && tasks.length > 0 && (
-        <div className="md-sr-tasks">
-          <div className="md-sr-tasks-head">
-            Pass rate by task
-            <span className="md-sr-tasks-sub">
-              last {recentDays} days vs the {coverage?.baselineDays ?? 30}-day baseline &middot; weakest first
-            </span>
-          </div>
-          <div className="md-sr-grid">
-            {tasks.map(t => {
-              const recent = t.recentPassRate;
-              const base = t.passRate;
-              const delta = recent !== null && base !== null ? recent - base : null;
-              const tone = recent === null ? 'none' : recent >= 0.8 ? 'good' : recent >= 0.5 ? 'mid' : 'low';
-              return (
-                <div key={t.slug} className="md-sr-task" title={
-                  `${t.slug}: ${t.recentRuns} run(s) in the last ${recentDays} days, ${t.runs} in the ${coverage?.baselineDays ?? 30}-day baseline.` +
-                  (t.testable ? '' : ` Below the ${coverage?.minBaselineRuns ?? 5}-run minimum, so the detector is not testing this task yet.`)
-                }>
-                  <div className="md-sr-task-top">
-                    <span className="md-sr-task-name">{t.slug}</span>
-                    <span className={`md-sr-task-val md-sr-task-${tone}`}>
-                      {recent === null ? '—' : `${Math.round(recent * 100)}%`}
-                    </span>
-                  </div>
-                  <div className="md-sr-bar" aria-hidden="true">
-                    <div className={`md-sr-bar-fill md-sr-bar-${tone}`} style={{ width: `${Math.round((recent ?? 0) * 100)}%` }} />
-                  </div>
-                  <div className="md-sr-task-foot">
-                    <span>{t.recentRuns} run{t.recentRuns === 1 ? '' : 's'}</span>
-                    {delta !== null && Math.abs(delta) >= 0.01 && (
-                      <span className={delta < 0 ? 'md-sr-dn' : 'md-sr-up'}>
-                        {delta > 0 ? '+' : '\u2212'}{Math.abs(Math.round(delta * 100))} pts vs baseline
-                      </span>
-                    )}
-                    {!t.testable && <span className="md-sr-untested">not yet testable</span>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {!loading && !error && rows.length > 0 && (
+    <Pane
+      title="Task-level regressions"
+      sub="Pass rate per coding task, against each task’s own history"
+      foot={!loading && !error && rows.length > 0 ? (
         <>
-          <div
-            style={{
-              fontSize: '0.85em',
-              color: 'var(--phosphor-dim)',
-              margin: '0 0 12px 0',
-              lineHeight: 1.5,
-            }}
-          >
-            Individual tasks whose pass rate fell significantly against their own baseline. A
-            single task can regress without moving the overall score enough to register, so these
-            are reported separately rather than folded into the headline number.
-          </div>
+          Findings are corrected for multiple comparisons across every model and task tested, so
+          the expected share of false findings among those shown is held at 5%. Each also
+          requires a drop of at least 25 points and evidence that it persisted rather than
+          occurring on one day.
+        </>
+      ) : undefined}
+    >
+      <div className="sq-stack">
+        {loading && <Loader label="Loading task-level data…" minHeight={160} />}
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9em' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--phosphor-dim)' }}>
-                  <th style={{ padding: '6px 10px 6px 0' }}>Task</th>
-                  <th style={{ padding: '6px 10px' }}>Pass rate</th>
-                  <th style={{ padding: '6px 10px' }}>Change</th>
-                  <th style={{ padding: '6px 10px' }}>Window</th>
-                  <th style={{ padding: '6px 10px' }}>Runs</th>
-                  <th style={{ padding: '6px 10px' }}>Detected</th>
-                  <th style={{ padding: '6px 0 6px 10px' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.id} style={{ borderTop: '1px solid var(--border-subtle, #2a2a2a)' }}>
-                    <td style={{ padding: '8px 10px 8px 0', fontWeight: 600 }}>{r.taskSlug}</td>
-                    <td style={{ padding: '8px 10px' }}>
-                      {pct(r.baselinePassRate)} → {pct(r.recentPassRate)}
-                    </td>
-                    <td style={{ padding: '8px 10px', color: dropColor(r.drop), fontWeight: 600 }}>
-                      −{Math.round(r.drop * 100)} pts
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>{r.windowDays}d</td>
-                    <td style={{ padding: '8px 10px', color: 'var(--phosphor-dim)' }}>
-                      {r.recentRuns} vs {r.baselineRuns}
-                    </td>
-                    <td style={{ padding: '8px 10px', color: 'var(--phosphor-dim)' }}>
-                      {formatDate(r.detectedAt)}
-                    </td>
-                    <td style={{ padding: '8px 0 8px 10px' }}>
-                      {r.open ? (
-                        <span style={{ color: 'var(--amber-warning)' }}>Open</span>
-                      ) : (
-                        <span style={{ color: 'var(--phosphor-dim)' }}>
-                          Resolved {r.resolvedAt ? formatDate(r.resolvedAt) : ''}
+        {!loading && error && <Note tone="warn">{error}</Note>}
+
+        {!loading && !error && rows.length === 0 && tasks.length === 0 && (
+          coverage && coverage.tasksTestable === 0 ? (
+            // Nothing could be tested. Saying "every task is passing at its usual rate" here
+            // would be a reassurance nobody measured -- the same phantom the rest of this
+            // codebase spends its time removing. The detector needs a run of history per
+            // task before it will look at that task at all, and eight coding tasks were
+            // retired and four added on 2026-09-13, so most of the corpus is legitimately
+            // too new to have one yet.
+            <Empty title="Not enough history to test yet.">
+              This check compares each task against its own past, and needs at least{' '}
+              {coverage.minBaselineRuns} runs of it within {coverage.baselineDays} days before
+              it will judge one. None of this model&rsquo;s {coverage.tasksSeen || 'current'} tasks
+              has reached that yet, so there is nothing to report either way &mdash; not an
+              all-clear.
+            </Empty>
+          ) : (
+            <Empty title="No task-level regressions detected.">
+              {coverage
+                ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test.`
+                : ''}{' '}
+              This check runs nightly and compares each task against its own recent history.
+            </Empty>
+          )
+        )}
+
+        {/* The per-task grid. Rendered whenever we have rates, regressions or not: when
+            the detector finds nothing this is the evidence behind the all-clear, and when
+            it finds something it is the context the flagged rows sit in. Sorted weakest
+            first, because the one question this answers that the composite cannot is
+            "which task is this model worst at". */}
+        {/* All-clear as a single line, not a box. The grid below is the evidence and
+            should lead; a slab restating the conclusion above it just pushes the data
+            down the page. */}
+        {!loading && !error && rows.length === 0 && tasks.length > 0 && (
+          <Note tone="good">
+            <strong>No task-level regressions detected.</strong>{' '}
+            {coverage
+              ? `${coverage.tasksTestable} of ${coverage.tasksSeen} tasks had enough history to test.`
+              : ''}{' '}
+            Checked nightly against each task&rsquo;s own recent history.
+          </Note>
+        )}
+
+        {!loading && !error && tasks.length > 0 && (
+          <div>
+            <div className="sq-subhead">
+              <h3 className="sq-h3">Pass rate by task</h3>
+              <span>last {recentDays} days vs the {baselineDays}-day baseline &middot; weakest first</span>
+            </div>
+            <div className="sq-sr-grid">
+              {tasks.map(t => {
+                const recent = t.recentPassRate;
+                const base = t.passRate;
+                const delta = recent !== null && base !== null ? recent - base : null;
+                const tone = recent === null ? 'none' : recent >= 0.8 ? 'good' : recent >= 0.5 ? 'mid' : 'low';
+                return (
+                  <div key={t.slug} className="sq-sr-task" title={
+                    `${t.slug}: ${t.recentRuns} run(s) in the last ${recentDays} days, ${t.runs} in the ${baselineDays}-day baseline.` +
+                    (t.testable ? '' : ` Below the ${coverage?.minBaselineRuns ?? 5}-run minimum, so the detector is not testing this task yet.`)
+                  }>
+                    <div className="sq-sr-top">
+                      <span className="sq-sr-name">{t.slug}</span>
+                      <span className={`sq-sr-val is-${tone}`}>
+                        {recent === null ? '—' : `${Math.round(recent * 100)}%`}
+                      </span>
+                    </div>
+                    <span className={`sq-bar${tone === 'none' ? ' is-none' : tone === 'mid' ? ' is-warn' : tone === 'low' ? ' is-bad' : ''}`} aria-hidden="true">
+                      {recent !== null && <i style={{ width: `${Math.round(recent * 100)}%` }} />}
+                    </span>
+                    <div className="sq-sr-foot">
+                      <span>{t.recentRuns} run{t.recentRuns === 1 ? '' : 's'}</span>
+                      {delta !== null && Math.abs(delta) >= 0.01 && (
+                        <span className={delta < 0 ? 'is-dn' : 'is-up'}>
+                          {delta > 0 ? '+' : '−'}{Math.abs(Math.round(delta * 100))} pts vs baseline
                         </span>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      {!t.testable && <span className="is-untested">not yet testable</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+        )}
 
-          <div
-            style={{
-              fontSize: '0.8em',
-              color: 'var(--phosphor-dim)',
-              marginTop: 12,
-              lineHeight: 1.5,
-            }}
-          >
-            Findings are corrected for multiple comparisons across every model and task tested, so
-            the expected share of false findings among those shown is held at 5%. Each also
-            requires a drop of at least 25 points and evidence that it persisted rather than
-            occurring on one day.
+        {!loading && !error && rows.length > 0 && (
+          <div>
+            <p className="sq-p sq-mb">
+              Individual tasks whose pass rate fell significantly against their own baseline. A
+              single task can regress without moving the overall score enough to register, so these
+              are reported separately rather than folded into the headline number.
+            </p>
+            <div className="st-table-wrap sq-bleed">
+              <table className="st-table is-stack sq-sr-table">
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>Pass rate</th>
+                    <th>Change</th>
+                    <th>Window</th>
+                    <th>Runs</th>
+                    <th>Detected</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id}>
+                      <td className="is-head" data-label="Task">{r.taskSlug}</td>
+                      <td data-label="Pass rate">{pct(r.baselinePassRate)} → {pct(r.recentPassRate)}</td>
+                      <td data-label="Change" className={`is-drop is-${dropTone(r.drop)}`}>−{Math.round(r.drop * 100)} pts</td>
+                      <td data-label="Window">{r.windowDays}d</td>
+                      <td data-label="Runs" className="is-dim">{r.recentRuns} vs {r.baselineRuns}</td>
+                      <td data-label="Detected" className="is-dim">{formatDate(r.detectedAt)}</td>
+                      <td data-label="Status">
+                        {r.open ? (
+                          <Tag tone="warn">Open</Tag>
+                        ) : (
+                          <Tag>Resolved {r.resolvedAt ? formatDate(r.resolvedAt) : ''}</Tag>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </Pane>
   );
 }

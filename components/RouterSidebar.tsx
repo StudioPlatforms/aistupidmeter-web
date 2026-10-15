@@ -1,11 +1,12 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { PLANS, isPlan, isUnlimited, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
+import { planName } from '@/lib/pricing-display';
+import { THEMES, chooseTheme } from '@/lib/theme-config';
 
 interface NavItem {
   label: string;
@@ -19,30 +20,43 @@ interface NavGroup {
   grow?: boolean;
 }
 
-function NavLink({ item, active, collapsed, onClick }: { item: NavItem; active: boolean; collapsed: boolean; onClick?: () => void }) {
-  return (
-    <a
-      href={item.href}
-      onClick={onClick}
-      className={`rv4-nav-item${active ? ' active' : ''}`}
-      title={collapsed ? item.label : undefined}
-    >
-      {!collapsed && (
-        <span className="rv4-nav-item-label">{item.label}</span>
-      )}
-      {collapsed && (
-        <span className="rv4-nav-item-label" style={{ fontSize: '10px', letterSpacing: '0.3px' }}>
-          {item.label.substring(0, 2).toUpperCase()}
-        </span>
-      )}
-    </a>
-  );
+/** Flip to the other theme from the one on screen, and remember the choice (as the landing's Theme button). */
+function toggleTheme() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = THEMES.findIndex(t => t.isLight === dark);
+  if (next >= 0) chooseTheme(next);
+}
+
+/**
+ * The kicker over each page's title: which part of the app this is. Matches the nav groups below;
+ * pages without a nav entry of their own (a project, a forum thread, an invite) take their parent's.
+ */
+const SECTIONS: Array<[RegExp, string]> = [
+  [/^\/account\/(team|security)(\/|$)/, 'Team'],
+  [/^\/account\/data-keys(\/|$)/, 'Data API'],
+  [/^\/account\/invite(\/|$)/, 'Team'],
+  [/^\/account(\/|$)/, 'Account'],
+  [/^\/(watchlist|router\/intelligence)(\/|$)/, 'Monitoring'],
+  [/^\/router\/forum(\/|$)/, 'Community'],
+  [/^\/router\/(help|docs)(\/|$)/, 'Support'],
+  [/^\/router(\/|$)/, 'Smart Router'],
+];
+
+export function sectionFor(pathname: string | null): string | null {
+  if (!pathname) return null;
+  return SECTIONS.find(([re]) => re.test(pathname))?.[1] ?? null;
+}
+
+function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  if (pathname === href) return true;
+  // Pages under a nav entry (a project, a forum thread) keep that entry lit.
+  return (href === '/account/team' || href === '/router/forum') && pathname.startsWith(`${href}/`);
 }
 
 export default function RouterSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isGuest = !session?.user;
@@ -71,46 +85,46 @@ export default function RouterSidebar() {
    */
   const groups: NavGroup[] = guestForumMode
     ? [{ label: 'Navigation', items: [
-        { label: '← BACK TO RANKINGS', href: '/' },
-        { label: 'FORUM', href: '/router/forum' },
+        { label: 'Leaderboard', href: '/' },
+        { label: 'Forum', href: '/router/forum' },
       ] }]
     : [
         { label: 'Overview', items: [
-          { label: '← BACK TO RANKINGS', href: '/' },
-          { label: 'ACCOUNT HOME', href: '/account' },
+          { label: 'Leaderboard', href: '/' },
+          { label: 'Account home', href: '/account' },
         ] },
         { label: 'Monitoring', items: [
-          { label: '★ WATCHLIST', href: '/watchlist' },
-          { label: 'MODEL INTELLIGENCE', href: '/router/intelligence' },
+          { label: 'Watchlist', href: '/watchlist' },
+          { label: 'Model intelligence', href: '/router/intelligence' },
         ] },
-        { label: 'Routing', items: [
-          { label: 'DASHBOARD', href: '/router' },
-          { label: 'SR API KEY', href: '/router/keys' },
-          { label: 'PROVIDERS', href: '/router/providers' },
-          { label: 'ROUTING PREFERENCES', href: '/router/preferences' },
-          { label: 'ANALYTICS', href: '/router/analytics' },
-          { label: 'API MONITORING', href: '/router/monitoring' },
-          { label: 'PERFORMANCE TIMING', href: '/router/performance-timing' },
-          { label: 'TEST KEYS', href: '/router/test-keys' },
+        { label: 'Smart Router', items: [
+          { label: 'Dashboard', href: '/router' },
+          { label: 'Router API keys', href: '/router/keys' },
+          { label: 'Provider keys', href: '/router/providers' },
+          { label: 'Routing preferences', href: '/router/preferences' },
+          { label: 'Analytics', href: '/router/analytics' },
+          { label: 'API monitoring', href: '/router/monitoring' },
+          { label: 'Performance timing', href: '/router/performance-timing' },
+          { label: 'Test your keys', href: '/router/test-keys' },
         ] },
         { label: 'Data API', items: [
-          { label: 'DATA API KEYS', href: '/account/data-keys' },
+          { label: 'Data API keys', href: '/account/data-keys' },
         ] },
         ...(hasTeam ? [{ label: 'Team', items: [
-          { label: 'WORKSPACE', href: '/account/team' },
-          ...(hasGovernance ? [{ label: 'SECURITY', href: '/account/security' }] : []),
+          { label: 'Workspace', href: '/account/team' },
+          ...(hasGovernance ? [{ label: 'Security', href: '/account/security' }] : []),
         ] }] : []),
         { label: 'Account', items: [
-          { label: 'SETTINGS', href: '/account/settings' },
-          { label: 'PLAN & BILLING', href: '/account/billing' },
+          { label: 'Settings', href: '/account/settings' },
+          { label: 'Plan & billing', href: '/account/billing' },
         ] },
         { label: 'Community', items: [
-          { label: 'FORUM', href: '/router/forum' },
-          ...(isForumAdmin ? [{ label: 'FORUM ADMIN', href: '/router/forum/admin' }] : []),
+          { label: 'Forum', href: '/router/forum' },
+          ...(isForumAdmin ? [{ label: 'Forum admin', href: '/router/forum/admin' }] : []),
         ] },
         { label: 'Support', grow: true, items: [
-          { label: 'HELP', href: '/router/help' },
-          { label: 'API DOCS', href: '/router/docs' },
+          { label: 'Help', href: '/router/help' },
+          { label: 'API docs', href: '/router/docs' },
         ] },
       ];
 
@@ -125,175 +139,119 @@ export default function RouterSidebar() {
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
+  // Pages low in the menu (Settings, Billing, Help) would otherwise open with their own entry
+  // hidden under the rail's bottom fade.
+  useEffect(() => {
+    const nav = document.querySelector('.st-side .st-nav') as HTMLElement | null;
+    const on = nav?.querySelector('.st-link.is-on') as HTMLElement | null;
+    if (!nav || !on) return;
+    const top = on.offsetTop - nav.offsetTop;
+    if (top + on.offsetHeight > nav.scrollTop + nav.clientHeight - 32 || top < nav.scrollTop) {
+      nav.scrollTop = Math.max(0, top - nav.clientHeight / 2 + on.offsetHeight / 2);
+    }
+  }, [pathname, session?.user]);
+
+  // The sheet covers the page; a navigation (or growing past the breakpoint) must not leave it open.
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = () => { if (mq.matches) setMobileOpen(false); };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const showEmail = session?.user?.name && session?.user?.email && session.user.name !== session.user.email;
   const nameInitial = displayName.charAt(0).toUpperCase();
+  const here = groups.flatMap(g => g.items).find(i => isActive(pathname, i.href))?.label ?? sectionFor(pathname) ?? 'Account';
 
-  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <>
-      {/* Logo header */}
-      <div className="rv4-sidebar-logo">
-        {(!collapsed || isMobile) && (
-          <span className="rv4-sidebar-brand">ASL <em>ACCOUNT</em></span>
-        )}
-        {!isMobile && (
-          <button
-            className="rv4-sidebar-collapse"
-            onClick={() => setCollapsed(!collapsed)}
-            title={collapsed ? 'Expand' : 'Collapse'}
-          >
-            {collapsed ? '→' : '←'}
-          </button>
-        )}
-        {isMobile && (
-          <button className="rv4-sidebar-collapse" onClick={() => setMobileOpen(false)}>
-            ×
-          </button>
-        )}
-      </div>
+  const brand = (
+    <a className="st-brand" href="/" aria-label="AI Stupid Level — leaderboard">
+      <img className="st-mk-l" src="/asl-mark.png" alt="AI Stupid Level" width={754} height={160} />
+      <img className="st-mk-d" src="/asl-mark-dark.png" alt="" width={754} height={160} />
+    </a>
+  );
 
-      {/* One render for every group — five near-identical blocks were how the
-          flat list survived so long. */}
+  const nav = (isMobile: boolean) => (
+    <nav className="st-nav" aria-label="Account">
       {groups.map(group => (
-        <div
-          key={group.label}
-          className="rv4-sidebar-section"
-          style={group.grow ? { flex: 1 } : undefined}
-        >
-          {(!collapsed || isMobile) && (
-            <div className="rv4-sidebar-section-label">{group.label}</div>
-          )}
-          {group.items.map(item => (
-            <NavLink
-              key={item.href}
-              item={item}
-              active={pathname === item.href || (item.href === '/account/team' && !!pathname?.startsWith('/account/team/'))}
-              collapsed={collapsed && !isMobile}
-              onClick={isMobile ? () => setMobileOpen(false) : undefined}
-            />
-          ))}
+        <div key={group.label} className={`st-group${group.grow ? ' is-grow' : ''}`}>
+          <div className="st-group-label">{group.label}</div>
+          {group.items.map(item => {
+            const active = isActive(pathname, item.href);
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                className={`st-link${active ? ' is-on' : ''}`}
+                aria-current={active ? 'page' : undefined}
+                onClick={isMobile ? () => setMobileOpen(false) : undefined}
+              >
+                {item.label}
+              </a>
+            );
+          })}
         </div>
       ))}
-      {!groups.some(g => g.grow) && <div style={{ flex: 1 }} />}
-
-      {/* User footer */}
-      {session?.user ? (
-        <div className="rv4-sidebar-footer">
-          {(!collapsed || isMobile) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{
-                width: '28px', height: '28px', borderRadius: '50%',
-                background: 'var(--phosphor-green)', color: 'var(--terminal-black)',
-                fontSize: '13px', fontWeight: 'bold',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
-                {nameInitial}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="rv4-sidebar-user-name" title={displayName}>{displayName}</div>
-                {showEmail && (
-                  <div className="rv4-sidebar-user-email" title={session.user.email || undefined}>
-                    {session.user.email}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          <button
-            className="rv4-sidebar-signout"
-            onClick={() => signOut({ callbackUrl: '/' })}
-            title={collapsed && !isMobile ? 'Sign Out' : undefined}
-          >
-            {(!collapsed || isMobile) ? '← SIGN OUT' : '←'}
-          </button>
-        </div>
-      ) : guestForumMode ? (
-        <div className="rv4-sidebar-footer" style={{ gap: '6px' }}>
-          {(!collapsed || isMobile) && (
-            <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', marginBottom: '4px' }}>
-              Sign in to join discussions
-            </div>
-          )}
-          <a
-            href="/auth/signin?callbackUrl=/router/forum"
-            className="rv4-sidebar-signout"
-            style={{ textDecoration: 'none', textAlign: 'center', background: 'var(--phosphor-green)', color: 'var(--terminal-black)', fontWeight: 'bold' }}
-          >
-            {(!collapsed || isMobile) ? 'SIGN IN' : '→'}
-          </a>
-          <a
-            href="/auth/signup?callbackUrl=/router/forum"
-            className="rv4-sidebar-signout"
-            style={{ textDecoration: 'none', textAlign: 'center' }}
-          >
-            {(!collapsed || isMobile) ? 'CREATE ACCOUNT' : '+'}
-          </a>
-        </div>
-      ) : null}
-    </>
+    </nav>
   );
+
+  const me = session?.user ? (
+    <div className="st-me">
+      <div className="st-me-id">
+        <span className="st-avatar" aria-hidden="true">{nameInitial}</span>
+        <div style={{ minWidth: 0 }}>
+          <div className="st-me-name" title={displayName}>{displayName}</div>
+          {showEmail && <div className="st-me-mail" title={session.user.email || undefined}>{session.user.email}</div>}
+        </div>
+      </div>
+      <div className="st-me-plan">
+        <span>{planName(plan)} plan</span>
+        {plan === 'free' ? <a href="/pricing">Upgrade</a> : <a href="/account/billing">Manage</a>}
+      </div>
+      <div className="st-me-act">
+        <button type="button" onClick={toggleTheme}>Theme</button>
+        <button type="button" onClick={() => signOut({ callbackUrl: '/' })}>Sign out</button>
+      </div>
+    </div>
+  ) : guestForumMode ? (
+    <div className="st-me st-me-guest">
+      <p>Sign in to join discussions</p>
+      <a className="st-btn is-primary is-block" href="/auth/signin?callbackUrl=/router/forum">Sign in</a>
+      <a className="st-btn is-block" href="/auth/signup?callbackUrl=/router/forum">Create account</a>
+    </div>
+  ) : null;
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <div
-        className={`rv4-sidebar${collapsed ? ' collapsed' : ''}`}
-        style={{ display: 'none' }}
-        id="rv4-desktop-sidebar"
-      >
-        <SidebarContent />
-      </div>
+      {/* Desktop rail */}
+      <aside className="st-side">
+        <div className="st-side-top">{brand}</div>
+        {nav(false)}
+        {me}
+      </aside>
 
-      {/* Mobile FAB */}
-      <button
-        className="rv4-mobile-menu-btn"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
-        style={{ fontFamily: 'var(--font-mono)', fontSize: '18px', fontWeight: 'bold', letterSpacing: '0.1em' }}
-      >
-        ≡
-      </button>
-
-      {/* Mobile backdrop */}
-      <div
-        className={`rv4-mobile-drawer-backdrop${mobileOpen ? ' open' : ''}`}
-        onClick={() => setMobileOpen(false)}
-      />
-
-      {/* Mobile drawer */}
-      <div className={`rv4-mobile-drawer${mobileOpen ? ' open' : ''}`}>
-        <SidebarContent isMobile />
-      </div>
-
-      <style jsx global>{`
-        @media (min-width: 768px) {
-          #rv4-desktop-sidebar {
-            display: flex !important;
-          }
-          .rv4-mobile-menu-btn {
-            display: none !important;
-          }
-          .rv4-mobile-drawer,
-          .rv4-mobile-drawer-backdrop {
-            display: none !important;
-          }
-          .rv4-content {
-            margin-left: 240px;
-          }
-        }
-        @media (max-width: 767px) {
-          #rv4-desktop-sidebar {
-            display: none !important;
-          }
-          .rv4-mobile-drawer {
-            display: flex !important;
-          }
-          .rv4-content {
-            margin-left: 0 !important;
-          }
-        }
-      `}</style>
+      {/* Phones and tablets: frosted top bar + full-height menu sheet, as on the landing page */}
+      <header className="st-top">
+        {brand}
+        <div className="st-top-here"><span>{here}</span></div>
+        <button
+          type="button"
+          className="st-burger"
+          aria-expanded={mobileOpen}
+          aria-controls="st-sheet"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          onClick={() => setMobileOpen(o => !o)}
+        >
+          <i />
+        </button>
+      </header>
+      {mobileOpen && (
+        <div className="st-sheet" id="st-sheet">
+          {nav(true)}
+          {me}
+        </div>
+      )}
     </>
   );
 }

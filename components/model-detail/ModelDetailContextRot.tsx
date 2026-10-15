@@ -17,12 +17,14 @@
  * Figures come from their own table and never enter the composite score.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { PLANS } from '../../lib/entitlements';
 import { REQUIRED_PLAN } from '../../lib/capabilities';
 import { HeatGrid, HeatLegend, NoAnswerMark, SKILLS, k, listJoin, noAnswerSummary, noAnswerText, pct, type CrtModel } from '../context-rot/shared';
+import { Pane, Loader, Note, Locked, Tag } from '@/components/studio';
 import '../../styles/context-rot.css';
+import '@/styles/studio-model-panels.css';
 
 interface Other { name: string; displayName: string; buckets: Array<{ bucket: number; runnable: boolean; accuracy: number | null }> }
 interface PanelData { buckets: number[]; depths: number[]; model: CrtModel; others: Other[] }
@@ -50,6 +52,19 @@ function PilotLine({ pilotModels }: { pilotModels: string[] }) {
   );
 }
 
+/** The pane every state renders in (module level, so a state change never remounts it). */
+function Section({ children, when }: { children: ReactNode; when?: ReactNode }) {
+  return (
+    <Pane
+      title={<span className="sq-crt-title">Context rot <Tag tone="accent">Pilot</Tag></span>}
+      sub="How its answers hold up as a document grows from 8K to 1M tokens"
+      actions={when ? <span className="sq-when">{when}</span> : undefined}
+    >
+      {children}
+    </Pane>
+  );
+}
+
 export default function ModelDetailContextRot({ modelName, onShowProModal }: Props) {
   const [state, setState] = useState<'loading' | 'ok' | 'locked' | 'absent' | 'error'>('loading');
   const [data, setData] = useState<PanelData | null>(null);
@@ -73,17 +88,10 @@ export default function ModelDetailContextRot({ modelName, onShowProModal }: Pro
     return () => { cancelled = true; };
   }, [modelName]);
 
-  const Section = ({ children }: { children: React.ReactNode }) => (
-    <div className="md-chart-section">
-      <div className="md-chart-title">CONTEXT ROT <span className="md-crt-pill">Pilot</span></div>
-      {children}
-    </div>
-  );
-
   if (state === 'loading') {
     return (
       <Section>
-        <div className="md-chart-empty"><div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>Loading context-rot results…</div></div>
+        <Loader label="Loading context-rot results…" minHeight={160} />
       </Section>
     );
   }
@@ -91,7 +99,7 @@ export default function ModelDetailContextRot({ modelName, onShowProModal }: Pro
   if (state === 'error') {
     return (
       <Section>
-        <div className="md-chart-empty"><div className="md-chart-empty-inner">The context-rot results could not be loaded. Please try again shortly.</div></div>
+        <Note tone="warn">The context-rot results could not be loaded. Please try again shortly.</Note>
       </Section>
     );
   }
@@ -99,11 +107,11 @@ export default function ModelDetailContextRot({ modelName, onShowProModal }: Pro
   if (state === 'absent') {
     return (
       <Section>
-        <div className="md-crt-absent">
+        <Note>
           <b>Not in the pilot yet.</b> Context rot measures how a model’s answers hold up as a document grows
           from 8K to 1M tokens. <PilotLine pilotModels={pilotModels} />{' '}
           <Link href="/context-rot">How the test works</Link>
-        </div>
+        </Note>
       </Section>
     );
   }
@@ -112,25 +120,14 @@ export default function ModelDetailContextRot({ modelName, onShowProModal }: Pro
     const required = REQUIRED_PLAN['context-rot'];
     return (
       <Section>
-        <div
-          className="md-chart-empty"
-          role="button"
-          tabIndex={0}
-          style={{ cursor: 'pointer' }}
-          onClick={() => onShowProModal('context-rot')}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onShowProModal('context-rot'); }}
+        <Locked
+          plan={PLANS[required]?.label ?? 'Pro Intelligence'}
+          title="How far this model’s context window really goes"
+          onOpen={() => onShowProModal('context-rot')}
         >
-          <div className="md-chart-empty-inner">
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Context rot is a {PLANS[required]?.label ?? 'paid'} feature
-            </div>
-            <div style={{ color: 'var(--phosphor-dim)', fontSize: 12, maxWidth: 500, margin: '0 auto' }}>
-              How far this model’s context window really goes: its accuracy at each length from 8K to
-              1M tokens, what breaks first — finding, linking, tracking or counting — and where in the
-              document it loses facts. <PilotLine pilotModels={pilotModels} />
-            </div>
-          </div>
-        </div>
+          Its accuracy at each length from 8K to 1M tokens, what breaks first — finding, linking,
+          tracking or counting — and where in the document it loses facts. <PilotLine pilotModels={pilotModels} />
+        </Locked>
       </Section>
     );
   }
@@ -141,16 +138,16 @@ export default function ModelDetailContextRot({ modelName, onShowProModal }: Pro
   if (!m.sweeps) {
     return (
       <Section>
-        <div className="md-crt-absent">
+        <Note>
           <b>Not measured yet.</b> This model is in the pilot, which runs once a week, on Sundays. Its
           results appear here after its first run. <Link href="/context-rot">How the test works</Link>
-        </div>
+        </Note>
       </Section>
     );
   }
 
   return (
-    <Section>
+    <Section when={<>Last run {formatDay(m.latestSweep)} · {m.sweeps} weekly run{m.sweeps === 1 ? '' : 's'} so far</>}>
       <Results data={data} pilotModels={pilotModels} />
     </Section>
   );
@@ -174,61 +171,60 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
   const worst = drops.length ? drops.reduce((a, b) => (b.drop > a.drop ? b : a)) : null;
 
   return (
-    <>
-      <div className="md-cal-intro">
+    <div className="sq-stack sq-crt">
+      <p className="sq-p">
         One long, dated archive and sixteen questions about it, asked at every length from 8K tokens up
         to {k(runnable[runnable.length - 1]?.bucket ?? 8000)}: finding a fact, linking facts across the
         document, tracking a value that changed, and counting. Graded exactly; never part of the composite
         score. <PilotLine pilotModels={pilotModels} />{' '}
         <Link href="/context-rot">How it works</Link>
-        <span className="md-cal-when"> Last run {formatDay(m.latestSweep)} · {m.sweeps} weekly run{m.sweeps === 1 ? '' : 's'} so far.</span>
-      </div>
+      </p>
 
-      <div className="md-cal-stats">
-        <div className="md-cal-stat" title={`The longest length that keeps at least ${Math.round(m.holdRatio * 100)}% of its own 8K accuracy.${m.effectiveIsLowerBound ? ' It held at every length measured so far; a longer one has not been measured yet.' : ''}`}>
-          <span className="md-cal-stat-v">{m.effectiveContext ? `${m.effectiveIsLowerBound ? '≥ ' : ''}${k(m.effectiveContext)}` : '—'}</span>
-          <span className="md-cal-stat-k">holds up to</span>
+      <div className="sq-figs">
+        <div className="sq-fig" title={`The longest length that keeps at least ${Math.round(m.holdRatio * 100)}% of its own 8K accuracy.${m.effectiveIsLowerBound ? ' It held at every length measured so far; a longer one has not been measured yet.' : ''}`}>
+          <span className="sq-fig-v">{m.effectiveContext ? `${m.effectiveIsLowerBound ? '≥ ' : ''}${k(m.effectiveContext)}` : '—'}</span>
+          <span className="sq-fig-l">holds up to</span>
         </div>
-        <div className="md-cal-stat" title={first ? `${first.correct}/${first.total} questions correct${first.noAnswer ? ` · ${noAnswerText(first)}` : ''}` : undefined}>
-          <span className="md-cal-stat-v">{pct(first?.accuracy)}{first ? <NoAnswerMark b={first} /> : null}</span>
-          <span className="md-cal-stat-k">accuracy at {first ? k(first.bucket) : '8K'}</span>
+        <div className="sq-fig" title={first ? `${first.correct}/${first.total} questions correct${first.noAnswer ? ` · ${noAnswerText(first)}` : ''}` : undefined}>
+          <span className="sq-fig-v">{pct(first?.accuracy)}{first ? <NoAnswerMark b={first} /> : null}</span>
+          <span className="sq-fig-l">accuracy at {first ? k(first.bucket) : '8K'}</span>
         </div>
         {last && last !== first && (
-          <div className="md-cal-stat" title={`${last.correct}/${last.total} questions correct${last.tokens ? ` · ${last.tokens.toLocaleString()} tokens sent` : ''}${last.noAnswer ? ` · ${noAnswerText(last)}` : ''}`}>
-            <span className="md-cal-stat-v">{pct(last.accuracy)}<NoAnswerMark b={last} /></span>
-            <span className="md-cal-stat-k">accuracy at {k(last.bucket)}</span>
+          <div className="sq-fig" title={`${last.correct}/${last.total} questions correct${last.tokens ? ` · ${last.tokens.toLocaleString()} tokens sent` : ''}${last.noAnswer ? ` · ${noAnswerText(last)}` : ''}`}>
+            <span className="sq-fig-v">{pct(last.accuracy)}<NoAnswerMark b={last} /></span>
+            <span className="sq-fig-l">accuracy at {k(last.bucket)}</span>
           </div>
         )}
-        <div className="md-cal-stat" title={`${m.window.toLocaleString()} tokens, from the provider’s documentation`}>
-          <span className="md-cal-stat-v">{windowLabel(m.window)}</span>
-          <span className="md-cal-stat-k">context window</span>
+        <div className="sq-fig" title={`${m.window.toLocaleString()} tokens, from the provider’s documentation`}>
+          <span className="sq-fig-v">{windowLabel(m.window)}</span>
+          <span className="sq-fig-l">context window</span>
         </div>
       </div>
 
       {worst && (
-        <div className="md-cal-fleet">
+        <p className="sq-p">
           {worst.drop > 0
             ? <>What breaks first: <b>{worst.label.toLowerCase()}</b>, {pct(worst.from)} at {k(first!.bucket)} → {pct(worst.to)} at {k(last!.bucket)}.</>
             : <>No skill lost accuracy between {k(first!.bucket)} and {k(last!.bucket)}.</>}
-        </div>
+        </p>
       )}
 
       {/* Desktop: two columns — the table with the position grid under it, the chart that draws
           the table beside it. Narrow screens: one column, table → chart → grid (CSS order). */}
-      <div className="md-crt-figs">
-        <div className="md-crt-col">
-          <div className="md-cal-table-wrap">
-            <table className="md-cal-table md-crt-table">
-              <caption className="md-crt-caption">Accuracy at each length, latest weekly run</caption>
+      <div className="sq-crt-figs">
+        <div className="sq-crt-col">
+          <div className="sq-crt-wrap">
+            <table className="sq-crt-table">
+              <caption>Accuracy at each length, latest weekly run</caption>
               <thead>
-                <tr><th>Questions</th>{data.buckets.map(b => <th key={b} className="md-crt-num">{k(b)}</th>)}</tr>
+                <tr><th>Questions</th>{data.buckets.map(b => <th key={b}>{k(b)}</th>)}</tr>
               </thead>
               <tbody>
-                <tr className="md-crt-total">
+                <tr className="is-total">
                   <td>All sixteen</td>
                   {m.buckets.map(b => (
-                    <td key={b.bucket} className="md-crt-num" title={cellTitle(b, m.window)}>
-                      {!b.runnable ? <span className="md-crt-na">n/a</span> : <>{pct(b.accuracy)}<NoAnswerMark b={b} /></>}
+                    <td key={b.bucket} title={cellTitle(b, m.window)}>
+                      {!b.runnable ? <span className="sq-na">n/a</span> : <>{pct(b.accuracy)}<NoAnswerMark b={b} /></>}
                     </td>
                   ))}
                 </tr>
@@ -238,8 +234,8 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
                     {m.buckets.map(b => {
                       const st = b.skills[s];
                       return (
-                        <td key={b.bucket} className="md-crt-num" title={!b.runnable ? `Beyond its ${m.window.toLocaleString()}-token window` : st ? `${st.correct}/${st.total} correct` : 'Not measured'}>
-                          {!b.runnable ? <span className="md-crt-na">n/a</span> : pct(st?.accuracy)}
+                        <td key={b.bucket} title={!b.runnable ? `Beyond its ${m.window.toLocaleString()}-token window` : st ? `${st.correct}/${st.total} correct` : 'Not measured'}>
+                          {!b.runnable ? <span className="sq-na">n/a</span> : pct(st?.accuracy)}
                         </td>
                       );
                     })}
@@ -249,32 +245,32 @@ function Results({ data, pilotModels }: { data: PanelData; pilotModels: string[]
             </table>
           </div>
           {noAnswerSummary(m.buckets) && (
-            <p className="md-cal-note md-crt-noanswer">
+            <p className="sq-small sq-crt-noanswer">
               <sup className="crt-mark">*</sup> No answer within the output limit, counted as wrong in this row:{' '}
               {noAnswerSummary(m.buckets)}. The skill rows count only the runs that answered.
             </p>
           )}
-          <figure className="md-crt-fig md-crt-heatfig">
-            <figcaption className="md-crt-fig-title">Where in the document facts get lost</figcaption>
+          <figure className="sq-crt-fig sq-crt-heat">
+            <figcaption className="sq-crt-fig-t">Where in the document facts get lost</figcaption>
             <HeatGrid model={m} buckets={data.buckets} depths={data.depths} />
             <HeatLegend />
-            <p className="md-cal-note">
+            <p className="sq-small sq-mt">
               Finding a fact, by how far through the document it sits (rows) and document length (columns).
               Pooled over the last {m.gridSweeps} weekly run{m.gridSweeps === 1 ? '' : 's'}, counting the runs
               that gave an answer; hover a cell for the count.
             </p>
           </figure>
         </div>
-        <div className="md-crt-col">
+        <div className="sq-crt-col">
           <LengthChart data={data} />
-          <div className="md-cal-note md-crt-defs">
+          <p className="sq-small sq-crt-defs">
             Holds up to: the longest length that keeps at least {Math.round(m.holdRatio * 100)}% of the model’s own
             8K accuracy. n/a: longer than its context window. A run with no answer within the output limit counts
             as wrong in the totals. Provider errors are left out, never counted as wrong.
-          </div>
+          </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -311,32 +307,32 @@ function LengthChart({ data }: { data: PanelData }) {
   })();
 
   return (
-    <figure className="md-crt-fig md-crt-chart">
-      <figcaption className="md-crt-fig-title">Accuracy by context length</figcaption>
-      <div className="md-crt-legend" aria-hidden="true">
-        <span><i className="md-crt-key is-mine" />{m.displayName}</span>
-        {others.length > 0 && <span><i className="md-crt-key" />Other pilot models</span>}
+    <figure className="sq-crt-fig sq-crt-chart">
+      <figcaption className="sq-crt-fig-t">Accuracy by context length</figcaption>
+      <div className="sq-legend" aria-hidden="true">
+        <span><i className="sq-line is-self" />{m.displayName}</span>
+        {others.length > 0 && <span><i className="sq-line" />Other pilot models</span>}
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="md-crt-svg" role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} className="sq-crt-svg" role="img"
         aria-label={`Line chart of ${m.displayName}'s accuracy at each context length, with the other pilot models in grey; the table above lists every value.`}
         onMouseLeave={() => setHover(null)}>
         {ticks.map(a => (
           <g key={a}>
-            <line x1={L} x2={W - R} y1={y(a)} y2={y(a)} className="crt-grid" />
-            <text x={L - 8} y={y(a) + 4} className="crt-axis" textAnchor="end">{Math.round(a * 100)}%</text>
+            <line x1={L} x2={W - R} y1={y(a)} y2={y(a)} className="sq-crt-grid" />
+            <text x={L - 8} y={y(a) + 4} className="sq-crt-axis" textAnchor="end">{Math.round(a * 100)}%</text>
           </g>
         ))}
         {xs.map((x, j) => (
-          <text key={j} x={x} y={H - 8} className="crt-axis" textAnchor="middle">{k(data.buckets[j])}</text>
+          <text key={j} x={x} y={H - 8} className="sq-crt-axis" textAnchor="middle">{k(data.buckets[j])}</text>
         ))}
         {others.map(({ o, p }) => (
-          <polyline key={o.name} points={p.map(q => `${q.x},${q.y}`).join(' ')} className="md-crt-other" />
+          <polyline key={o.name} points={p.map(q => `${q.x},${q.y}`).join(' ')} className="sq-crt-other" />
         ))}
-        {hover !== null && <line x1={xs[hover]} x2={xs[hover]} y1={T} y2={H - B} className="crt-crosshair" />}
-        <polyline points={mine.map(q => `${q.x},${q.y}`).join(' ')} className="md-crt-mine" />
-        {mine.map(q => <circle key={q.j} cx={q.x} cy={q.y} r={hover === q.j ? 5 : 3.5} className="md-crt-dot" />)}
+        {hover !== null && <line x1={xs[hover]} x2={xs[hover]} y1={T} y2={H - B} className="sq-crt-cross" />}
+        <polyline points={mine.map(q => `${q.x},${q.y}`).join(' ')} className="sq-crt-mine" />
+        {mine.map(q => <circle key={q.j} cx={q.x} cy={q.y} r={hover === q.j ? 5 : 3.5} className="sq-crt-dot" />)}
         {end && hover === null && (
-          <text x={end.x} y={end.y - 10} className="md-crt-endlabel" textAnchor={end.j === xs.length - 1 ? 'end' : 'middle'}>
+          <text x={end.x} y={end.y - 10} className="sq-crt-end" textAnchor={end.j === xs.length - 1 ? 'end' : 'middle'}>
             {pct(end.a)}
           </text>
         )}
@@ -346,17 +342,17 @@ function LengthChart({ data }: { data: PanelData }) {
         ))}
       </svg>
       {hoverInfo ? (
-        <div className="md-crt-tip" role="status">
+        <div className="sq-crt-tip" role="status">
           <b>{k(data.buckets[hover as number])}</b>
           <span>{m.displayName}: {!hoverInfo.b.runnable ? 'beyond its window' : `${pct(hoverInfo.b.accuracy)}${hoverInfo.b.total ? ` (${hoverInfo.b.correct}/${hoverInfo.b.total})` : ''}${hoverInfo.b.noAnswer ? ` · ${hoverInfo.b.noAnswer} of ${hoverInfo.b.trials} runs gave no answer` : ''}`}</span>
           {hoverInfo.n > 0 && (
-            <span className="md-crt-tip-dim">
+            <span className="is-dim">
               Other pilot models: {hoverInfo.lo === hoverInfo.hi ? pct(hoverInfo.lo) : `${pct(hoverInfo.lo)}–${pct(hoverInfo.hi)}`}
             </span>
           )}
         </div>
       ) : (
-        floor > 0 && <p className="md-cal-note">The axis starts at 50%: every pilot model is above it at every length.</p>
+        floor > 0 && <p className="sq-small sq-mt">The axis starts at 50%: every pilot model is above it at every length.</p>
       )}
     </figure>
   );

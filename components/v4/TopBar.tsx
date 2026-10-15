@@ -3,8 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ThemeButton from '../ThemeButton';
-import AccountMenu from '../AccountMenu';
+import AccountMenu, { navClick } from '../AccountMenu';
 import { useVisitorStats } from '../../lib/use-visitor-stats';
+import { lpBody, lpDisplay } from '../../lib/fonts';
+// The bar renders on every public page, most of them outside the studio wrapper: it brings the
+// landing palette (.st-tokens) and its own styles with it.
+import '../../styles/landing.css';
+import '../../styles/studio-board.css';
 
 interface TopBarProps {
   selectedView: string;
@@ -13,6 +18,13 @@ interface TopBarProps {
   todayVisits: number | null;
 }
 
+const clock = () =>
+  new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }) + ' CET';
+
+/**
+ * The site's top bar, in the landing nav's look: the ASL mark, sentence-case links, a quiet live
+ * line, the theme switch and the account menu. Frosted once the page scrolls under it.
+ */
 export default function TopBar({ selectedView, onViewChange, todayVisits }: TopBarProps) {
   const router = useRouter();
   // Pages that do not pass today's count (every page but home) fetch it here. The all-time total
@@ -20,100 +32,71 @@ export default function TopBar({ selectedView, onViewChange, todayVisits }: TopB
   const stats = useVisitorStats();
   const today = todayVisits ?? stats.today;
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const update = () => {
-      setCurrentTime(
-        new Date().toLocaleTimeString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          timeZone: 'Europe/Berlin',
-        }) + ' CET'
-      );
-    };
+    // Minutes, not seconds: a ticking header is the kind of ambient motion the site dropped.
+    const update = () => setCurrentTime(clock());
     update();
-    const timer = setInterval(update, 1000);
+    const timer = setInterval(update, 5000);
     return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 4);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const links: Array<{ view: string; href: string; label: string; go: () => void }> = [
+    { view: 'dashboard', href: '/', label: 'Leaderboard', go: () => { onViewChange('dashboard'); router.push('/'); } },
+    { view: 'about', href: '/about', label: 'About', go: () => router.push('/about') },
+    { view: 'faq', href: '/faq', label: 'FAQ', go: () => router.push('/faq') },
+    { view: 'pricing', href: '/pricing', label: 'Pricing', go: () => router.push('/pricing') },
+    { view: 'forum', href: '/router/forum', label: 'Forum', go: () => router.push('/router/forum') },
+    // Last, which is where people look for it. The site publishes no email address anywhere:
+    // anyone wanting to reach us is sent to the form, which routes by topic and cannot be
+    // harvested by a scraper.
+    { view: 'contact', href: '/contact', label: 'Contact', go: () => router.push('/contact') },
+  ];
+
   return (
-    <div className="v4-topbar">
-      <div className="v4-topbar-left">
-        <div className="v4-logo" onClick={() => onViewChange('dashboard')} style={{ cursor: 'pointer' }}>
-          {/* Two files rather than one recoloured by CSS: the mark's "L" is
-              navy and vanishes on the dark theme's surface. Only one is ever
-              displayed, so screen readers announce the name once. */}
-          <img
-            className="v4-logo-img v4-logo-img--light"
-            src="/asl-mark.png"
-            width={754}
-            height={160}
-            alt="ASL — AI Stupid Level"
-          />
-          <img
-            className="v4-logo-img v4-logo-img--dark"
-            src="/asl-mark-dark.png"
-            width={754}
-            height={160}
-            alt="ASL — AI Stupid Level"
-          />
+    <div className={`sb-top st-tokens ${lpBody.variable} ${lpDisplay.variable}${scrolled ? ' is-scrolled' : ''}`}>
+      <div className="sb-top-in">
+        {/* Two files rather than one recoloured by CSS: the mark's "L" is navy and vanishes on
+            the dark theme's surface. Only one is ever displayed, so screen readers announce the
+            name once. */}
+        <a className="sb-brand" href="/" aria-label="AI Stupid Level home" onClick={navClick(() => onViewChange('dashboard'))}>
+          <img className="sb-mk-l" src="/asl-mark.png" width={754} height={160} alt="ASL — AI Stupid Level" />
+          <img className="sb-mk-d" src="/asl-mark-dark.png" width={754} height={160} alt="" />
+        </a>
+
+        <nav className="sb-links" aria-label="Main">
+          {links.map(l => (
+            <a
+              key={l.view}
+              className="sb-link"
+              href={l.href}
+              aria-current={selectedView === l.view ? 'page' : undefined}
+              onClick={navClick(l.go)}
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="sb-top-end">
+          <span className="sb-live">
+            <span className="sb-live-on">Online</span>
+            <span className="sb-live-sep" aria-hidden="true" />
+            <span><b>{today !== null ? today.toLocaleString() : '…'}</b> visits today</span>
+            <span className="sb-live-sep sb-live-clock" aria-hidden="true" />
+            <span className="sb-live-clock">{currentTime}</span>
+          </span>
+          <ThemeButton />
+          <AccountMenu />
         </div>
-        <div className="v4-nav">
-          <button
-            className={`v4-nav-btn ${selectedView === 'dashboard' ? 'active' : ''}`}
-            onClick={() => { onViewChange('dashboard'); router.push('/'); }}
-          >
-            DASHBOARD
-          </button>
-          <button
-            className={`v4-nav-btn ${selectedView === 'about' ? 'active' : ''}`}
-            onClick={() => router.push('/about')}
-          >
-            ABOUT
-          </button>
-          <button
-            className={`v4-nav-btn ${selectedView === 'faq' ? 'active' : ''}`}
-            onClick={() => router.push('/faq')}
-          >
-            FAQ
-          </button>
-          <button
-            className={`v4-nav-btn ${selectedView === 'pricing' ? 'active' : ''}`}
-            onClick={() => router.push('/pricing')}
-          >
-            PRICING
-          </button>
-          <button
-            className="v4-nav-btn"
-            onClick={() => router.push('/router/forum')}
-            style={{ color: 'var(--amber-warning, #ffb000)' }}
-          >
-            FORUM
-          </button>
-          {/* Last, which is where people look for it. The site publishes no email
-              address anywhere: anyone wanting to reach us is sent to the form, which
-              routes by topic and cannot be harvested by a scraper. */}
-          <button
-            className={`v4-nav-btn ${selectedView === 'contact' ? 'active' : ''}`}
-            onClick={() => router.push('/contact')}
-          >
-            CONTACT
-          </button>
-        </div>
-      </div>
-      <div className="v4-topbar-right">
-        <span className="visitors-count">
-          {/* Was an eye emoji. Dropped for the same reason the rest of the
-              chrome lost its pictograms in the clean redesign, and the label now
-              says what the number is rather than leaving it to an icon. */}
-          <b style={{ color: 'var(--phosphor-green)' }}>{today !== null ? today.toLocaleString() : '…'}</b> visits today
-        </span>
-        <div className="v4-live-dot"></div>
-        <span>ONLINE</span>
-        <span className="v4-clock">{currentTime}</span>
-        <span className="v4-topbar-theme"><ThemeButton /></span>
-        <AccountMenu />
       </div>
     </div>
   );

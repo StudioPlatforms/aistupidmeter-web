@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import AuthShell from '@/components/auth/AuthShell';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -24,8 +25,7 @@ function ResetPasswordForm() {
       setValidating(false);
       return;
     }
-
-    // Validate token on mount
+    // Validate the token on mount
     fetch(`/api/auth/reset-password?token=${token}`)
       .then(res => res.json())
       .then(data => {
@@ -46,42 +46,32 @@ function ResetPasswordForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (password.length < 8) {
       setError('Password must be at least 8 characters long');
       return;
     }
-
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
     setLoading(true);
-
     try {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, password }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         setError(data.error || 'Failed to reset password');
         setLoading(false);
         return;
       }
-
       setSuccess(true);
       setLoading(false);
-
-      // Redirect to sign in after 3 seconds
-      setTimeout(() => {
-        router.push('/auth/signin');
-      }, 3000);
-    } catch (err) {
+      // Back to sign in after 3 seconds
+      setTimeout(() => router.push('/auth/signin'), 3000);
+    } catch {
       setError('An error occurred. Please try again.');
       setLoading(false);
     }
@@ -89,250 +79,65 @@ function ResetPasswordForm() {
 
   if (validating) {
     return (
-      <div className="vintage-container" style={{ 
-        maxWidth: '500px', 
-        margin: '0 auto', 
-        paddingTop: '60px'
-      }}>
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center', padding: '40px' }}>
-            <div className="terminal-text--amber" style={{ fontSize: '1.2em' }}>
-              Checking your reset link…
-            </div>
-          </div>
-        </div>
-      </div>
+      <AuthShell mode="account">
+        <p className="au-busy" role="status">Checking your reset link…</p>
+      </AuthShell>
     );
   }
 
   if (!tokenValid) {
     return (
-      <div className="vintage-container" style={{ 
-        maxWidth: '500px', 
-        margin: '0 auto', 
-        paddingTop: '60px'
-      }}>
-        <div className="crt-monitor">
-          <div className="terminal-text">
-            <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-              This link is no longer valid
-            </div>
-            
-            <div className="terminal-text--red" style={{ 
-              textAlign: 'center',
-              padding: '20px',
-              border: '2px solid var(--red-alert)',
-              backgroundColor: 'rgba(255, 45, 0, 0.1)',
-              borderRadius: '4px',
-              marginBottom: '20px'
-            }}>
-              <div style={{ fontSize: '2em', marginBottom: '10px' }}>⚠</div>
-              <div style={{ marginBottom: '10px' }}>{error}</div>
-              <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                The reset link may have expired or been used already
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'center' }}>
-              <Link href="/auth/forgot-password" className="vintage-btn" style={{ textDecoration: 'none', marginRight: '10px' }}>
-                REQUEST NEW LINK
-              </Link>
-              <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-                BACK TO SIGN IN
-              </Link>
-            </div>
-          </div>
+      <AuthShell mode="account">
+        <h1 className="au-title">This link is no longer valid</h1>
+        <div className="au-note au-note-bad" role="alert">{error}</div>
+        <p className="au-sub" style={{ marginTop: 14 }}>Reset links work once and expire after an hour.</p>
+        <div className="au-stack" style={{ marginTop: 24 }}>
+          <Link href="/auth/forgot-password" className="au-btn au-btn-primary au-btn-block">Request a new link</Link>
+          <Link href="/auth/signin" className="au-btn au-btn-ghost au-btn-block">Back to sign in</Link>
         </div>
-      </div>
+      </AuthShell>
+    );
+  }
+
+  if (success) {
+    return (
+      <AuthShell mode="account">
+        <h1 className="au-title">Password updated</h1>
+        <div className="au-note au-note-good" role="status">Your new password is saved. Taking you to sign in…</div>
+        <div className="au-stack" style={{ marginTop: 24 }}>
+          <Link href="/auth/signin" className="au-btn au-btn-primary au-btn-block">Sign in now</Link>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="vintage-container" style={{ 
-      maxWidth: '500px', 
-      margin: '0 auto', 
-      paddingTop: '60px'
-    }}>
-      <style jsx>{`
-        @media (min-width: 768px) {
-          .vintage-container {
-            max-width: 650px !important;
-          }
-        }
-      `}</style>
-      
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '16px', textAlign: 'center' }}>
-            Choose a new password
-            <span className="blinking-cursor"></span>
-          </div>
-          
-          {!success ? (
-            <>
-              <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px' }}>
-                Enter a new password for <strong>{email}</strong>
-              </div>
-              
-              {error && (
-                <div className="terminal-text--red" style={{ 
-                  marginBottom: '16px', 
-                  textAlign: 'center',
-                  padding: '8px',
-                  border: '1px solid var(--red-alert)',
-                  backgroundColor: 'rgba(255, 45, 0, 0.1)',
-                  borderRadius: '4px'
-                }}>
-                  ⚠ {error}
-                </div>
-              )}
-              
-              <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '16px' }}>
-                  <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                    NEW PASSWORD:
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    required
-                    disabled={loading}
-                    minLength={8}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      background: 'var(--terminal-black)',
-                      border: '1px solid var(--metal-silver)',
-                      borderRadius: '4px',
-                      color: 'var(--phosphor-green)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <div className="terminal-text" style={{ marginBottom: '8px' }}>
-                    CONFIRM PASSWORD:
-                  </div>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                    required
-                    disabled={loading}
-                    minLength={8}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      background: 'var(--terminal-black)',
-                      border: '1px solid var(--metal-silver)',
-                      borderRadius: '4px',
-                      color: 'var(--phosphor-green)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '14px'
-                    }}
-                  />
-                </div>
-
-                <div className="terminal-text--dim" style={{ 
-                  fontSize: '0.85em',
-                  marginBottom: '20px',
-                  padding: '8px',
-                  border: '1px solid var(--metal-silver)',
-                  borderRadius: '4px'
-                }}>
-                  <strong>Password requirements:</strong>
-                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-                    <li>At least 8 characters long</li>
-                    <li>Mix of letters, numbers, and symbols recommended</li>
-                  </ul>
-                </div>
-                
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <button 
-                    type="submit" 
-                    disabled={loading} 
-                    className="vintage-btn" 
-                    style={{ padding: '12px 32px', fontSize: '1.1em' }}
-                  >
-                    {loading ? 'Saving…' : 'Save new password'}
-                  </button>
-                </div>
-              </form>
-
-              <div style={{ 
-                textAlign: 'center',
-                borderTop: '1px solid var(--metal-silver)',
-                paddingTop: '16px'
-              }}>
-                <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-                  BACK TO SIGN IN
-                </Link>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="terminal-text--green" style={{ 
-                textAlign: 'center',
-                padding: '20px',
-                border: '2px solid var(--phosphor-green)',
-                backgroundColor: 'rgba(0, 255, 0, 0.05)',
-                borderRadius: '4px',
-                marginBottom: '20px'
-              }}>
-                <div style={{ fontSize: '2em', marginBottom: '10px' }}>✓</div>
-                <div style={{ fontSize: '1.2em', marginBottom: '10px' }}>
-                  PASSWORD RESET SUCCESSFUL
-                </div>
-                <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                  Your password has been updated. Redirecting to sign in...
-                </div>
-              </div>
-
-              <div style={{ textAlign: 'center' }}>
-                <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-                  SIGN IN NOW
-                </Link>
-              </div>
-            </>
-          )}
+    <AuthShell mode="account">
+      <h1 className="au-title">Choose a new password</h1>
+      <p className="au-sub">For <b>{email}</b>.</p>
+      {error && <div className="au-note au-note-bad" role="alert">{error}</div>}
+      <form className="au-form" onSubmit={handleSubmit}>
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-new">New password</label>
+          <input id="au-new" className="au-input" type="password" autoComplete="new-password" value={password}
+            onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" required disabled={loading} minLength={8} />
         </div>
-      </div>
-
-      <div style={{ 
-        textAlign: 'center', 
-        marginTop: '20px',
-        fontSize: '0.8em'
-      }}>
-        <div className="terminal-text--dim">
-          Signing in again with the new password confirms it worked.
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-confirm">Confirm password</label>
+          <input id="au-confirm" className="au-input" type="password" autoComplete="new-password" value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)} placeholder="Type it again" required disabled={loading} minLength={8} />
+          <span className="au-hint">At least 8 characters; a mix of letters, numbers and symbols is stronger.</span>
         </div>
-      </div>
-    </div>
+        <button type="submit" className="au-btn au-btn-primary au-btn-block" disabled={loading}>{loading ? 'Saving…' : 'Save new password'}</button>
+      </form>
+      <p className="au-alt"><Link href="/auth/signin">Back to sign in</Link></p>
+    </AuthShell>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="vintage-container" style={{ 
-        maxWidth: '500px', 
-        margin: '0 auto', 
-        paddingTop: '60px'
-      }}>
-        <div className="crt-monitor">
-          <div className="terminal-text" style={{ textAlign: 'center', padding: '40px' }}>
-            <div className="terminal-text--amber" style={{ fontSize: '1.2em' }}>
-              Loading…
-            </div>
-          </div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<AuthShell mode="account"><p className="au-busy" role="status">Loading…</p></AuthShell>}>
       <ResetPasswordForm />
     </Suspense>
   );

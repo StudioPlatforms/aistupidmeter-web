@@ -1,0 +1,244 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · INSIGHTS — the Smart Router's data pages in the landing's look:
+   analytics (/router/analytics), API monitoring (/router/monitoring) and
+   performance timing (/router/performance-timing, with BestHoursPanel).
+
+   Builds on styles/studio.css (st-* classes, components/studio/*). Every class
+   here is sa-* and scoped under .st; colours are --lp-* tokens, except the
+   best/worst-hours pair (--bh-fast / --bh-slow / --bh-neutral, router-v4.css),
+   which was validated for colour-vision deficiency and is kept as it is.
+   Motion: bars grow when their pane is revealed, charts draw once; all of it
+   stops under prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── page scaffolding ─────────────────────────────────────────────── */
+.st .sa-panel { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.st .sa-panel > * { min-width: 0; }
+.st .sa-scope { margin: 0 0 -10px; }
+/* a refetch keeps the frame: the previous render stays, dimmed, until the new data lands */
+.st .sa-stale { opacity: .55; transition: opacity .25s; pointer-events: none; }
+.st .sa-note-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.st .sa-note-row > span { min-width: 0; overflow-wrap: anywhere; }
+.st .sa-note-t { display: block; color: var(--lp-fg); font-weight: 600; margin-bottom: 2px; }
+.st .sa-head-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 100%; }
+@media (max-width: 760px) {
+  .st .sa-panel { gap: 16px; }
+  .st .sa-scope { margin-bottom: -6px; }
+}
+
+/* labelled controls in the page header (performance timing): period, suite, model */
+.st .sa-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 28px; margin-top: 6px; }
+.st .sa-control { display: grid; gap: 8px; min-width: 0; max-width: 100%; }
+.st .sa-control .st-label { margin: 0; }
+.st .sa-control .st-seg { justify-self: start; }
+.st .st-seg button:disabled { cursor: progress; }
+.st .sa-busy { display: inline-flex; align-items: center; gap: 10px; height: 40px; font-size: 13px; color: var(--lp-fg3); }
+.st .sa-model { display: grid; gap: 7px; min-width: 240px; }
+.st .sa-model .st-field-label { font-size: 12.5px; color: var(--lp-fg2); }
+@media (max-width: 760px) {
+  .st .sa-controls { gap: 14px; }
+  .st .sa-control, .st .sa-model { width: 100%; min-width: 0; }
+}
+
+/* filter row above a tab's content (monitoring): key select, category chips, period */
+.st .sa-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 22px; }
+.st .sa-toolbar > .st-field { flex: 0 1 380px; }
+.st .sa-toolbar > .st-field.sa-grow { flex: 1 1 auto; }
+.st .sa-toolbar .st-field-label { font-size: 12.5px; color: var(--lp-fg2); }
+.st .sa-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 760px) {
+  .st .sa-toolbar > .st-field { flex: 1 1 100%; }
+  .st .sa-chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .st .sa-chips::-webkit-scrollbar { display: none; }
+  .st .sa-chips .st-chip { height: 36px; }
+}
+
+/* ── shares: a ranked list with bars (providers, models, categories) ─ */
+.st .sa-shares { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.st .sa-share { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 12px; }
+.st .sa-share.is-plain { grid-template-columns: minmax(0, 1fr); }
+.st .sa-share-main { min-width: 0; }
+.st .sa-share-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
+.st .sa-share-name { min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--lp-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st .sa-share-val { flex: none; font-size: 14px; font-weight: 600; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sa-share-meta { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; font-size: 12.5px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.st .sa-rank { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--lp-fg3); background: color-mix(in srgb, var(--lp-fg) 6%, transparent); font-variant-numeric: tabular-nums; }
+.st .sa-share.is-top .sa-rank { background: var(--lp-accent-bg); color: var(--lp-accent); }
+
+/* a bar on a track (same geometry as st-meter); width carries the value */
+.st .sa-bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--lp-fg) 9%, transparent); overflow: hidden; }
+.st .sa-bar i { display: block; height: 100%; min-width: 2px; border-radius: 3px; background: var(--lp-accent); transition: width .9s var(--lp-ease); }
+.st .sa-bar.is-muted i { background: color-mix(in srgb, var(--lp-fg3) 45%, transparent); }
+.st .sa-bar.is-warn i { background: var(--lp-warn); }
+.st .sa-bar.is-bad i { background: var(--lp-bad); }
+/* grow from zero when the pane is revealed (StudioEffects marks it .is-in) */
+.st-js .st-up:not(.is-in) .sa-bar i, .st-js .st-up:not(.is-in) .sa-meter i { width: 0 !important; min-width: 0; }
+
+/* ── savings: your cost against the no-router baseline ────────────── */
+.st .sa-compare { display: grid; gap: 14px; }
+.st .sa-compare-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; align-items: center; column-gap: 16px; font-size: 14px; }
+.st .sa-compare-row > span { color: var(--lp-fg2); }
+.st .sa-compare-row > b { font-weight: 600; color: var(--lp-fg); font-variant-numeric: tabular-nums; text-align: right; min-width: 84px; }
+.st .sa-compare .sa-bar { height: 10px; border-radius: 5px; }
+.st .sa-compare .sa-bar i { border-radius: 5px; }
+@media (max-width: 760px) {
+  .st .sa-compare-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 7px; }
+  .st .sa-compare-row .sa-bar { grid-column: 1 / -1; grid-row: 2; }
+}
+
+/* ── charts (recharts) ────────────────────────────────────────────── */
+.st .sa-chart { position: relative; width: 100%; height: 230px; }
+.st .sa-chart svg { overflow: visible; }
+.st .sa-chart-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.st .sa-chart-meta b { color: var(--lp-fg); font-weight: 600; margin-left: 4px; }
+.st .sa-chart .recharts-cartesian-axis-tick-value { fill: var(--lp-fg3); font-size: 11px; font-family: var(--lp-font-body); font-variant-numeric: tabular-nums; }
+.st .sa-chart .recharts-surface:focus, .st .sa-chart .recharts-wrapper:focus { outline: none; }
+/* the tooltip: a small studio card, value first */
+.st .sa-tip { display: grid; gap: 2px; min-width: 128px; padding: 9px 12px 10px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); box-shadow: var(--lp-shadow-2); font-size: 12.5px; line-height: 1.45; color: var(--lp-fg2); white-space: nowrap; }
+.st .sa-tip strong { font-family: var(--lp-font-disp); font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sa-tip .sa-tip-k { display: inline-block; width: 12px; height: 3px; margin-right: 7px; vertical-align: middle; border-radius: 2px; background: var(--lp-accent); transform: skewX(-16deg); }
+@media (max-width: 760px) { .st .sa-chart { height: 200px; } }
+
+/* PerformanceChart (shared with the model detail page) inside this page's pane: token colours,
+   solid hairline grid, quiet axes, a studio-card tooltip. Its inline styles need !important. */
+.st .sa-perf .recharts-cartesian-grid line { stroke: var(--lp-line); stroke-dasharray: none; }
+.st .sa-perf .recharts-cartesian-grid-vertical { display: none; }
+.st .sa-perf .recharts-cartesian-axis-line, .st .sa-perf .recharts-cartesian-axis-tick-line { stroke: var(--lp-line2); }
+.st .sa-perf .recharts-cartesian-axis-tick-value { fill: var(--lp-fg3); font-size: 11px; font-family: var(--lp-font-body); font-variant-numeric: tabular-nums; }
+.st .sa-perf .recharts-label { fill: var(--lp-fg3) !important; font-size: 11px !important; font-weight: 600 !important; letter-spacing: .08em; text-transform: uppercase; }
+.st .sa-perf .recharts-line-dots circle { stroke: var(--lp-card); stroke-width: 2px; }
+.st .sa-perf .recharts-active-dot circle { fill: var(--lp-card); }
+.st .sa-perf .recharts-tooltip-wrapper > div { background: var(--lp-card) !important; border: 1px solid var(--lp-line) !important; border-radius: 12px !important; box-shadow: var(--lp-shadow-2) !important; padding: 10px 12px !important; }
+.st .sa-perf .recharts-tooltip-wrapper > div > div:first-child { margin-bottom: 4px !important; font-size: 12.5px !important; font-weight: 600 !important; color: var(--lp-fg2) !important; }
+.st .sa-perf .recharts-tooltip-wrapper :is(.terminal-text, .terminal-text--dim) { font-family: var(--lp-font-body) !important; text-shadow: none !important; letter-spacing: 0 !important; }
+.st .sa-perf .recharts-tooltip-wrapper .terminal-text { font-size: 13.5px !important; color: var(--lp-fg2) !important; }
+.st .sa-perf .recharts-tooltip-wrapper .terminal-text span { font-family: var(--lp-font-disp); font-size: 17px; font-weight: 700; color: var(--lp-fg) !important; }
+.st .sa-perf .recharts-tooltip-wrapper .terminal-text--dim { font-size: 12px !important; color: var(--lp-fg3) !important; }
+.st .sa-perf .st-pane-body { padding-bottom: 6px; }
+@media (max-width: 760px) { .st .sa-perf .st-pane-body { padding: 10px 6px 0 0; } }
+
+/* ── logs: st-table on desktop, a two-line entry per request on phones ── */
+.st .st-table .sa-name { font-weight: 600; color: var(--lp-fg); }
+.st .st-table .sa-id { font-family: var(--font-code) !important; font-size: 12.5px; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .st-table td.sa-bad { color: var(--lp-bad) !important; font-weight: 600; }
+.st .st-table td.sa-when { white-space: nowrap; }
+.st .sa-unit { display: none; }
+.st .sa-prompt { margin: 0; max-width: 46ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .st .st-table.is-stack.sa-log tr { display: flex; flex-wrap: wrap; align-items: center; row-gap: 5px; padding: 13px 16px; }
+  .st .st-table.is-stack.sa-log tr::after { content: ''; order: 2; flex-basis: 100%; height: 0; }
+  .st .st-table.is-stack.sa-log td { display: block; width: auto; padding: 0 !important; text-align: left; }
+  .st .st-table.is-stack.sa-log td::before { content: none; }
+  .st .st-table.is-stack.sa-log td.sa-c-head { order: 0; flex: 1 1 0; min-width: 0; font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st .st-table.is-stack.sa-log td.sa-c-head .sa-id { white-space: nowrap; }
+  .st .st-table.is-stack.sa-log td.sa-c-end { order: 1; flex: none; margin-left: 12px; }
+  .st .st-table.is-stack.sa-log td.sa-c-wide { order: 3; flex: 1 0 100%; }
+  /* spacing, not dots, between the details: a wrapped line never starts with a separator */
+  .st .st-table.is-stack.sa-log td.sa-c-meta { order: 4; flex: none; margin-right: 14px; font-size: 12.5px; line-height: 1.5; color: var(--lp-fg2); }
+  .st .st-table.is-stack.sa-log td.sa-c-meta:last-child { margin-right: 0; }
+  .st .st-table.is-stack.sa-log .sa-unit { display: inline; }
+  .st .sa-prompt { max-width: none; -webkit-line-clamp: 3; font-size: 13.5px; color: var(--lp-fg); }
+}
+
+/* ── monitoring: keys as selectable cards ─────────────────────────── */
+.st .sa-keycard { gap: 4px; }
+.st .sa-keycard .st-card-t { min-width: 0; }
+.st .sa-keycard .st-card-t > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st .sa-keycard-v { margin-top: 6px; font-family: var(--lp-font-disp); font-size: 28px; font-weight: 700; line-height: 1.05; letter-spacing: -.035em; color: var(--lp-fg); }
+.st .sa-keycard-v small { margin-left: 6px; font-family: var(--lp-font-body); font-size: 13px; font-weight: 500; letter-spacing: 0; color: var(--lp-fg2); }
+.st .sa-keycard .sa-meter { margin-top: 8px; }
+
+/* budget meter: accent below 80%, warning from 80%, over budget from 100% */
+.st .sa-meter { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--lp-fg) 9%, transparent); overflow: hidden; }
+.st .sa-meter i { display: block; height: 100%; border-radius: 3px; background: var(--lp-accent); transition: width .9s var(--lp-ease); }
+.st .sa-meter.is-warn i { background: var(--lp-warn); }
+.st .sa-meter.is-bad i { background: var(--lp-bad); }
+
+/* ── budgets ──────────────────────────────────────────────────────── */
+.st .sa-budgets { display: grid; }
+.st .sa-budget { padding: 18px 22px; border-bottom: 1px solid var(--lp-line); }
+.st .sa-budget:last-child { border-bottom: 0; }
+.st .sa-budget-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; }
+.st .sa-budget-name { min-width: 0; font-size: 15px; font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sa-budget-name small { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--lp-fg3); }
+.st .sa-budget-amt { font-size: 14px; color: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+.st .sa-budget-amt b { color: var(--lp-fg); font-weight: 600; }
+.st .sa-budget-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--lp-fg2); }
+.st .sa-budget-meta > span { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.st .sa-budget-meta b { font-weight: 600; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sa-budget-meta b.is-warn { color: var(--lp-warn); }
+.st .sa-budget-meta b.is-bad { color: var(--lp-bad); }
+.st .sa-budget > .st-btn { margin-top: 12px; }
+.st .sa-budget-form { display: grid; gap: 14px; margin-top: 14px; padding: 16px 18px 18px; border: 1px solid var(--lp-line); border-radius: 14px; background: color-mix(in srgb, var(--lp-sunk) 55%, var(--lp-card)); }
+.st .sa-budget-form .st-form-row { gap: 12px 16px; }
+.st .sa-budget-form .st-form-row > .st-field { flex: 0 1 220px; }
+.st .sa-suffix { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--lp-fg2); }
+.st .sa-suffix .st-input { width: 96px; flex: none; }
+@media (max-width: 760px) {
+  .st .sa-budget { padding: 16px; }
+  .st .sa-budget-form { padding: 14px; }
+  .st .sa-budget-form .st-form-row > .st-field { flex: 1 1 100%; }
+  .st .sa-budget-form .st-actions .st-btn { flex: 1 1 auto; }
+}
+
+/* alerts: the slanted key carries the tone, the words carry the meaning */
+.st .sa-alert { grid-template-columns: auto minmax(0, 1fr) auto; }
+.st .sa-alert .st-row-t { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; white-space: normal; }
+.st .sa-alert .st-row-s { white-space: normal; }
+@media (max-width: 760px) {
+  .st .sa-alert { grid-template-columns: auto minmax(0, 1fr); row-gap: 10px; }
+  .st .sa-alert .st-row-end { grid-column: 2; justify-content: flex-start; }
+}
+
+/* prompt logging switch */
+.st .sa-switch { display: grid; gap: 16px; }
+.st .sa-switch .st-toggle div { min-width: 0; }
+
+/* ── best and worst hours (BestHoursPanel) ────────────────────────────
+   Restyles the .bh-* rules of router-v4.css onto the studio tokens. The fast / slow / neutral
+   bar colours (--bh-*) are the validated pair and are not touched. */
+.st .sa-bh .bh-tiles { gap: 12px; margin-bottom: 18px; }
+.st .sa-bh .bh-tile { padding: 16px 18px 15px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); }
+.st .sa-bh .bh-tile-label { margin-bottom: 8px; font-size: 13px; font-weight: 500; color: var(--lp-fg2); }
+.st .sa-bh .bh-tile-value { font-family: var(--lp-font-disp); font-size: clamp(22px, 2vw, 28px); font-weight: 700; line-height: 1.1; letter-spacing: -.03em; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sa-bh .bh-tile-sub { margin-top: 5px; font-size: 12.5px; line-height: 1.5; color: var(--lp-fg3); }
+.st .sa-bh .bh-key { width: 16px; height: 4px; transform: skewX(-16deg); }
+.st .sa-bh .bh-text { margin: 0 0 18px; max-width: 78ch; font-size: 14px; line-height: 1.65; color: var(--lp-fg2); }
+.st .sa-bh .bh-text strong { color: var(--lp-fg); font-weight: 600; }
+.st .sa-bh .bh-muted { font-size: 13.5px; color: var(--lp-fg3); }
+.st .sa-bh .bh-chart { margin: 26px 0 12px; }
+.st .sa-bh .bh-plot { border-bottom-color: var(--lp-line2); }
+.st .sa-bh .bh-grid { border-top-color: var(--lp-line); opacity: 1; }
+.st .sa-bh .bh-grid span { font-size: 11px; color: var(--lp-fg3); }
+.st .sa-bh .bh-col { cursor: pointer; }
+.st .sa-bh .bh-label { top: -20px; font-size: 11.5px; font-weight: 600; color: var(--lp-fg2); }
+.st .sa-bh .bh-tip { gap: 1px; padding: 9px 12px 10px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); box-shadow: var(--lp-shadow-2); font-size: 12.5px; color: var(--lp-fg2); }
+.st .sa-bh .bh-tip strong { font-family: var(--lp-font-disp); font-size: 17px; font-weight: 700; letter-spacing: -.02em; color: var(--lp-fg); }
+.st .sa-bh .bh-axis { margin-top: 6px; }
+.st .sa-bh .bh-axis span { font-size: 11px; color: var(--lp-fg3); }
+.st .sa-bh .bh-axis-title { margin-top: 4px; font-size: 12px; color: var(--lp-fg3); }
+.st .sa-bh .bh-table { margin: 14px 0 10px; font-size: 13.5px; }
+.st .sa-bh .bh-table summary { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; cursor: pointer; font-weight: 600; color: var(--lp-accent); list-style: none; }
+.st .sa-bh .bh-table summary::-webkit-details-marker { display: none; }
+.st .sa-bh .bh-table summary::before { content: ''; width: 7px; height: 7px; margin: 0 2px 0 1px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .2s var(--lp-ease); }
+.st .sa-bh .bh-table[open] summary::before { transform: rotate(45deg); }
+.st .sa-bh .bh-table .st-table-wrap { margin-top: 10px; border: 1px solid var(--lp-line); border-radius: 14px; max-width: 640px; }
+.st .sa-bh .bh-table table { margin: 0; max-width: none; }
+.st .sa-bh .bh-table :is(th, td) { padding: 9px 14px; border-bottom: 1px solid var(--lp-line); }
+.st .sa-bh .bh-table tbody tr:last-child td { border-bottom: 0 !important; }
+.st .sa-bh .bh-table th { color: var(--lp-fg3); }
+.st .sa-bh .bh-note { margin: 10px 0 0; max-width: 78ch; font-size: 12.5px; line-height: 1.6; color: var(--lp-fg3); }
+.st .sa-bh .sa-bh-body { transition: opacity .25s; }
+@media (max-width: 760px) {
+  .st .sa-bh .bh-chart { padding-left: 30px; }
+  .st .sa-bh .bh-grid span { left: -32px; width: 26px; font-size: 10.5px; }
+  .st .sa-bh .bh-axis span { font-size: 10.5px; }
+  .st .sa-bh .bh-tip { font-size: 12px; }
+  .st .sa-bh .bh-table :is(th, td) { padding: 8px 10px; }
+  .st .sa-bh .bh-table :is(th, td):first-child { padding-left: 14px; }
+}
+
+/* ── reduced motion ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .st .sa-bar i, .st .sa-meter i, .st .sa-stale, .st .sa-bh .sa-bh-body, .st .sa-bh .bh-table summary::before { transition: none; }
+}

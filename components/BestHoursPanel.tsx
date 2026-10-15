@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
+import { Pane, Loader } from '@/components/studio';
 
 interface HourStat { hour: number; samples: number; failed: number; medianMs: number | null }
 interface WindowStat { startHour: number; endHour: number; medianMs: number; samples: number; failed: number }
@@ -75,14 +76,17 @@ export default function BestHoursPanel({ modelId, modelName }: { modelId: number
 
   const name = modelName || 'this model';
 
+  // Studio pane (styles/studio-insights.css restyles the .bh-* rules); .bh-panel carries the
+  // validated --bh-* colours. While another model loads, the previous chart stays, dimmed.
   return (
-    <div className="rv4-panel bh-panel" style={{ marginBottom: '16px' }}>
-      <div className="rv4-panel-header">
-        <span className="rv4-panel-title">Best and worst hours to use {name}</span>
-        <span className="bh-caption">last {data?.days ?? 14} days · hourly probe</span>
-      </div>
-      <div className="rv4-panel-body bh-body">
-        {state === 'loading' && !data && <div className="bh-muted">Loading two weeks of hourly probes…</div>}
+    <Pane
+      className="bh-panel sa-bh"
+      title={`Best and worst hours to use ${name}`}
+      sub={`Last ${data?.days ?? 14} days · hourly probe`}
+      ruled
+    >
+      <div className={`sa-bh-body${state === 'loading' && data ? ' sa-stale' : ''}`} aria-busy={state === 'loading'}>
+        {state === 'loading' && !data && <Loader label="Loading two weeks of hourly probes…" minHeight={180} />}
         {state === 'error' && <div className="bh-muted">The hourly timings could not be loaded right now.</div>}
 
         {data && data.verdict === 'insufficient' && (
@@ -186,20 +190,22 @@ export default function BestHoursPanel({ modelId, modelName }: { modelId: number
 
             <details className="bh-table">
               <summary>Show the 24 hours as a table</summary>
-              <table>
-                <thead><tr><th>Hour (UTC)</th><th>Your time</th><th>Median</th><th>Probes</th><th>Failed</th></tr></thead>
-                <tbody>
-                  {data.hours.map(h => (
-                    <tr key={h.hour}>
-                      <td>{pad(h.hour)}{fast.has(h.hour) ? ' · fastest' : slow.has(h.hour) ? ' · slowest' : ''}</td>
-                      <td>{localHour(h.hour)}</td>
-                      <td>{h.medianMs ? secs(h.medianMs) : '—'}</td>
-                      <td>{h.samples}</td>
-                      <td>{h.failed}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="st-table-wrap">
+                <table className="st-table">
+                  <thead><tr><th>Hour (UTC)</th><th>Your time</th><th className="is-num">Median</th><th className="is-num">Probes</th><th className="is-num">Failed</th></tr></thead>
+                  <tbody>
+                    {data.hours.map(h => (
+                      <tr key={h.hour}>
+                        <td>{pad(h.hour)}{fast.has(h.hour) ? ' · fastest' : slow.has(h.hour) ? ' · slowest' : ''}</td>
+                        <td className="is-dim">{localHour(h.hour)}</td>
+                        <td className="is-num">{h.medianMs ? secs(h.medianMs) : '—'}</td>
+                        <td className="is-num">{h.samples}</td>
+                        <td className="is-num">{h.failed}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </details>
 
             <p className="bh-note">
@@ -210,6 +216,6 @@ export default function BestHoursPanel({ modelId, modelName }: { modelId: number
           </>
         )}
       </div>
-    </div>
+    </Pane>
   );
 }

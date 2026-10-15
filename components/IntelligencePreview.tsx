@@ -2,9 +2,12 @@
 
 import { ENTRY_PAID_PLAN, monthlyLong } from '@/lib/pricing-display';
 import { upgradeHref } from '@/lib/checkout-url';
+import { PLANS } from '@/lib/entitlements';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { slugifyModelName } from '../lib/model-slug';
+import { PageHead, Pane, Stats, Stat, CountUp, Loader, Tag, Pill, ProviderMark, PROVIDER_LABEL } from '@/components/studio';
+import '@/styles/studio-intel.css';
 
 interface Model {
   id: string;
@@ -16,8 +19,104 @@ interface Model {
   trend: 'up' | 'down' | 'stable';
 }
 
+/** The page's lead, shared by the Pro view, the access check and this preview so the header never changes under the reader. */
+export const INTEL_LEAD = 'Live benchmark scores, analytics and comparison tools for every model we track.';
+
+/** "openai" → "OpenAI", as on the landing page; unknown providers are capitalised. */
+export const providerName = (p: string): string =>
+  PROVIDER_LABEL[(p || '').toLowerCase()] ?? (p ? p.charAt(0).toUpperCase() + p.slice(1) : '');
+
+const TRENDS: Record<string, { label: string; tone?: 'good' | 'bad' }> = {
+  up: { label: 'Trending up', tone: 'good' },
+  down: { label: 'Trending down', tone: 'bad' },
+  stable: { label: 'Stable' },
+};
+
+/** A model's score trend as a tag: up, down, or stable (anything else reads as stable, as before). */
+export function TrendTag({ trend }: { trend: string }) {
+  const t = TRENDS[trend] ?? TRENDS.stable;
+  return <Tag tone={t.tone}>{t.label}</Tag>;
+}
+
+export interface IntelCardProps {
+  name: string;
+  provider: string;
+  /** null when the model has no current score. */
+  score: number | null;
+  rank: number;
+  trend: string;
+  category?: string;
+  href: string;
+  /** Key for the reorder slide (the page measures cards by it). */
+  flipKey?: string;
+  selected?: boolean;
+  /** Four models are already selected and this is not one of them. */
+  capped?: boolean;
+  /** Omitted on the Free preview: no compare control, the card is not selectable. */
+  onToggle?: () => void;
+  onDownload: () => void;
+  /** Free preview: Download leads to the upgrade, marked Pro. */
+  downloadLocked?: boolean;
+}
+
+/**
+ * One model on the rankings grid: leaderboard rank, provider mark, name, score with its trend and a
+ * bar of it out of 100, and the actions. On the Pro view the whole card toggles it into the
+ * comparison (as before); the Compare pill is the same toggle for keyboard and screen readers.
+ */
+export function IntelCard({ name, provider, score, rank, trend, category, href, flipKey, selected, capped, onToggle, onDownload, downloadLocked }: IntelCardProps) {
+  const pct = score === null ? 0 : Math.min(100, Math.max(0, score));
+  const cls = ['si-card', selected && 'is-on', capped && 'is-capped', !onToggle && 'is-static'].filter(Boolean).join(' ');
+  return (
+    <article className={cls} data-flip={flipKey} onClick={onToggle && !capped ? onToggle : undefined}>
+      <div className="si-card-top">
+        <Tag tone="accent">#{rank}</Tag>
+        {onToggle && (
+          <button
+            type="button"
+            className="si-pick"
+            aria-pressed={!!selected}
+            disabled={capped}
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
+          >
+            <span className="si-pick-box" aria-hidden="true" />
+            Compare<span className="st-sr"> {name}</span>
+          </button>
+        )}
+      </div>
+      <div className="si-card-id">
+        <ProviderMark provider={provider} />
+        <div>
+          <h3 className="si-card-name">{name}</h3>
+          <p className="si-card-sub">{providerName(provider)}{category ? ` · ${category}` : ''}</p>
+        </div>
+      </div>
+      <div className="si-card-mid">
+        <span className="si-score">{score === null ? 'N/A' : score.toFixed(1)}</span>
+        <TrendTag trend={trend} />
+      </div>
+      <div className="si-meter" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
+      <div className="si-card-act">
+        <a href={href} className="st-btn is-sm" onClick={(e) => e.stopPropagation()}>View details</a>
+        <button type="button" className="st-btn is-sm is-quiet" onClick={(e) => { e.stopPropagation(); onDownload(); }}>
+          Download{downloadLocked && <Tag tone="accent">Pro</Tag>}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+const BENEFITS = [
+  { title: 'Model comparison', desc: 'Compare up to 4 models with overlaid charts and detailed analytics' },
+  { title: 'Data export', desc: 'Download comprehensive model data in CSV or JSON format' },
+  { title: 'Advanced filters', desc: 'Filter by category, provider, test type, and custom time periods' },
+  { title: 'Historical trends', desc: 'View 30-day performance trends and identify degradation patterns' },
+];
+
 export default function IntelligencePreview() {
   const [models, setModels] = useState<Model[]>([]);
+  // The whole field, not just the eight cards shown: "Live models 8" undercounted what we track.
+  const [field, setField] = useState<{ models: number; providers: number }>({ models: 0, providers: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +126,9 @@ export default function IntelligencePreview() {
   const fetchTopModels = async () => {
     try {
       const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
-      const response = await fetch(`${apiUrl}/dashboard/scores?period=latest&sortBy=combined`);
+      // This preview is what non-paying accounts see, so it reads the 24-hour view: the newest run is
+      // a paid view (lib/capabilities 'latest-scores').
+      const response = await fetch(`${apiUrl}/dashboard/scores?period=24h&sortBy=combined`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -41,6 +142,7 @@ export default function IntelligencePreview() {
             trend: model.trend || 'stable',
           }));
           setModels(topModels);
+          setField({ models: data.data.length, providers: new Set(data.data.map((m: any) => m.provider)).size });
         }
       }
     } catch {
@@ -54,187 +156,126 @@ export default function IntelligencePreview() {
     window.location.href = upgradeHref(ENTRY_PAID_PLAN, 'monthly');
   };
 
-  const getTrendLabel = (trend: string) => {
-    if (trend === 'up') return '▲';
-    if (trend === 'down') return '▼';
-    return '→';
-  };
-  const getTrendColor = (trend: string) => {
-    if (trend === 'up') return 'var(--phosphor-green)';
-    if (trend === 'down') return 'var(--red-alert)';
-    return 'var(--phosphor-dim)';
-  };
+  const trialButton = (label: string, cls: string) => (
+    <button type="button" onClick={handleStartTrial} className={cls}>
+      {label} <span className="st-ar" aria-hidden="true">→</span>
+    </button>
+  );
+
+  const skel = <span className="st-skel si-skel" aria-hidden="true" />;
 
   return (
-    <div className="rv4-body">
-      <div className="rv4-upgrade-container">
-      {/* Sticky upgrade banner */}
-      <div className="rv4-upgrade-sticky" style={{ borderColor: 'rgba(0,191,255,0.4)', background: 'rgba(0,191,255,0.06)' }}>
-        <div className="rv4-upgrade-sticky-msg">
-          <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: '#1a73e8', fontWeight: 'bold' }}>[LOCKED]</span>
-          <div>
-            <div className="rv4-upgrade-sticky-title" style={{ color: '#1a73e8' }}>PREVIEW MODE — Intelligence Features Locked</div>
-            <div className="rv4-upgrade-sticky-sub">Unlock model comparison, downloads, and advanced analytics with Pro</div>
-          </div>
-        </div>
-        <button onClick={handleStartTrial} className="rv4-ctrl-btn primary" style={{ padding: '8px 18px', fontSize: '11px' }}>
-          START FREE TRIAL →
-        </button>
-      </div>
+    <>
+      <PageHead kicker="Monitoring" title="Model intelligence" lead={INTEL_LEAD} />
 
-      {/* Page header */}
-      <div className="rv4-page-header" style={{ position: 'relative', top: 'auto', marginBottom: '16px', borderRadius: '3px' }}>
-        <div className="rv4-page-header-left">
-          <div>
-            <div className="rv4-page-title">MODEL INTELLIGENCE<span className="blinking-cursor"></span></div>
-            <div className="rv4-page-title-sub">Comprehensive AI model analytics, benchmarks, and comparison tools</div>
+      <div className="st-body">
+        {/* Preview notice: sticks under the top edge on wide screens, as the old banner did. */}
+        <div className="si-lockbar" role="note">
+          <Tag tone="accent">Preview</Tag>
+          <div className="si-lockbar-t">
+            <b>Preview mode: intelligence features are locked</b>
+            <span>Unlock model comparison, downloads, and advanced analytics with Pro</span>
           </div>
+          {trialButton('Start free trial', 'st-btn is-primary')}
         </div>
-      </div>
 
-      {/* Stats bar */}
-      <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '16px' }}>
-        {[
-          { label: 'Live Models', value: loading ? '...' : String(models.length), accent: 'accent-green' },
-          { label: 'Providers', value: loading ? '...' : String(new Set(models.map(m => m.provider)).size), accent: 'accent-green' },
-          { label: 'Scores recorded', value: '175K+', accent: 'accent-blue' },
-          { label: 'Tool sessions', value: '61K+', accent: 'accent-amber' },
-        ].map((s, i) => (
-          <div key={i} className={`rv4-stat-cell ${s.accent}`}>
-            <div className={`rv4-stat-value${s.accent === 'accent-amber' ? ' amber' : ''}`}>{s.value}</div>
-            <div className="rv4-stat-label">{s.label}</div>
-          </div>
-        ))}
-      </div>
+        <Stats columns={4}>
+          <Stat value={loading ? skel : <CountUp value={field.models} />} label="Live models" />
+          <Stat value={loading ? skel : <CountUp value={field.providers} />} label="Providers" />
+          <Stat value="175K+" label="Scores recorded" tone="accent" />
+          <Stat value="61K+" label="Tool sessions" />
+        </Stats>
 
-      {/* Live model rankings — VISIBLE */}
-      <div className="rv4-panel" style={{ marginBottom: '16px' }}>
-        <div className="rv4-panel-header">
-          <span className="rv4-panel-title">LIVE MODEL RANKINGS</span>
-          <span className="rv4-badge green">LIVE</span>
-        </div>
-        <div className="rv4-panel-body">
+        {/* Live model rankings: visible on Free. */}
+        <Pane title="Model rankings" sub="Average over the last 24 hours · the latest run is part of Pro" actions={<Pill tone="good" live>Live</Pill>}>
           {loading ? (
-            <div className="rv4-loading">
-              <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
-              <span>LOADING MODEL DATA</span>
-            </div>
+            <Loader label="Loading model data" />
           ) : (
-            <div className="rv4-intel-grid">
+            <div className="si-grid">
               {models.map((model) => (
-                <div key={model.id} className="rv4-intel-card">
-                  <div className="rv4-intel-card-header">
-                    <div>
-                      <div className="rv4-intel-card-name">{model.displayName || model.name}</div>
-                      <div className="rv4-intel-card-provider">{model.provider.toUpperCase()}</div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div className="rv4-intel-card-score">{model.currentScore.toFixed(1)}</div>
-                      <div className="rv4-intel-card-score-label" style={{ color: getTrendColor(model.trend) }}>
-                        {getTrendLabel(model.trend)} SCORE
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rv4-intel-card-rank">#{model.rank}</div>
-                  <div className="rv4-intel-card-actions">
-                    <a
-                      href={`/models/${slugifyModelName(model.name) || model.id}`}
-                      className="rv4-ctrl-btn"
-                      style={{ fontSize: '10px', flex: 1, textAlign: 'center', textDecoration: 'none' }}
-                    >
-                      VIEW DETAILS
-                    </a>
-                    <button
-                      onClick={handleStartTrial}
-                      className="rv4-ctrl-btn"
-                      style={{ fontSize: '10px', flex: 1, opacity: 0.6 }}
-                    >
-                      DOWNLOAD [PRO]
-                    </button>
-                  </div>
-                </div>
+                <IntelCard
+                  key={model.id}
+                  name={model.displayName || model.name}
+                  provider={model.provider}
+                  score={model.currentScore}
+                  rank={model.rank}
+                  trend={model.trend}
+                  href={`/models/${slugifyModelName(model.name) || model.id}`}
+                  onDownload={handleStartTrial}
+                  downloadLocked
+                />
               ))}
             </div>
           )}
-        </div>
-      </div>
+        </Pane>
 
-      {/* Locked features grid */}
-      <div className="rv4-cols-2">
-        {/* Model Comparison — locked */}
-        <div className="rv4-panel" style={{ position: 'relative', overflow: 'hidden', minHeight: '200px' }}>
-          <div className="rv4-pro-lock-overlay">
-            <div className="rv4-pro-lock-title">UNLOCK MODEL COMPARISON</div>
-            <div className="rv4-pro-lock-text">Compare up to 4 models side-by-side with overlaid performance charts and deep analytics</div>
-            <button onClick={handleStartTrial} className="rv4-ctrl-btn primary" style={{ marginTop: '6px' }}>
-              START FREE TRIAL →
-            </button>
-          </div>
-          <div style={{ filter: 'blur(3px)', padding: '14px', pointerEvents: 'none', userSelect: 'none' }}>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>COMPARISON TOOL</div>
-            <div style={{ height: '120px', background: 'rgba(26, 115, 232,0.05)', borderRadius: '3px', border: '1px solid rgba(26, 115, 232,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>Demo Chart</span>
+        {/* Locked features */}
+        <div className="st-grid is-stretch">
+          <section className="st-pane si-locked st-up">
+            <div className="si-locked-art" aria-hidden="true">
+              <p className="st-label">Comparison tool</p>
+              <svg viewBox="0 0 320 110" preserveAspectRatio="none">
+                <g stroke="var(--lp-line)" strokeWidth="1">
+                  <line x1="0" y1="18" x2="320" y2="18" />
+                  <line x1="0" y1="55" x2="320" y2="55" />
+                  <line x1="0" y1="92" x2="320" y2="92" />
+                </g>
+                <g fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="0,62 40,54 80,58 120,40 160,46 200,30 240,36 280,22 320,26" stroke="var(--si-s1)" />
+                  <polyline points="0,80 40,76 80,82 120,66 160,70 200,58 240,64 280,50 320,54" stroke="var(--si-s2)" />
+                  <polyline points="0,98 40,90 80,94 120,86 160,78 200,82 240,72 280,76 320,66" stroke="var(--si-s3)" />
+                </g>
+              </svg>
+            </div>
+            <div className="si-locked-copy">
+              <Tag tone="accent">Pro</Tag>
+              <h3 className="si-locked-t">Unlock model comparison</h3>
+              <p>Compare up to 4 models side-by-side with overlaid performance charts and deep analytics</p>
+              {trialButton('Start free trial', 'st-btn is-primary')}
+            </div>
+          </section>
+
+          <section className="st-pane si-locked st-up" style={{ '--d': '.06s' } as CSSProperties}>
+            <div className="si-locked-art is-filters" aria-hidden="true">
+              {['Category', 'Provider', 'Sort by', 'Time period'].map((f) => <span key={f}>{f}</span>)}
+            </div>
+            <div className="si-locked-copy">
+              <Tag tone="accent">Pro</Tag>
+              <h3 className="si-locked-t">Unlock advanced filters</h3>
+              <p>Filter by category, provider, test type, and time period for targeted analysis</p>
+              {trialButton('Start free trial', 'st-btn is-primary')}
+            </div>
+          </section>
+        </div>
+
+        {/* Upgrade */}
+        <section className="st-pane is-accent st-lock st-up">
+          <div className="st-lock-main">
+            <p className="st-kicker">{PLANS[ENTRY_PAID_PLAN].label}</p>
+            <h2 className="st-lock-t">Unlock full intelligence</h2>
+            <p className="st-lock-price">{monthlyLong(ENTRY_PAID_PLAN)}</p>
+            <p className="si-trial">7-day free trial · Cancel anytime</p>
+            <div className="st-actions">
+              {trialButton('Unlock intelligence now', 'st-btn is-primary is-lg')}
             </div>
           </div>
-        </div>
-
-        {/* Advanced Filters — locked */}
-        <div className="rv4-panel" style={{ position: 'relative', overflow: 'hidden', minHeight: '200px' }}>
-          <div className="rv4-pro-lock-overlay">
-            <div className="rv4-pro-lock-title">UNLOCK ADVANCED FILTERS</div>
-            <div className="rv4-pro-lock-text">Filter by category, provider, test type, and time period for targeted analysis</div>
-            <button onClick={handleStartTrial} className="rv4-ctrl-btn primary" style={{ marginTop: '6px' }}>
-              START FREE TRIAL →
-            </button>
-          </div>
-          <div style={{ filter: 'blur(3px)', padding: '14px', pointerEvents: 'none', userSelect: 'none' }}>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--phosphor-green)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '10px' }}>FILTERS AND CONTROLS</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {['Category', 'Provider', 'Sort By', 'Time Period'].map((f, i) => (
-                <div key={i} style={{ padding: '8px 10px', background: 'rgba(26, 115, 232,0.05)', borderRadius: '2px', fontSize: '10px', color: 'var(--phosphor-dim)' }}>{f}</div>
+          <div className="st-lock-side">
+            <p className="st-label">What you unlock</p>
+            <ul className="st-lock-list">
+              {BENEFITS.map((b) => (
+                <li key={b.title}>
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div><b>{b.title}</b><span>{b.desc}</span></div>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {/* Upgrade CTA */}
-      <div className="rv4-panel" style={{ marginBottom: '16px', marginTop: '4px' }}>
-        <div className="rv4-panel-header">
-          <span className="rv4-panel-title">UNLOCK FULL INTELLIGENCE</span>
-        </div>
-        <div className="rv4-panel-body">
-          <div className="rv4-upgrade-benefits" style={{ marginBottom: '16px' }}>
-            {[
-              { title: 'MODEL COMPARISON', desc: 'Compare up to 4 models with overlaid charts and detailed analytics' },
-              { title: 'DATA EXPORT', desc: 'Download comprehensive model data in CSV or JSON format' },
-              { title: 'ADVANCED FILTERS', desc: 'Filter by category, provider, test type, and custom time periods' },
-              { title: 'HISTORICAL TRENDS', desc: 'View 30-day performance trends and identify degradation patterns' },
-            ].map((b, i) => (
-              <div key={i} className="rv4-upgrade-benefit" style={{ borderColor: 'rgba(0,191,255,0.2)', background: 'rgba(0,191,255,0.04)' }}>
-                <div className="rv4-upgrade-benefit-icon" style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: '#1a73e8' }}>→</div>
-                <div className="rv4-upgrade-benefit-title">{b.title}</div>
-                <div className="rv4-upgrade-benefit-desc">{b.desc}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{
-            background: 'rgba(0,191,255,0.06)', border: '2px solid rgba(0,191,255,0.3)',
-            borderRadius: '3px', padding: '16px', textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8', marginBottom: '4px' }}>{monthlyLong(ENTRY_PAID_PLAN)}</div>
-            <div style={{ fontSize: '11px', color: 'var(--phosphor-green)', fontWeight: 'bold', marginBottom: '12px' }}>7-Day Free Trial • Cancel Anytime</div>
-            <button onClick={handleStartTrial} className="rv4-upgrade-cta">
-              UNLOCK INTELLIGENCE NOW →
-            </button>
-          </div>
-        </div>
+        <p className="si-foot">Data sourced from AI Stupid Level · Real-time benchmarks · <a href="/">View main site</a></p>
       </div>
-
-      <div className="rv4-footer">
-        Data sourced from AI Stupid Level • Real-time benchmarks • <a href="/">View Main Site</a>
-      </div>
-      </div>{/* /rv4-upgrade-container */}
-    </div>
+    </>
   );
 }

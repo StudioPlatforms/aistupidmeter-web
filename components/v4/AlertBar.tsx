@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import '../../styles/studio-board.css';
 
 interface AlertBarProps {
   alerts: Array<{
@@ -34,11 +35,12 @@ export default function AlertBar({ alerts, degradations }: AlertBarProps) {
 
   if (!alertText) return null;
 
+  // A studio callout in the page's header band (styles/studio-board.css .sb-alert).
   return (
-    <div className="v4-alert-bar">
-      <span className="v4-alert-badge">ALERT</span>
-      <span className="v4-alert-text">{alertText}</span>
-      <button className="v4-alert-dismiss" onClick={() => setDismissed(true)}>✕</button>
+    <div className="sb-alert">
+      <span className="st-tag is-bad">Alert</span>
+      <p className="sb-alert-t">{alertText}</p>
+      <button type="button" className="st-x" aria-label="Dismiss alert" onClick={() => setDismissed(true)}>×</button>
     </div>
   );
 }

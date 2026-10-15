@@ -42,36 +42,36 @@ export default function WatchlistCard({ boards, onPick, picked }: {
 
   if (mine.length === 0) {
     return (
-      <div className="lbx-wl lbx-wl--empty">
-        <span className="lbx-wl-staricon" aria-hidden="true">☆</span>
+      <div className="sl-wl-empty">
+        <i aria-hidden="true">☆</i>
         <span>Star any model on the boards to pin it here, with its rank on all four boards.</span>
       </div>
     );
   }
 
   return (
-    <section className="lbx-wl" aria-label="Your watchlist">
-      <header className="lbx-wl-head">
-        <span className="lbx-wl-title"><span className="lbx-wl-staricon is-on" aria-hidden="true">★</span>Your watchlist</span>
-        <span className="lbx-wl-count">{mine.length}{limit ? ` of ${limit}` : ''} models</span>
-        <Link href="/watchlist" className="lbx-wl-manage">Manage alerts</Link>
+    <section className="sl-wl st-up" aria-label="Your watchlist">
+      <header className="sl-wl-head">
+        <h3 className="sl-wl-title">Your watchlist</h3>
+        <span className="sl-wl-count">{mine.length}{limit ? ` of ${limit}` : ''} models</span>
+        <Link href="/watchlist" className="st-more">Manage alerts</Link>
       </header>
-      <div className="lbx-wl-grid">
+      <div className="sl-wl-grid">
         {mine.map((row) => (
-          <div key={row.id} className={`lbx-wl-item${picked === row.id ? ' is-picked' : ''}`}>
-            <div className="lbx-wl-name">
+          <div key={row.id} className={`sl-wl-item${picked === row.id ? ' is-on' : ''}`}>
+            <div className="sl-wl-name">
               <Star row={row} />
-              <Logo provider={row.provider} size={15} box={24} />
+              <Logo provider={row.provider} />
               {onPick ? (
-                <button type="button" className="lbx-name lbx-stretch lbx-wl-pick" onClick={() => onPick(row.id)}
-                        title={`Follow ${row.label} across the boards below`}>
+                <button type="button" className="sl-name sl-stretch sl-wl-pick" onClick={() => onPick(row.id)}
+                        aria-pressed={picked === row.id} title={`Follow ${row.label} across the boards below`}>
                   {row.label}
                 </button>
               ) : (
-                <Link href={modelHref(row)} className="lbx-name lbx-stretch">{row.label}</Link>
+                <Link href={modelHref(row)} className="sl-name sl-stretch">{row.label}</Link>
               )}
             </div>
-            <dl className="lbx-wl-stats">
+            <dl className="sl-wl-stats">
               {BOARD_KEYS.map((k) => {
                 const c = cell(boards, k, row.id);
                 return (

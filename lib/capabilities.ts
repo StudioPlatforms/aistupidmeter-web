@@ -44,7 +44,13 @@ export type Capability =
   /** Shared workspace, seats, projects, webhooks. */
   | 'team'
   /** SSO, SCIM and the audit trail. */
-  | 'governance';
+  | 'governance'
+  /**
+   * The newest benchmark run, as it lands (the "Latest" period on the leaderboard and model pages).
+   * Free accounts and visitors see the 24-hour and 7-day views instead (owner, 2026-10-15): the
+   * freshest numbers are what people come back for, so they are what the cheapest plan sells.
+   */
+  | 'latest-scores';
 
 /** The lowest plan on the ladder that unlocks each capability. */
 export const REQUIRED_PLAN: Record<Capability, Plan> = {
@@ -68,6 +74,7 @@ export const REQUIRED_PLAN: Record<Capability, Plan> = {
   'context-rot': 'pro',
   team: 'teams',
   governance: 'teams',
+  'latest-scores': 'pro',
 };
 
 /** Human-readable name for a locked surface, used in upgrade copy. */
@@ -82,4 +89,5 @@ export const CAPABILITY_LABEL: Record<Capability, string> = {
   'context-rot': 'Context rot (pilot)',
   team: 'Shared workspace',
   governance: 'Security and governance',
+  'latest-scores': 'Latest benchmark results',
 };

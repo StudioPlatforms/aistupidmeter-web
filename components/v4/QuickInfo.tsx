@@ -9,6 +9,8 @@
  * "avoid now" held models that were merely priced above $3 per 1M tokens.
  */
 
+import '../../styles/studio-boards.css';
+
 interface QuickInfoProps {
   recommendations: any;
   degradations?: any[];
@@ -23,46 +25,46 @@ function formatModelName(item: any): string {
     .join(' ');
 }
 
-type Card = { label: string; value: string; detail: string; color: string; danger?: boolean; muted?: boolean };
+type Tone = 'good' | 'warn' | 'bad';
+type Card = { label: string; value: string; detail: string; tone: Tone; muted?: boolean };
 
 export default function QuickInfo({ recommendations, degradations }: QuickInfoProps) {
   if (!recommendations) return null;
 
   const items: Card[] = [];
-  const good = 'var(--phosphor-green)';
-  const none = (label: string, detail: string): Card => ({ label, value: 'None flagged', detail, color: good, muted: true });
+  const none = (label: string, detail: string): Card => ({ label, value: 'None flagged', detail, tone: 'good', muted: true });
 
   const code = recommendations.bestForCode;
   if (code?.name) {
     items.push({
-      label: 'BEST FOR CODE',
+      label: 'Best for code',
       value: formatModelName(code),
       detail: code.shortReason || (typeof code.correctness === 'number' ? `${Math.round(code.correctness)}% correct` : 'Top coding score'),
-      color: good,
+      tone: 'good',
     });
   }
 
   const reliable = recommendations.mostReliable;
   if (reliable?.name) {
-    items.push({ label: 'MOST RELIABLE', value: formatModelName(reliable), detail: reliable.shortReason || reliable.reason || '', color: good });
+    items.push({ label: 'Most reliable', value: formatModelName(reliable), detail: reliable.shortReason || reliable.reason || '', tone: 'good' });
   }
 
   const fastest = recommendations.fastestResponse;
   if (fastest?.name) {
-    items.push({ label: 'FASTEST', value: formatModelName(fastest), detail: fastest.shortReason || fastest.reason || '', color: good });
+    items.push({ label: 'Fastest', value: formatModelName(fastest), detail: fastest.shortReason || fastest.reason || '', tone: 'good' });
   }
 
   const value = recommendations.bestValue;
   if (value?.name) {
-    items.push({ label: 'BEST VALUE', value: formatModelName(value), detail: value.shortReason || value.reason || '', color: good });
+    items.push({ label: 'Best value', value: formatModelName(value), detail: value.shortReason || value.reason || '', tone: 'good' });
   }
 
   // Poor value is a price judgement, not a fault — amber, never the red "avoid" styling.
   const poor = Array.isArray(recommendations.poorValue) ? recommendations.poorValue[0] : null;
   items.push(
     poor?.name
-      ? { label: 'POOR VALUE', value: formatModelName(poor), detail: poor.shortReason || poor.reason || '', color: 'var(--amber-warning)' }
-      : none('POOR VALUE', 'No model costs far more for less')
+      ? { label: 'Poor value', value: formatModelName(poor), detail: poor.shortReason || poor.reason || '', tone: 'warn' }
+      : none('Poor value', 'No model costs far more for less')
   );
 
   // Avoid now: genuine problems only (a serious degradation or a failing score).
@@ -71,27 +73,25 @@ export default function QuickInfo({ recommendations, degradations }: QuickInfoPr
     ? (degradations || []).find((d: any) => d?.modelName && (d.dropPercentage > 10 || d.severity === 'critical' || d.type === 'service_disruption'))
     : null;
   if (avoid?.name) {
-    items.push({ label: 'AVOID NOW', value: formatModelName(avoid), detail: avoid.shortReason || avoid.reason || '', color: 'var(--red-alert)', danger: true });
+    items.push({ label: 'Avoid now', value: formatModelName(avoid), detail: avoid.shortReason || avoid.reason || '', tone: 'bad' });
   } else if (seriousDeg) {
-    items.push({ label: 'AVOID NOW', value: formatModelName(seriousDeg), detail: seriousDeg.message || 'Serious degradation', color: 'var(--red-alert)', danger: true });
+    items.push({ label: 'Avoid now', value: formatModelName(seriousDeg), detail: seriousDeg.message || 'Serious degradation', tone: 'bad' });
   } else {
-    items.push(none('AVOID NOW', 'No model is failing right now'));
+    items.push(none('Avoid now', 'No model is failing right now'));
   }
 
   return (
-    <div className="v4-quick-info">
-      <div className="v4-section-divider" style={{ borderTop: 'none' }}>QUICK RECOMMENDATIONS</div>
-      <div className="v4-quick-info-grid">
+    <section className="v4-quick-info sl-pane st-up" aria-label="Quick recommendations">
+      <h3 className="sl-pane-t">Quick recommendations</h3>
+      <div className="sl-qi-grid">
         {items.map((item, i) => (
-          <div key={i} className={`v4-qi-card ${item.danger ? 'danger' : ''}`}>
-            <div className="v4-qi-label" style={item.danger ? { color: 'var(--red-alert)' } : undefined}>
-              {item.label}
-            </div>
-            <div className="v4-qi-value" style={{ color: item.muted ? 'var(--phosphor-dim)' : item.color }}>{item.value}</div>
-            <div className="v4-qi-detail">{item.detail}</div>
+          <div key={i} className={`sl-qi${!item.muted && item.tone !== 'good' ? ` is-${item.tone}` : ''}`}>
+            <div className="sl-qi-label">{item.label}</div>
+            <div className={`sl-qi-value${item.muted ? ' is-muted' : ''}`}>{item.value}</div>
+            <div className="sl-qi-detail">{item.detail}</div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

@@ -10,12 +10,14 @@
  * itself worth knowing. The comparison is always on the same tasks (lib/verbosity.ts in the
  * API), so a model missing a task is never compared on a different mix.
  *
- * The strip is an emphasis chart: this model in the data blue, the rest of the fleet in
- * grey, on a log scale so 2x and 0.5x sit the same distance from "typical". Colours checked
- * with the dataviz validator: blue/grey ΔE 17.6 (protan) and >= 3:1 on both light surfaces.
+ * The strip is an emphasis chart: this model in the accent blue, the rest of the fleet in
+ * grey, on a log scale so 2x and 0.5x sit the same distance from "typical". Colours are the
+ * studio tokens (--lp-accent / --lp-fg3), both >= 3:1 against the card in light and dark.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pane, CountUp } from '@/components/studio';
+import '@/styles/studio-model-panels.css';
 
 type SuiteKey = 'hourly' | 'deep' | 'tooling';
 interface FleetPoint { name: string; ratio: number; wordsPerTask: number; self: boolean }
@@ -52,8 +54,8 @@ const fmtRatio = (r: number) => (r >= 10 ? r.toFixed(0) : r >= 1 ? r.toFixed(1) 
 
 function Strip({ fleet, suite }: { fleet: FleetPoint[]; suite: SuiteKey }) {
   const [hover, setHover] = useState<number | null>(null);
-  // Drawn in real pixels at the container's width, so the strip spans the card and dots stay
-  // round (a fixed-aspect viewBox shrank to fit the 34px height and filled half the card).
+  // Drawn in real pixels at the container's width, so the strip spans the column and dots stay
+  // round (a fixed-aspect viewBox shrank to fit the strip's height and filled half the card).
   const box = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(320);
   useEffect(() => {
@@ -63,7 +65,7 @@ function Strip({ fleet, suite }: { fleet: FleetPoint[]; suite: SuiteKey }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const H = 46, PAD = 14, Y = 18, LANE = 6, GAP = 8;
+  const H = 54, PAD = 14, Y = 20, LANE = 6, GAP = 8;
   const [lo, hi] = useMemo(() => {
     const rs = fleet.map(p => p.ratio).filter(r => r > 0);
     return [Math.min(0.5, ...rs) * 0.85, Math.max(2, ...rs) * 1.15];
@@ -87,16 +89,19 @@ function Strip({ fleet, suite }: { fleet: FleetPoint[]; suite: SuiteKey }) {
   // Draw the fleet first and this model last, so it is never hidden under a neighbour.
   const ordered = [...fleet.map((p, i) => ({ p, i }))].sort((a, b) => Number(a.p.self) - Number(b.p.self));
   const hp = hover !== null ? fleet[hover] : null;
+  const hx = hp ? x(hp.ratio) : 0;
+  // Near either end the tip anchors to that side instead of centring, so it stays in the card.
+  const tipSide = hx < 90 ? ' is-start' : hx > W - 90 ? ' is-end' : '';
 
   return (
-    <div className="md-vb-strip" ref={box}>
+    <div className="sq-vb-strip" ref={box}>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img"
         aria-label={`${LABEL[suite]}: this model among ${fleet.length} models, from ${fmtRatio(Math.min(...fleet.map(p => p.ratio)))} to ${fmtRatio(Math.max(...fleet.map(p => p.ratio)))} of the typical model`}>
-        <line x1={PAD} x2={W - PAD} y1={Y} y2={Y} className="md-vb-axis" />
+        <line x1={PAD} x2={W - PAD} y1={Y} y2={Y} className="sq-vb-axis" />
         {ticks.map(t => (
           <g key={t}>
-            <line x1={x(t)} x2={x(t)} y1={Y - (t === 1 ? 14 : 3)} y2={Y + (t === 1 ? 14 : 3)} className={t === 1 ? 'md-vb-tick-typ' : 'md-vb-tick'} />
-            <text x={x(t)} y={H - 1} className="md-vb-ticklabel" textAnchor="middle">{t === 1 ? 'typical' : `${t}×`}</text>
+            <line x1={x(t)} x2={x(t)} y1={Y - (t === 1 ? 15 : 4)} y2={Y + (t === 1 ? 15 : 4)} className={`sq-vb-tick${t === 1 ? ' is-typ' : ''}`} />
+            <text x={x(t)} y={H - 2} className={`sq-vb-ticklabel${t === 1 ? ' is-typ' : ''}`} textAnchor="middle">{t === 1 ? 'typical' : `${t}×`}</text>
           </g>
         ))}
         {ordered.map(({ p, i }) => (
@@ -105,15 +110,15 @@ function Strip({ fleet, suite }: { fleet: FleetPoint[]; suite: SuiteKey }) {
             onFocus={() => setHover(i)} onBlur={() => setHover(h => (h === i ? null : h))}
             tabIndex={0} aria-label={`${p.name}: ${fmtRatio(p.ratio)} the typical model, ${fmt(p.wordsPerTask)} words per task`}>
             {/* the hit target is bigger than the mark */}
-            <circle cx={x(p.ratio)} cy={Y + (lanes.get(i) ?? 0) * LANE} r={7} fill="transparent" />
-            <circle cx={x(p.ratio)} cy={Y + (lanes.get(i) ?? 0) * LANE} r={p.self ? 5.5 : 4} className={p.self ? 'md-vb-dot md-vb-dot-self' : 'md-vb-dot'} />
+            <circle cx={x(p.ratio)} cy={Y + (lanes.get(i) ?? 0) * LANE} r={8} fill="transparent" />
+            <circle cx={x(p.ratio)} cy={Y + (lanes.get(i) ?? 0) * LANE} r={p.self ? 6 : 4} className={`sq-vb-dot${p.self ? ' is-self' : ''}`} />
           </g>
         ))}
       </svg>
       {hp && (
-        <div className="md-vb-tip" style={{ left: `${(x(hp.ratio) / W) * 100}%`, bottom: H - 4 }} role="status">
+        <div className={`sq-vb-tip${tipSide}`} style={{ left: `${(hx / W) * 100}%`, bottom: H - 6 }} role="status">
           <strong>{fmtRatio(hp.ratio)}</strong> {hp.name}
-          <span className="md-vb-tip-sub">{fmt(hp.wordsPerTask)} words per task</span>
+          <span>{fmt(hp.wordsPerTask)} words per task</span>
         </div>
       )}
     </div>
@@ -139,46 +144,58 @@ export default function ModelDetailVerbosity({ modelId, focus = null }: { modelI
   if (rows.length === 0) return null;
 
   return (
-    <div className="md-chart-section">
-      <div className="md-chart-title">HOW MUCH IT WRITES</div>
-      <div className="md-vb-rows">
+    <Pane
+      title="How much it writes"
+      sub="Words per task in its answers, against the typical model on the same tasks"
+      actions={(
+        <span className="sq-legend" aria-hidden="true">
+          <span><i className="sq-dot is-self" />This model</span>
+          <span><i className="sq-dot" />Other models</span>
+        </span>
+      )}
+      ruled
+      flush
+      foot={(
+        <>
+          Counts the words each model returned — {rows.map(k => `${LABEL[k].toLowerCase()}: ${WHAT[k]}`).join('; ')} — over the last seven days on the current version of each test.
+          Hidden reasoning is never counted. Each model is compared with the typical model on exactly the tasks it ran.
+        </>
+      )}
+    >
+      <div className="sq-cols">
         {rows.map(k => {
           const b = data.suites[k]!;
           const m = b.model!;
           const more = m.ratio >= 1;
           return (
-            <div key={k} className={`md-vb-row${focus && focus !== k ? ' md-vb-dim' : ''}`}>
-              <div className="md-vb-head">
-                <span className="md-vb-name">{LABEL[k]}</span>
-                <span className="md-vb-value">{fmt(m.wordsPerTask)}</span>
-                <span className="md-vb-unit">words per task</span>
+            <div key={k} className={`sq-col${focus && focus !== k ? ' is-dim' : ''}`}>
+              <p className="st-label">{LABEL[k]}</p>
+              <div className="sq-big">
+                <b><CountUp value={m.wordsPerTask} /></b>
+                <span>words per task</span>
               </div>
-              <div className="md-vb-line">
-                <strong>{fmtRatio(m.ratio)}</strong> the typical model on the same tasks ({fmt(m.fleetWordsPerTask)} words)
+              <p className="sq-vb-line">
+                <b>{fmtRatio(m.ratio)}</b> the typical model on the same tasks ({fmt(m.fleetWordsPerTask)} words)
                 {' · '}{m.rank === 1 ? 'the most' : m.rank === m.ofModels ? 'the least' : `${ordinal(more ? m.rank : m.ofModels - m.rank + 1)} ${more ? 'most' : 'least'}`} of {m.ofModels}
-              </div>
+              </p>
               <Strip fleet={b.fleet} suite={k} />
               {m.tokensOutPerTask != null && (
-                <div className="md-vb-sub">
+                <p className="sq-vb-sub">
                   Billed for {fmtK(m.tokensOutPerTask)} output tokens per task, which include any reasoning it does not show.
-                </div>
+                </p>
               )}
               {m.tasks < m.suiteTasks && m.unanswered.length === 0 && (
-                <div className="md-vb-sub">Measured on {m.tasks} of {m.suiteTasks} tasks; the rest were declined by the provider, so they are left out rather than counted as silence.</div>
+                <p className="sq-vb-sub">Measured on {m.tasks} of {m.suiteTasks} tasks; the rest were declined by the provider, so they are left out rather than counted as silence.</p>
               )}
               {m.unanswered.length > 0 && (
-                <div className="md-vb-sub md-vb-note">
+                <p className="sq-vb-sub">
                   Left out: {m.unanswered.map(t => t.replace(/^py\//, '')).join(', ')} — it used its whole output budget reasoning and never returned an answer, so there are no words of its own to count.
-                </div>
+                </p>
               )}
             </div>
           );
         })}
       </div>
-      <div className="md-vb-foot">
-        Counts the words each model returned — {ORDER.filter(k => data.suites[k]?.model).map(k => `${LABEL[k].toLowerCase()}: ${WHAT[k]}`).join('; ')} — over the last seven days on the current version of each test.
-        Hidden reasoning is never counted. Each model is compared with the typical model on exactly the tasks it ran.
-      </div>
-    </div>
+    </Pane>
   );
 }

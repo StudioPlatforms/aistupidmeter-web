@@ -25,9 +25,11 @@
  * the Next route it calls, which checks the session server-side.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PLANS, planMeets, type Plan } from '../../lib/entitlements';
 import { REQUIRED_PLAN } from '../../lib/capabilities';
+import { Pane, Loader, Empty, Note, Locked } from '@/components/studio';
+import '@/styles/studio-model-panels.css';
 
 interface Outcome {
   id: string;
@@ -67,12 +69,14 @@ interface Props {
 const pct = (v: number | null): string => (v === null ? '—' : `${Math.round(v * 100)}%`);
 const num3 = (v: number | null): string => (v === null ? '—' : v.toFixed(3));
 
-/** Lower is better for fabrication and ECE; higher is better for accuracy. */
-const toneLowerBetter = (v: number | null, warn: number, bad: number): string =>
-  v === null ? 'var(--phosphor-dim)' : v >= bad ? 'var(--red-alert)' : v >= warn ? 'var(--amber-warning)' : 'var(--phosphor-bright, inherit)';
+type Tone = 'warn' | 'bad' | null;
 
-const toneHigherBetter = (v: number | null, warn: number, bad: number): string =>
-  v === null ? 'var(--phosphor-dim)' : v <= bad ? 'var(--red-alert)' : v <= warn ? 'var(--amber-warning)' : 'var(--phosphor-bright, inherit)';
+/** Lower is better for fabrication and ECE; higher is better for accuracy. */
+const toneLowerBetter = (v: number | null, warn: number, bad: number): Tone =>
+  v === null ? null : v >= bad ? 'bad' : v >= warn ? 'warn' : null;
+
+const toneHigherBetter = (v: number | null, warn: number, bad: number): Tone =>
+  v === null ? null : v <= bad ? 'bad' : v <= warn ? 'warn' : null;
 
 const KIND_LABEL: Record<string, string> = {
   answerable: 'Has an answer',
@@ -91,13 +95,28 @@ const formatWhen = (iso: string): string => {
 };
 
 function Stat({
-  value, label, hint, color,
-}: { value: string; label: string; hint: string; color?: string }) {
+  value, label, hint, tone,
+}: { value: string; label: string; hint: string; tone?: Tone }) {
   return (
-    <div className="md-cal-stat" title={hint}>
-      <span className="md-cal-stat-v" style={color ? { color } : undefined}>{value}</span>
-      <span className="md-cal-stat-k">{label}</span>
+    <div className={`sq-fig${tone ? ` is-${tone}` : ''}`} title={hint}>
+      <span className="sq-fig-v">{value}</span>
+      <span className="sq-fig-l">{label}</span>
     </div>
+  );
+}
+
+/** The pane every state renders in. Declared here, not inside the component: a component
+ *  created during render is a new type each time, so React would remount the pane (and replay
+ *  its reveal) on every state change. */
+function Section({ children, when }: { children: ReactNode; when?: ReactNode }) {
+  return (
+    <Pane
+      title="Calibration and known unknowns"
+      sub="Re-measured every day · never part of the composite score"
+      actions={when ? <span className="sq-when">{when}</span> : undefined}
+    >
+      {children}
+    </Pane>
   );
 }
 
@@ -141,36 +160,18 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
     return () => { cancelled = true; };
   }, [modelId, unlocked]);
 
-  const Section = ({ children }: { children: React.ReactNode }) => (
-    <div className="md-chart-section">
-      <div className="md-chart-title">CALIBRATION &amp; KNOWN UNKNOWNS</div>
-      {children}
-    </div>
-  );
-
   // ── Locked ──────────────────────────────────────────────────────────────
   if (!unlocked) {
     return (
       <Section>
-        <div
-          className="md-chart-empty"
-          role="button"
-          tabIndex={0}
-          style={{ cursor: 'pointer' }}
-          onClick={() => onShowProModal('calibration')}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onShowProModal('calibration'); }}
+        <Locked
+          plan={PLANS[required]?.label ?? 'Pro Intelligence'}
+          title="Does this model know what it does not know?"
+          onOpen={() => onShowProModal('calibration')}
         >
-          <div className="md-chart-empty-inner">
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Calibration is a {PLANS[required]?.label ?? 'paid'} feature
-            </div>
-            <div style={{ color: 'var(--phosphor-dim)', fontSize: 12, maxWidth: 460, margin: '0 auto' }}>
-              Does this model know what it does not know? See how often it invents an answer
-              to a question that has none, and whether the confidence it states is worth
-              anything.
-            </div>
-          </div>
-        </div>
+          See how often it invents an answer to a question that has none, and whether the
+          confidence it states is worth anything.
+        </Locked>
       </Section>
     );
   }
@@ -178,11 +179,7 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
   if (loading) {
     return (
       <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            Loading calibration data…
-          </div>
-        </div>
+        <Loader label="Loading calibration data…" minHeight={160} />
       </Section>
     );
   }
@@ -190,11 +187,7 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
   if (error) {
     return (
       <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner">
-            <div>{error}</div>
-          </div>
-        </div>
+        <Note tone="warn">{error}</Note>
       </Section>
     );
   }
@@ -204,17 +197,12 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
   if (measured === false || !data) {
     return (
       <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            <div style={{ marginBottom: 6 }}>Not measured yet.</div>
-            <div style={{ fontSize: '0.85em', opacity: 0.85, maxWidth: 460, margin: '0 auto' }}>
-              This sweep runs once a day. A model added recently has not been through one
-              yet, and a provider that was not answering is skipped rather than scored —
-              so there is nothing to report either way, which is not the same as a clean
-              result.
-            </div>
-          </div>
-        </div>
+        <Empty title="Not measured yet.">
+          This sweep runs once a day. A model added recently has not been through one
+          yet, and a provider that was not answering is skipped rather than scored —
+          so there is nothing to report either way, which is not the same as a clean
+          result.
+        </Empty>
       </Section>
     );
   }
@@ -223,143 +211,143 @@ export default function ModelDetailCalibration({ modelId, plan, hasProAccess, on
   const readable = data.outcomes.filter(o => !o.unparseable);
 
   return (
-    <Section>
-      <div className="md-cal-intro">
-        Asked {data.items} questions: {data.answerableItems} with a correct answer and{' '}
-        {data.unanswerableItems} with none — invented libraries, withheld details, facts a model
-        cannot observe. Declining the second group is the correct behaviour, not a failure.
-        These figures are reported on their own and never enter the composite score, and they
-        are re-measured every day — the point is to catch the day a model stops behaving this
-        way, not to rank models that all currently pass.
-        <span className="md-cal-when"> Last run {formatWhen(data.ts)}.</span>
-      </div>
+    <Section when={<>Last run {formatWhen(data.ts)}</>}>
+      <div className="sq-stack">
+        <p className="sq-p">
+          Asked {data.items} questions: {data.answerableItems} with a correct answer and{' '}
+          {data.unanswerableItems} with none — invented libraries, withheld details, facts a model
+          cannot observe. Declining the second group is the correct behaviour, not a failure.
+          These figures are reported on their own and never enter the composite score, and they
+          are re-measured every day — the point is to catch the day a model stops behaving this
+          way, not to rank models that all currently pass.
+        </p>
 
-      <div className="md-cal-stats">
-        <Stat
-          value={data.calibrationScore === null ? '—' : String(Math.round(data.calibrationScore))}
-          label="calibration score"
-          hint="0–100. Half behavioural accuracy, 30% confidence calibration, 20% restraint on unanswerable questions."
-          color={toneHigherBetter(data.calibrationScore === null ? null : data.calibrationScore / 100, 0.6, 0.4)}
-        />
-        <Stat
-          value={pct(data.fabricationRate)}
-          label="fabricated"
-          hint="Of the questions with no answer, how often it produced one anyway."
-          color={toneLowerBetter(data.fabricationRate, 0.2, 0.5)}
-        />
-        <Stat
-          value={pct(data.abstentionRate)}
-          label="correctly declined"
-          hint="Of the questions with no answer, how often it said so."
-          color={toneHigherBetter(data.abstentionRate, 0.7, 0.4)}
-        />
-        <Stat
-          value={pct(data.accuracy)}
-          label="accuracy"
-          hint="Of the questions that do have an answer, how often it was right."
-          color={toneHigherBetter(data.accuracy, 0.7, 0.5)}
-        />
-        <Stat
-          value={num3(data.ece)}
-          label="calibration error"
-          hint="Expected Calibration Error, over the questions it chose to answer: the average gap between stated confidence and how often it was actually right. 0 is perfect. Refusals are excluded, because confidence attached to a refusal is ambiguous."
-          color={toneLowerBetter(data.ece, 0.15, 0.3)}
-        />
-        <Stat
-          value={data.overconfidence === null ? '—' : `${data.overconfidence > 0 ? '+' : ''}${Math.round(data.overconfidence * 100)}`}
-          label="over/under-confidence"
-          hint="Mean stated confidence minus actual accuracy on the questions it answered, in points. Positive means it claims more certainty than it earns."
-          color={toneLowerBetter(data.overconfidence === null ? null : Math.abs(data.overconfidence), 0.1, 0.25)}
-        />
-      </div>
+        <div className="sq-figs">
+          <Stat
+            value={data.calibrationScore === null ? '—' : String(Math.round(data.calibrationScore))}
+            label="calibration score"
+            hint="0–100. Half behavioural accuracy, 30% confidence calibration, 20% restraint on unanswerable questions."
+            tone={toneHigherBetter(data.calibrationScore === null ? null : data.calibrationScore / 100, 0.6, 0.4)}
+          />
+          <Stat
+            value={pct(data.fabricationRate)}
+            label="fabricated"
+            hint="Of the questions with no answer, how often it produced one anyway."
+            tone={toneLowerBetter(data.fabricationRate, 0.2, 0.5)}
+          />
+          <Stat
+            value={pct(data.abstentionRate)}
+            label="correctly declined"
+            hint="Of the questions with no answer, how often it said so."
+            tone={toneHigherBetter(data.abstentionRate, 0.7, 0.4)}
+          />
+          <Stat
+            value={pct(data.accuracy)}
+            label="accuracy"
+            hint="Of the questions that do have an answer, how often it was right."
+            tone={toneHigherBetter(data.accuracy, 0.7, 0.5)}
+          />
+          <Stat
+            value={num3(data.ece)}
+            label="calibration error"
+            hint="Expected Calibration Error, over the questions it chose to answer: the average gap between stated confidence and how often it was actually right. 0 is perfect. Refusals are excluded, because confidence attached to a refusal is ambiguous."
+            tone={toneLowerBetter(data.ece, 0.15, 0.3)}
+          />
+          <Stat
+            value={data.overconfidence === null ? '—' : `${data.overconfidence > 0 ? '+' : ''}${Math.round(data.overconfidence * 100)}`}
+            label="over/under-confidence"
+            hint="Mean stated confidence minus actual accuracy on the questions it answered, in points. Positive means it claims more certainty than it earns."
+            tone={toneLowerBetter(data.overconfidence === null ? null : Math.abs(data.overconfidence), 0.1, 0.25)}
+          />
+        </div>
 
-      {/* Fleet context, stated against the pack rather than as a rank.
-          A percentile alone misleads badly: almost every model scores 99 or 100, so a
-          model on 99 is "better than 6% of the fleet" — true, and a slander. Distance
-          from the median is used instead, and a min/max spread is deliberately not the
-          test, because one outlier widens it and pushes everything else into a
-          comparison that reads as failure. Within a few points of the median is a tie
-          and is said to be one. */}
-      {fleet && fleet.measured >= 3 && fleet.median !== null && data.calibrationScore !== null && (() => {
-        const gap = data.calibrationScore - fleet.median;
-        const range = fleet.min !== null && fleet.max !== null
-          ? ` The ${fleet.measured} models measured on this question set run from ${Math.round(fleet.min)} to ${Math.round(fleet.max)}.`
-          : '';
-        return (
-          <div className="md-cal-fleet">
-            {Math.abs(gap) <= 3 ? (
-              <>In line with the rest of the fleet, which has a median of {Math.round(fleet.median)}. A difference this small is a tie, not a ranking.{range}</>
-            ) : gap < 0 ? (
-              <>{Math.round(-gap)} points below the fleet median of {Math.round(fleet.median)} — this model is behaving differently from the others on the same questions.{range}</>
-            ) : (
-              <>{Math.round(gap)} points above the fleet median of {Math.round(fleet.median)}.{range}</>
+        {/* Fleet context, stated against the pack rather than as a rank.
+            A percentile alone misleads badly: almost every model scores 99 or 100, so a
+            model on 99 is "better than 6% of the fleet" — true, and a slander. Distance
+            from the median is used instead, and a min/max spread is deliberately not the
+            test, because one outlier widens it and pushes everything else into a
+            comparison that reads as failure. Within a few points of the median is a tie
+            and is said to be one. */}
+        {fleet && fleet.measured >= 3 && fleet.median !== null && data.calibrationScore !== null && (() => {
+          const gap = data.calibrationScore - fleet.median;
+          const range = fleet.min !== null && fleet.max !== null
+            ? ` The ${fleet.measured} models measured on this question set run from ${Math.round(fleet.min)} to ${Math.round(fleet.max)}.`
+            : '';
+          return (
+            <p className="sq-p">
+              {Math.abs(gap) <= 3 ? (
+                <>In line with the rest of the fleet, which has a median of {Math.round(fleet.median)}. A difference this small is a tie, not a ranking.{range}</>
+              ) : gap < 0 ? (
+                <>{Math.round(-gap)} points below the fleet median of {Math.round(fleet.median)} — this model is behaving differently from the others on the same questions.{range}</>
+              ) : (
+                <>{Math.round(gap)} points above the fleet median of {Math.round(fleet.median)}.{range}</>
+              )}
+            </p>
+          );
+        })()}
+
+        {fabricated.length > 0 && (
+          <Note tone="bad">
+            Answered {fabricated.length} question{fabricated.length === 1 ? '' : 's'} that had no
+            answer
+            {fabricated.some(o => (o.confidence ?? 0) >= 70) && (
+              <>
+                {' '}— and stated at least {Math.max(...fabricated.map(o => o.confidence ?? 0))}%
+                confidence doing it
+              </>
             )}
-          </div>
-        );
-      })()}
+            .
+          </Note>
+        )}
 
-      {fabricated.length > 0 && (
-        <div className="md-cal-flag">
-          Answered {fabricated.length} question{fabricated.length === 1 ? '' : 's'} that had no
-          answer
-          {fabricated.some(o => (o.confidence ?? 0) >= 70) && (
-            <>
-              {' '}— and stated at least {Math.max(...fabricated.map(o => o.confidence ?? 0))}%
-              confidence doing it
-            </>
-          )}
-          .
+        <div>
+          <button type="button" className="st-btn is-sm" onClick={() => setShowItems(v => !v)} aria-expanded={showItems}>
+            {showItems ? 'Hide' : 'Show'} the {readable.length} question{readable.length === 1 ? '' : 's'} behind these numbers
+          </button>
         </div>
-      )}
 
-      <button className="md-cal-toggle" onClick={() => setShowItems(v => !v)}>
-        {showItems ? 'Hide' : 'Show'} the {readable.length} question{readable.length === 1 ? '' : 's'} behind these numbers
-      </button>
-
-      {showItems && (
-        <div className="md-cal-table-wrap">
-          <table className="md-cal-table">
-            <thead>
-              <tr>
-                <th>Question</th>
-                <th>Type</th>
-                <th>Response</th>
-                <th>Stated confidence</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.outcomes.map(o => {
-                const good = o.unanswerable ? o.abstained : o.correct;
-                const verdict = o.unparseable
-                  ? 'No readable answer'
-                  : o.unanswerable
-                    ? (o.abstained ? 'Declined — correct' : 'Answered anyway — fabricated')
-                    : (o.correct ? 'Correct' : o.abstained ? 'Declined a question it could answer' : 'Wrong');
-                return (
-                  <tr key={o.id}>
-                    <td className="md-cal-td-id">{o.id}</td>
-                    <td className="md-cal-td-kind">{KIND_LABEL[o.kind] ?? o.kind}</td>
-                    <td style={{
-                      color: o.unparseable
-                        ? 'var(--phosphor-dim)'
-                        : good ? 'var(--phosphor-bright, inherit)' : 'var(--red-alert)',
-                      fontWeight: 600,
-                    }}>
-                      {verdict}
-                    </td>
-                    <td className="md-cal-td-conf">{o.confidence === null ? '—' : `${o.confidence}%`}</td>
+        {showItems && (
+          <div>
+            <div className="st-table-wrap sq-bleed">
+              <table className="st-table is-stack sq-cal-table">
+                <thead>
+                  <tr>
+                    <th>Question</th>
+                    <th>Type</th>
+                    <th>Response</th>
+                    <th className="is-num">Stated confidence</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <div className="md-cal-note">
-            Question identifiers rather than the questions themselves: publishing the corpus
-            would let it be trained against, and a benchmark a model has memorised measures
-            nothing. The full methodology is public.
+                </thead>
+                <tbody>
+                  {data.outcomes.map(o => {
+                    const good = o.unanswerable ? o.abstained : o.correct;
+                    const verdict = o.unparseable
+                      ? 'No readable answer'
+                      : o.unanswerable
+                        ? (o.abstained ? 'Declined — correct' : 'Answered anyway — fabricated')
+                        : (o.correct ? 'Correct' : o.abstained ? 'Declined a question it could answer' : 'Wrong');
+                    return (
+                      <tr key={o.id}>
+                        <td className="is-head is-id" data-label="Question">{o.id}</td>
+                        <td className="is-dim" data-label="Type">{KIND_LABEL[o.kind] ?? o.kind}</td>
+                        <td className={o.unparseable ? 'is-none' : good ? 'is-good' : 'is-bad'} data-label="Response">
+                          {verdict}
+                        </td>
+                        <td className="is-num" data-label="Stated confidence">{o.confidence === null ? '—' : `${o.confidence}%`}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p className="sq-small sq-mt">
+              Question identifiers rather than the questions themselves: publishing the corpus
+              would let it be trained against, and a benchmark a model has memorised measures
+              nothing. The full methodology is public.
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </Section>
   );
 }

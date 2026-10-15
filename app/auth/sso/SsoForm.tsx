@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import AuthShell from '@/components/auth/AuthShell';
 
 const ERRORS: Record<string, string> = {
   invalid_email: 'That does not look like an email address.',
@@ -25,69 +26,24 @@ export function SsoForm() {
   const returnTo = params.get('returnTo') || '/account';
 
   return (
-    <div className="vintage-container" style={{ maxWidth: '500px', margin: '0 auto', paddingTop: '60px' }}>
-      <div className="crt-monitor">
-        <div className="terminal-text">
-          <div style={{ fontSize: '1.5em', marginBottom: '10px', textAlign: 'center' }}>
-            Sign in with SSO
-          </div>
-          <div className="terminal-text--dim" style={{ textAlign: 'center', marginBottom: '20px', lineHeight: 1.55 }}>
-            Enter your work email and we will send you to your organisation&rsquo;s identity provider.
-          </div>
-
-          {error && (
-            <div className="terminal-text--red" style={{
-              marginBottom: '16px', textAlign: 'center', padding: '10px',
-              border: '1px solid var(--red-alert)', backgroundColor: 'rgba(255, 45, 0, 0.1)',
-              borderRadius: '4px', lineHeight: 1.5,
-            }}>
-              {ERRORS[error] ?? 'Single sign-on did not complete. Please try again.'}
-            </div>
-          )}
-
-          <form
-            onSubmit={() => setBusy(true)}
-            action="/api/sso/start"
-            method="GET"
-          >
-            <input type="hidden" name="returnTo" value={returnTo} />
-            <div style={{ marginBottom: '16px' }}>
-              <div className="terminal-text" style={{ marginBottom: '8px' }}>Work email</div>
-              <input
-                type="email" name="email" required value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com" autoComplete="email"
-                style={{
-                  width: '100%', padding: '8px', background: 'var(--terminal-black)',
-                  border: '1px solid var(--metal-silver)', borderRadius: '4px',
-                  color: 'var(--phosphor-green)', fontFamily: 'var(--font-mono)', fontSize: '14px',
-                }}
-              />
-            </div>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <button type="submit" disabled={busy} className="vintage-btn"
-                style={{ padding: '12px 32px', fontSize: '1.1em' }}>
-                {busy ? 'Redirecting…' : 'Continue'}
-              </button>
-            </div>
-          </form>
-
-          <div style={{ textAlign: 'center', borderTop: '1px solid var(--metal-silver)', paddingTop: '16px' }}>
-            <div className="terminal-text--dim" style={{ marginBottom: '8px', fontSize: '0.9em' }}>
-              Not using single sign-on?
-            </div>
-            <Link href="/auth/signin" className="vintage-btn" style={{ textDecoration: 'none' }}>
-              Sign in with a password
-            </Link>
-          </div>
+    <AuthShell mode="signin">
+      <h1 className="au-title">Sign in with SSO</h1>
+      <p className="au-sub">Enter your work email and we will send you to your organisation&rsquo;s identity provider.</p>
+      {error && <div className="au-note au-note-bad" role="alert">{ERRORS[error] ?? 'Single sign-on did not complete. Please try again.'}</div>}
+      <form className="au-form" onSubmit={() => setBusy(true)} action="/api/sso/start" method="GET">
+        <input type="hidden" name="returnTo" value={returnTo} />
+        <div className="au-field">
+          <label className="au-label" htmlFor="au-sso-email">Work email</label>
+          <input id="au-sso-email" className="au-input" type="email" name="email" required value={email}
+            onChange={e => setEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
         </div>
-      </div>
-
-      <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.8em' }}>
-        <div className="terminal-text--dim">
-          SSO is part of Teams and Enterprise. <Link href="/contact?topic=enterprise" style={{ color: 'var(--accent, #1a73e8)' }}>Talk to us</Link> about setting it up.
-        </div>
-      </div>
-    </div>
+        <button type="submit" className="au-btn au-btn-primary au-btn-block" disabled={busy}>{busy ? 'Redirecting…' : 'Continue'}</button>
+      </form>
+      <p className="au-alt">
+        Not using single sign-on? <Link href="/auth/signin">Sign in with a password</Link>
+        <br />
+        <span style={{ fontSize: 13 }}>SSO is part of Teams and Enterprise. <Link href="/contact?topic=enterprise">Talk to us</Link> about setting it up.</span>
+      </p>
+    </AuthShell>
   );
 }

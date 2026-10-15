@@ -1,0 +1,233 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · KEYS — /router/keys, /router/providers, /router/test-keys.
+   Page pieces on top of studio.css (st-*). Every class here is sk-*,
+   scoped under .st, and uses only the --lp-* tokens, so light and dark
+   both follow the shell.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── shared bits ───────────────────────────────────────────────────── */
+
+/* A danger action that stays quiet until hovered (revoke, remove). */
+.st .st-btn.is-danger.sk-quiet { border-color: transparent; }
+.st .st-btn.is-danger.sk-quiet:hover { border-color: color-mix(in srgb, var(--lp-bad) 45%, transparent); }
+
+/* Step number in a pane title: the landing's "01" numerals. */
+.st .sk-n { display: inline-block; min-width: 1.6em; margin-right: 10px; font-family: var(--lp-font-disp); font-size: .86em; font-weight: 700; color: var(--lp-accent); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.st .sk-title-meta { font-weight: 500; color: var(--lp-fg3); overflow-wrap: anywhere; }
+
+/* Text that sits inside a Note with a button under it. */
+.st .sk-note-act { margin-top: 10px; }
+.st .sk-note-p + .sk-note-p { margin-top: 6px; }
+
+/* Ruled, numbered steps (tool guides, best practices): the landing's ruled lists with its "01" numerals. */
+.st .sk-steps { list-style: none; margin: 0; padding: 0; counter-reset: sk-step; border-top: 1px solid var(--lp-line); }
+.st .sk-steps > li { counter-increment: sk-step; display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 10px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--lp-line); font-size: 14.5px; line-height: 1.55; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .sk-steps > li::before { content: counter(sk-step, decimal-leading-zero); font-family: var(--lp-font-disp); font-size: 13px; font-weight: 700; color: var(--lp-accent); font-variant-numeric: tabular-nums; }
+.st .sk-steps.is-tight > li { padding: 9px 0; font-size: 13.5px; }
+.st .sk-steps.is-tight > li::before { font-size: 12px; }
+.st .sk-steps > li:last-child { border-bottom: 0; }
+.st .sk-steps code { font-size: .9em; }
+.st .sk-step-code { font-family: var(--font-code) !important; font-size: 12.5px; color: var(--lp-fg); }
+.st .sk-step-aside { color: var(--lp-fg3); font-style: italic; }
+
+/* Body padding for a flush pane's non-table states (loading, empty), matching .st-pane-body. */
+.st .sk-pad { padding: 18px 22px 22px; }
+
+/* A bordered sub-card inside a pane, for a table or list that should not touch the pane edge. */
+.st .sk-sub { border: 1px solid var(--lp-line); border-radius: 14px; overflow: hidden; background: var(--lp-card); min-width: 0; }
+
+/* ── /router/keys ──────────────────────────────────────────────────── */
+
+/* The endpoint is text, not a number: one size down so it fits its column. */
+.st .sk-endpoint { font-size: clamp(18px, 1.55vw, 23px); letter-spacing: -.015em; }
+
+.st .sk-keys td { vertical-align: top; }
+.st .sk-keys td.is-dim { white-space: nowrap; }
+.st .sk-keys td.is-head { min-width: 200px; }
+.st .sk-key-name { font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sk-key-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; font-size: 12.5px; color: var(--lp-fg3); }
+.st .sk-key-meta .sk-budget { font-variant-numeric: tabular-nums; color: var(--lp-warn); font-weight: 600; }
+.st .sk-prefix { font-size: 13px; color: var(--lp-fg); white-space: nowrap; }
+.st .sk-keys td.sk-key-act { text-align: right; white-space: nowrap; }
+.st .sk-keys td.sk-key-act > * + * { margin-left: 6px; }
+.st .sk-keys tr.is-revoked td { color: var(--lp-fg3); }
+.st .sk-keys tr.is-revoked .sk-key-name, .st .sk-keys tr.is-revoked .sk-prefix { color: var(--lp-fg2); }
+.st .sk-keys tr.is-revoked .sk-prefix { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--lp-fg3) 70%, transparent); }
+
+/* Explainers: a short heading per part, then the paragraph. */
+.st .sk-about { display: grid; gap: 16px; }
+.st .sk-about .st-text { max-width: none; }
+.st .sk-about .st-note { font-size: 13.5px; }
+
+/* Setup guide: a disclosure, as the old panel was — the whole head toggles it. */
+.st .sk-disclose { position: relative; flex-wrap: nowrap; padding-bottom: 18px; cursor: pointer; transition: background-color .18s; border-radius: 17px; }
+.st .sk-disclose.is-open { padding-bottom: 16px; border-bottom: 1px solid var(--lp-line); border-radius: 17px 17px 0 0; }
+.st .sk-disclose:hover { background: color-mix(in srgb, var(--lp-fg) 2.5%, transparent); }
+.st .sk-disclose-btn { all: unset; cursor: pointer; font-family: var(--lp-font-disp) !important; }
+.st .sk-disclose-btn::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.st .sk-disclose-btn:focus-visible { outline: none !important; }
+.st .sk-disclose:has(.sk-disclose-btn:focus-visible) { outline: 2px solid var(--lp-accent); outline-offset: -2px; }
+.st .sk-disclose-state { flex: none; display: inline-flex; align-items: center; gap: 10px; height: 32px; padding: 0 12px; border: 1px solid var(--lp-line2); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--lp-fg2); white-space: nowrap; }
+.st .sk-disclose-state i { width: 7px; height: 7px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .25s var(--lp-ease), margin .25s var(--lp-ease); }
+.st .sk-disclose.is-open .sk-disclose-state i { transform: rotate(-135deg); margin-top: 3px; }
+.st .sk-disclose:hover .sk-disclose-state { color: var(--lp-fg); border-color: var(--lp-fg3); }
+
+.st .sk-guide-body { display: grid; gap: 34px; padding-top: 24px; }
+.st .sk-sec { display: grid; gap: 14px; min-width: 0; }
+.st .sk-sec > .st-label { margin-bottom: 0; }
+.st .sk-sec + .sk-sec { padding-top: 30px; border-top: 1px solid var(--lp-line); }
+.st .sk-sec .st-text { max-width: 86ch; }
+
+/* tool cards: name + where it lives, then ruled numbered steps */
+.st .sk-tool { gap: 12px; padding: 18px 18px 8px; }
+.st .sk-tool-head { display: grid; gap: 2px; }
+.st .sk-tool-sub { font-size: 12.5px; color: var(--lp-fg3); }
+
+/* the virtual models, two ruled columns */
+.st .sk-models { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; margin: 0; border-top: 1px solid var(--lp-line); }
+.st .sk-models > div { display: grid; grid-template-columns: minmax(150px, 13.5em) minmax(0, 1fr); column-gap: 16px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--lp-line); font-size: 14px; }
+.st .sk-models dt { min-width: 0; }
+.st .sk-models dt code { font-size: 13px; font-weight: 600; color: var(--lp-accent); overflow-wrap: anywhere; }
+.st .sk-models dd { margin: 0; color: var(--lp-fg2); line-height: 1.5; min-width: 0; }
+
+/* the models a request can name, best first */
+.st .sk-lineup { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.st .sk-lineup li { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 34px; padding: 0 12px 0 5px; border: 1px solid var(--lp-line); border-radius: 999px; background: var(--lp-card); }
+.st .sk-lineup .st-logo { border-radius: 50%; }
+.st .sk-lineup code { font-size: 12.5px; color: var(--lp-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* endpoints: method, path, what it does */
+.st .sk-endpoints { margin: 0; border-top: 1px solid var(--lp-line); }
+.st .sk-endpoints > div { display: grid; grid-template-columns: minmax(250px, 22em) minmax(0, 1fr); column-gap: 20px; align-items: baseline; padding: 11px 0; border-bottom: 1px solid var(--lp-line); font-size: 14px; }
+.st .sk-endpoints dt { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.st .sk-endpoints dt code { font-size: 13px; font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sk-endpoints dd { margin: 0; color: var(--lp-fg2); line-height: 1.5; min-width: 0; }
+.st .sk-method { flex: none; display: inline-block; width: 42px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--lp-accent); }
+.st .sk-method.is-get { color: var(--lp-good); }
+
+/* the key shown once: wrapped, so the whole key is in view before the dialog closes for good */
+.st .sk-secret-field { display: grid; gap: 8px; }
+.st .sk-secret-field .st-secret { align-items: center; }
+.st .sk-secret-field .st-secret code { font-size: 13px; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; word-break: break-all; }
+
+/* ── /router/providers ─────────────────────────────────────────────── */
+
+.st .sk-provs { --min: 300px; gap: 16px; }
+.st .sk-prov { gap: 14px; padding: 18px; }
+.st .sk-prov.is-connected { border-color: color-mix(in srgb, var(--lp-good) 45%, var(--lp-line)); }
+.st .sk-prov-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+.st .sk-prov-name { display: grid; min-width: 0; }
+.st .sk-prov-name .st-card-t { font-size: 16px; }
+.st .sk-prov-maker { font-size: 12.5px; color: var(--lp-fg3); }
+.st .sk-prov-models { display: grid; gap: 8px; }
+.st .sk-prov-models .st-label { margin-bottom: 0; }
+.st .sk-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.st .sk-tags .st-tag { font-size: 12px; padding: 2px 9px; }
+.st .sk-prov-foot { margin-top: auto; display: grid; gap: 12px; padding-top: 4px; }
+.st .sk-prov-foot .st-kv > div { grid-template-columns: minmax(80px, .6fr) minmax(0, 1.4fr); }
+.st .sk-prov-act { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+.st .sk-row-text { margin-top: 3px; font-size: 13.5px; line-height: 1.55; color: var(--lp-fg2); }
+.st .sk-mtitle { display: inline-flex; align-items: center; gap: 12px; }
+.st .sk-where a { overflow-wrap: anywhere; }
+
+/* ── /router/test-keys ─────────────────────────────────────────────── */
+
+.st .sk-picker { --min: 210px; }
+.st .sk-picker .st-card { padding: 14px 16px; }
+.st .sk-picker .st-card-t { gap: 10px; }
+.st .sk-key-row { display: flex; gap: 8px; min-width: 0; }
+.st .sk-key-row .st-input { flex: 1 1 auto; }
+.st .sk-key-row .st-btn { flex: none; height: 44px; }
+.st .sk-field-gap { margin-top: 18px; }
+
+/* four suites: two by two, never three and an orphan */
+.st .sk-suites { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.st .sk-suite { gap: 8px; }
+.st .sk-suite .st-card-d { flex: 1 1 auto; }
+.st .sk-suite-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.st .sk-run { display: grid; gap: 14px; margin-top: 18px; }
+.st .sk-run .st-loader { padding: 14px 0 4px; }
+
+.st .sk-result { display: grid; gap: 22px; }
+.st .sk-basis, .st .sk-delta { display: block; }
+.st .sk-delta { margin-top: 3px; color: var(--lp-fg2); font-weight: 500; }
+.st .sk-result-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 22px 32px; align-items: start; }
+.st .sk-result-grid.is-one { grid-template-columns: minmax(0, 1fr); }
+.st .st-select.is-code { font-family: var(--font-code) !important; font-size: 13.5px; }
+.st .sk-history td.sk-when { white-space: nowrap; }
+.st .sk-axes { display: grid; gap: 14px; }
+.st .sk-axis-top { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: 14px; color: var(--lp-fg2); }
+.st .sk-axis-top b { color: var(--lp-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+/* Bars grow in once their pane is on screen. StudioEffects puts st-js on the shell root (.st) and
+   .is-in on the revealed pane; without it (no script, reduced motion) the bars simply show full. */
+.st.st-js .sk-axes .st-meter i { transform-origin: left center; transform: scaleX(0); transition: transform .9s var(--lp-ease); transition-delay: var(--d, 0s); }
+.st.st-js .st-up.is-in .sk-axes .st-meter i { transform: none; }
+.st .sk-task { font-family: var(--font-code) !important; font-size: 13px; overflow-wrap: anywhere; }
+.st .sk-history-note { padding: 14px 22px; border-bottom: 1px solid var(--lp-line); font-size: 13.5px; color: var(--lp-fg2); }
+.st .sk-history-note strong { color: var(--lp-fg); font-weight: 600; }
+.st .sk-history td.is-model { overflow-wrap: anywhere; }
+
+/* ── responsive ────────────────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  .st .sk-result-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 960px) {
+  .st .sk-models { grid-template-columns: minmax(0, 1fr); }
+  .st .sk-endpoints > div { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
+}
+@media (max-width: 760px) {
+  .st .sk-pad { padding: 16px; }
+  /* is-code fields keep the code face but stay at 16px, or iOS zooms into them on focus */
+  .st .st-input.is-code.sk-field-16, .st .st-select.is-code.sk-field-16 { font-size: 16px; }
+  .st .sk-keys td.is-head { min-width: 0; }
+  /* stacked key rows: the actions sit under the facts, full width */
+  .st .st-table.is-stack td.sk-key-act { justify-content: flex-start; gap: 8px; padding-top: 10px !important; white-space: normal; }
+  .st .st-table.is-stack td.sk-key-act::before { content: none; }
+  .st .st-table.is-stack td.sk-key-act:empty { display: none; }
+  .st .st-table.is-stack td.sk-key-act > * { flex: 1; margin-left: 0; height: 40px; }
+  .st .st-table.is-stack td.is-code { min-width: 0; }
+  .st .st-table.is-stack .sk-prefix { white-space: normal; overflow-wrap: anywhere; text-align: right; }
+  .st .st-table.is-stack td > * { min-width: 0; }
+  .st .sk-models > div { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
+  .st .sk-guide-body { gap: 28px; padding-top: 18px; }
+  .st .sk-sec + .sk-sec { padding-top: 24px; }
+  .st .sk-disclose { align-items: flex-start; padding-bottom: 16px; border-radius: 15px; }
+  .st .sk-disclose.is-open { border-radius: 15px 15px 0 0; }
+  .st .sk-disclose-state { width: 36px; height: 36px; padding: 0; justify-content: center; }
+  .st .sk-disclose-state span { display: none; }
+  .st .st-table.is-stack .sk-quiet { border-color: color-mix(in srgb, var(--lp-bad) 45%, var(--lp-line2)); }
+  .st .sk-history-note { padding: 12px 16px; }
+  .st .sk-picker { --min: 150px; gap: 10px; }
+  .st .sk-picker .st-card { padding: 12px 14px; }
+  .st .sk-picker .st-card-d { font-size: 12.5px; }
+  .st .sk-suites { grid-template-columns: minmax(0, 1fr); }
+  /* Task results on phones: name and verdict on one line, detail and time under it. */
+  .st .st-table.sk-tasks.is-stack tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 3px; align-items: baseline; }
+  .st .st-table.sk-tasks.is-stack td { display: block; width: auto; min-width: 0; padding: 0 !important; text-align: left; }
+  .st .st-table.sk-tasks.is-stack td::before { content: none; }
+  .st .st-table.sk-tasks.is-stack td:nth-child(2) { grid-column: 2; grid-row: 1; }
+  .st .st-table.sk-tasks.is-stack td:nth-child(3) { grid-column: 1; grid-row: 2; font-size: 13px; }
+  .st .st-table.sk-tasks.is-stack td:nth-child(4) { grid-column: 2; grid-row: 2; font-size: 13px; text-align: right; color: var(--lp-fg3); }
+  /* History on phones: the date across the top, then the six facts as label-over-value pairs. */
+  .st .st-table.sk-history.is-stack tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+  .st .st-table.sk-history.is-stack td { display: block; width: auto; min-width: 0; padding: 0 !important; text-align: left; }
+  .st .st-table.sk-history.is-stack td::before { display: block; margin-bottom: 2px; font-size: 11.5px; }
+  .st .st-table.sk-history.is-stack td.is-head { grid-column: 1 / -1; padding: 0 !important; }
+  .st .sk-history td.sk-when { white-space: normal; }
+  .st .sk-provs { gap: 12px; }
+  .st .sk-prov { padding: 16px; }
+  .st .sk-prov-act .st-btn, .st .sk-retired .st-btn { height: 40px; }
+}
+@media (max-width: 560px) {
+  .st .sk-key-row { flex-direction: column; }
+  .st .sk-key-row .st-btn { width: 100%; }
+  .st .sk-retired .st-row { grid-template-columns: auto minmax(0, 1fr); row-gap: 10px; }
+  .st .sk-retired .st-row-end { grid-column: 2; justify-content: flex-start; }
+  .st .sk-endpoint { font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st .sk-disclose-state i { transition: none; }
+  .st.st-js .sk-axes .st-meter i { transform: none; transition: none; }
+}

@@ -180,7 +180,7 @@ export default async function MethodologyPage() {
           ['“=4”', <>A statistical tie: the models sharing the rank are closer than the measurement can separate. A rank without “=” stands on its own. <a key="r" href="#ranks">How ties are decided</a>.</>],
           ['Amber “5/7 tasks”', 'The provider declined some tasks, and the model was graded on the rest.'],
           ['Grey group at the foot', <>Models with no current rank on that board. <a key="c" href="#community">Community-funded</a> models show the date of their last funded run.</>],
-          ['Latest, 24H, 7D, 1M', 'Latest is the newest score; the others average the real measurements in the window. Seven days of history are free; the month view is on paid plans.'],
+          ['Latest, 24H, 7D, 1M', 'Latest is the newest score, on paid plans; the others average the real measurements in the window and are free.'],
         ]} />
         <Prose>
           <h3>The four layouts</h3>

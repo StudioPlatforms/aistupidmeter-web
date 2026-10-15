@@ -130,12 +130,41 @@ export function saveThemeIndex(index: number) {
   localStorage.setItem('retro-theme-index', index.toString());
 }
 
+/**
+ * Set only when a person presses a Theme button. `retro-theme-index` alone cannot tell a choice
+ * from a default, because initializeTheme() writes it on every dashboard visit; the landing and
+ * sign-in pages, which open in Dark unless someone chose otherwise, need the difference.
+ */
+export const THEME_CHOSEN_KEY = 'retro-theme-chosen';
+
+export function hasChosenTheme(): boolean {
+  if (typeof window === 'undefined') return false;
+  try { return localStorage.getItem(THEME_CHOSEN_KEY) !== null; } catch { return false; }
+}
+
+/** Apply a theme the person picked, and remember both the theme and that it was a choice. */
+export function chooseTheme(index: number) {
+  saveThemeIndex(index);
+  try { localStorage.setItem(THEME_CHOSEN_KEY, '1'); } catch { /* private mode: applies to this page only */ }
+  applyTheme(THEMES[index]);
+}
+
 export function cycleTheme(): number {
-  const currentIndex = getCurrentThemeIndex();
-  const nextIndex = (currentIndex + 1) % THEMES.length;
-  saveThemeIndex(nextIndex);
-  applyTheme(THEMES[nextIndex]);
+  const nextIndex = (getCurrentThemeIndex() + 1) % THEMES.length;
+  chooseTheme(nextIndex);
   return nextIndex;
+}
+
+/** Dark, unless the person chose a theme: what the landing and sign-in pages open in. */
+export const DARK_THEME_INDEX = Math.max(0, THEMES.findIndex(t => !t.isLight));
+
+/**
+ * Inline script for the landing and sign-in pages: before their first paint, switch to Dark when
+ * no theme was ever chosen. Nothing is saved, so the dashboard keeps its own default.
+ */
+export function darkDefaultScript(): string {
+  const t = THEMES[DARK_THEME_INDEX];
+  return `(function(){try{if(localStorage.getItem('${THEME_CHOSEN_KEY}')!==null)return;var v=${JSON.stringify(themeVars(t))},r=document.documentElement;for(var k in v)r.style.setProperty(k,v[k]);r.setAttribute('data-theme','dark');r.style.colorScheme='dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','${t.backgroundDark}');}catch(e){}})();`;
 }
 
 export function initializeTheme() {

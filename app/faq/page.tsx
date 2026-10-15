@@ -101,7 +101,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'free',
         q: 'Is AI Stupid Level free to use?',
-        a: 'Everything needed to judge the models is free and needs no account: current scores, all four leaderboards, seven days of history, the methodology and how fresh each measurement is. A free account adds a watchlist of three models, with email alerts and a weekly summary.\n\nPaid plans add depth and tools, not access to the results: longer history, the drift curve and measure breakdown behind an alert, more watched models, exports, custom alert thresholds and team features. The [Data API](/api-docs) has a free tier too, with a key. Subscriptions and paid API tiers help pay for the benchmark runs. No AI vendor pays us anything.',
+        a: 'Everything needed to judge the models is free. A free account opens all four leaderboards over the last 24 hours, 7 days and 30 days, and adds a watchlist of three models, with email alerts and a weekly summary. Model pages, the methodology and how fresh each measurement is need no account at all.\n\nPaid plans add the newest run the moment it lands (the Latest view), full history, the drift curve and measure breakdown behind an alert, more watched models, exports, custom alert thresholds and team features. The [Data API](/api-docs) has a free tier too, with a key. Subscriptions and paid API tiers help pay for the benchmark runs. No AI vendor pays us anything.',
       },
     ],
   },

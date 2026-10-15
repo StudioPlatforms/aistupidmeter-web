@@ -4,9 +4,10 @@ import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display'
 
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { getModelPricing } from '../../lib/model-pricing';
+import '../../styles/studio-boards.css';
 
 interface AnalyticsPanelProps {
   modelScores: any[];
@@ -79,41 +80,41 @@ export const modeConfig: Record<string, {
   showHeatmap: boolean;  // whether to show full heatmap grid (false for tooling)
 }> = {
   combined: {
-    title: 'PERFORMANCE RADAR',
+    title: 'Performance radar',
     subtitle: 'Top 3 vs Bottom 3 across all dimensions',
-    heatmapTitle: 'BENCHMARK HEATMAP',
+    heatmapTitle: 'Benchmark heatmap',
     axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     highlightIndices: [],
     showHeatmap: true,
   },
   reasoning: {
-    title: 'DEEP REASONING RADAR',
+    title: 'Deep reasoning radar',
     subtitle: 'All 5 reasoning axes; continuity is checked by running code',
-    heatmapTitle: 'DEEP REASONING HEATMAP',
+    heatmapTitle: 'Deep reasoning heatmap',
     axisIndices: [0, 1, 2, 3, 4], // 5 reasoning axes
     highlightIndices: [2, 3, 4], // continuity axes: contextWindow, memory, plan
     showHeatmap: true,
   },
   speed: {
-    title: 'CODING RADAR',
+    title: 'Coding radar',
     subtitle: 'The nine coding measures; efficiency and stability highlighted',
-    heatmapTitle: 'CODING HEATMAP',
+    heatmapTitle: 'Coding heatmap',
     axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     highlightIndices: [3, 4], // efficiency, stability
     showHeatmap: true,
   },
   tooling: {
-    title: 'TOOL CALLING RADAR',
+    title: 'Tool calling radar',
     subtitle: 'Tool selection, params, error handling, completion',
-    heatmapTitle: 'TOOL CALLING HEATMAP',
+    heatmapTitle: 'Tool calling heatmap',
     axisIndices: [0, 1, 2, 3, 4, 5, 6], // 7 tooling axes
     highlightIndices: [0, 3], // toolSelection, taskCompletion
     showHeatmap: true,
   },
   price: {
-    title: 'COST-EFFICIENCY RADAR',
+    title: 'Cost-efficiency radar',
     subtitle: 'The nine coding measures; cost is in the price-performance table',
-    heatmapTitle: 'COST-EFFICIENCY HEATMAP',
+    heatmapTitle: 'Cost-efficiency heatmap',
     axisIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8],
     highlightIndices: [3], // efficiency
     showHeatmap: true,
@@ -137,10 +138,13 @@ export function axesForSort(sortBy: string) {
 }
 
 export const scoreColor = (v: number) =>
-  v >= 80 ? 'var(--good)' : v >= 65 ? 'var(--warn)' : 'var(--bad)';
+  v >= 80 ? 'var(--lp-good)' : v >= 65 ? 'var(--lp-warn)' : 'var(--lp-bad)';
 
 export const scoreBg = (v: number) =>
-  v >= 80 ? 'var(--good-bg)' : v >= 65 ? 'var(--warn-bg)' : 'var(--bad-bg)';
+  v >= 80 ? 'var(--lp-good-bg)' : v >= 65 ? 'var(--lp-warn-bg)' : 'var(--lp-bad-bg)';
+
+/** The same three bands as a tag tone (styles/studio.css .st-tag.is-good / is-warn / is-bad). */
+const scoreTone = (v: number) => (v >= 80 ? 'is-good' : v >= 65 ? 'is-warn' : 'is-bad');
 
 // OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
 // Pricing comes from the shared table in lib/model-pricing.ts so this panel
@@ -175,7 +179,6 @@ export default function AnalyticsPanel({
   leaderboardSortBy,
   leaderboardPeriod,
 }: AnalyticsPanelProps) {
-  const router = useRouter();
   const { data: session } = useSession();
   const available = modelScores.filter(m => typeof m.currentScore === 'number' && m.currentScore > 0);
 
@@ -198,242 +201,213 @@ export default function AnalyticsPanel({
   }).sort((a, b) => b.value - a.value);
 
   // Period label for display
-  const periodLabel = leaderboardPeriod === 'latest' ? 'Latest' : leaderboardPeriod === '24h' ? '24 Hours' : leaderboardPeriod === '7d' ? '7 Days' : '1 Month';
+  const periodLabel = leaderboardPeriod === 'latest' ? 'Latest' : leaderboardPeriod === '24h' ? '24 hours' : leaderboardPeriod === '7d' ? '7 days' : '1 month';
+  const waiting = modelHistoryData.size === 0;
+
+  /** One model's axes as small tags, for the reasoning and tool-use breakdowns. */
+  const axisTags = (pairs: [string, number | null][], none: string) => {
+    const shown = pairs.filter(([, v]) => v !== null) as [string, number][];
+    if (shown.length === 0) return <span className="sl-dim" style={{ fontSize: 12.5 }}>{none}</span>;
+    return shown.map(([label, v]) => <span key={label} className={`st-tag ${scoreTone(v)}`}>{label} {v}</span>);
+  };
+  const pct = (axes: any, k: string) => (typeof axes[k] === 'number' ? Math.round(axes[k] * 100) : null);
 
   return (
-    <div className="v4-panel v4-right-panel">
-      <div className="v4-panel-header">
-        <span>ANALYTICS</span>
-        <span className="v4-badge v4-badge-green">{leaderboardPeriod.toUpperCase()}</span>
+    <div className="v4-panel v4-right-panel sl-rail">
+      <div className="sl-rail-head">
+        <p className="st-label">Analytics</p>
+        <span className="st-tag is-accent">{periodLabel}</span>
       </div>
 
       {/* Radar Chart — adapts title/subtitle per mode */}
-      <div className="v4-radar-wrap">
-        <div className="v4-radar-title">{config.title}</div>
-        <div className="v4-radar-sub">{config.subtitle} • {periodLabel}</div>
-        {modelHistoryData.size === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0', gap: '10px' }}>
-            <div style={{
-              width: '32px', height: '32px',
-              border: '2px solid rgba(26, 115, 232, 0.1)',
-              borderTop: '2px solid var(--phosphor-green)',
-              borderRadius: '50%',
-              animation: 'v4-analytics-spin 1s linear infinite'
-            }} />
-            <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', letterSpacing: '1px' }}>LOADING RADAR DATA...</div>
-            <style dangerouslySetInnerHTML={{ __html: `@keyframes v4-analytics-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }` }} />
+      <section className="sl-pane st-up" aria-label={config.title}>
+        <h3 className="sl-pane-t">{config.title}</h3>
+        <p className="sl-pane-sub">{config.subtitle} · {periodLabel}</p>
+        {waiting ? (
+          <div className="sl-loading" role="status">
+            <span className="st-bars" aria-hidden="true"><i /><i /><i /></span>
+            Loading radar data…
           </div>
         ) : (
           <>
-            <RadarChart
-              models={radarModels}
-              colors={radarColors}
-              modelHistoryData={modelHistoryData}
-              axKeys={axKeys}
-              axisLabels={axisLabels}
-              highlightIndices={config.highlightIndices}
-            />
-            <div className="v4-radar-legend">
+            <div className="sl-radar">
+              <RadarChart
+                models={radarModels}
+                colors={radarColors}
+                modelHistoryData={modelHistoryData}
+                axKeys={axKeys}
+                axisLabels={axisLabels}
+                highlightIndices={config.highlightIndices}
+              />
+            </div>
+            <div className="sl-radar-keys">
               {radarModels.map((m, i) => (
-                <div key={m.id || i} className="v4-radar-legend-item">
-                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: radarColors[i], boxShadow: `0 0 3px ${radarColors[i]}` }}></div>
-                  {m.name}
-                </div>
+                <span key={m.id || i}><i style={{ background: radarColors[i] }} />{m.displayName || m.name}</span>
               ))}
             </div>
           </>
         )}
-      </div>
+      </section>
 
       {/* Heatmap — adapts title per mode, highlights relevant axes */}
-      <div className="v4-section-divider">{config.heatmapTitle}</div>
-      {modelHistoryData.size === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '10px' }}>
-          <div style={{
-            width: '32px', height: '32px',
-            border: '2px solid rgba(26, 115, 232, 0.1)',
-            borderTop: '2px solid var(--phosphor-green)',
-            borderRadius: '50%',
-            animation: 'v4-analytics-spin 1s linear infinite'
-          }} />
-          <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', letterSpacing: '1px' }}>LOADING HEATMAP DATA...</div>
-        </div>
-      ) : config.showHeatmap ? (
-        <div className="v4-heatmap" style={{ gridTemplateColumns: `80px repeat(${axKeys.length}, 1fr)` }}>
-          <div className="v4-hm-hdr"></div>
-          {axisLabels.map((label, i) => (
-            <div
-              key={i}
-              className="v4-hm-hdr"
-              title={axisWeightLabel(axisFullNames[i])}
-              style={config.highlightIndices.includes(config.axisIndices[i]) ? {
-                color: 'var(--phosphor-green)',
-                textShadow: '0 0 2px var(--phosphor-green)',
-              } : undefined}
-            >
-              {label}
-              {config.highlightIndices.includes(config.axisIndices[i]) && ' ★'}
-            </div>
-          ))}
-          {sorted.slice(0, 14).map(model => {
-            const axes = getAveragedAxes(modelHistoryData.get(model.id) || model.history || []);
-            return (
-              <React.Fragment key={model.id}>
-                <div className="v4-hm-model" style={{ cursor: 'pointer' }} onClick={() => router.push(`/models/${model.id}`)}>
-                  {model.name.substring(0, 12)}
-                </div>
-                {axKeys.map((key, i) => {
-                  const rawVal = axes[key];
-                  const val = typeof rawVal === 'number' ? Math.round(rawVal * 100) : null;
-                  const isHighlighted = config.highlightIndices.includes(config.axisIndices[i]);
-                  if (val === null) {
-                    return <div key={i} className="v4-hm-cell" style={{ color: 'var(--phosphor-dim)', opacity: 0.3 }}>—</div>;
-                  }
-                  return (
-                    <div key={i} className="v4-hm-cell" style={{
-                      background: val === 0 ? 'rgba(255,45,0,.08)' : scoreBg(val),
-                      color: val === 0 ? 'var(--red-alert)' : scoreColor(val),
-                      textShadow: val === 0 ? 'none' : `0 0 2px ${scoreColor(val)}`,
-                      ...(isHighlighted ? { fontWeight: 'bold', borderBottom: `1px solid ${scoreColor(val)}` } : {}),
-                    }} title={`${axisWeightLabel(axisFullNames[i])} · this model: ${val}%`}>
-                      {val}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      ) : (
-        /* Tooling mode: show score-based list instead of empty heatmap */
-        <div style={{ padding: '8px 10px', fontSize: '11px' }}>
-          <div style={{ color: 'var(--phosphor-dim)', fontSize: '10px', marginBottom: '6px', textAlign: 'center' }}>
-            Tooling scores based on overall model performance
+      <section className="sl-pane st-up" aria-label={config.heatmapTitle}>
+        <h3 className="sl-pane-t">{config.heatmapTitle}</h3>
+        {waiting ? (
+          <div className="sl-loading" role="status">
+            <span className="st-bars" aria-hidden="true"><i /><i /><i /></span>
+            Loading heatmap data…
           </div>
-          {sorted.slice(0, 14).map(m => (
-            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid rgba(192,192,192,.04)', cursor: 'pointer' }} onClick={() => router.push(`/models/${m.id}`)}>
-              <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{m.name}</span>
-              <span style={{ color: scoreColor(m.currentScore as number), fontWeight: 'bold', textShadow: `0 0 2px ${scoreColor(m.currentScore as number)}` }}>
-                {m.currentScore}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+        ) : config.showHeatmap ? (
+          <div className="sl-mini-heat" style={{ gridTemplateColumns: `minmax(64px, 1.15fr) repeat(${axKeys.length}, minmax(0, 1fr))` }}>
+            <span className="sl-heat-hdr is-model" />
+            {axisLabels.map((label, i) => {
+              const hot = config.highlightIndices.includes(config.axisIndices[i]);
+              return (
+                <span key={i} className={`sl-heat-hdr${hot ? ' is-hot' : ''}`}
+                      title={`${axisWeightLabel(axisFullNames[i])}${hot ? ' · highlighted for this board' : ''}`}>
+                  {label}
+                </span>
+              );
+            })}
+            {sorted.slice(0, 14).map(model => {
+              const axes = getAveragedAxes(modelHistoryData.get(model.id) || model.history || []);
+              return (
+                <React.Fragment key={model.id}>
+                  <Link href={`/models/${model.id}`} className="sl-heat-model" title={model.displayName || model.name}>
+                    <span>{model.displayName || model.name}</span>
+                  </Link>
+                  {axKeys.map((key, i) => {
+                    const rawVal = axes[key];
+                    const val = typeof rawVal === 'number' ? Math.round(rawVal * 100) : null;
+                    const isHighlighted = config.highlightIndices.includes(config.axisIndices[i]);
+                    if (val === null) {
+                      return <span key={i} className="sl-heat-cell is-none">—</span>;
+                    }
+                    return (
+                      <span key={i} className="sl-heat-cell" style={{
+                        background: val === 0 ? 'var(--lp-bad-bg)' : scoreBg(val),
+                        color: val === 0 ? 'var(--lp-bad)' : scoreColor(val),
+                        fontWeight: isHighlighted ? 700 : undefined,
+                      }} title={`${axisWeightLabel(axisFullNames[i])} · this model: ${val}%`}>
+                        {val}
+                      </span>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        ) : (
+          /* Tooling mode: show score-based list instead of empty heatmap */
+          <div className="sl-break">
+            <p className="sl-pane-sub">Tooling scores based on overall model performance</p>
+            {sorted.slice(0, 14).map(m => (
+              <div key={m.id} className="sl-break-row">
+                <div className="sl-break-top">
+                  <Link href={`/models/${m.id}`} className="sl-name sl-stretch">{m.displayName || m.name}</Link>
+                  <b style={{ color: scoreColor(m.currentScore as number) }}>{m.currentScore}</b>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Mode-specific analysis section */}
       {leaderboardSortBy === 'reasoning' && (
-        <>
-          <div className="v4-section-divider">DEEP REASONING BREAKDOWN</div>
-          <div style={{ padding: '8px 10px', fontSize: '11px' }}>
+        <section className="sl-pane st-up" aria-label="Deep reasoning breakdown">
+          <h3 className="sl-pane-t">Deep reasoning breakdown</h3>
+          <div className="sl-break">
             {sorted.slice(0, 10).map(m => {
               const history = modelHistoryData.get(m.id) || m.history || [];
               const latestWithAxes = history.find((h: any) => h.axes && typeof h.axes === 'object');
               const axes = latestWithAxes?.axes || {};
-              const ctxWin = typeof axes.contextWindow === 'number' ? Math.round(axes.contextWindow * 100) : null;
-              const hallRate = typeof axes.hallucinationRate === 'number' ? Math.round(axes.hallucinationRate * 100) : null;
-              const memRet = typeof axes.memoryRetention === 'number' ? Math.round(axes.memoryRetention * 100) : null;
-              const planCoh = typeof axes.planCoherence === 'number' ? Math.round(axes.planCoherence * 100) : null;
-
               return (
-                <div key={m.id} style={{ padding: '4px 0', borderBottom: '1px solid rgba(192,192,192,.04)', cursor: 'pointer' }} onClick={() => router.push(`/models/${m.id}`)}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', fontSize: '11px' }}>{m.name.substring(0, 20)}</span>
-                    <span style={{ color: scoreColor(m.currentScore as number), fontWeight: 'bold' }}>{m.currentScore}</span>
+                <div key={m.id} className="sl-break-row">
+                  <div className="sl-break-top">
+                    <Link href={`/models/${m.id}`} className="sl-name sl-stretch">{m.displayName || m.name}</Link>
+                    <b>{m.currentScore}</b>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', fontSize: '9px' }}>
-                    {ctxWin !== null && <span style={{ color: scoreColor(ctxWin) }}>CTX:{ctxWin}</span>}
-                    {hallRate !== null && <span style={{ color: scoreColor(hallRate) }}>HAL:{hallRate}</span>}
-                    {memRet !== null && <span style={{ color: scoreColor(memRet) }}>MEM:{memRet}</span>}
-                    {planCoh !== null && <span style={{ color: scoreColor(planCoh) }}>PLN:{planCoh}</span>}
-                    {ctxWin === null && hallRate === null && <span style={{ color: 'var(--phosphor-dim)' }}>No deep reasoning data</span>}
+                  <div className="sl-break-axes">
+                    {axisTags([
+                      ['Context', pct(axes, 'contextWindow')],
+                      ['Hallucination', pct(axes, 'hallucinationRate')],
+                      ['Memory', pct(axes, 'memoryRetention')],
+                      ['Plan', pct(axes, 'planCoherence')],
+                    ], 'No deep reasoning data')}
                   </div>
                 </div>
               );
             })}
           </div>
-        </>
+        </section>
       )}
 
       {leaderboardSortBy === 'tooling' && (
-        <>
-          <div className="v4-section-divider">TOOL CALLING BREAKDOWN</div>
-          <div style={{ padding: '8px 10px', fontSize: '11px' }}>
+        <section className="sl-pane st-up" aria-label="Tool calling breakdown">
+          <h3 className="sl-pane-t">Tool calling breakdown</h3>
+          <div className="sl-break">
             {sorted.slice(0, 10).map(m => {
               const history = modelHistoryData.get(m.id) || m.history || [];
               const latestWithAxes = history.find((h: any) => h.axes && typeof h.axes === 'object');
               const axes = latestWithAxes?.axes || {};
-              const toolSel = typeof axes.toolSelection === 'number' ? Math.round(axes.toolSelection * 100) : null;
-              const paramAcc = typeof axes.parameterAccuracy === 'number' ? Math.round(axes.parameterAccuracy * 100) : null;
-              const taskComp = typeof axes.taskCompletion === 'number' ? Math.round(axes.taskCompletion * 100) : null;
-              const errHand = typeof axes.errorHandling === 'number' ? Math.round(axes.errorHandling * 100) : null;
-
               return (
-                <div key={m.id} style={{ padding: '4px 0', borderBottom: '1px solid rgba(192,192,192,.04)', cursor: 'pointer' }} onClick={() => router.push(`/models/${m.id}`)}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                    <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', fontSize: '11px' }}>{m.name.substring(0, 20)}</span>
-                    <span style={{ color: scoreColor(m.currentScore as number), fontWeight: 'bold' }}>{m.currentScore}</span>
+                <div key={m.id} className="sl-break-row">
+                  <div className="sl-break-top">
+                    <Link href={`/models/${m.id}`} className="sl-name sl-stretch">{m.displayName || m.name}</Link>
+                    <b>{m.currentScore}</b>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', fontSize: '9px' }}>
-                    {toolSel !== null && <span style={{ color: scoreColor(toolSel) }}>SEL:{toolSel}</span>}
-                    {paramAcc !== null && <span style={{ color: scoreColor(paramAcc) }}>PAR:{paramAcc}</span>}
-                    {taskComp !== null && <span style={{ color: scoreColor(taskComp) }}>TSK:{taskComp}</span>}
-                    {errHand !== null && <span style={{ color: scoreColor(errHand) }}>ERR:{errHand}</span>}
-                    {toolSel === null && paramAcc === null && <span style={{ color: 'var(--phosphor-dim)' }}>No tooling data</span>}
+                  <div className="sl-break-axes">
+                    {axisTags([
+                      ['Selection', pct(axes, 'toolSelection')],
+                      ['Parameters', pct(axes, 'parameterAccuracy')],
+                      ['Task', pct(axes, 'taskCompletion')],
+                      ['Errors', pct(axes, 'errorHandling')],
+                    ], 'No tooling data')}
                   </div>
                 </div>
               );
             })}
           </div>
-        </>
+        </section>
       )}
 
       {/* Price-Performance Analysis — always shown, emphasized in price mode */}
-      <div className="v4-section-divider">
-        {leaderboardSortBy === 'price' ? '★ PRICE-PERFORMANCE ANALYSIS' : 'PRICE-PERFORMANCE ANALYSIS'}
-      </div>
-      <div className="v4-price-grid">
-        <div className="v4-price-row v4-price-hdr">
-          <div>MODEL</div>
-          <div style={{ textAlign: 'right' }}>COST (I/O)</div>
-          <div style={{ textAlign: 'center' }}>SCORE</div>
-          <div style={{ textAlign: 'center' }}>VALUE</div>
+      <section className={`sl-pane st-up${leaderboardSortBy === 'price' ? ' is-focus' : ''}`} aria-label="Price-performance analysis">
+        <h3 className="sl-pane-t">Price-performance analysis</h3>
+        <div className="sl-plist">
+          <div className="sl-plist-row is-head">
+            <span>Model</span>
+            <span className="sl-plist-cost">Cost (I/O)</span>
+            <span className="sl-plist-num">Score</span>
+            <span className="sl-plist-num">Value</span>
+          </div>
+          {priceData.slice(0, leaderboardSortBy === 'price' ? 14 : 10).map(m => {
+            const valueColor = m.value >= 10 ? 'var(--lp-fg)' : m.value >= 3 ? 'var(--lp-warn)' : 'var(--lp-bad)';
+            return (
+              <div key={m.id} className="sl-plist-row">
+                <Link href={`/models/${m.id}`} className="sl-name sl-stretch">{m.displayName || m.name}</Link>
+                <span className="sl-plist-cost">${m.pricing.input}/${m.pricing.output}</span>
+                <span className="sl-plist-num" style={{ color: scoreColor(m.currentScore as number) }}>{m.currentScore}</span>
+                <span className="sl-plist-num" style={{ color: valueColor }}>{m.value.toFixed(1)}</span>
+              </div>
+            );
+          })}
         </div>
-        {priceData.slice(0, leaderboardSortBy === 'price' ? 14 : 10).map(m => {
-          const valueColor = m.value >= 10 ? 'var(--phosphor-green)' : m.value >= 3 ? 'var(--amber-warning)' : 'var(--red-alert)';
-          return (
-            <div key={m.id} className="v4-price-row" style={{ cursor: 'pointer' }} onClick={() => router.push(`/models/${m.id}`)}>
-              <div className="v4-price-model">
-                {m.name}
-              </div>
-              <div className="v4-price-cost">
-                ${m.pricing.input}/${m.pricing.output}
-              </div>
-              <div className="v4-price-score" style={{ color: scoreColor(m.currentScore as number), textShadow: `0 0 2px ${scoreColor(m.currentScore as number)}` }}>
-                {m.currentScore}
-              </div>
-              <div className="v4-price-value" style={{ color: valueColor, textShadow: `0 0 2px ${valueColor}` }}>
-                {m.value.toFixed(1)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      </section>
 
       {/* Signed-out readers go to /pricing; /router is behind auth. */}
-      <div className="v4-pro-cta" onClick={() => router.push(session ? '/router' : '/pricing')} style={{ margin: '8px 10px' }}>
-        <div className="v4-pro-cta-title">SMART ROUTER</div>
-        <div className="v4-pro-cta-sub">
+      <Link href={session ? '/router' : '/pricing'} className="sl-cta st-up">
+        <span className="st-kicker">Smart Router</span>
+        <span className="sl-cta-sub">
           Stop picking a model by reputation. Route each request to whichever one is measuring best,
           across every provider you already pay for.
-        </div>
-        <div className="v4-pro-cta-price">
-          {annualMonthly(ROUTER_PLAN)}{' '}
-          <span className="cta-note">
-            billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}
-          </span>
-        </div>
-      </div>
+        </span>
+        <span className="sl-cta-price">
+          <b>{annualMonthly(ROUTER_PLAN)}</b>
+          <small>billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}</small>
+        </span>
+      </Link>
     </div>
   );
 }
@@ -465,7 +439,7 @@ export function RadarChart({
       const p = polarToXY(a, r);
       return `${p.x},${p.y}`;
     }).join(' ');
-    return <polygon key={pct} points={points} fill="none" stroke="var(--metal-silver)" strokeWidth="1" strokeOpacity="0.7" />;
+    return <polygon key={pct} points={points} fill="none" stroke="var(--lp-line)" strokeWidth="1" />;
   });
 
   // Axis lines and labels
@@ -476,14 +450,14 @@ export function RadarChart({
     const isHighlighted = highlightIndices.includes(i);
     return (
       <g key={i}>
-        <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke={isHighlighted ? 'var(--accent)' : 'var(--metal-silver)'} strokeOpacity={isHighlighted ? '0.5' : '0.6'} strokeWidth={isHighlighted ? '1' : '0.6'} />
+        <line x1={cx} y1={cy} x2={end.x} y2={end.y} stroke={isHighlighted ? 'var(--lp-accent)' : 'var(--lp-line)'} strokeOpacity={isHighlighted ? '0.6' : '1'} strokeWidth={isHighlighted ? '1' : '0.8'} />
         <text
           x={label.x} y={label.y}
           textAnchor="middle" dominantBaseline="middle"
-          fill={isHighlighted ? 'var(--phosphor-green)' : 'var(--phosphor-dim)'}
-          fontSize={isHighlighted ? '9' : '8'}
-          fontFamily="monospace"
-          fontWeight={isHighlighted ? 'bold' : 'normal'}
+          fill={isHighlighted ? 'var(--lp-accent)' : 'var(--lp-fg3)'}
+          fontSize="9"
+          fontFamily="var(--lp-font-body)"
+          fontWeight={isHighlighted ? 700 : 600}
         >
           {axisLabels[i]}
         </text>

@@ -1,6 +1,8 @@
 'use client';
 
 import TourModal, { type TourStep } from './TourModal';
+// The studio dialog skin for TourModal's markup (styles/studio-board.css, .onb-*).
+import '../styles/studio-board.css';
 
 export const DRIFT_TOUR_STORAGE_KEY = 'stupidmeter-drift-tour-seen';
 

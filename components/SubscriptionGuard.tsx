@@ -24,6 +24,8 @@ import { isPlan, planMeets, PLANS, DATA_API_LIMITS, type Plan } from '@/lib/enti
 import { REQUIRED_PLAN, CAPABILITY_LABEL, type Capability } from '@/lib/capabilities';
 import { upgradeHref } from '@/lib/checkout-url';
 import { monthlyLong, planName } from '@/lib/pricing-display';
+import Pane from '@/components/studio/Pane';
+import { Loader } from '@/components/studio/Bits';
 
 /**
  * Whether the signed-in account's plan unlocks `requires`. `ready` is false while the session
@@ -50,14 +52,7 @@ export default function SubscriptionGuard({ children, feature, requires }: Subsc
   const { data: session, status } = useSession();
 
   if (status === 'loading') {
-    return (
-      <div className="rv4-loading" style={{ minHeight: '300px' }}>
-        <div className="rv4-loading-dot" />
-        <div className="rv4-loading-dot" />
-        <div className="rv4-loading-dot" />
-        <span>Checking access</span>
-      </div>
-    );
+    return <Loader label="Checking access" minHeight={300} />;
   }
 
   const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
@@ -70,80 +65,65 @@ export default function SubscriptionGuard({ children, feature, requires }: Subsc
   const price = monthlyLong(needed);
 
   return (
-    <div className="rv4-body">
-      <div className="rv4-upgrade-container">
-        <div className="rv4-upgrade-hero">
-          <div className="rv4-upgrade-hero-title">{feature}</div>
-          <div className="rv4-upgrade-hero-sub">
-            {CAPABILITY_LABEL[requires]} is part of {neededLabel}. You are on{' '}
-            {planName(plan)} today.
+    <div className="st-body">
+      <section className="st-pane is-accent st-lock st-up">
+        <div className="st-lock-main">
+          <p className="st-kicker">Part of {neededLabel}</p>
+          <h2 className="st-lock-t">{feature}</h2>
+          <p className="st-lead">
+            {CAPABILITY_LABEL[requires]} is part of {neededLabel}. You are on {planName(plan)} today.
+          </p>
+          <p className="st-lock-price">{price}</p>
+          <div className="st-actions">
+            {/* An API route (Stripe checkout): prefetching it as a page only logs a failed RSC fetch. */}
+            <Link href={upgradeHref(needed, 'monthly')} prefetch={false} className="st-btn is-primary is-lg">
+              Upgrade to {neededLabel} <span className="st-ar" aria-hidden="true">→</span>
+            </Link>
+            <Link href="/pricing" className="st-btn is-lg">Compare plans</Link>
           </div>
-          <div className="rv4-upgrade-price">{price}</div>
-          {/* An API route (Stripe checkout): prefetching it as a page only logs a failed RSC fetch. */}
-          <Link href={upgradeHref(needed, 'monthly')} prefetch={false} className="rv4-upgrade-cta" style={{ textDecoration: 'none' }}>
-            Upgrade to {neededLabel}
-          </Link>
-          <div className="rv4-upgrade-fine-print">
+          <p className="st-hint" style={{ marginTop: 14 }}>
             Cancel any time · a payment method is collected at checkout, including during a trial
-          </div>
+          </p>
         </div>
-
-        <div className="rv4-panel" style={{ marginBottom: '16px' }}>
-          <div className="rv4-panel-header">
-            <span className="rv4-panel-title">What {neededLabel} adds</span>
-          </div>
-          <div className="rv4-panel-body">
-            <div className="rv4-upgrade-benefits">
-              {benefits.map((b, i) => (
-                <div key={i} className="rv4-upgrade-benefit">
-                  <div
-                    className="rv4-upgrade-benefit-icon"
-                    style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)' }}
-                  >
-                    →
-                  </div>
-                  <div className="rv4-upgrade-benefit-title">{b.title}</div>
-                  <div className="rv4-upgrade-benefit-desc">{b.description}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="st-lock-side">
+          <p className="st-label">What {neededLabel} adds</p>
+          <ul className="st-lock-list">
+            {benefits.map((b, i) => (
+              <li key={i}>
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <div><b>{b.title}</b><span>{b.description}</span></div>
+              </li>
+            ))}
+          </ul>
         </div>
+      </section>
 
-        {/* The measured allowances, straight from the plan table. Nothing here is
-            typed by hand, so a limit cannot drift from what is enforced. */}
-        <div className="rv4-panel" style={{ marginBottom: '16px' }}>
-          <div className="rv4-panel-header">
-            <span className="rv4-panel-title">Your plan vs {neededLabel}</span>
-          </div>
-          <div className="rv4-panel-body">
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-              <thead>
-                <tr style={{ color: 'var(--phosphor-dim)', textAlign: 'left' }}>
-                  <th style={{ padding: '6px 8px 6px 0' }}></th>
-                  <th style={{ padding: '6px 8px' }}>{planName(plan)}</th>
-                  <th style={{ padding: '6px 8px' }}>{neededLabel}</th>
+      {/* The measured allowances, straight from the plan table. Nothing here is
+          typed by hand, so a limit cannot drift from what is enforced. */}
+      <Pane title={`Your plan vs ${neededLabel}`} sub="Every limit below is the one the API enforces." ruled flush>
+        <div className="st-table-wrap">
+          <table className="st-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>{planName(plan)}</th>
+                <th>{neededLabel}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARISON.map(row => (
+                <tr key={row.label}>
+                  <td className="is-dim">{row.label}</td>
+                  <td>{row.get(plan)}</td>
+                  <td style={{ fontWeight: 600 }}>{row.get(needed)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {COMPARISON.map(row => (
-                  <tr key={row.label} style={{ borderTop: '1px solid var(--metal-silver)' }}>
-                    <td style={{ padding: '7px 8px 7px 0', color: 'var(--phosphor-dim)' }}>{row.label}</td>
-                    <td style={{ padding: '7px 8px' }}>{row.get(plan)}</td>
-                    <td style={{ padding: '7px 8px', color: 'var(--phosphor-green)' }}>{row.get(needed)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-          <Link href="/pricing" style={{ fontSize: '11px', color: 'var(--phosphor-dim)' }}>
-            Compare every plan, including annual →
-          </Link>
-        </div>
-      </div>
+      </Pane>
     </div>
   );
 }
@@ -202,6 +182,11 @@ const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: s
   team: [
     { title: 'Five editors, each on Teams', description: 'Every editor gets the full plan — history, analysis, routing and Data API limits. Viewers are unlimited and read-only.' },
     { title: 'Outbound webhooks', description: 'Signed HTTP callbacks when a model you depend on regresses.' },
+  ],
+  'latest-scores': [
+    { title: 'The newest run, as it lands', description: 'Every model’s score from its latest benchmark run, refreshed after each run — coding every four hours, reasoning and tool use daily.' },
+    { title: 'On the board and every model page', description: 'The Latest view on the leaderboard and on each model’s page, next to the 24-hour, 7-day and 30-day views every account has.' },
+    { title: 'With the rest of Pro', description: 'Full history, the complete performance matrix, drift curves, calibration and substitution analysis.' },
   ],
   governance: [
     { title: 'Single sign-on', description: 'OIDC or SAML against your own identity provider, with domain-based routing.' },

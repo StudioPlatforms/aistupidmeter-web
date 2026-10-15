@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 
 export interface TabDef { id: string; label: string }
 
@@ -34,22 +34,65 @@ export function useTab(tabs: TabDef[]): [string, (id: string) => void] {
 }
 
 /**
- * Underlined tabs on wide screens; on a phone (styles/workspace.css) a full-width dropdown instead,
- * because a scrolling tab bar hides the later sections off the edge of the screen.
+ * Underlined tabs (styles/studio.css `.st-tabs`). On a narrow screen the bar scrolls sideways:
+ * the edge that has more tabs behind it fades out, and the chosen tab is scrolled into view, so
+ * no section hides off the edge unannounced. Arrow keys move between tabs.
  */
 export default function Tabs({ tabs, value, onChange }: { tabs: TabDef[]; value: string; onChange: (id: string) => void }) {
+  const bar = useRef<HTMLDivElement>(null);
+  const [fade, setFade] = useState('');
+
+  useEffect(() => {
+    const el = bar.current;
+    if (!el) return;
+    const update = () => {
+      const start = el.scrollLeft > 2;
+      const end = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+      setFade([start && 'start', end && 'end'].filter(Boolean).join(' '));
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    ro?.observe(el);
+    return () => { el.removeEventListener('scroll', update); ro?.disconnect(); };
+  }, [tabs.length]);
+
+  // Keep the chosen tab inside the bar. Only the bar scrolls — never the page.
+  useEffect(() => {
+    const el = bar.current;
+    const on = el?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!el || !on) return;
+    const left = on.offsetParent === el ? on.offsetLeft : on.offsetLeft - el.offsetLeft;
+    if (left < el.scrollLeft + 8) el.scrollLeft = Math.max(0, left - 24);
+    else if (left + on.offsetWidth > el.scrollLeft + el.clientWidth - 8) el.scrollLeft = left + on.offsetWidth - el.clientWidth + 24;
+  }, [value, tabs.length]);
+
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = tabs.findIndex(t => t.id === value);
+    const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+    if (!next) return;
+    e.preventDefault();
+    onChange(next.id);
+    requestAnimationFrame(() => bar.current?.querySelector<HTMLElement>(`[data-tab="${next.id}"]`)?.focus());
+  };
+
   return (
-    <>
-      <div className="ws-tabs" role="tablist">
-        {tabs.map(t => (
-          <button key={t.id} type="button" role="tab" className="ws-tab" aria-selected={value === t.id} onClick={() => onChange(t.id)}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <select className="ws-tabs-select" aria-label="Section" value={value} onChange={e => onChange(e.target.value)}>
-        {tabs.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-      </select>
-    </>
+    <div ref={bar} className="st-tabs sw-tabs" role="tablist" data-fade={fade || undefined} onKeyDown={onKey}>
+      {tabs.map(t => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          data-tab={t.id}
+          className="st-tab"
+          aria-selected={value === t.id}
+          tabIndex={value === t.id ? 0 : -1}
+          onClick={() => onChange(t.id)}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
   );
 }

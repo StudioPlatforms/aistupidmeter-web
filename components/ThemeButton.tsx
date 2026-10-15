@@ -1,72 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { THEMES, cycleTheme, getCurrentThemeIndex, initializeTheme } from '../lib/theme-config';
+import '../styles/studio-board.css';
 
-export default function ThemeButton() {
+/**
+ * The theme switch. `bar` is the top bar's quiet text button (the landing nav's Theme);
+ * `row` is the bordered button in the phone menu. After a press, a small card names the theme
+ * now showing. Styles: styles/studio-board.css (sb-theme-*).
+ */
+export default function ThemeButton({ variant = 'bar' }: { variant?: 'bar' | 'row' }) {
   const [currentThemeIndex, setCurrentThemeIndex] = useState(0);
   const [showTooltip, setShowTooltip] = useState(false);
+  const hide = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Initialize theme on mount
     initializeTheme();
     setCurrentThemeIndex(getCurrentThemeIndex());
+    return () => { if (hide.current) clearTimeout(hide.current); };
   }, []);
 
   const handleThemeChange = () => {
     const newIndex = cycleTheme();
     setCurrentThemeIndex(newIndex);
-    
+
     // Show tooltip briefly
     setShowTooltip(true);
-    setTimeout(() => setShowTooltip(false), 2000);
+    if (hide.current) clearTimeout(hide.current);
+    hide.current = setTimeout(() => setShowTooltip(false), 2000);
   };
 
   const currentTheme = THEMES[currentThemeIndex];
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        onClick={handleThemeChange}
-        className="vintage-btn"
-        style={{
-          padding: '8px 16px',
-          fontSize: '0.9em',
-          position: 'relative',
-          overflow: 'visible'
-        }}
-        title="Change color theme"
-      >
-        THEME
+    <span className={`sb-theme is-${variant}`}>
+      <button type="button" onClick={handleThemeChange} className="sb-theme-btn" title="Change color theme">
+        Theme
       </button>
-      
+
       {showTooltip && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            marginTop: '8px',
-            padding: '8px 12px',
-            background: 'var(--terminal-black)',
-            border: '2px solid var(--phosphor-green)',
-            borderRadius: '4px',
-            whiteSpace: 'nowrap',
-            zIndex: 1000,
-            boxShadow: '0 0 10px var(--phosphor-green)',
-            animation: 'fadeIn 0.2s ease-in'
-          }}
-          className="terminal-text"
-        >
-          <div style={{ fontSize: '0.9em', marginBottom: '4px' }}>
-            <span className="terminal-text--green">{currentTheme.name}</span>
-          </div>
-          <div className="terminal-text--dim" style={{ fontSize: '0.75em' }}>
-            {currentTheme.description}
-          </div>
-        </div>
+        <span className="sb-theme-tip" role="status">
+          <b>{currentTheme.name}</b>
+          {currentTheme.description}
+        </span>
       )}
-    </div>
+    </span>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ENTRY_PAID_PLAN, planName, monthly } from '@/lib/pricing-display';
+import { ROUTER_PLAN, planName, monthly } from '@/lib/pricing-display';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -8,6 +8,10 @@ import { useSession } from 'next-auth/react';
 import TickerTape from '../components/TickerTape';
 import StupidMeter from '../components/StupidMeter';
 import ProFeatureModal from '../components/ProFeatureModal';
+import StudioPage from '../components/studio/StudioPage';
+import { Loader, Modal } from '../components/studio';
+// The page frame (header band, fleet strip, controls, dialogs) and the site chrome: sb-*.
+import '../styles/studio-board.css';
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from '../components/OnboardingTour';
 import ConsentDialog, { CONSENT_STORAGE_KEY } from '../components/ConsentDialog';
 import DriftTour, { DRIFT_TOUR_STORAGE_KEY } from '../components/DriftTour';
@@ -155,7 +159,11 @@ function useStickyParam<T extends string>(
   return [value, setValue] as const;
 }
 
-export default function Dashboard({ initialLayout = null }: { initialLayout?: BoardLayout | null }) {
+export default function Dashboard({ initialLayout = null, latestAllowed = true }: {
+  initialLayout?: BoardLayout | null;
+  /** Whether this account may see the newest run (the "Latest" period). Decided on the server. */
+  latestAllowed?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   
@@ -179,7 +187,13 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   
   // STICKY FILTERS: Use the new useStickyParam hook
-  const [leaderboardPeriod, setLeaderboardPeriod] = useStickyParam<'latest' | '24h' | '7d' | '1m'>('period', 'latest');
+  const [stickyPeriod, setLeaderboardPeriod] = useStickyParam<'latest' | '24h' | '7d' | '1m'>('period', latestAllowed ? 'latest' : '24h');
+  // A free account never runs on 'latest', even from an old link or a value saved before the lock:
+  // coerced here, on the first render, so the newest scores are never fetched for it.
+  const leaderboardPeriod: 'latest' | '24h' | '7d' | '1m' = !latestAllowed && stickyPeriod === 'latest' ? '24h' : stickyPeriod;
+  useEffect(() => {
+    if (!latestAllowed && stickyPeriod === 'latest') setLeaderboardPeriod('24h');
+  }, [latestAllowed, stickyPeriod, setLeaderboardPeriod]);
   const [leaderboardSortBy, setLeaderboardSortBy] = useStickyParam<'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'>('sortBy', 'combined');
   
   // Ref to track user's current selection for validation
@@ -218,14 +232,15 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
   
   // Pro feature modal state
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'latest-scores'>('historical-data');
   
   // Session and subscription checking
   const { data: session, status: sessionStatus } = useSession();
   const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active' || 
                        (session?.user as any)?.subscriptionStatus === 'trialing';
   // Fixed analytics period since user controls were removed
-  const analyticsPeriod: 'latest' | '24h' | '7d' | '1m' = 'latest';
+  // Follows the Latest lock too: this request also returns the board's scores for its period.
+  const analyticsPeriod: 'latest' | '24h' | '7d' | '1m' = latestAllowed ? 'latest' : '24h';
   const [stupidMeterMode, setStupidMeterMode] = useState<'smart' | 'stupid'>('smart');
   const [batchStatus, setBatchStatus] = useState<any>(null);
   const [showBatchRefreshing, setShowBatchRefreshing] = useState(false);
@@ -3663,155 +3678,78 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
   }
 
   // Enhanced retro loading screen with progress tracking
+  // ── The site chrome and the page's header band, the same while loading and once loaded, so
+  //    nothing jumps when the data lands (styles/studio-board.css, sb-*) ──
+  const handleViewChange = (view: 'dashboard' | 'about' | 'faq') => {
+    if (view === 'about') { router.push('/about'); return; }
+    if (view === 'faq') { router.push('/faq'); return; }
+    setSelectedView(view);
+  };
+  const topBar = (
+    <TopBar
+      selectedView={selectedView}
+      onViewChange={handleViewChange}
+      visitorCount={visitorCount}
+      todayVisits={todayVisits}
+    />
+  );
+  const mobileNav = <MobileNav selectedView={selectedView} onViewChange={handleViewChange} />;
+  const bandDecor = (
+    <div className="sb-band-bg" aria-hidden="true"><div className="st-streaks"><i /><i /><i /></div></div>
+  );
+
   if (loading) {
     return (
-      <div className="vintage-container" data-page-loading>
-        <div className="crt-monitor" style={{ 
-          textAlign: 'center', 
-          padding: 'var(--space-lg) var(--space-md)',
-          minHeight: '400px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <div className="terminal-text" style={{ width: '100%', maxWidth: '600px' }}>
-            {/* Header */}
-            <div style={{ 
-              fontSize: 'var(--font-size-xl)', 
-              marginBottom: 'var(--space-lg)',
-              wordWrap: 'break-word'
-            }}>
-              <span className="terminal-text--green">AI STUPID LEVEL</span>
-              <span className="blinking-cursor"></span>
+      <StudioPage className="sb-page">
+        {topBar}
+        <div className="sb-band">
+          {bandDecor}
+          <div className="sb-band-in">
+            <div className="sb-skel-stats" aria-hidden="true">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div key={i}><span className="st-skel" /><span className="st-skel" /></div>
+              ))}
             </div>
-            
-            {/* Loading icon */}
-            <div style={{ 
-              fontSize: '3em', 
-              marginBottom: 'var(--space-lg)', 
-              opacity: 0.7,
-              animation: 'pulse 2s infinite'
-            }}>
-              ⚡
-            </div>
-            
-            {/* Retro progress bar */}
-            <div style={{ 
-              width: '100%', 
-              marginBottom: 'var(--space-lg)',
-              padding: '0 var(--space-sm)'
-            }}>
-              <div className="retro-progress-track" style={{ 
-                height: '20px',
-                marginBottom: 'var(--space-sm)'
-              }}>
-                <div 
-                  className="retro-progress-fill ultra-pixelated"
-                  style={{ 
-                    width: `${loadingProgress}%`,
-                    background: loadingProgress < 30 ? 'var(--red-alert)' :
-                               loadingProgress < 70 ? 'var(--amber-warning)' :
-                               'var(--phosphor-green)',
-                    transition: 'width 0.5s ease, background 0.3s ease'
-                  }}
-                >
-                  <div className="ultra-pixel-blocks"></div>
-                </div>
-              </div>
-              
-              {/* Progress percentage */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between',
-                fontSize: 'var(--font-size-xs)',
-                marginBottom: 'var(--space-md)'
-              }}>
-                <span className="terminal-text--dim">PROGRESS</span>
-                <span className="terminal-text--green" style={{ fontWeight: 'bold' }}>
-                  {loadingProgress}%
-                </span>
-              </div>
-            </div>
-            
-            {/* Status message */}
-            <div style={{ 
-              fontSize: 'var(--font-size-md)', 
-              marginBottom: 'var(--space-md)',
-              minHeight: '24px'
-            }}>
-              <span className="terminal-text">{loadingStage}</span>
-            </div>
-            
-            {/* Loading animation dots */}
-            <div className="vintage-loading" style={{ 
-              fontSize: 'var(--font-size-lg)',
-              marginBottom: 'var(--space-md)'
-            }}></div>
-            
-            {/* Rotating loading message */}
-            {loadingMessage && (
-              <div style={{ 
-                fontSize: 'var(--font-size-sm)',
-                marginBottom: 'var(--space-md)',
-                padding: 'var(--space-sm)',
-                background: 'rgba(26, 115, 232, 0.05)',
-                border: '1px solid rgba(26, 115, 232, 0.2)',
-                borderRadius: '4px',
-                minHeight: '40px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center'
-              }}>
-                <span className="terminal-text--dim">{loadingMessage}</span>
-              </div>
-            )}
-            
-            {/* Attempt counter */}
-            {loadingAttempts > 0 && (
-              <div style={{ 
-                fontSize: 'var(--font-size-sm)',
-                marginTop: 'var(--space-md)',
-                padding: 'var(--space-sm)',
-                background: 'rgba(26, 115, 232, 0.05)',
-                border: '1px solid rgba(26, 115, 232, 0.2)',
-                borderRadius: '4px'
-              }}>
-                <span className="terminal-text--dim">Attempt: </span>
-                <span className="terminal-text--amber" style={{ fontWeight: 'bold' }}>
-                  {loadingAttempts + 1}/10
-                </span>
-              </div>
-            )}
-            
-            {/* Helpful message for slow loads */}
-            {loadingAttempts >= 3 && (
-              <div style={{ 
-                fontSize: 'var(--font-size-xs)',
-                marginTop: 'var(--space-md)',
-                color: 'var(--phosphor-dim)',
-                lineHeight: '1.4'
-              }}>
-                <div style={{ marginBottom: 'var(--space-xs)' }}>
-                  ⏳ Fetching live model rankings...
-                </div>
-                <div>
-                  This may take a moment as we gather real-time data from multiple sources.
-                </div>
-              </div>
-            )}
+            <span className="st-skel sb-skel-ctl" aria-hidden="true" />
           </div>
         </div>
-        
-        {/* Add pulse animation */}
-        <style jsx>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 0.7; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
-          }
-        `}</style>
-      </div>
+
+        <div className="sb-loading-wrap">
+          <div className="st-pane sb-loading" data-page-loading aria-busy="true">
+            <Loader label={loadingStage} />
+            <div className="sb-progress">
+              <div
+                className="sb-progress-bar"
+                role="progressbar"
+                aria-label="Loading progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={loadingProgress}
+              >
+                <i style={{ width: `${loadingProgress}%` }} />
+              </div>
+              <div className="sb-progress-l"><span>Progress</span><b>{loadingProgress}%</b></div>
+
+              {/* Rotating loading message */}
+              {loadingMessage && <p className="sb-progress-msg">{loadingMessage}</p>}
+
+              {/* Attempt counter */}
+              {loadingAttempts > 0 && (
+                <p>Attempt <b>{loadingAttempts + 1}/10</b></p>
+              )}
+
+              {/* Helpful message for slow loads */}
+              {loadingAttempts >= 3 && (
+                <p>
+                  Fetching live model rankings...<br />
+                  This may take a moment as we gather real-time data from multiple sources.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+        {mobileNav}
+      </StudioPage>
     );
   }
 
@@ -3827,49 +3765,61 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
   );
 
   return (
-    <div>
-      {/* V4 TOP BAR */}
-      <TopBar
-        selectedView={selectedView}
-        onViewChange={(view) => {
-          if (view === 'about') { router.push('/about'); return; }
-          if (view === 'faq') { router.push('/faq'); return; }
-          setSelectedView(view);
-        }}
-        visitorCount={visitorCount}
-        todayVisits={todayVisits}
-      />
+    // The landing page's look for the whole board (styles/studio.css via StudioPage): tokens, typefaces,
+    // reveal-on-view. The site's own top bar and phone bottom bar stay; the page keeps their room.
+    <StudioPage className="sb-page">
+      {topBar}
 
-      {/* V4 ALERT BAR */}
-      <AlertBar alerts={alerts} degradations={degradations} />
+      {/* The header band: title, any critical alert, the fleet strip and the controls, on the
+          studio page head's tint. One edge with the boards below (styles/studio-board.css). */}
+      <div className="sb-band">
+        {bandDecor}
+        <div className="sb-band-in">
 
-      {/* V4 STAT BAR */}
-      <StatBar
-        globalIndex={globalIndex}
-        modelScores={modelScores}
-        driftIncidents={driftIncidents}
-      />
+          {/* Critical alert */}
+          <AlertBar alerts={alerts} degradations={degradations} />
 
-      {/* TICKER TAPE */}
+          {/* Fleet strip */}
+          <StatBar
+            globalIndex={globalIndex}
+            modelScores={modelScores}
+            driftIncidents={driftIncidents}
+          />
+
+          {/* Period, sort and view */}
+          <ControlsBar
+            leaderboardPeriod={leaderboardPeriod}
+            leaderboardSortBy={leaderboardSortBy}
+            dashboardMode={dashboardMode}
+            hasProAccess={hasProAccess}
+            isLoading={isLeaderboardUIBusy}
+            onPeriodChange={(period) => setLeaderboardPeriod(period)}
+            onSortByChange={(sortBy) => setLeaderboardSortBy(sortBy)}
+            onModeChange={(mode) => setDashboardMode(mode)}
+            onShowProModal={(feature) => {
+              setProModalFeature(feature);
+              setShowProModal(true);
+            }}
+            nudgeDrift={nudgeDrift}
+            latestAllowed={latestAllowed}
+            showSort={dashboardMode === 'drift' || layout === 'table'}
+            extra={
+              // Share sits at the end of the controls on wider screens, where it used to float
+              // over the boards' last column; on phones it still floats above the bottom bar.
+              <ShareButton
+                type="rankings"
+                data={{
+                  modelScores: modelScores.slice(0, 3),
+                  globalIndex
+                }}
+              />
+            }
+          />
+        </div>
+      </div>
+
+      {/* TICKER TAPE (hidden by the clean theme; kept mounted as before) */}
       <TickerTape key="v4-ticker" items={tickerContent} />
-
-      {/* V4 CONTROLS BAR */}
-      <ControlsBar
-        leaderboardPeriod={leaderboardPeriod}
-        leaderboardSortBy={leaderboardSortBy}
-        dashboardMode={dashboardMode}
-        hasProAccess={hasProAccess}
-        isLoading={isLeaderboardUIBusy}
-        onPeriodChange={(period) => setLeaderboardPeriod(period)}
-        onSortByChange={(sortBy) => setLeaderboardSortBy(sortBy)}
-        onModeChange={(mode) => setDashboardMode(mode)}
-        onShowProModal={(feature) => {
-          setProModalFeature(feature);
-          setShowProModal(true);
-        }}
-        nudgeDrift={nudgeDrift}
-        showSort={dashboardMode === 'drift' || layout === 'table'}
-      />
 
       {/* LEADERBOARD VIEW ON A WIDE SCREEN: every layout full width, then the insights as rows
           of cards (components/insights/InsightsGrid.tsx), capped at 1,760px. The three-column
@@ -4010,14 +3960,7 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
       {/* The footer is rendered once for every page by the root layout (components/SiteFooter). */}
 
       {/* MOBILE NAV */}
-      <MobileNav
-        selectedView={selectedView}
-        onViewChange={(view) => {
-          if (view === 'about') { router.push('/about'); return; }
-          if (view === 'faq') { router.push('/faq'); return; }
-          setSelectedView(view);
-        }}
-      />
+      {mobileNav}
 
       {/* ═══ EXISTING SECTIONS KEPT: Intelligence Center, etc. ═══ */}
       {/* The Intelligence Center data is now shown in left panel on desktop and QuickInfo on mobile */}
@@ -4888,80 +4831,73 @@ export default function Dashboard({ initialLayout = null }: { initialLayout?: Bo
         feature={proModalFeature}
       />
 
-      {/* API Monitoring Feature Announcement Popup */}
-      {showMonitoringAnnouncement && (
-        <div
-          className="pro-modal"
-          onClick={() => {
-            localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
-            setShowMonitoringAnnouncement(false);
-          }}
-        >
-          <div className="pro-modal-card" onClick={(e) => e.stopPropagation()}>
+      {/* API Monitoring Feature Announcement Popup — the studio dialog; closing it by any
+          route (button, ×, Escape, backdrop) marks it seen, as before. */}
+      <Modal
+        open={showMonitoringAnnouncement}
+        onClose={() => {
+          localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+          setShowMonitoringAnnouncement(false);
+        }}
+        size="narrow"
+        title="See exactly where your AI spend goes"
+        footer={
+          <div className="sb-pf-foot">
             <button
-              className="pro-modal-close"
-              aria-label="Close"
+              type="button"
+              className="st-btn is-quiet sb-pf-later"
               onClick={() => {
                 localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
                 setShowMonitoringAnnouncement(false);
               }}
             >
-              ×
+              Maybe later
             </button>
+            <button
+              type="button"
+              className="st-btn is-primary"
+              onClick={() => {
+                localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
+                setShowMonitoringAnnouncement(false);
+                router.push('/router/monitoring');
+              }}
+            >
+              Explore monitoring <span className="st-ar" aria-hidden="true">→</span>
+            </button>
+          </div>
+        }
+      >
+        <div className="sb-pf">
+          <p className="st-kicker">New in {planName(ROUTER_PLAN)}</p>
+          <p className="sb-pf-lead">
+            API Monitoring tracks every request across all your provider keys — with live cost,
+            prompt audits and budget alerts, all in one dashboard.
+          </p>
 
-            <span className="pro-modal-badge">✦ New in PRO</span>
-            <div className="pro-modal-title">See exactly where your AI spend goes</div>
-            <div className="pro-modal-sub">
-              API Monitoring tracks every request across all your provider keys — with live cost,
-              prompt audits and budget alerts, all in one dashboard.
-            </div>
+          <ul className="sb-pf-list">
+            {[
+              'Per-key request logs — model, tokens, cost & latency',
+              'Cost dashboard with daily trends and per-model spend',
+              'Prompt auditing with automatic secret scrubbing',
+              'Budget limits with hard/soft thresholds and alerts',
+            ].map((line) => (
+              <li key={line}>
+                <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3.5 9.5l3.4 3.4L14.5 5.3" />
+                </svg>
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
 
-            <ul className="pro-modal-features">
-              <li><span className="pro-modal-check">✓</span><span>Per-key request logs — model, tokens, cost &amp; latency</span></li>
-              <li><span className="pro-modal-check">✓</span><span>Cost dashboard with daily trends and per-model spend</span></li>
-              <li><span className="pro-modal-check">✓</span><span>Prompt auditing with automatic secret scrubbing</span></li>
-              <li><span className="pro-modal-check">✓</span><span>Budget limits with hard/soft thresholds and alerts</span></li>
-            </ul>
-
-            <div className="pro-modal-pricebox">
-              <div className="pro-modal-price"><b>{monthly(ENTRY_PAID_PLAN)}</b><span> · {planName(ENTRY_PAID_PLAN)}</span></div>
-              <div className="pro-modal-priceline">Free trial · cancel anytime</div>
-            </div>
-
-            <div className="pro-modal-actions">
-              <button
-                className="pro-modal-btn primary"
-                onClick={() => {
-                  localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
-                  setShowMonitoringAnnouncement(false);
-                  router.push('/router/monitoring');
-                }}
-              >
-                Explore monitoring →
-              </button>
-              <button
-                className="pro-modal-btn ghost"
-                onClick={() => {
-                  localStorage.setItem('stupidmeter-monitoring-announcement-seen', 'true');
-                  setShowMonitoringAnnouncement(false);
-                }}
-              >
-                Maybe later
-              </button>
-            </div>
+          <div className="sb-pf-price">
+            {/* API monitoring needs the routing plan (lib/capabilities 'api-monitoring'), not Pro. */}
+            <b>{monthly(ROUTER_PLAN)}<span>{planName(ROUTER_PLAN)}</span></b>
+            <small>Free trial · cancel anytime</small>
           </div>
         </div>
-      )}
+      </Modal>
 
-      {/* Share Button - Floating */}
-      <ShareButton 
-        type="rankings" 
-        data={{ 
-          modelScores: modelScores.slice(0, 3),
-          globalIndex 
-        }} 
-      />
-
-    </div>
+    </StudioPage>
   );
 }

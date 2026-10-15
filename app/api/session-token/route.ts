@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
+import { auth } from '@/auth';
+import { isPlan, planMeets } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
 
 /**
  * Mints the short-lived token the site's own data fetches carry.
@@ -97,8 +100,21 @@ export async function GET(request: NextRequest) {
   }
 
   const exp = Math.floor(Date.now() / 1000) + TTL_SECONDS;
-  const mac = createHmac('sha256', secret).update(String(exp)).digest('hex').slice(0, 32);
 
+  // A paid session's token also unlocks the newest run (`2.<exp>.latest.<mac>`), which the API
+  // refuses otherwise (apps/api middleware/latest-gate.ts). The plan is the session's own, so
+  // this is decided here and nowhere in the browser.
+  const session = await auth().catch(() => null);
+  const plan = (session?.user as any)?.plan;
+  if (isPlan(plan) && planMeets(plan, REQUIRED_PLAN['latest-scores'])) {
+    const mac = createHmac('sha256', secret).update(`${exp}.latest`).digest('hex').slice(0, 32);
+    return NextResponse.json(
+      { token: `2.${exp}.latest.${mac}`, expires: exp, scope: 'latest' },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
+  }
+
+  const mac = createHmac('sha256', secret).update(String(exp)).digest('hex').slice(0, 32);
   return NextResponse.json(
     { token: `1.${exp}.${mac}`, expires: exp },
     { headers: { 'Cache-Control': 'no-store' } }

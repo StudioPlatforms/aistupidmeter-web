@@ -3,6 +3,8 @@
 import TourModal, { type TourStep } from './TourModal';
 import { layoutSteps } from './boards/layout-tour';
 import type { BoardLayout } from '../lib/board-layout';
+// The studio dialog skin for TourModal's markup (styles/studio-board.css, .onb-*).
+import '../styles/studio-board.css';
 
 export const ONBOARDING_STORAGE_KEY = 'stupidmeter-onboarding-seen';
 

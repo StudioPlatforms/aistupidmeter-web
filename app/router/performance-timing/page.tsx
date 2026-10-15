@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import BestHoursPanel from '@/components/BestHoursPanel';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import PerformanceChart from '@/components/PerformanceChart';
+import { PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Note } from '@/components/studio';
+import '@/styles/studio-insights.css';
 
 type HistoricalPeriod = 'latest' | '24h' | '7d' | '1m';
 type ScoringMode = 'combined' | 'reasoning' | 'speed' | 'tooling';
@@ -40,19 +43,21 @@ const toDisplayScore = (point: any): number | null => {
   return null;
 };
 
-const periods: Array<{ key: HistoricalPeriod; label: string }> = [
-  { key: 'latest', label: 'LATEST' },
-  { key: '24h', label: '24H' },
-  { key: '7d', label: '7D' },
-  { key: '1m', label: '1M' },
+const periods: Array<{ key: HistoricalPeriod; label: string; span: string }> = [
+  { key: 'latest', label: 'Latest', span: 'Latest runs' },
+  { key: '24h', label: '24 hours', span: 'Last 24 hours' },
+  { key: '7d', label: '7 days', span: 'Last 7 days' },
+  { key: '1m', label: '1 month', span: 'Last month' },
 ];
 
 const scoringModes: Array<{ key: ScoringMode; label: string }> = [
-  { key: 'combined', label: 'COMBINED' },
-  { key: 'reasoning', label: 'REASONING' },
-  { key: 'speed', label: 'CODING' },
-  { key: 'tooling', label: 'TOOLING' },
+  { key: 'combined', label: 'Combined' },
+  { key: 'reasoning', label: 'Reasoning' },
+  { key: 'speed', label: 'Coding' },
+  { key: 'tooling', label: 'Tool use' },
 ];
+
+const LEAD = 'Track model performance over time, with the same charts as the model detail pages.';
 
 export default function PerformanceTimingPage() {
   const { data: session, status } = useSession();
@@ -142,7 +147,9 @@ export default function PerformanceTimingPage() {
   };
 
   const selectedModel = models.find(m => m.id === selectedModelId);
-  const modeLabel = scoringMode === 'speed' ? 'CODING' : scoringMode.toUpperCase();
+  const modelName = selectedModel?.displayName || selectedModel?.name;
+  const modeLabel = scoringModes.find(m => m.key === scoringMode)?.label ?? scoringMode;
+  const periodInfo = periods.find(p => p.key === period) ?? periods[0];
 
   // Build chart data (same logic as ModelDetailChart)
   const buildChartData = () => {
@@ -212,15 +219,9 @@ export default function PerformanceTimingPage() {
   if (!modelsLoaded) {
     return (
       <RouterLayout>
-        <div className="rv4-page-header">
-          <div className="rv4-page-header-left">
-            <span style={{ fontSize: '18px' }}>⏰</span>
-            <div className="rv4-page-title">PERFORMANCE TIMING<span className="blinking-cursor"></span></div>
-          </div>
-        </div>
-        <div className="rv4-loading" style={{ minHeight: '300px' }}>
-          <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
-          <span>LOADING</span>
+        <PageHead kicker="Smart Router" title="Performance timing" lead={LEAD} />
+        <div className="st-body" data-page-loading>
+          <Loader label="Loading" minHeight={320} />
         </div>
       </RouterLayout>
     );
@@ -229,221 +230,139 @@ export default function PerformanceTimingPage() {
   return (
     <RouterLayout>
       <SubscriptionGuard feature="Performance timing" requires="routing-analytics">
-        {/* Page header */}
-        <div className="rv4-page-header">
-          <div className="rv4-page-header-left">
-            <span style={{ fontSize: '18px' }}>⏰</span>
-            <div>
-              <div className="rv4-page-title">PERFORMANCE TIMING<span className="blinking-cursor"></span></div>
-              <div className="rv4-page-title-sub">Track model performance over time — same charts as model detail pages</div>
-            </div>
-          </div>
-          <div className="rv4-page-header-right">
-            {/* Model selector */}
-            <select
-              value={selectedModelId || ''}
-              onChange={(e) => setSelectedModelId(parseInt(e.target.value))}
-              className="rv4-ctrl-btn"
-              style={{
-                background: 'var(--terminal-dark)',
-                color: 'var(--phosphor-green)',
-                cursor: 'pointer',
-                minWidth: '160px',
-                padding: '5px 10px',
-              }}
-            >
-              {models.map(model => (
-                <option key={model.id} value={model.id}>
-                  {model.displayName || model.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Controls bar */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 20px',
-          background: 'rgba(0,0,0,0.04)',
-          borderBottom: '1px solid rgba(192, 192, 192, 0.15)',
-          gap: '12px',
-          flexWrap: 'wrap',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Period</span>
-            <div className="rv4-ctrl-group">
-              {periods.map(p => (
-                <button
-                  key={p.key}
-                  className={`rv4-ctrl-btn${period === p.key ? ' active' : ''}`}
-                  onClick={() => setPeriod(p.key)}
-                  disabled={loading}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '9px', fontWeight: 'bold', color: 'var(--phosphor-dim)', letterSpacing: '0.8px', textTransform: 'uppercase' }}>Benchmark Suite</span>
-            <div className="rv4-ctrl-group">
-              {scoringModes.map(m => (
-                <button
-                  key={m.key}
-                  className={`rv4-ctrl-btn${scoringMode === m.key ? ' active' : ''}`}
-                  onClick={() => setScoringMode(m.key)}
-                  disabled={loading}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {loading && (
-            <span style={{ fontSize: '10px', color: 'var(--amber-warning)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span className="vintage-loading" style={{ fontSize: '10px' }}></span>
-              LOADING
-            </span>
-          )}
-        </div>
-
-        <div className="rv4-body">
-          {error && (
-            <div className="rv4-error-banner" style={{ marginBottom: '14px' }}>
-              <span>⚠</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>DATA ERROR</div>
-                <div style={{ fontSize: '10px' }}>{error}</div>
+        <PageHead
+          kicker="Smart Router"
+          title="Performance timing"
+          lead={LEAD}
+          actions={
+            <label className="sa-model">
+              <span className="st-field-label">Model</span>
+              <select
+                value={selectedModelId || ''}
+                onChange={(e) => setSelectedModelId(parseInt(e.target.value))}
+                className="st-select"
+              >
+                {models.map(model => (
+                  <option key={model.id} value={model.id}>
+                    {model.displayName || model.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
+        >
+          <div className="sa-controls">
+            <div className="sa-control">
+              <span className="st-label" id="sa-pt-period">Period</span>
+              <div className="st-seg is-scroll" role="group" aria-labelledby="sa-pt-period">
+                {periods.map(p => (
+                  <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)} disabled={loading}>
+                    {p.label}
+                  </button>
+                ))}
               </div>
-              <button onClick={fetchHistory} className="rv4-ctrl-btn danger" style={{ marginLeft: 'auto', fontSize: '10px' }}>RETRY</button>
             </div>
+
+            <div className="sa-control">
+              <span className="st-label" id="sa-pt-suite">Benchmark suite</span>
+              <div className="st-seg is-scroll" role="group" aria-labelledby="sa-pt-suite">
+                {scoringModes.map(m => (
+                  <button key={m.key} type="button" aria-pressed={scoringMode === m.key} onClick={() => setScoringMode(m.key)} disabled={loading}>
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {loading && (
+              <span className="sa-busy" role="status">
+                <span className="st-bars" aria-hidden="true"><i /><i /><i /></span>
+                Loading
+              </span>
+            )}
+          </div>
+        </PageHead>
+
+        <div className="st-body">
+          {error && (
+            <Note tone="bad" title="Performance data could not load">
+              <div className="sa-note-row">
+                <span>{error}</span>
+                <button type="button" onClick={fetchHistory} className="st-btn is-sm">Retry</button>
+              </div>
+            </Note>
           )}
 
           {/* Best and worst hours of the day, from the hourly canary (two weeks, every hour). */}
-          <BestHoursPanel modelId={selectedModelId} modelName={selectedModel?.displayName || selectedModel?.name} />
+          <BestHoursPanel modelId={selectedModelId} modelName={modelName} />
 
-          {/* Stat bar with chart insights */}
+          {/* Stat row with chart insights */}
           {insights && (
-            <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '16px' }}>
-              <div className="rv4-stat-cell accent-green">
-                <div className="rv4-stat-label">Best Score</div>
-                <div className="rv4-stat-value">{insights.bestScore}</div>
-                <div className="rv4-stat-sub">{period === 'latest' ? 'LATEST' : period.toUpperCase()} period</div>
-              </div>
-              <div className="rv4-stat-cell accent-red">
-                <div className="rv4-stat-label">Worst Score</div>
-                <div className="rv4-stat-value red">{insights.worstScore}</div>
-                <div className="rv4-stat-sub">{insights.variance} pt range</div>
-              </div>
-              <div className="rv4-stat-cell accent-amber">
-                <div className="rv4-stat-label">Average Score</div>
-                <div className="rv4-stat-value amber">{insights.avgScore}</div>
-                <div className="rv4-stat-sub">{modeLabel}</div>
-              </div>
-              <div className="rv4-stat-cell accent-blue">
-                <div className="rv4-stat-label">Data Points</div>
-                <div className="rv4-stat-value blue">{insights.dataPoints}</div>
-                <div className="rv4-stat-sub">{selectedModel?.displayName || selectedModel?.name}</div>
-              </div>
-            </div>
+            <Stats columns={4}>
+              <Stat value={<CountUp value={insights.bestScore} />} label="Best score" sub={periodInfo.span} tone="good" />
+              <Stat value={<CountUp value={insights.worstScore} />} label="Worst score" sub={`${insights.variance} pt range`} tone="bad" />
+              <Stat value={<CountUp value={insights.avgScore} />} label="Average score" sub={`${modeLabel} suite`} />
+              <Stat value={<CountUp value={insights.dataPoints} />} label="Data points" sub={modelName} />
+            </Stats>
           )}
 
-          {/* Chart panel */}
-          <div className="rv4-panel" style={{ marginBottom: '16px' }}>
-            <div className="rv4-panel-header">
-              <span className="rv4-panel-title">
-                📈 PERFORMANCE TIMELINE — {modeLabel}
-              </span>
-              <span style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
-                {selectedModel?.displayName || selectedModel?.name || 'Select a model'} • {period === 'latest' ? 'LATEST' : period.toUpperCase()}
-              </span>
-            </div>
-            <div className="rv4-panel-body" style={{ padding: '10px 14px' }}>
-              {loading ? (
-                <div className="rv4-loading" style={{ minHeight: '200px' }}>
-                  <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
-                  <span>ANALYZING PERFORMANCE DATA</span>
-                </div>
-              ) : isEmpty ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: '250px',
-                  gap: '8px',
-                }}>
-                  <div style={{ fontSize: '2em' }}>📊</div>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)', letterSpacing: '0.5px' }}>
-                    {scoringMode === 'reasoning' && period === '24h'
-                      ? 'REASONING DATA UNAVAILABLE FOR 24H'
-                      : scoringMode === 'tooling' && period === '24h'
-                        ? 'TOOLING DATA UNAVAILABLE FOR 24H'
-                        : 'NO DATA AVAILABLE FOR THIS PERIOD'}
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)' }}>
-                    {scoringMode === 'reasoning' && period === '24h'
-                      ? 'Deep reasoning tests run daily. Try 7D for data.'
-                      : scoringMode === 'tooling' && period === '24h'
-                        ? 'Tool calling tests run daily. Try 7D for data.'
-                        : 'Try selecting a different time period or benchmark suite.'}
-                  </div>
-                  {(period === '24h') && (
-                    <button
-                      onClick={() => setPeriod('7d')}
-                      className="rv4-ctrl-btn primary"
-                      style={{ marginTop: '8px', fontSize: '10px', padding: '6px 14px' }}
-                    >
-                      VIEW 7-DAY DATA →
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <PerformanceChart
-                  data={chartData}
-                  chartType="historical"
-                  height={380}
-                  showLegend={false}
-                  showMinMax={false}
-                  xAxisInterval="preserveStartEnd"
-                  yAxisLabel="SCORE"
-                  lineColor="#1a73e8"
-                />
-              )}
-            </div>
-          </div>
+          {/* Chart */}
+          <Pane
+            className="sa-perf"
+            title="Performance timeline"
+            sub={`${modeLabel} score · ${modelName || 'Select a model'} · ${periodInfo.label}`}
+            ruled
+          >
+            {loading ? (
+              <Loader label="Analyzing performance data" minHeight={300} />
+            ) : isEmpty ? (
+              <Empty
+                title={scoringMode === 'reasoning' && period === '24h'
+                  ? 'Reasoning data unavailable for 24 hours'
+                  : scoringMode === 'tooling' && period === '24h'
+                    ? 'Tool use data unavailable for 24 hours'
+                    : 'No data available for this period'}
+                actions={period === '24h' && (
+                  <button type="button" onClick={() => setPeriod('7d')} className="st-btn is-primary">
+                    View 7-day data <span className="st-ar" aria-hidden="true">→</span>
+                  </button>
+                )}
+              >
+                {scoringMode === 'reasoning' && period === '24h'
+                  ? 'Deep reasoning tests run daily. Try 7 days for data.'
+                  : scoringMode === 'tooling' && period === '24h'
+                    ? 'Tool calling tests run daily. Try 7 days for data.'
+                    : 'Try selecting a different time period or benchmark suite.'}
+              </Empty>
+            ) : (
+              <PerformanceChart
+                data={chartData}
+                chartType="historical"
+                height={380}
+                showLegend={false}
+                showMinMax={false}
+                xAxisInterval="preserveStartEnd"
+                yAxisLabel="Score"
+                lineColor="var(--lp-accent)"
+              />
+            )}
+          </Pane>
 
           {/* Warning for reasoning/tooling with limited data */}
           {(scoringMode === 'reasoning' || scoringMode === 'tooling') && insights && insights.dataPoints < 5 && (
-            <div className="rv4-info-banner amber" style={{ marginBottom: '14px', padding: '12px 14px' }}>
-              <span className="rv4-info-banner-icon" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 'bold' }}>[NOTE]</span>
-              <div className="rv4-info-banner-content">
-                <div className="rv4-info-banner-title">LIMITED DATA FOR {modeLabel}</div>
-                <div className="rv4-info-banner-text">
-                  {scoringMode === 'reasoning'
-                    ? 'Reasoning tests run once daily at 3:00 AM UTC. For hourly patterns, switch to CODING.'
-                    : 'Tool calling tests run once daily at 4:00 AM UTC. For hourly patterns, switch to CODING.'}
-                </div>
-              </div>
-            </div>
+            <Note tone="warn" title={`Limited data for ${modeLabel.toLowerCase()}`}>
+              {scoringMode === 'reasoning'
+                ? 'Reasoning tests run once daily at 3:00 AM UTC. For hourly patterns, switch to Coding.'
+                : 'Tool calling tests run once daily at 4:00 AM UTC. For hourly patterns, switch to Coding.'}
+            </Note>
           )}
 
           {/* Canonical score info */}
           {canonicalScore !== null && (
-            <div className="rv4-info-banner green" style={{ marginBottom: '14px', padding: '12px 14px' }}>
-              <span className="rv4-info-banner-icon" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', fontWeight: 'bold' }}>[SCORE]</span>
-              <div className="rv4-info-banner-content">
-                <div className="rv4-info-banner-title">CURRENT {modeLabel} SCORE: {canonicalScore}</div>
-                <div className="rv4-info-banner-text">
-                  Canonical score from the latest benchmark run, consistent with /models/{selectedModelId}
-                </div>
-              </div>
-            </div>
+            <Note title={`Current ${modeLabel.toLowerCase()} score: ${canonicalScore}`}>
+              Canonical score from the latest benchmark run, consistent with{' '}
+              <Link href={`/models/${selectedModelId}`}>/models/{selectedModelId}</Link>
+            </Note>
           )}
         </div>
       </SubscriptionGuard>

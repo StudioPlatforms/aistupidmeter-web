@@ -20,18 +20,20 @@
  */
 
 import { useEffect, useState } from 'react';
+import ProviderLogo from '../ProviderLogo';
+import '../../styles/studio-boards.css';
 
 interface ProviderStripProps {
   modelScores: any[];
 }
 
 const PROVIDERS = [
-  { key: 'openai', label: 'GPT', dot: 'openai' },
-  { key: 'anthropic', label: 'CLAUDE', dot: 'anthropic' },
-  { key: 'google', label: 'GEMINI', dot: 'google' },
-  { key: 'deepseek', label: 'DEEPSEEK', dot: 'deepseek' },
-  { key: 'glm', label: 'GLM', dot: 'glm' },
-  { key: 'kimi', label: 'KIMI', dot: 'kimi' },
+  { key: 'openai', label: 'GPT' },
+  { key: 'anthropic', label: 'Claude' },
+  { key: 'google', label: 'Gemini' },
+  { key: 'deepseek', label: 'DeepSeek' },
+  { key: 'glm', label: 'GLM' },
+  { key: 'kimi', label: 'Kimi' },
 ];
 
 export interface Health { status: string; responseTime: number | null; lastChecked: string | null; error: string | null }
@@ -58,20 +60,22 @@ export function useProviderHealth(): Record<string, Health> | null {
   return health;
 }
 
-/** OK / SLOW / DOWN for one provider's probe, or null when there is nothing to say. */
-export function providerStatus(h: Health | undefined): { label: string; color: string; title: string } | null {
+/** OK / Slow / Down for one provider's probe, or null when there is nothing to say. `tone` is the
+ *  status colour's name (styles/studio-boards.css .sl-status.is-good / is-warn / is-bad). */
+export function providerStatus(h: Health | undefined): { label: string; color: string; tone: 'good' | 'warn' | 'bad'; title: string } | null {
   if (!h || !h.status || h.status === 'unknown') return null;
   if (h.status === 'operational') {
     return {
       label: 'OK',
-      color: 'var(--phosphor-green)',
+      color: 'var(--lp-good)',
+      tone: 'good',
       title: `Answered our last check${h.responseTime ? ` in ${(h.responseTime / 1000).toFixed(1)}s` : ''}`,
     };
   }
   if (h.status === 'degraded') {
-    return { label: 'SLOW', color: 'var(--amber-warning)', title: 'Answered, but slowly' };
+    return { label: 'Slow', color: 'var(--lp-warn)', tone: 'warn', title: 'Answered, but slowly' };
   }
-  return { label: 'DOWN', color: 'var(--red-alert)', title: h.error ? h.error.slice(0, 120) : 'Did not answer our last check' };
+  return { label: 'Down', color: 'var(--lp-bad)', tone: 'bad', title: h.error ? h.error.slice(0, 120) : 'Did not answer our last check' };
 }
 
 export default function ProviderStrip({ modelScores }: ProviderStripProps) {
@@ -83,20 +87,19 @@ export default function ProviderStrip({ modelScores }: ProviderStripProps) {
   const render = (key: string) => providerStatus(health?.[key]);
 
   return (
-    <div className="v4-prov-strip">
+    <div className="sl-pstrip" aria-label="Provider availability">
       {activeProviders.map(p => {
         const s = render(p.key);
         return (
           <a
             key={p.key}
-            className="v4-prov-chip"
+            className="sl-pchip"
             href="/status"
             title={s ? `${p.label}: ${s.title}` : `${p.label}: availability unknown`}
-            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            <div className={`v4-prov-dot ${p.dot}`} style={{ width: '6px', height: '6px' }}></div>
-            {p.label}{' '}
-            {s && <span className="status" style={{ color: s.color }}>{s.label}</span>}
+            <span className="sl-logo is-xs" aria-hidden="true"><ProviderLogo provider={p.key} size={12} /></span>
+            {p.label}
+            {s && <span className={`sl-status is-${s.tone}`}>{s.label}</span>}
           </a>
         );
       })}

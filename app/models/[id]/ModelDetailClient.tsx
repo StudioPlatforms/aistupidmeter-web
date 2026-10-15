@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
@@ -8,13 +9,18 @@ import { useSession } from 'next-auth/react';
 import '../../../styles/vintage.css';
 import '../../../styles/v4-layout.css';
 import '../../../styles/model-detail-v4.css';
+import '../../../styles/studio-model.css';
+
+// The studio look (landing tokens, type, panes) for a public page under the site's own top bar
+import StudioPage from '../../../components/studio/StudioPage';
+import { Loader, Empty } from '../../../components/studio';
 
 // V4 components (shared with main page)
 import { TopBar } from '../../../components/v4';
 import MobileNav from '../../../components/v4/MobileNav';
 
 // Model-detail specific components
-import ModelDetailHeader from '../../../components/model-detail/ModelDetailHeader';
+import ModelDetailHeader, { ModelHero } from '../../../components/model-detail/ModelDetailHeader';
 import ModelDetailStatBar from '../../../components/model-detail/ModelDetailStatBar';
 import ModelDetailSuiteTasks from '../../../components/model-detail/ModelDetailSuiteTasks';
 import { isPlan, type Plan } from '../../../lib/entitlements';
@@ -143,8 +149,10 @@ const getTrendFromHistory = (history: HistoryPoint[]): string => {
   if (older.length === 0) return 'stable';
   const recentAvg = recent.reduce((s, h) => s + h.stupidScore, 0) / recent.length;
   const olderAvg = older.reduce((s, h) => s + h.stupidScore, 0) / older.length;
-  if (recentAvg < olderAvg - 5) return 'up';
-  if (recentAvg > olderAvg + 5) return 'down';
+  // History arrives newest first, so `recent` is the latest runs: a lower average is a decline.
+  // (These two returns were swapped, so a model that dropped 5+ points read "Trend: up".)
+  if (recentAvg < olderAvg - 5) return 'down';
+  if (recentAvg > olderAvg + 5) return 'up';
   return 'stable';
 };
 
@@ -170,6 +178,8 @@ interface ModelDetailClientProps {
   initialName: string;
   initialDisplayName?: string | null;
   initialVendor: string;
+  /** Whether this visitor may see the newest run (the "Latest" period). Decided on the server. */
+  latestAllowed?: boolean;
 }
 
 export default function ModelDetailClient({
@@ -178,6 +188,7 @@ export default function ModelDetailClient({
   initialName,
   initialDisplayName,
   initialVendor,
+  latestAllowed = true,
 }: ModelDetailClientProps) {
   const router = useRouter();
 
@@ -193,7 +204,8 @@ export default function ModelDetailClient({
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   // UI states
-  const [selectedPeriod, setSelectedPeriod] = useState<HistoricalPeriod>('latest');
+  // Visitors and free accounts open on 24 hours: the newest run is a paid view (lib/capabilities).
+  const [selectedPeriod, setSelectedPeriod] = useState<HistoricalPeriod>(latestAllowed ? 'latest' : '24h');
   const [selectedScoringMode, setSelectedScoringMode] = useState<ScoringMode>('combined');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -201,7 +213,7 @@ export default function ModelDetailClient({
 
   // Pro modal
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot' | 'latest-scores'>('historical-data');
 
   // Visitor counts (same as main page TopBar)
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
@@ -383,7 +395,8 @@ export default function ModelDetailClient({
       if (latest !== null) return latest;
     }
     if (stats?.currentScore && typeof stats.currentScore === 'number') return stats.currentScore;
-    if (modelDetails?.latestScore?.displayScore) return modelDetails.latestScore.displayScore;
+    // The model record's latest score is the paid "Latest" view; never a fallback for anyone else.
+    if (latestAllowed && modelDetails?.latestScore?.displayScore) return modelDetails.latestScore.displayScore;
     return 0;
   };
 
@@ -438,55 +451,61 @@ export default function ModelDetailClient({
   const axesData = calculatePeriodAxes() || modelDetails?.latestScore?.axes || null;
 
   // ─── Loading Screen ─────────────────────────────────────────────────────────
+  // The model's name and provider are known from the server, so the hero stands while the data
+  // loads and only the body below it waits.
 
-  if (loading) {
-    const progressBg = loadingProgress < 30 ? 'var(--red-alert)' : loadingProgress < 70 ? 'var(--amber-warning)' : 'var(--phosphor-green)';
-    return (
-      <div className="md-loading" data-page-loading>
-        <div className="md-loading-inner">
-          <div className="md-loading-title">
-            {(initialDisplayName || initialName || slug).toUpperCase().replace(/-/g, ' ')}
-          </div>
-          <div className="md-progress-track">
-            <div className="md-progress-fill" style={{ width: `${loadingProgress}%`, background: progressBg }} />
-          </div>
-          <div className="md-progress-info">
-            <span style={{ color: 'var(--phosphor-dim)', fontSize: '10px' }}>PROGRESS</span>
-            <span style={{ color: 'var(--phosphor-green)', fontWeight: 'bold', fontSize: '10px' }}>{loadingProgress}%</span>
-          </div>
-          <div className="md-loading-stage">{loadingStage}</div>
-          <div className="vintage-loading" style={{ fontSize: '14px' }}></div>
-          {loadingAttempts > 0 && (
-            <div className="md-loading-attempt">
-              <span style={{ color: 'var(--phosphor-dim)' }}>Attempt: </span>
-              <span style={{ color: 'var(--amber-warning)', fontWeight: 'bold' }}>{loadingAttempts + 1}/10</span>
+  const renderLoading = () => (
+    <>
+      <ModelHero
+        provider={initialVendor}
+        title={initialDisplayName || (initialName || slug).replace(/-/g, ' ')}
+        meta={<span className="st-skel sm-meta-skel" aria-hidden="true" />}
+      />
+      <div className="st-body">
+        <div className="st-pane sm-loading" data-page-loading aria-busy="true">
+          <Loader label={loadingStage} />
+          <div className="sm-progress">
+            <div
+              className="sm-progress-bar"
+              role="progressbar"
+              aria-label="Loading progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={loadingProgress}
+            >
+              <i style={{ width: `${loadingProgress}%` }} />
             </div>
-          )}
-          {loadingAttempts >= 3 && (
-            <div style={{ marginTop: '12px', fontSize: '10px', color: 'var(--phosphor-dim)', lineHeight: '1.5' }}>
-              Waiting for benchmark data to be available...
-            </div>
-          )}
+            <div className="sm-progress-l"><span>Progress</span><b>{loadingProgress}%</b></div>
+            {loadingAttempts > 0 && (
+              <p>Attempt <b>{loadingAttempts + 1}/10</b></p>
+            )}
+            {loadingAttempts >= 3 && (
+              <p>Waiting for benchmark data to be available...</p>
+            )}
+          </div>
         </div>
       </div>
-    );
-  }
+    </>
+  );
 
   // ─── Error Screen ────────────────────────────────────────────────────────────
 
-  if (!modelDetails) {
-    return (
-      <div className="md-error">
-        <div className="md-error-inner">
-          <div className="md-error-title">MODEL NOT FOUND</div>
-          <div className="md-error-text">The requested model could not be located in our database.</div>
-          <button onClick={() => router.push('/')} className="vintage-btn" style={{ padding: '10px 24px' }}>
-            ← RETURN TO DASHBOARD
-          </button>
-        </div>
+  const renderNotFound = () => (
+    <div className="st-body">
+      <div className="st-pane sm-missing">
+        <Empty
+          title="Model not found"
+          actions={
+            <Link href="/" className="st-btn is-primary">
+              <span aria-hidden="true">←</span> Return to the dashboard
+            </Link>
+          }
+        >
+          The requested model could not be located in our database.
+        </Empty>
       </div>
-    );
-  }
+    </div>
+  );
 
   // ─── Main Render ─────────────────────────────────────────────────────────────
 
@@ -495,28 +514,18 @@ export default function ModelDetailClient({
   // reasoning component from anyone who looks.
   const lastUpdatedStr = stats?.lastUpdated
     ? formatTimeAgo(stats.lastUpdated)
-    : modelDetails.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts) : 'Unknown';
+    : modelDetails?.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts) : 'Unknown';
   const SUITE_LABEL: Record<string, string> = { hourly: 'coding', deep: 'reasoning', tooling: 'tools' };
   const suiteAges = stats?.suiteUpdatedAt
     ? ['hourly', 'deep', 'tooling'].filter(s => stats.suiteUpdatedAt![s]).map(s => `${SUITE_LABEL[s]} ${formatTimeAgo(stats.suiteUpdatedAt![s])}`)
     : [];
   const lastUpdatedTitle = suiteAges.length ? suiteAges.join(' · ') : undefined;
 
-  return (
-    <div>
-      {/* Shared top bar (same as main dashboard) */}
-      <TopBar
-        selectedView="dashboard"
-        onViewChange={(view) => {
-          if (view === 'about') router.push('/about');
-          else if (view === 'faq') router.push('/faq');
-          else router.push('/');
-        }}
-        visitorCount={visitorCount}
-        todayVisits={todayVisits}
-      />
-
-      {/* Model-specific header */}
+  const renderPage = (modelDetails: ModelDetails) => (
+    <>
+      {/* Model hero. Track this model — the activation event the whole retention plan
+          hangs on — is its primary action. Works signed-out: it routes to sign-up with the
+          intent preserved rather than doing nothing. */}
       <ModelDetailHeader
         modelName={modelDetails.name}
         displayName={modelDetails.displayName}
@@ -528,165 +537,184 @@ export default function ModelDetailClient({
         isRefreshing={isRefreshing}
         onToggleAutoRefresh={() => setAutoRefresh(prev => !prev)}
         onRefresh={() => fetchModelData(true)}
+        primaryAction={<TrackModelButton modelId={modelId} modelName={modelDetails.name} />}
       />
 
-      {/* Track this model — the activation event the whole retention plan
-          hangs on. Works signed-out: it routes to sign-up with the intent
-          preserved rather than doing nothing. */}
-      <div style={{ margin: '0 0 16px 0' }}>
-        <TrackModelButton modelId={modelId} modelName={modelDetails.name} />
-      </div>
+      <div className="st-body">
+        {/* Reasoning / tool-use tests the community funds for this model: says so, explains it once,
+            and lets a signed-in visitor fund today's run. Renders nothing for other models. */}
+        {modelDetails.communitySuites && (
+          <ModelDetailCommunityFunding
+            modelId={modelDetails.id}
+            modelName={modelDetails.displayName || modelDetails.name}
+            vendor={modelDetails.vendor}
+            signedIn={Boolean(session?.user)}
+          />
+        )}
 
-      {/* Reasoning / tool-use tests the community funds for this model: says so, explains it once,
-          and lets a signed-in visitor fund today's run. Renders nothing for other models. */}
-      {modelDetails.communitySuites && (
-        <ModelDetailCommunityFunding
-          modelId={modelDetails.id}
-          modelName={modelDetails.displayName || modelDetails.name}
-          vendor={modelDetails.vendor}
-          signedIn={Boolean(session?.user)}
-        />
-      )}
-
-      {/* KPI stat bar */}
-      <ModelDetailStatBar
-        currentScore={currentScore}
-        status={status}
-        totalRuns={stats?.totalRuns || 0}
-        successRate={stats?.successRate || 0}
-        averageLatency={stats?.averageLatency || 0}
-        averageCorrectness={stats?.averageCorrectness || 0}
-        lastUpdated={lastUpdatedStr}
-        lastUpdatedNote={suiteAges.length > 1 ? 'latest suite run' : 'benchmark time'}
-        lastUpdatedTitle={lastUpdatedTitle}
-        coverage={stats?.coverage ?? null}
-        staleReason={stats?.staleReason ?? null}
-      />
-
-      {/* Period + Scoring mode controls */}
-      <ModelDetailControls
-        selectedPeriod={selectedPeriod}
-        selectedScoringMode={selectedScoringMode}
-        hasProAccess={hasProAccess}
-        isRefreshing={isRefreshing}
-        onPeriodChange={setSelectedPeriod}
-        onScoringModeChange={setSelectedScoringMode}
-        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-      />
-
-      {/* Performance chart */}
-      <ModelDetailChart
-        history={history?.history || []}
-        selectedPeriod={selectedPeriod}
-        selectedScoringMode={selectedScoringMode}
-        onSwitchPeriod={setSelectedPeriod}
-      />
-
-      {/* Where each suite's detector stands — armed with its statistic, or still warming up (free) */}
-      <ModelDetailDriftStatus modelId={modelId} focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null} />
-
-      {/* Page-Hinkley CUSUM drift curve (Pro) */}
-      <ModelDetailCusum
-        modelId={modelId}
-        initialSuite={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : 'hourly'}
-        hasProAccess={hasProAccess}
-        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-      />
-
-      {/* Per-task regressions (coding suite). Sits directly under the CUSUM curve because it
-          answers the question that curve raises but cannot resolve: the composite
-          moved (or did not) — which task actually changed? */}
-      {(selectedScoringMode === 'combined' || selectedScoringMode === 'speed') && (
-        <ModelDetailSliceRegressions modelId={modelId} includeResolved />
-      )}
-
-      {/* What the model was asked in each suite's last run, and what happened — per task,
-          following the scoring mode (COMBINED shows all three suites). For repo debugging
-          tasks it is the only place on the site where "fixed the defect" and "silenced the
-          symptom it was shown" are told apart. */}
-      <ModelDetailSuiteTasks
-        modelId={modelId}
-        mode={selectedScoringMode}
-        plan={plan}
-        hasProAccess={hasProAccess}
-        onShowProModal={() => { setProModalFeature('performance-matrix'); setShowProModal(true); }}
-      />
-
-      {/* How much the model writes per suite, against the fleet on the same tasks. After the
-          suite tables because those show the tokens each task was billed for; this separates
-          the words a reader actually gets back from the reasoning inside that bill. Free. */}
-      <ModelDetailVerbosity
-        modelId={modelId}
-        focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null}
-      />
-
-      {/* Calibration and known-unknowns. Sits after the suite tables because it answers
-          the question they cannot: the model did or did not solve the task — but when it
-          has no way of knowing, does it say so, or invent something and sound sure? */}
-      <ModelDetailCalibration
-        modelId={modelId}
-        plan={plan}
-        hasProAccess={hasProAccess}
-        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-      />
-
-      {/* Context rot (pilot): how far the context window really goes. A measurement panel, so it
-          sits with calibration, before the decision panels. On a model outside the pilot it says
-          so in one line instead of offering an upgrade that would unlock nothing. */}
-      <ModelDetailContextRot
-        modelName={modelDetails.name}
-        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-      />
-
-      {/* Cheaper models that can do this one's work, and what switching costs in failed
-          requests. Placed directly after calibration because both are decision panels
-          rather than measurement panels: everything above says how this model behaves,
-          these two say what to do about it. */}
-      <ModelDetailSubstitutes
-        modelId={modelId}
-        plan={plan}
-        hasProAccess={hasProAccess}
-        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-      />
-
-      {/* Runs other people made with their own API keys. Deliberately placed AFTER every
-          measured panel and clearly labelled: these are individual samples on individual
-          keys, not ranking data, and they used to be written into `scores` where they
-          could displace the published number. Renders nothing when nobody has tested. */}
-      <ModelDetailCommunityTests
-        modelName={modelDetails.name}
-        publishedScore={currentScore}
-      />
-
-      {/* Two-column: Quick Stats + Pricing */}
-      <div className="md-info-grid">
-        <ModelDetailQuickStats
+        {/* KPI stat bar */}
+        <ModelDetailStatBar
           currentScore={currentScore}
           status={status}
           totalRuns={stats?.totalRuns || 0}
           successRate={stats?.successRate || 0}
           averageLatency={stats?.averageLatency || 0}
           averageCorrectness={stats?.averageCorrectness || 0}
-          selectedPeriod={selectedPeriod}
+          lastUpdated={lastUpdatedStr}
+          lastUpdatedNote={suiteAges.length > 1 ? 'latest suite run' : 'benchmark time'}
+          lastUpdatedTitle={lastUpdatedTitle}
+          coverage={stats?.coverage ?? null}
+          staleReason={stats?.staleReason ?? null}
         />
-        <ModelDetailPricing
+
+        {/* Period + Scoring mode controls */}
+        <ModelDetailControls
+          selectedPeriod={selectedPeriod}
+          selectedScoringMode={selectedScoringMode}
+          hasProAccess={hasProAccess}
+          isRefreshing={isRefreshing}
+          onPeriodChange={setSelectedPeriod}
+          onScoringModeChange={setSelectedScoringMode}
+          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+          latestAllowed={latestAllowed}
+        />
+
+        {/* Performance chart */}
+        <ModelDetailChart
+          history={history?.history || []}
+          selectedPeriod={selectedPeriod}
+          selectedScoringMode={selectedScoringMode}
+          onSwitchPeriod={setSelectedPeriod}
+        />
+
+        {/* Where each suite's detector stands — armed with its statistic, or still warming up (free) */}
+        <ModelDetailDriftStatus modelId={modelId} focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null} />
+
+        {/* Page-Hinkley CUSUM drift curve (Pro) */}
+        <ModelDetailCusum
+          modelId={modelId}
+          initialSuite={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : 'hourly'}
+          hasProAccess={hasProAccess}
+          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+        />
+
+        {/* Per-task regressions (coding suite). Sits directly under the CUSUM curve because it
+            answers the question that curve raises but cannot resolve: the composite
+            moved (or did not) — which task actually changed? */}
+        {(selectedScoringMode === 'combined' || selectedScoringMode === 'speed') && (
+          <ModelDetailSliceRegressions modelId={modelId} includeResolved />
+        )}
+
+        {/* What the model was asked in each suite's last run, and what happened — per task,
+            following the scoring mode (COMBINED shows all three suites). For repo debugging
+            tasks it is the only place on the site where "fixed the defect" and "silenced the
+            symptom it was shown" are told apart. */}
+        <ModelDetailSuiteTasks
+          modelId={modelId}
+          mode={selectedScoringMode}
+          plan={plan}
+          hasProAccess={hasProAccess}
+          onShowProModal={() => { setProModalFeature('performance-matrix'); setShowProModal(true); }}
+          latestAllowed={latestAllowed}
+          onShowLatestModal={() => { setProModalFeature('latest-scores'); setShowProModal(true); }}
+        />
+
+        {/* How much the model writes per suite, against the fleet on the same tasks. After the
+            suite tables because those show the tokens each task was billed for; this separates
+            the words a reader actually gets back from the reasoning inside that bill. Free. */}
+        <ModelDetailVerbosity
+          modelId={modelId}
+          focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null}
+        />
+
+        {/* Calibration and known-unknowns. Sits after the suite tables because it answers
+            the question they cannot: the model did or did not solve the task — but when it
+            has no way of knowing, does it say so, or invent something and sound sure? */}
+        <ModelDetailCalibration
+          modelId={modelId}
+          plan={plan}
+          hasProAccess={hasProAccess}
+          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+        />
+
+        {/* Context rot (pilot): how far the context window really goes. A measurement panel, so it
+            sits with calibration, before the decision panels. On a model outside the pilot it says
+            so in one line instead of offering an upgrade that would unlock nothing. */}
+        <ModelDetailContextRot
           modelName={modelDetails.name}
-          provider={modelDetails.vendor}
-          currentScore={currentScore}
-          modelId={modelDetails.id}
+          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+        />
+
+        {/* Cheaper models that can do this one's work, and what switching costs in failed
+            requests. Placed directly after calibration because both are decision panels
+            rather than measurement panels: everything above says how this model behaves,
+            these two say what to do about it. */}
+        <ModelDetailSubstitutes
+          modelId={modelId}
+          plan={plan}
+          hasProAccess={hasProAccess}
+          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+        />
+
+        {/* Runs other people made with their own API keys. Deliberately placed AFTER every
+            measured panel and clearly labelled: these are individual samples on individual
+            keys, not ranking data, and they used to be written into `scores` where they
+            could displace the published number. Renders nothing when nobody has tested. */}
+        <ModelDetailCommunityTests
+          modelName={modelDetails.name}
+          publishedScore={currentScore}
+        />
+
+        {/* Two-column: Quick Stats + Pricing */}
+        <div className="st-grid is-stretch sm-info">
+          <ModelDetailQuickStats
+            currentScore={currentScore}
+            status={status}
+            totalRuns={stats?.totalRuns || 0}
+            successRate={stats?.successRate || 0}
+            averageLatency={stats?.averageLatency || 0}
+            averageCorrectness={stats?.averageCorrectness || 0}
+            selectedPeriod={selectedPeriod}
+          />
+          <ModelDetailPricing
+            modelName={modelDetails.name}
+            provider={modelDetails.vendor}
+            currentScore={currentScore}
+            modelId={modelDetails.id}
+          />
+        </div>
+
+        {/* Performance matrix (adapts to scoring mode + period) */}
+        <ModelDetailMatrix
+          scoringMode={selectedScoringMode}
+          selectedPeriod={selectedPeriod}
+          axesData={axesData}
+          hasProAccess={hasProAccess}
+          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
         />
       </div>
+    </>
+  );
 
-      {/* Performance matrix (adapts to scoring mode + period) */}
-      <ModelDetailMatrix
-        scoringMode={selectedScoringMode}
-        selectedPeriod={selectedPeriod}
-        axesData={axesData}
-        hasProAccess={hasProAccess}
-        onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+  return (
+    <div>
+      {/* Shared top bar (same as main dashboard). It stands through loading too, so the page
+          never jumps when the data arrives. */}
+      <TopBar
+        selectedView="dashboard"
+        onViewChange={(view) => {
+          if (view === 'about') router.push('/about');
+          else if (view === 'faq') router.push('/faq');
+          else router.push('/');
+        }}
+        visitorCount={visitorCount}
+        todayVisits={todayVisits}
       />
 
-      {/* Footer */}
+      {/* Everything under the site's top bar is in the studio look. */}
+      <StudioPage className="sm-page">
+        {loading ? renderLoading() : !modelDetails ? renderNotFound() : renderPage(modelDetails)}
+      </StudioPage>
 
       {/* One navigation for the whole site.
           This page used to carry its own six-button bar with a second,

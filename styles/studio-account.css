@@ -1,0 +1,299 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · ACCOUNT — the person's own pages in the landing's look:
+   /account/settings, /account/billing and /watchlist (class prefix sc-).
+
+   Signed in, these pages render inside the app shell, so every rule for
+   them is scoped under .st and reads the shared --lp-* tokens there.
+   Signed out, AccountShell renders them WITHOUT the shell (public top bar
+   + phone bottom nav), so their guest states wrap themselves in the
+   landing scope (.lp.sc-guest) instead — see the end of this file.
+
+   Traps (see studio.css): clean-theme kills animation on any class with
+   pulse/marquee/shine/flicker/glitch/typewriter/scanline in its name, and
+   forces the code font on classes containing api-key, code-block,
+   snippet, curl or token-display. None of those words appear below.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── switch: a real checkbox (role="switch") under a drawn track ────── */
+/* The input stays the hit target and keeps keyboard + screen-reader
+   behaviour; the <i> after it draws the track and knob, so nothing
+   depends on pseudo-elements on an <input>. */
+.st .sc-sw { position: relative; flex: none; display: inline-block; width: 44px; height: 26px; margin: 0; }
+.st .sc-sw input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.st .sc-sw i { position: absolute; inset: 0; border-radius: 999px; background: color-mix(in srgb, var(--lp-fg) 18%, transparent); pointer-events: none; transition: background-color .2s; }
+.st .sc-sw i::before { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--lp-card); box-shadow: var(--lp-shadow-1); transition: transform .25s var(--lp-ease), background-color .2s; }
+.st .sc-sw input:checked + i { background: var(--lp-accent); }
+.st .sc-sw input:checked + i::before { transform: translateX(18px); background: var(--lp-on-accent); }
+.st .sc-sw input:hover:not(:disabled):not(:checked) + i { background: color-mix(in srgb, var(--lp-fg) 26%, transparent); }
+.st .sc-sw input:focus-visible + i { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
+.st .sc-sw input:disabled { cursor: not-allowed; }
+.st .sc-sw input:disabled + i { opacity: .45; }
+[data-theme='dark'] .st .sc-sw i::before { background: var(--lp-fg2); }
+[data-theme='dark'] .st .sc-sw input:checked + i::before { background: var(--lp-on-accent); }
+
+/* ── settings rows: what it does on the left, the control on the right ─ */
+.st .sc-sets { display: grid; }
+.st .sc-set { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-width: 0; padding: 15px 0; border-top: 1px solid var(--lp-line); }
+.st .sc-sets > .sc-set:first-child { border-top: 0; padding-top: 2px; }
+.st .sc-sets > .sc-set:last-child { padding-bottom: 0; }
+/* .st-toggle labels the whole row, so the row is the tap target */
+.st .st-toggle.sc-set { align-items: center; cursor: pointer; }
+.st .sc-set-text { display: block; flex: 1 1 auto; min-width: 0; margin: 0; font-size: 13px; color: var(--lp-fg2); }
+.st .sc-set-text b { display: block; font-size: 14.5px; font-weight: 600; line-height: 1.4; color: var(--lp-fg); }
+.st .sc-set-text > span, .st .sc-set-text > small { display: block; margin-top: 3px; max-width: 62ch; font-size: 13px; line-height: 1.55; color: var(--lp-fg2); }
+.st .sc-set-text a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .sc-set-text label { cursor: default; }
+.st .sc-num-wrap { flex: none; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--lp-fg3); }
+.st .st-input.sc-num { width: 76px; height: 40px; padding: 0 10px; text-align: center; font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+
+/* ── settings: page layout ──────────────────────────────────────────── */
+.st .sc-anchor { scroll-margin-top: calc(var(--st-top) + 16px); }
+.st .sc-jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.st .sc-jump a { text-decoration: none !important; }
+.st .sc-top { display: grid; gap: 22px; align-items: start; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); grid-template-rows: auto 1fr; grid-template-areas: 'acct mail' 'always mail'; }
+.st .sc-top > .sc-a-acct { grid-area: acct; }
+.st .sc-top > .sc-a-mail { grid-area: mail; }
+.st .sc-top > .sc-a-always { grid-area: always; }
+
+/* account: who you are */
+.st .sc-me { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; column-gap: 14px; }
+.st .sc-me-av { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; background: var(--lp-accent-bg); color: var(--lp-accent); font-family: var(--lp-font-disp); font-size: 20px; font-weight: 700; }
+.st .sc-me-mail { font-family: var(--lp-font-disp); font-size: 17px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sc-me-state { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+.st .sc-verify { margin-top: 16px; }
+.st .sc-verify .st-actions { margin-top: 10px; }
+.st .sc-acct-kv { margin-top: 18px; }
+.st .sc-acct-kv dd { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.st .sc-acct-kv dd b { font-weight: 600; }
+
+/* ruled list with the mark's slant as bullets (the landing's lp-ticks) */
+.st .sc-ticks { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--lp-line); }
+.st .sc-ticks li { position: relative; padding: 11px 0 11px 30px; border-bottom: 1px solid var(--lp-line); font-size: 14px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sc-ticks li::before { content: ''; position: absolute; left: 2px; top: 20px; width: 14px; height: 3px; border-radius: 2px; background: var(--lp-accent); transform: skewX(-16deg); }
+.st .sc-ticks.is-bad li::before { background: var(--lp-bad); }
+.st .sc-ticks.is-plain { border-top: 0; }
+.st .sc-ticks.is-plain li:last-child { border-bottom: 0; padding-bottom: 2px; }
+
+/* which models email you: one small card per model, the whole card toggles */
+.st .sc-mgrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
+.st .sc-mcard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px; min-width: 0; padding: 12px 14px; border: 1px solid var(--lp-line); border-radius: 13px; background: var(--lp-card); cursor: pointer; transition: border-color .2s, background-color .2s; }
+.st .sc-mcard:hover { border-color: color-mix(in srgb, var(--lp-accent) 45%, var(--lp-line)); }
+.st .sc-mcard:has(input:checked) { border-color: color-mix(in srgb, var(--lp-accent) 40%, var(--lp-line)); background: var(--lp-win-bg); }
+.st .sc-mcard .sc-set-text b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st .sc-mcard .sc-set-text > span { margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* .st-toggle's blanket `span` rule must not reach the logo chip */
+.st .st-toggle .st-logo { display: grid; margin: 0; }
+
+/* leaderboard layout: LayoutSketch in st-cards, redrawn in the tokens */
+.st .sc-layouts { --min: 210px; }
+.st .st-card.sc-layout { gap: 10px; padding: 12px 12px 16px; }
+.st .sc-layout .st-card-t { padding: 4px 4px 0; }
+.st .sc-layout .st-card-d { padding: 0 4px; font-size: 13px; }
+.st .sc-layout .lbx-sketch { display: block; width: 100%; height: auto; aspect-ratio: 120 / 64; border-radius: 9px; background: var(--lp-sunk); transition: background-color .2s; }
+.st .sc-layout[aria-checked='true'] .lbx-sketch { background: color-mix(in srgb, var(--lp-accent) 9%, var(--lp-card)); }
+.st .sc-layout .lbx-sk { fill: var(--lp-line2); }
+.st .sc-layout .lbx-sk-strong { fill: var(--lp-fg3); opacity: .75; }
+.st .sc-layout .lbx-sk-card { fill: var(--lp-card); stroke: var(--lp-line2); stroke-width: 1; }
+.st .sc-layout .lbx-sk-card--soft { fill: var(--lp-bg); }
+.st .sc-layout .lbx-sk-line { fill: none; stroke: var(--lp-line2); stroke-width: 1.2; }
+.st .sc-layout .lbx-sk-hot { fill: none; stroke: var(--lp-accent); stroke-width: 1.8; }
+
+/* danger zone */
+.st .sc-danger { border-color: color-mix(in srgb, var(--lp-bad) 30%, var(--lp-line)); }
+.st .sc-danger .st-pane-title { display: flex; align-items: center; gap: 10px; }
+.st .sc-danger .st-pane-title::before { content: ''; flex: none; width: 16px; height: 4px; border-radius: 2px; background: var(--lp-bad); transform: skewX(-16deg); }
+.st .sc-danger-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
+.st .sc-danger-row .st-note { flex: 1 1 360px; }
+.st .sc-del { display: grid; gap: 16px; max-width: 760px; }
+.st .sc-del .st-text { margin: 0; }
+.st .sc-del-fields { display: grid; gap: 14px; max-width: 460px; }
+.st .sc-del .st-field-label b { font-weight: 700; overflow-wrap: anywhere; }
+
+/* saved / could-not-save: a quiet card at the corner, announced politely */
+.st .sc-toast-host { position: fixed; z-index: 90; right: 24px; bottom: 24px; display: flex; justify-content: flex-end; pointer-events: none; }
+.st .sc-toast { display: inline-flex; align-items: center; gap: 12px; max-width: min(460px, calc(100vw - 32px)); padding: 12px 18px 12px 14px; border: 1px solid var(--lp-line); border-radius: 13px; background: var(--lp-card); color: var(--lp-fg); font-size: 14px; font-weight: 500; line-height: 1.45; box-shadow: var(--lp-shadow-2); pointer-events: auto; animation: scToast .32s var(--lp-ease) both; }
+.st .sc-toast::before { content: ''; flex: none; width: 16px; height: 4px; border-radius: 2px; background: var(--lp-good); transform: skewX(-16deg); }
+.st .sc-toast.is-warn::before { background: var(--lp-warn); }
+@keyframes scToast { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ── billing ───────────────────────────────────────────────────────── */
+/* the current plan: the strong first pane — name and actions left, the plan's facts right */
+.st .sc-plan { overflow: hidden; }
+.st .sc-plan::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--lp-accent); }
+.st .sc-plan-body { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px clamp(28px, 4vw, 64px); align-items: start; padding: 26px 28px 28px; }
+.st .sc-plan-main { min-width: 0; }
+.st .sc-plan-name { margin: 12px 0 0; font-family: var(--lp-font-disp) !important; font-size: clamp(38px, 3.6vw, 56px); font-weight: 700; letter-spacing: -.04em; line-height: 1.02; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sc-plan .st-actions { margin-top: 22px; }
+.st .sc-plan-fine { margin: 18px 0 0; max-width: 60ch; font-size: 13px; line-height: 1.6; color: var(--lp-fg2); }
+.st .sc-plan-fine a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .sc-plan-kv { align-self: center; }
+.st .sc-plan-kv > div { grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr); padding: 11px 0; }
+.st .sc-plan-kv dd b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.st .sc-plan-legacy { grid-column: 1 / -1; }
+
+/* allowances: one cell per meter, figures in display type */
+.st .sc-meters { display: grid; gap: 22px 36px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.st .sc-meter { min-width: 0; }
+.st .sc-meter-l { font-size: 13.5px; color: var(--lp-fg2); }
+.st .sc-meter-v { margin: 8px 0 12px; font-size: 14px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st .sc-meter-v b { font-family: var(--lp-font-disp); font-size: clamp(26px, 2.2vw, 32px); font-weight: 700; letter-spacing: -.035em; color: var(--lp-fg); }
+.st .sc-meter-free { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--lp-good); }
+.st .sc-meter-free::before { content: ''; flex: none; width: 14px; height: 3px; border-radius: 2px; background: currentColor; transform: skewX(-16deg); }
+
+/* Smart Router credits: the rule on the left, the purchase on the right */
+.st .sc-credits { display: grid; gap: 24px 36px; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+.st .sc-credits .st-text { margin: 0; max-width: 66ch; }
+.st .sc-figs { display: flex; flex-wrap: wrap; gap: 14px 40px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--lp-line); }
+.st .sc-fig-v { font-family: var(--lp-font-disp); font-size: clamp(26px, 2.2vw, 34px); font-weight: 700; letter-spacing: -.035em; line-height: 1.05; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sc-fig-l { margin-top: 6px; font-size: 13px; color: var(--lp-fg2); }
+.st .sc-topup { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--lp-line); border-radius: 15px; background: var(--lp-sunk); }
+.st .sc-topup .st-label { margin-bottom: 0; }
+.st .sc-topup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.st .sc-topup .st-seg { background: var(--lp-card); }
+.st .sc-topup .st-seg button { height: 34px; padding: 0 16px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.st .sc-amount { position: relative; flex: 1 1 120px; min-width: 110px; max-width: 180px; }
+.st .sc-amount > span { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 600; color: var(--lp-fg2); pointer-events: none; }
+.st .sc-amount .st-input { height: 40px; padding-left: 28px; font-variant-numeric: tabular-nums; }
+.st .sc-topup .st-hint { margin: 0; }
+.st .sc-topup-note { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg); }
+
+/* change plan: the landing's pricing cards (lp-plans) on the canvas, under a section head */
+.st .sc-sec { display: grid; gap: 18px; min-width: 0; }
+.st .sc-sec-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 24px; }
+.st .sc-sec-head > div { min-width: 0; max-width: 78ch; }
+.st .sc-sec-t { margin: 10px 0 0; font-family: var(--lp-font-disp) !important; font-size: clamp(24px, 2vw, 30px); font-weight: 700; letter-spacing: -.03em; line-height: 1.12; color: var(--lp-fg); }
+.st .sc-sec-sub { margin-top: 8px; font-size: 14.5px; line-height: 1.6; color: var(--lp-fg2); }
+.st .sc-plans { box-shadow: none; }
+.st .sc-plans .lp-plan { padding: 24px 22px 24px; }
+.st .sc-plans .lp-plan-n { font-size: 18px; flex-wrap: wrap; }
+.st .sc-plans .lp-plan-p { margin-top: 16px; font-size: clamp(34px, 2.8vw, 42px); }
+.st .sc-plans .lp-plan-pitch { margin-top: 14px; font-size: 13.5px; }
+.st .sc-plans .st-btn { margin-top: 20px; width: 100%; align-self: start; }
+.st .sc-plans .lp-plan.is-pop { background: color-mix(in srgb, var(--lp-accent) 7%, var(--lp-card)); }
+.st .sc-plan-here { margin-top: 20px; height: 40px; display: flex; align-items: center; justify-content: center; gap: 9px; border-radius: 10px; background: var(--lp-accent-bg); color: var(--lp-accent); font-size: 14px; font-weight: 600; align-self: start; }
+.st .sc-plan-here::before { content: ''; width: 14px; height: 3px; border-radius: 2px; background: currentColor; transform: skewX(-16deg); }
+.st .sc-plan-soon { margin-top: 20px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--lp-line2); border-radius: 10px; font-size: 13.5px; font-weight: 500; color: var(--lp-fg3); align-self: start; }
+.st .sc-ent { margin-top: 0; }
+.st .sc-ent > p { flex: 1 1 420px; min-width: 0; }
+.st .sc-ent .st-btn, .st .sc-ent .sc-plan-here { margin-top: 0; padding: 0 18px; }
+.st .sc-ent .sc-plan-here { min-width: 140px; }
+.st .sc-sec > .st-hint { font-size: 13.5px; }
+
+/* ── watchlist ─────────────────────────────────────────────────────── */
+.st .st-stat-s .st-meter { margin-top: 6px; }
+.st .sc-stat-note { display: block; margin-top: 8px; }
+.st .sc-wl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.st .sc-wl th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600 !important; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: var(--lp-fg3) !important; border-bottom: 1px solid var(--lp-line); background: transparent; }
+.st .sc-wl td { padding: 14px 16px; vertical-align: middle; color: var(--lp-fg); border-bottom: 1px solid var(--lp-line); }
+.st .sc-wl tbody tr:last-child td { border-bottom: 0; }
+.st .sc-wl :is(th, td):first-child { padding-left: 22px; }
+.st .sc-wl :is(th, td):last-child { padding-right: 22px; text-align: right; }
+.st .sc-wl tbody tr { transition: background-color .18s; }
+.st .sc-wl tbody tr:hover { background: color-mix(in srgb, var(--lp-fg) 2.5%, transparent); }
+.st .sc-wl .is-num { text-align: right; }
+.st .sc-wl-model { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.st .sc-wl-id { min-width: 0; }
+.st .sc-wl-name { display: block; font-size: 15px; font-weight: 600; line-height: 1.3; color: var(--lp-fg) !important; text-decoration: none !important; overflow-wrap: anywhere; }
+.st .sc-wl-name:hover { color: var(--lp-accent) !important; }
+.st .sc-wl-vendor { display: block; margin-top: 2px; font-size: 12.5px; color: var(--lp-fg3); }
+.st .sc-wl-score { font-family: var(--lp-font-disp); font-size: 26px; font-weight: 700; letter-spacing: -.035em; line-height: 1; color: var(--lp-fg); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st .sc-wl-score.is-none { color: var(--lp-fg3); font-weight: 600; }
+.st .sc-wl-mail { display: inline-flex; align-items: center; gap: 10px; min-height: 40px; cursor: pointer; font-size: 13.5px; font-weight: 500; color: var(--lp-fg2); white-space: nowrap; }
+.st .sc-wl-foot { display: grid; gap: 6px; }
+.st .sc-wl-foot p { margin: 0; line-height: 1.55; }
+.st .sc-wl-foot a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .sc-star { color: var(--lp-warn); }
+.st .st-empty-p a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── responsive (signed in) ────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  .st .sc-credits { grid-template-columns: minmax(0, 1fr); }
+  .st .sc-topup { max-width: 560px; }
+}
+@media (max-width: 1100px) {
+  .st .sc-top { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: 'acct' 'mail' 'always'; }
+  .st .sc-plan-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .st .sc-jump { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .st .sc-jump::-webkit-scrollbar { display: none; }
+  .st .sc-jump .st-chip { height: 36px; }
+  .st .sc-top { gap: 16px; }
+  .st .sc-set { gap: 14px; padding: 14px 0; }
+  .st .sc-set-text b { font-size: 15px; }
+  .st .st-input.sc-num { font-size: 16px; }
+  .st .sc-me { grid-template-columns: 44px minmax(0, 1fr); column-gap: 12px; }
+  .st .sc-me-av { width: 44px; height: 44px; font-size: 18px; }
+  .st .sc-me-mail { font-size: 16px; }
+  .st .sc-mcard { padding: 12px; min-height: 60px; }
+  .st .st-card.sc-layout { display: grid; grid-template-columns: 104px minmax(0, 1fr); grid-template-areas: 'sk t' 'sk d'; align-items: center; column-gap: 14px; row-gap: 2px; padding: 10px 12px 10px 10px; }
+  .st .sc-layout .lbx-sketch { grid-area: sk; }
+  .st .sc-layout .st-card-t { grid-area: t; padding: 0; align-self: end; }
+  .st .sc-layout .st-card-d { grid-area: d; padding: 0; align-self: start; font-size: 12.5px; }
+  .st .sc-danger-row .st-btn, .st .sc-del-act .st-btn { flex: 1 1 100%; }
+  .st .sc-toast-host { left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); justify-content: center; }
+
+  .st .sc-plan-body { grid-template-columns: minmax(0, 1fr); padding: 20px 16px 20px; }
+  .st .sc-plan .st-actions .st-btn { flex: 1 1 auto; }
+  .st .sc-figs { gap: 14px 32px; }
+  .st .sc-topup { padding: 16px; }
+  .st .sc-topup-row .st-seg { flex: 1 1 100%; display: flex; }
+  .st .sc-topup-row .st-seg button { flex: 1; }
+  .st .sc-amount { max-width: none; }
+  .st .sc-plans .lp-plan { padding: 22px 18px 22px; }
+  .st .sc-ent { padding: 18px; }
+  .st .sc-ent .st-btn, .st .sc-ent .sc-plan-here { flex: 1 1 100%; }
+
+  /* the watchlist table becomes one card per model */
+  .st .sc-wl thead { display: none; }
+  .st .sc-wl, .st .sc-wl tbody { display: block; }
+  .st .sc-wl tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'model score' 'age age' 'mail act'; align-items: center; column-gap: 12px; row-gap: 10px; padding: 16px; border-bottom: 1px solid var(--lp-line); }
+  .st .sc-wl tbody tr:last-child { border-bottom: 0; }
+  .st .sc-wl td, .st .sc-wl :is(th, td):first-child, .st .sc-wl :is(th, td):last-child { display: block; padding: 0; border: 0; }
+  .st .sc-wl td.sc-c-model { grid-area: model; min-width: 0; }
+  .st .sc-wl td.sc-c-score { grid-area: score; align-self: start; }
+  .st .sc-wl td.sc-c-age { grid-area: age; }
+  .st .sc-wl td.sc-c-mail { grid-area: mail; }
+  .st .sc-wl td.sc-c-act { grid-area: act; }
+  .st .sc-wl-score { font-size: 28px; }
+  .st .sc-wl .st-btn.is-sm { height: 40px; padding: 0 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st .sc-sw i, .st .sc-sw i::before, .st .sc-mcard, .st .sc-layout .lbx-sketch { transition: none; }
+  .st .sc-toast { animation: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIGNED OUT — no app shell, so the landing scope carries the look.
+   ═══════════════════════════════════════════════════════════════════ */
+/* One screen: the public top bar (56px), this hero, and the site footer's line at the bottom. */
+.sc-guest .sc-guest-hero { display: flex; align-items: center; min-height: calc(100vh - 56px - 33px); padding-top: clamp(44px, 5.4vw, 96px); padding-bottom: clamp(56px, 6.4vw, 112px); }
+.sc-guest .sc-guest-hero > .lp-wrap { width: 100%; }
+.sc-guest .sc-guest-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: clamp(40px, 6.5vw, 128px); row-gap: 44px; align-items: center; }
+.lp.sc-guest .sc-guest-t { margin-top: 22px; font-weight: 700; font-size: clamp(40px, 5vw, 80px); line-height: 1; letter-spacing: -.045em; text-wrap: balance; }
+.sc-guest .lp-lead { margin-top: 22px; }
+.sc-guest .lp-cta { margin-top: 30px; }
+.sc-guest .sc-guest-card { border: 1px solid var(--lp-line); border-radius: 20px; background: var(--lp-card); box-shadow: var(--lp-shadow-2); padding: 22px 26px 8px; }
+.sc-guest .sc-guest-card .lp-ticks { margin-top: 14px; }
+.sc-guest .sc-guest-card .lp-ticks li:last-child { border-bottom: 0; }
+.sc-guest .sc-guest-label { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--lp-fg3); }
+.sc-guest .sc-guest-mini { max-width: 640px; }
+.lp.sc-guest .sc-guest-mini .sc-guest-t { font-size: clamp(36px, 4.2vw, 60px); }
+/* while the session resolves: the shell's loader, drawn here because studio.css may not be loaded yet */
+.sc-guest .sc-guest-load { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: calc(100vh - 56px - 33px); font-size: 13.5px; color: var(--lp-fg3); }
+.sc-guest .sc-bars { display: flex; gap: 5px; }
+.sc-guest .sc-bars i { width: 16px; height: 4px; border-radius: 2px; transform: skewX(-16deg); background: var(--lp-line2); animation: scBar .9s infinite; }
+.sc-guest .sc-bars i:nth-child(2) { animation-delay: .15s; }
+.sc-guest .sc-bars i:nth-child(3) { animation-delay: .3s; }
+@keyframes scBar { 0%, 100% { background: var(--lp-line2); } 45% { background: var(--lp-accent); } }
+@media (prefers-reduced-motion: reduce) { .sc-guest .sc-bars i { animation: none; } }
+@media (max-width: 980px) {
+  .sc-guest .sc-guest-grid { grid-template-columns: minmax(0, 1fr); }
+}
+/* The public chrome's phone bottom nav needs the room that landing.css takes back for .lp pages. */
+@media (max-width: 767px) {
+  body:has(.lp.sc-guest) { padding-bottom: 56px !important; }
+  .sc-guest .sc-guest-hero { display: block; min-height: 0; padding-top: 40px; padding-bottom: 48px; }
+  .sc-guest .sc-guest-card { padding: 18px 18px 4px; border-radius: 18px; }
+}

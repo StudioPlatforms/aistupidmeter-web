@@ -14,7 +14,9 @@
  * See apps/api/src/middleware/web-token.ts for what this is and is not worth.
  */
 
-const GUARDED_PREFIXES = ['/dashboard/', '/api/dashboard/', '/api/drift/', '/visitors/stats'];
+// /api/models/ since 2026-10-15: the model card's newest run is a paid view, and the token
+// is what tells the API the visitor's plan allows it (apps/api middleware/latest-gate.ts).
+const GUARDED_PREFIXES = ['/dashboard/', '/api/dashboard/', '/api/drift/', '/api/models/', '/visitors/stats'];
 
 /** Refresh this long before expiry so a request never races the boundary. */
 const REFRESH_MARGIN_MS = 60_000;

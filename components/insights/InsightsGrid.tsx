@@ -10,22 +10,22 @@ import { getModelPricing } from '../../lib/model-pricing';
 import { slugifyModelName } from '../../lib/model-slug';
 import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
-import '../../styles/insights.css';
+import '../../styles/studio-boards.css';
 
 /**
- * Everything under the full-width leaderboards, on a wide screen, as rows of cards grouped
+ * Everything under the full-width leaderboards, on a wide screen, as rows of panes grouped
  * by what a visitor is trying to do: act on a problem, get a quick answer, compare, check the
  * providers and the method, and (once) the Smart Router.
  *
  * WHY ROWS, NOT THE OLD THREE COLUMNS
  * The side panels were built as rails beside a tall board in the middle column. With the
  * boards moved above them, the middle held ~400px against a 1,341px-tall right rail, leaving
- * ~900px of empty page at every width (measured 2026-09-27). Cards in a row share a height,
- * so rows cannot leave that hole, and the data-dense cards (heatmap, prices) get real width.
+ * ~900px of empty page at every width (measured 2026-09-27). Panes in a row share a height,
+ * so rows cannot leave that hole, and the data-dense panes (heatmap, prices) get real width.
  *
  * The content and its rules are the side panels' own, shared rather than copied: the builders
  * live in IntelligencePanel / AnalyticsPanel / ProviderStrip, which still render the Drift
- * Monitor view and the phone layout unchanged.
+ * Monitor view and the phone layout. Styles: styles/studio-boards.css (sl-*).
  */
 
 type Sort = 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price';
@@ -52,9 +52,9 @@ const hrefFor = (name?: string | null, id?: string | number) =>
   `/models/${(name && slugifyModelName(name)) || id || ''}`;
 const money = (n: number) => `$${Number(n.toFixed(2))}`;
 
-function Logo({ provider, size = 13, box = 22 }: { provider?: string | null; size?: number; box?: number }) {
+function Logo({ provider, size = 13, box = 'sm' }: { provider?: string | null; size?: number; box?: 'xs' | 'sm' | 'md' }) {
   return (
-    <span className="ins-logo" style={{ width: box, height: box }} aria-hidden="true">
+    <span className={`sl-logo is-${box}`} aria-hidden="true">
       <ProviderLogo provider={provider || ''} size={size} />
     </span>
   );
@@ -62,9 +62,9 @@ function Logo({ provider, size = 13, box = 22 }: { provider?: string | null; siz
 
 function Group({ title, note, right, children }: { title: string; note?: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="ins-group" aria-label={title}>
-      <div className="ins-group-head">
-        <div className="ins-group-title"><h2>{title}</h2>{note && <p>{note}</p>}</div>
+    <section className="sl-ins-group st-up" aria-label={title}>
+      <div className="sl-sec-head">
+        <div><h2 className="sl-sec-title">{title}</h2>{note && <p className="sl-sec-note">{note}</p>}</div>
         {right}
       </div>
       {children}
@@ -122,22 +122,22 @@ export default function InsightsGrid({
   const completeness = summary?.confidence != null ? `${Math.round(summary.confidence)}%` : '—';
 
   return (
-    <div className="ins">
+    <div className="sl-ins">
       {(degr.length > 0 || problems.length > 0) && (
         <Group title="Needs attention" note="Measured problems right now">
-          <div className="ins-alerts">
+          <div className="sl-alerts">
             {degr.map((d: any, i: number) => (
-              <Link key={`d${i}`} href={hrefFor(d.modelName)} className={`ins-alert${d.severity === 'critical' ? ' is-crit' : ''}`}>
-                <span className="ins-alert-chip">{d.severity === 'critical' ? 'Critical' : 'Warning'}</span>
-                <span className="ins-alert-name">{d.modelName}</span>
-                <span className="ins-alert-text">{d.message || `Score dropped ${d.dropPercentage || 0}%.${d.currentScore ? ` Now at ${d.currentScore}.` : ''}`}</span>
+              <Link key={`d${i}`} href={hrefFor(d.modelName)} className={`sl-alert${d.severity === 'critical' ? ' is-bad' : ''}`}>
+                <span className={`st-tag ${d.severity === 'critical' ? 'is-bad' : 'is-warn'}`}>{d.severity === 'critical' ? 'Critical' : 'Warning'}</span>
+                <span className="sl-alert-name">{d.modelName}</span>
+                <span className="sl-alert-text">{d.message || `Score dropped ${d.dropPercentage || 0}%.${d.currentScore ? ` Now at ${d.currentScore}.` : ''}`}</span>
               </Link>
             ))}
             {problems.map((p: RecoItem, i: number) => (
-              <Link key={`p${i}`} href={hrefFor(p.rawName)} className="ins-alert is-crit">
-                <span className="ins-alert-chip">{p.kind === 'avoid' ? 'Avoid now' : 'Unreliable'}</span>
-                <span className="ins-alert-name">{p.name}</span>
-                <span className="ins-alert-text">{p.detail}</span>
+              <Link key={`p${i}`} href={hrefFor(p.rawName)} className="sl-alert is-bad">
+                <span className="st-tag is-bad">{p.kind === 'avoid' ? 'Avoid now' : 'Unreliable'}</span>
+                <span className="sl-alert-name">{p.name}</span>
+                <span className="sl-alert-text">{p.detail}</span>
               </Link>
             ))}
           </div>
@@ -146,20 +146,21 @@ export default function InsightsGrid({
 
       {answers.length > 0 && (
         <Group title="Quick answers" note="Picked from the latest runs">
-          <div className="ins-answers">
+          <div className="sl-answers">
             {answers.map((a, i) => (
-              <Link key={i} href={hrefFor(a.rawName)} className="ins-card ins-answer">
-                <span className="ins-answer-top">
-                  <span className="ins-answer-id">
-                    <span className="ins-kicker">{a.type.toLowerCase()}</span>
-                    <span className="ins-answer-name"><Logo provider={a.providerDot} size={14} box={24} />{a.name}</span>
+              <Link key={i} href={hrefFor(a.rawName)} className="sl-answer">
+                <span className="st-label">{a.type}</span>
+                <span className="sl-answer-top">
+                  <span className="sl-answer-id">
+                    <Logo provider={a.providerDot} size={15} box="md" />
+                    <span className="sl-answer-name">{a.name}</span>
                   </span>
-                  <span className="ins-answer-score">
-                    <b style={{ color: scoreColor(a.score) }}>{a.score > 0 ? Math.round(a.score) : '—'}</b>
+                  <span className="sl-answer-v">
+                    <b>{a.score > 0 ? Math.round(a.score) : '—'}</b>
                     <small>{a.status}</small>
                   </span>
                 </span>
-                <span className="ins-answer-detail">{a.detail}</span>
+                <span className="sl-answer-detail">{a.detail}</span>
               </Link>
             ))}
           </div>
@@ -168,40 +169,42 @@ export default function InsightsGrid({
 
       <Group
         title="Compare models"
-        note="The tabs switch both cards to that board"
+        note="The tabs switch both panes to that board"
         right={(
-          <div className="ins-seg" role="tablist" aria-label="Board">
+          <div className="st-seg is-scroll sl-seg-tabs" role="tablist" aria-label="Board">
             {SORTS.map((s) => (
-              <button key={s.key} type="button" role="tab" aria-selected={sort === s.key}
-                      className={sort === s.key ? 'is-active' : ''} onClick={() => onSortChange(s.key)}>
+              <button key={s.key} type="button" role="tab" aria-selected={sort === s.key} onClick={() => onSortChange(s.key)}>
                 {s.label}
               </button>
             ))}
           </div>
         )}
       >
-        <div className="ins-compare">
-          <div className="ins-card ins-heat">
-            <h3>{TITLES[sort].heat}</h3>
-            <p className="ins-sub">{axKeys.length} measures, 0–100 · {ranked.length} models · hover a heading for what it weighs</p>
-            {!historyReady ? <div className="ins-empty">Loading the measurements…</div> : (
-              <div className="ins-heat-grid" style={{ gridTemplateColumns: `minmax(170px, 1.6fr) repeat(${axKeys.length}, minmax(0, 1fr))` }}>
-                <span className="ins-heat-hdr ins-heat-hdr--model">Model</span>
+        <div className="sl-compare">
+          <div className="sl-pane">
+            <h3 className="sl-pane-t">{TITLES[sort].heat}</h3>
+            <p className="sl-pane-sub">{axKeys.length} measures, 0–100 · {ranked.length} models · hover a heading for what it weighs</p>
+            {!historyReady ? <div className="sl-empty-line">Loading the measurements…</div> : (
+              <div className="sl-heat-grid" style={{ gridTemplateColumns: `minmax(170px, 1.6fr) repeat(${axKeys.length}, minmax(0, 1fr))` }}>
+                <span className="sl-heat-hdr is-model">Model</span>
                 {axisLabels.map((l, i) => {
                   const hot = config.highlightIndices.includes(config.axisIndices[i]);
-                  return <span key={l} className={`ins-heat-hdr${hot ? ' is-hot' : ''}`} title={axisWeightLabel(axisFullNames[i])}>{l}{hot ? ' ★' : ''}</span>;
+                  return (
+                    <span key={l} className={`sl-heat-hdr${hot ? ' is-hot' : ''}`}
+                          title={`${axisWeightLabel(axisFullNames[i])}${hot ? ' · highlighted for this board' : ''}`}>{l}</span>
+                  );
                 })}
                 {ranked.map((m) => {
                   const axes = getAveragedAxes(modelHistoryData.get(m.id) || m.history || []);
                   return (
-                    <div key={m.id} className="ins-heat-row" style={{ display: 'contents' }}>
-                      <Link href={hrefFor(m.name, m.id)} className="ins-heat-model"><Logo provider={m.provider} size={11} box={18} /><span>{m.displayName || m.name}</span></Link>
+                    <div key={m.id} style={{ display: 'contents' }}>
+                      <Link href={hrefFor(m.name, m.id)} className="sl-heat-model"><Logo provider={m.provider} size={11} box="xs" /><span>{m.displayName || m.name}</span></Link>
                       {axKeys.map((k, i) => {
                         const raw = axes[k];
                         const v = typeof raw === 'number' ? Math.round(raw * 100) : null;
                         return v === null
-                          ? <span key={k} className="ins-heat-cell is-none">—</span>
-                          : <span key={k} className="ins-heat-cell" style={{ background: scoreBg(v), color: scoreColor(v) }}
+                          ? <span key={k} className="sl-heat-cell is-none">—</span>
+                          : <span key={k} className="sl-heat-cell" style={{ background: scoreBg(v), color: scoreColor(v) }}
                                   title={`${axisWeightLabel(axisFullNames[i])} · ${m.name}: ${v}`}>{v}</span>;
                       })}
                     </div>
@@ -211,32 +214,31 @@ export default function InsightsGrid({
             )}
           </div>
 
-          <div className="ins-card ins-price">
-            <h3>Price-performance</h3>
-            <p className="ins-sub">Score per dollar of blended price (40% input, 60% output, per 1M tokens)</p>
-            <div className="ins-price-grid">
-              <span className="ins-price-hdr">Model</span>
-              <span className="ins-price-hdr is-r">$ in / out</span>
-              <span className="ins-price-hdr is-c">Score</span>
-              <span className="ins-price-hdr is-r">Value</span>
+          <div className="sl-pane sl-price">
+            <h3 className="sl-pane-t">Price-performance</h3>
+            <p className="sl-pane-sub">Score per dollar of blended price (40% input, 60% output, per 1M tokens)</p>
+            <div className="sl-price-grid">
+              <span className="sl-price-hdr">Model</span>
+              <span className="sl-price-hdr sl-r">$ in / out</span>
+              <span className="sl-price-hdr sl-c">Score</span>
+              <span className="sl-price-hdr sl-r">Value</span>
               {priceRows.map(({ m, pricing, value }) => (
                 <div key={m.id} style={{ display: 'contents' }}>
-                  <Link href={hrefFor(m.name, m.id)} className="ins-price-model"><Logo provider={m.provider} size={11} box={18} /><span>{m.displayName || m.name}</span></Link>
-                  <span className="ins-price-cell is-r is-dim">{money(pricing.input)} / {money(pricing.output)}</span>
-                  <span className="ins-price-cell is-c" style={{ color: scoreColor(m.currentScore as number), fontWeight: 700 }}>{m.currentScore}</span>
-                  <span className="ins-price-cell is-r" style={{ fontWeight: 700 }}>{value.toFixed(1)}</span>
+                  <Link href={hrefFor(m.name, m.id)} className="sl-price-model"><Logo provider={m.provider} size={11} box="xs" /><span>{m.displayName || m.name}</span></Link>
+                  <span className="sl-price-cell sl-r sl-dim">{money(pricing.input)} / {money(pricing.output)}</span>
+                  <span className="sl-price-cell sl-c is-num" style={{ color: scoreColor(m.currentScore as number) }}>{m.currentScore}</span>
+                  <span className="sl-price-cell sl-r is-num">{value.toFixed(1)}</span>
                 </div>
               ))}
             </div>
             {poor.length > 0 && (
-              <div className="ins-poor">
-                <div className="ins-poor-title">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
-                  Poor value right now
+              <div className="st-note is-warn sl-poor">
+                <div>
+                  <b className="st-note-t">Poor value right now</b>
+                  {poor.map((p, i) => (
+                    <p key={i}><Link href={hrefFor(p.rawName)}>{p.name}</Link> · {p.detail}</p>
+                  ))}
                 </div>
-                {poor.map((p, i) => (
-                  <p key={i}><Link href={hrefFor(p.rawName)}><b>{p.name}</b></Link> · {p.detail}</p>
-                ))}
               </div>
             )}
           </div>
@@ -244,45 +246,49 @@ export default function InsightsGrid({
       </Group>
 
       <Group title="Providers and method" note="Continuous, independent measurement of whether a model gets worse behind the same API name">
-        <div className="ins-three">
-          <div className="ins-card">
-            <h3>Provider health</h3>
-            <p className="ins-sub">Live status from a check every 10 minutes, and a trust score from incident history</p>
-            <div className="ins-prov-list">
+        <div className="sl-three">
+          <div className="sl-pane">
+            <h3 className="sl-pane-t">Provider health</h3>
+            <p className="sl-pane-sub">Live status from a check every 10 minutes, and a trust score from incident history</p>
+            <div className="sl-prov">
               {providers.map((p: any) => {
                 const key = String(p.provider || p.name || '').toLowerCase();
                 const trust = Math.round(p.score || p.trustScore || 0);
                 const st = providerStatus(health?.[key]);
                 return (
-                  <div key={key} className="ins-prov-row">
-                    <span className="ins-prov-name"><Logo provider={key} />{PROVIDER_NAME[key] || key}</span>
-                    <span className="ins-prov-status" title={st?.title} style={st ? { color: st.color } : undefined}>{st ? st.label : '—'}</span>
-                    <span className="ins-prov-bar" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, trust))}%`, background: trust >= 75 ? 'var(--good)' : 'var(--warn)' }} /></span>
-                    <span className="ins-prov-score" title="Trust score from incident history">{trust}</span>
+                  <div key={key} className="sl-prov-row">
+                    <span className="sl-prov-name"><Logo provider={key} size={13} box="sm" />{PROVIDER_NAME[key] || key}</span>
+                    <span className={`sl-status is-${st ? st.tone : 'none'}`} title={st?.title}>{st ? st.label : '—'}</span>
+                    <span className="sl-trust" aria-hidden="true"><i className={trust >= 75 ? '' : 'is-warn'} style={{ width: `${Math.max(0, Math.min(100, trust))}%` }} /></span>
+                    <span className="sl-prov-score" title="Trust score from incident history">{trust}</span>
                   </div>
                 );
               })}
             </div>
-            <div className="ins-kicker ins-activity-head">Latest activity</div>
-            {activity.length === 0 ? <div className="ins-sub">Waiting for activity…</div> : activity.map((a, i) => (
-              <div key={i} className={`ins-activity is-${a.tone}`}>
-                <span className="ins-dot" aria-hidden="true" />
-                <span className="ins-activity-text"><b>{a.model}</b> {a.text}{a.value !== undefined ? <>: <b>{a.value}</b></> : null}</span>
-                <span className="ins-activity-time">{a.time}</span>
-              </div>
-            ))}
+            <p className="st-label sl-activity-head">Latest activity</p>
+            {activity.length === 0 ? <p className="sl-pane-sub">Waiting for activity…</p> : (
+              <ul className="sl-activity">
+                {activity.map((a, i) => (
+                  <li key={i} className={`is-${a.tone}`}>
+                    <span className="sl-dot" aria-hidden="true" />
+                    <span className="sl-activity-text"><b>{a.model}</b> {a.text}{a.value !== undefined ? <>: <b>{a.value}</b></> : null}</span>
+                    <span className="sl-activity-time">{a.time}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          <div className="ins-card">
-            <h3>{TITLES[sort].radar}</h3>
-            <p className="ins-sub">{config.subtitle}</p>
-            {!historyReady ? <div className="ins-empty">Loading the measurements…</div> : (
+          <div className="sl-pane">
+            <h3 className="sl-pane-t">{TITLES[sort].radar}</h3>
+            <p className="sl-pane-sub">{config.subtitle}</p>
+            {!historyReady ? <div className="sl-empty-line">Loading the measurements…</div> : (
               <>
-                <div className="ins-radar">
+                <div className="sl-radar">
                   <RadarChart models={radarModels} colors={RADAR_COLORS} modelHistoryData={modelHistoryData}
                               axKeys={axKeys} axisLabels={axisLabels} highlightIndices={config.highlightIndices} />
                 </div>
-                <div className="ins-legend">
+                <div className="sl-radar-keys">
                   {radarModels.map((m, i) => (
                     <span key={m.id || i}><i style={{ background: RADAR_COLORS[i] }} />{m.displayName || m.name} · {m.currentScore}</span>
                   ))}
@@ -291,47 +297,50 @@ export default function InsightsGrid({
             )}
           </div>
 
-          <div className="ins-card ins-method">
-            <h3>How we measure</h3>
-            <p className="ins-sub">The same tests on every model, on a fixed schedule</p>
-            {[
-              ['Drift check (canary)', 'Every hour'],
-              ['Coding, nine measures', 'Every 4 hours'],
-              ['Reasoning', 'Daily, 03:00 Berlin'],
-              ['Tool use', 'Daily, 04:00 Berlin'],
-              ['Provider health checks', 'Every 10 minutes'],
-              ['Scoring', 'Nine measures, 95% CI'],
-            ].map(([what, when]) => (
-              <div key={what} className="ins-sched"><span>{what}</span><b>{when}</b></div>
-            ))}
-            <div className="ins-stats">
+          <div className="sl-pane">
+            <h3 className="sl-pane-t">How we measure</h3>
+            <p className="sl-pane-sub">The same tests on every model, on a fixed schedule</p>
+            <dl className="sl-sched">
+              {[
+                ['Drift check (canary)', 'Every hour'],
+                ['Coding, nine measures', 'Every 4 hours'],
+                ['Reasoning', 'Daily, 03:00 Berlin'],
+                ['Tool use', 'Daily, 04:00 Berlin'],
+                ['Provider health checks', 'Every 10 minutes'],
+                ['Scoring', 'Nine measures, 95% CI'],
+              ].map(([what, when]) => (
+                <div key={what}><dt>{what}</dt><dd>{when}</dd></div>
+              ))}
+            </dl>
+            <div className="sl-figs">
               <div><b>{modelScores.length || '—'}</b><span>models tracked</span></div>
               <div><b>{providerCount || '—'}</b><span>providers</span></div>
               <div title="Share of ranked models with fresh results"><b>{coverage}</b><span>test coverage</span></div>
               <div title="Share of ranked models on schedule, suite slots filled, and recent data volume"><b>{completeness}</b><span>data complete</span></div>
             </div>
-            <p className="ins-sub ins-method-note">Drift detection: Page-Hinkley (CUSUM family). Scores carry 95% confidence intervals.</p>
-            <div className="ins-links">
-              <Link href="/router/test-keys">Test your own keys</Link>
-              <Link href="/methodology">Read the methodology</Link>
+            <p className="sl-method-note">Drift detection: Page-Hinkley (CUSUM family). Scores carry 95% confidence intervals.</p>
+            <div className="sl-links">
+              <Link href="/router/test-keys" className="st-more">Test your own keys</Link>
+              <Link href="/methodology" className="st-more">Read the methodology</Link>
             </div>
           </div>
         </div>
       </Group>
 
-      <Link href={session ? '/router' : '/pricing'} className="ins-router">
-        <span className="ins-router-text">
-          <span className="ins-router-kicker">Smart Router</span>
+      <Link href={session ? '/router' : '/pricing'} className="sl-router st-up">
+        <span className="sl-router-streaks" aria-hidden="true"><i /><i /><i /></span>
+        <span className="sl-router-text">
+          <span className="st-kicker">Smart Router</span>
           <span>Every request goes to the model measuring best right now. Bring your own provider keys: in our benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less.</span>
         </span>
-        <span className="ins-router-price">
+        <span className="sl-router-price">
           <b>{annualMonthly(ROUTER_PLAN)}</b>
           <small>billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}</small>
         </span>
-        <span className="ins-router-btn">See Smart Router</span>
+        <span className="st-btn is-primary">See Smart Router <span className="st-ar" aria-hidden="true">→</span></span>
       </Link>
 
-      <p className="ins-period">Scores shown for: {leaderboardPeriod === 'latest' ? 'the latest runs' : `the last ${({ '24h': '24 hours', '7d': '7 days', '1m': '30 days' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod}`}</p>
+      <p className="sl-period">Scores shown for: {leaderboardPeriod === 'latest' ? 'the latest runs' : `the last ${({ '24h': '24 hours', '7d': '7 days', '1m': '30 days' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod}`}</p>
     </div>
   );
 }

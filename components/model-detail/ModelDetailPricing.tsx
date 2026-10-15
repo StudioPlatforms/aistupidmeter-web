@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { getModelPricing } from '../../lib/model-pricing';
+import { Pane } from '@/components/studio';
 
 interface SuiteCost {
   suite: string;
@@ -80,107 +81,79 @@ export default function ModelDetailPricing({ modelName, provider, currentScore, 
   const blended = (pricing.input * 0.4) + (pricing.output * 0.6);
   const valueBasis = perDay && perDay > 0 ? perDay : blended;
   const valueScore = currentScore > 0 && valueBasis > 0 ? (currentScore / valueBasis) : 0;
-  const valueColor = valueScore > 10 ? 'var(--phosphor-green)' : valueScore > 5 ? 'var(--amber-warning)' : 'var(--red-alert)';
 
   const measuredSuites = (cost?.perSuite ?? []).filter(s => s.measured);
+  const valueTone = valueScore > 10 ? 'sm-kv-good' : valueScore > 5 ? 'sm-kv-warn' : 'sm-kv-bad';
 
   return (
-    <div className="md-info-col">
-      <div className="md-info-title">PRICING &amp; COST TO BENCHMARK</div>
+    <Pane
+      title="Pricing & cost to benchmark"
+      sub="What this model costs to use, and what our benchmark spends on it"
+      foot={
+        <>
+          List price is USD per 1M tokens, cache-miss input, on the provider&apos;s own API.
+          Run costs are measured: every suite records the tokens it was billed for and prices
+          them when the run happens. Value score is score per dollar of a full day of
+          benchmarking{measuredSuites.length === 0 ? ', falling back to list price until a run is priced' : ''}.
+        </>
+      }
+    >
+      <dl className="st-kv sm-kv">
+        <div><dt>Input cost</dt><dd>${pricing.input}<small>/1M tokens</small></dd></div>
+        <div><dt>Output cost</dt><dd>${pricing.output}<small>/1M tokens</small></dd></div>
+      </dl>
 
-      <div className="md-info-row">
-        <span className="md-info-label">Input Cost</span>
-        <span className="md-info-value" style={{ color: 'var(--phosphor-green)' }}>
-          ${pricing.input}/1M tokens
-        </span>
-      </div>
-      <div className="md-info-row">
-        <span className="md-info-label">Output Cost</span>
-        <span className="md-info-value" style={{ color: 'var(--phosphor-green)' }}>
-          ${pricing.output}/1M tokens
-        </span>
-      </div>
-
-      <div style={{ margin: '10px 0 6px', fontSize: '9px', letterSpacing: '0.06em', color: 'var(--phosphor-dim)' }}>
-        WHAT ONE RUN OF EACH SUITE COSTS US
-      </div>
+      <p className="st-label">What one run of each suite costs us</p>
 
       {measuredSuites.length > 0 ? (
         <>
-          {measuredSuites.map(s => (
-            <div className="md-info-row" key={s.suite}>
-              <span className="md-info-label">
-                {s.label}
-                <span style={{ opacity: 0.55, marginLeft: 4 }}>
-                  ×{s.runsPerDay}/day
-                </span>
-              </span>
-              <span className="md-info-value" style={{ color: 'var(--phosphor-green)' }}>
-                {usd(s.costPerRunUsd as number)}
-                <span style={{ opacity: 0.55, marginLeft: 5 }}>
-                  → {usd(s.costPerDayUsd as number)}/day
-                </span>
-              </span>
+          <dl className="st-kv sm-kv">
+            {measuredSuites.map(s => (
+              <div key={s.suite}>
+                <dt>{s.label}<small>×{s.runsPerDay}/day</small></dt>
+                <dd>
+                  {usd(s.costPerRunUsd as number)}
+                  <small>→ {usd(s.costPerDayUsd as number)}/day</small>
+                </dd>
+              </div>
+            ))}
+            <div>
+              <dt>{cost?.complete ? 'Total to benchmark' : `Priced so far (${cost?.suitesMeasured}/${cost?.suitesTotal} suites)`}</dt>
+              <dd>
+                {usd((cost?.complete ? cost.dailyTotalUsd : cost?.partialDailyUsd) as number)}/day
+                {cost?.complete && cost?.monthlyTotalUsd ? (
+                  <small>≈ ${cost.monthlyTotalUsd.toFixed(0)}/mo</small>
+                ) : null}
+              </dd>
             </div>
-          ))}
-          <div className="md-info-row">
-            <span className="md-info-label">
-              {cost?.complete ? 'Total to benchmark' : `Priced so far (${cost?.suitesMeasured}/${cost?.suitesTotal} suites)`}
-            </span>
-            <span className="md-info-value" style={{ color: 'var(--amber-warning)' }}>
-              {usd((cost?.complete ? cost.dailyTotalUsd : cost?.partialDailyUsd) as number)}/day
-              {cost?.complete && cost?.monthlyTotalUsd ? (
-                <span style={{ opacity: 0.55, marginLeft: 5 }}>
-                  ≈ ${cost.monthlyTotalUsd.toFixed(0)}/mo
-                </span>
-              ) : null}
-            </span>
-          </div>
+          </dl>
           {cost && !cost.complete && (
-            <div style={{ marginTop: 6, fontSize: '9px', color: 'var(--phosphor-dim)', lineHeight: 1.4 }}>
+            <p className="sm-cost-note">
               Not the full cost: {cost.suitesMissing.join(', ')}{' '}
               {cost.suitesMissing.length === 1 ? 'has' : 'have'} not run since cost capture
               began, so {cost.suitesMissing.length === 1 ? 'it is' : 'they are'} not counted
               here. Coding runs every four hours; reasoning and tooling once a day.
-            </div>
+            </p>
           )}
         </>
       ) : (
-        <div className="md-info-row">
-          <span className="md-info-label" style={{ opacity: 0.7 }}>
-            {cost ? 'No priced run yet' : 'Loading…'}
-          </span>
-          <span className="md-info-value" style={{ opacity: 0.7 }}>
-            {cost ? 'capture began 15 Sep 2026' : ''}
-          </span>
-        </div>
+        <dl className="st-kv sm-kv">
+          <div>
+            <dt>{cost ? 'No priced run yet' : 'Loading…'}</dt>
+            <dd className="st-faint">{cost ? 'capture began 15 Sep 2026' : ''}</dd>
+          </div>
+        </dl>
       )}
 
-      <div className="md-info-row">
-        <span className="md-info-label">Value Score</span>
-        <span className="md-info-value" style={{ color: valueColor }}>
-          {valueScore.toFixed(1)} pts/$
-          {!cost?.complete && (
-            <span style={{ opacity: 0.55, marginLeft: 5 }}>vs list price</span>
-          )}
-        </span>
-      </div>
-
-      <div style={{
-        marginTop: '10px',
-        padding: '8px',
-        background: 'rgba(26, 115, 232, 0.03)',
-        border: '1px solid rgba(26, 115, 232, 0.15)',
-        borderRadius: '3px',
-        fontSize: '9px',
-        color: 'var(--phosphor-dim)',
-        lineHeight: '1.4'
-      }}>
-        List price is USD per 1M tokens, cache-miss input, on the provider&apos;s own API.
-        Run costs are measured: every suite records the tokens it was billed for and prices
-        them when the run happens. Value score is score per dollar of a full day of
-        benchmarking{measuredSuites.length === 0 ? ', falling back to list price until a run is priced' : ''}.
-      </div>
-    </div>
+      <dl className="st-kv sm-kv sm-value">
+        <div>
+          <dt>Value score</dt>
+          <dd>
+            <span className={valueTone}>{valueScore.toFixed(1)} pts/$</span>
+            {!cost?.complete && <small>vs list price</small>}
+          </dd>
+        </div>
+      </dl>
+    </Pane>
   );
 }

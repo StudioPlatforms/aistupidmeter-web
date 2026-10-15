@@ -1,5 +1,7 @@
 'use client';
 
+import { Stats, Stat, CountUp, type Tone } from '@/components/studio';
+
 interface ModelDetailStatBarProps {
   currentScore: number;
   status: string;
@@ -17,8 +19,12 @@ interface ModelDetailStatBarProps {
   staleReason?: string | null;
 }
 
-const scoreColor = (score: number): string =>
-  score >= 80 ? 'var(--phosphor-green)' : score >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)';
+/** Colour only what needs a look: below 80 is a warning, below 60 a problem; healthy stays ink. */
+const toneFor = (value: number, warnBelow: number, badBelow: number): Tone | undefined =>
+  value < badBelow ? 'bad' : value < warnBelow ? 'warn' : undefined;
+
+const pct = (n: number) => `${Math.round(n)}%`;
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 export default function ModelDetailStatBar({
   currentScore,
@@ -33,59 +39,44 @@ export default function ModelDetailStatBar({
   coverage,
   staleReason,
 }: ModelDetailStatBarProps) {
-  const scoreCol = currentScore >= 80 ? 'color-green' : currentScore >= 60 ? 'color-amber' : 'color-red';
-  const rateCol = successRate >= 80 ? 'color-green' : successRate >= 60 ? 'color-amber' : 'color-red';
-  const corrCol = averageCorrectness >= 0.8 ? 'color-green' : averageCorrectness >= 0.6 ? 'color-amber' : 'color-red';
+  const runs = totalRuns || 0;
+  const rate = successRate || 0;
+  const correctness = Math.round((averageCorrectness || 0) * 100);
 
   return (
-    <div className="md-stat-bar">
-      <div className={`md-stat-cell ${scoreCol}`}>
-        <div className="md-stat-label">SCORE</div>
-        <div className="md-stat-value" style={{ color: scoreColor(currentScore) }}>
-          {currentScore || '—'}
-        </div>
-        <div className="md-stat-detail" title={staleReason ?? undefined}>{coverage ?? status.toUpperCase()}</div>
+    <Stats columns={6}>
+      <Stat
+        value={currentScore ? <CountUp value={currentScore} /> : '—'}
+        label="Score"
+        keyTone="accent"
+        tone={currentScore ? toneFor(currentScore, 80, 60) : undefined}
+        sub={<span title={staleReason ?? undefined}>{coverage ?? cap(status)}</span>}
+      />
+      <Stat
+        value={<CountUp value={rate} format={pct} />}
+        label="Success rate"
+        tone={toneFor(rate, 80, 60)}
+        sub={`${runs.toLocaleString('en-US')} total runs`}
+      />
+      <Stat value={<CountUp value={runs} />} label="Total runs" sub="Benchmark tasks" />
+      <Stat
+        value={averageLatency ? <CountUp value={Math.round(averageLatency)} /> : '—'}
+        unit={averageLatency ? 'ms' : undefined}
+        label="Latency"
+        sub="Average"
+      />
+      <Stat
+        value={<CountUp value={correctness} format={pct} />}
+        label="Correctness"
+        tone={toneFor(correctness, 80, 60)}
+        sub="Average accuracy"
+      />
+      {/* The tooltip carries every contributing suite's age, so it sits on the whole cell. */}
+      <div className="st-stat" title={lastUpdatedTitle}>
+        <div className="st-stat-v">{lastUpdated || '—'}</div>
+        <div className="st-stat-l">Last update</div>
+        <div className="st-stat-s">{cap(lastUpdatedNote ?? 'benchmark time')}</div>
       </div>
-
-      <div className={`md-stat-cell ${rateCol}`}>
-        <div className="md-stat-label">SUCCESS RATE</div>
-        <div className="md-stat-value" style={{ color: successRate >= 80 ? 'var(--phosphor-green)' : successRate >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)' }}>
-          {successRate || 0}%
-        </div>
-        <div className="md-stat-detail">{totalRuns} total runs</div>
-      </div>
-
-      <div className="md-stat-cell color-green">
-        <div className="md-stat-label">TOTAL RUNS</div>
-        <div className="md-stat-value" style={{ color: 'var(--phosphor-green)' }}>
-          {totalRuns || 0}
-        </div>
-        <div className="md-stat-detail">benchmark tasks</div>
-      </div>
-
-      <div className="md-stat-cell color-blue">
-        <div className="md-stat-label">LATENCY</div>
-        <div className="md-stat-value" style={{ color: '#1a73e8' }}>
-          {averageLatency ? `${Math.round(averageLatency)}` : '—'}
-        </div>
-        <div className="md-stat-detail">avg ms</div>
-      </div>
-
-      <div className={`md-stat-cell ${corrCol}`}>
-        <div className="md-stat-label">CORRECTNESS</div>
-        <div className="md-stat-value" style={{ color: averageCorrectness >= 0.8 ? 'var(--phosphor-green)' : averageCorrectness >= 0.6 ? 'var(--amber-warning)' : 'var(--red-alert)' }}>
-          {Math.round((averageCorrectness || 0) * 100)}%
-        </div>
-        <div className="md-stat-detail">avg accuracy</div>
-      </div>
-
-      <div className="md-stat-cell color-green" title={lastUpdatedTitle}>
-        <div className="md-stat-label">LAST UPDATE</div>
-        <div className="md-stat-value" style={{ color: 'var(--phosphor-green)', fontSize: '14px' }}>
-          {lastUpdated || '—'}
-        </div>
-        <div className="md-stat-detail">{lastUpdatedNote ?? 'benchmark time'}</div>
-      </div>
-    </div>
+    </Stats>
   );
 }

@@ -1,0 +1,267 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MODEL INTELLIGENCE (/router/intelligence) in the studio look.
+   Only what this page needs beyond styles/studio.css: model cards, the
+   compare tray, the comparison dialog and its charts, and the Free
+   preview's locked panels. Prefix si-, scoped under .st.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Chart series. The token set has one categorical hue (the accent), so the other three are
+   the dataviz reference palette's next slots, checked with its validator against this site's
+   card surfaces (white in light, #292a2d in dark): lightness band, chroma, colour-blind and
+   normal-vision separation all pass on adjacent pairs. The dark accent (#8ab4f8) is too light
+   for the dark band, so dark mode steps its own blue. A model keeps its colour on every tab. */
+.st {
+  --si-s1: var(--lp-accent);
+  --si-s2: #eb6834;
+  --si-s3: #1baf7a;
+  --si-s4: #eda100;
+  --si-knob: var(--lp-card);
+}
+[data-theme='dark'] .st {
+  --si-s1: #3987e5;
+  --si-s2: #d95926;
+  --si-s3: #199e70;
+  --si-s4: #c98500;
+  --si-knob: var(--lp-fg);
+}
+
+/* ── header: auto-refresh switch ───────────────────────────────────── */
+.st .si-switch { position: relative; display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 6px 0 2px; font-size: 14px; font-weight: 600; color: var(--lp-fg2); cursor: pointer; user-select: none; }
+.st .si-switch:hover { color: var(--lp-fg); }
+.si-switch input { position: absolute; left: 2px; top: 50%; width: 34px; height: 20px; margin: -10px 0 0; opacity: 0; cursor: pointer; }
+.si-switch-ui { position: relative; flex: none; width: 34px; height: 20px; border-radius: 999px; background: color-mix(in srgb, var(--lp-fg) 20%, transparent); transition: background-color .2s; pointer-events: none; }
+.si-switch-ui::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--si-knob); box-shadow: var(--lp-shadow-1); transition: transform .25s var(--lp-ease); }
+.si-switch input:checked + .si-switch-ui { background: var(--lp-accent); }
+.si-switch input:checked + .si-switch-ui::after { transform: translateX(14px); }
+.si-switch input:focus-visible + .si-switch-ui { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
+
+/* ── stats placeholder while the first fetch runs ──────────────────── */
+.si-skel { display: inline-block; width: 64px; height: .82em; vertical-align: -.02em; border-radius: 8px; }
+
+/* error note with its retry on the right */
+.si-note-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+
+/* ── rankings: filter row ──────────────────────────────────────────── */
+.si-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 22px; margin-bottom: 18px; }
+.si-chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.st .si-chips .st-chip { padding-left: 6px; }
+.st .si-chips .st-chip.is-all { padding-left: 13px; }
+.si-chips .st-logo.is-sm { width: 22px; height: 22px; border-radius: 999px; }
+.si-chips .st-logo.is-sm img { width: 13px; height: 13px; }
+.si-ctl { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.si-ctl-l { font-size: 13px; font-weight: 600; color: var(--lp-fg3); }
+
+/* ── model cards ───────────────────────────────────────────────────── */
+/* position: relative makes the grid the cards' offsetParent, which the reorder slide measures against. */
+.si-grid { position: relative; display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 248px), 1fr)); }
+.st .si-card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 14px 16px 14px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); cursor: pointer;
+  transition: border-color .2s, background-color .2s, box-shadow .2s, opacity .2s; }
+.st .si-card:hover { border-color: color-mix(in srgb, var(--lp-accent) 55%, var(--lp-line)); }
+.st .si-card.is-static { cursor: default; }
+.st .si-card.is-static:hover { border-color: var(--lp-line2); }
+.st .si-card.is-on { border-color: var(--lp-accent); background: var(--lp-win-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-accent) 12%, transparent); }
+.st .si-card.is-capped { opacity: .5; cursor: not-allowed; }
+.st .si-card.is-capped:hover { border-color: var(--lp-line); }
+.si-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 30px; }
+.si-card-id { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 11px; margin-top: 12px; }
+.si-card-id > div { min-width: 0; }
+.st .si-card-name { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -.012em; line-height: 1.25; color: var(--lp-fg); overflow-wrap: anywhere; }
+.si-card-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--lp-fg3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.si-card-mid { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-top: 16px; }
+.si-score { font-family: var(--lp-font-disp); font-size: 34px; font-weight: 700; line-height: .95; letter-spacing: -.04em; color: var(--lp-fg); white-space: nowrap; }
+.si-meter { margin-top: 12px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--lp-fg) 9%, transparent); overflow: hidden; }
+.si-meter i { display: block; height: 100%; border-radius: 2px; background: var(--lp-fg3); transform-origin: left center; animation: siGrow .9s var(--lp-ease) both; transition: width .6s var(--lp-ease), background-color .3s; }
+.st .si-card.is-on .si-meter i { background: var(--lp-accent); }
+.si-card-act { display: flex; gap: 8px; margin-top: auto; padding-top: 14px; }
+.si-card-act > * { flex: 1 1 0; min-width: 0; }
+.st .si-card-act .st-btn { padding: 0 10px; }
+@keyframes siGrow { from { transform: scaleX(0); } to { transform: none; } }
+
+/* compare toggle on a card: a checkbox pill with a constant label; state is aria-pressed */
+.st .si-pick { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px 0 7px; border: 1px solid var(--lp-line2); border-radius: 999px; background: var(--lp-card);
+  color: var(--lp-fg2) !important; font-size: 12.5px; font-weight: 600; line-height: 1; cursor: pointer; transition: border-color .18s, color .18s, background-color .18s; }
+.st .si-pick:hover { color: var(--lp-fg) !important; border-color: var(--lp-fg3); }
+.si-pick-box { flex: none; width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--lp-line2); display: grid; place-items: center; transition: background-color .18s, border-color .18s; }
+.st .si-pick[aria-pressed='true'] { border-color: color-mix(in srgb, var(--lp-accent) 50%, transparent); background: var(--lp-accent-bg); color: var(--lp-accent) !important; }
+.si-pick[aria-pressed='true'] .si-pick-box { background: var(--lp-accent); border-color: var(--lp-accent); }
+.si-pick[aria-pressed='true'] .si-pick-box::after { content: ''; width: 8px; height: 4px; margin-top: -2px; border-left: 2px solid var(--lp-on-accent); border-bottom: 2px solid var(--lp-on-accent); transform: rotate(-45deg); }
+.st .si-pick:disabled { opacity: .7; cursor: not-allowed; }
+
+/* ── compare tray: sticks to the bottom while models are selected ──── */
+.si-tray { position: sticky; bottom: 14px; z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 10px 10px 18px;
+  border: 1px solid var(--lp-line); border-radius: 16px; background: color-mix(in srgb, var(--lp-card) 92%, transparent);
+  -webkit-backdrop-filter: saturate(1.4) blur(12px); backdrop-filter: saturate(1.4) blur(12px); box-shadow: var(--lp-shadow-2); animation: siRise .45s var(--lp-ease) both; }
+.si-tray-n { margin: 0; font-size: 14px; line-height: 1.45; color: var(--lp-fg2); }
+.si-tray-n b { color: var(--lp-fg); font-weight: 600; }
+.si-tray-list { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 260px; min-width: 0; margin: 0; padding: 0; list-style: none; }
+.si-tray-list li { display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%; height: 32px; padding: 0 3px 0 4px; border: 1px solid var(--lp-line2); border-radius: 999px; background: var(--lp-card); font-size: 13px; font-weight: 600; color: var(--lp-fg); }
+.si-tray-list li > span:not(.st-logo) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.si-tray-list .st-logo.is-sm { width: 24px; height: 24px; border-radius: 999px; border: 0; }
+.st .si-tray-list button { flex: none; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--lp-fg3) !important; font-size: 16px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.st .si-tray-list button:hover { background: var(--st-hover); color: var(--lp-fg) !important; }
+.si-tray-act { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+@keyframes siRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+.si-foot { margin: 6px 0 0; font-size: 12.5px; line-height: 1.6; text-align: center; color: var(--lp-fg3); }
+.si-foot a { color: var(--lp-accent) !important; text-decoration: none; }
+.si-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── comparison dialog ─────────────────────────────────────────────── */
+/* a fixed height, so switching tabs never makes the dialog jump; the body scrolls instead */
+.si-cmp { height: min(900px, calc(100vh - 48px)); }
+.si-cmp .st-modal-head { border-bottom: 0; padding-bottom: 12px; }
+.si-cmp-bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px 18px; padding: 0 22px 0 12px; border-bottom: 1px solid var(--lp-line); }
+.si-cmp-bar .st-tabs { flex: 1 1 auto; min-width: 0; align-self: stretch; border-bottom: 0; }
+.st .si-cmp-bar .st-tab { margin-bottom: 0; padding: 13px 12px 12px; }
+.si-period { flex: none; }
+.si-cmp-in { display: grid; gap: 22px; min-width: 0; transition: opacity .2s; }
+.si-cmp-in > * { min-width: 0; }
+/* a refetch (new period or test type) keeps the last render, dimmed, instead of a loader flash */
+.si-cmp-in.is-busy { opacity: .45; pointer-events: none; }
+.st .si-h { margin: 0; font-family: var(--lp-font-disp) !important; font-size: 17px; font-weight: 600; letter-spacing: -.012em; color: var(--lp-fg); }
+.si-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; }
+
+/* overview: one card per model; the top-ranked one carries the accent ring and a tag on its edge */
+.si-wins { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); padding-top: 10px; }
+.si-win { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 20px 18px 16px; border: 1px solid var(--lp-line); border-radius: 16px; background: var(--lp-card); }
+.si-win.is-top { border-color: var(--lp-accent); background: var(--lp-win-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-accent) 12%, transparent); }
+.si-win-badge { position: absolute; top: -11px; left: 16px; }
+.si-win-id { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 11px; }
+.st .si-win-name { margin: 0; font-size: 15.5px; font-weight: 600; letter-spacing: -.01em; line-height: 1.25; color: var(--lp-fg); overflow-wrap: anywhere; }
+.si-win-prov { display: flex; align-items: center; gap: 8px; margin: 3px 0 0; font-size: 12.5px; color: var(--lp-fg3); }
+.si-win-score { margin-top: 18px; font-family: var(--lp-font-disp); font-size: 44px; font-weight: 700; line-height: 1; letter-spacing: -.045em; color: var(--lp-fg); }
+.si-win-score.is-good { color: var(--lp-good); }
+.si-win-score.is-warn { color: var(--lp-warn); }
+.si-win-score.is-bad { color: var(--lp-bad); }
+.si-win-l { margin: 7px 0 0; font-size: 12.5px; color: var(--lp-fg3); }
+.si-win-kv { display: grid; grid-template-columns: 1fr 1fr; margin: 16px 0 0; border-top: 1px solid var(--lp-line); }
+.si-win-kv > div { min-width: 0; padding-top: 10px; }
+.si-win-kv > div + div { padding-left: 12px; border-left: 1px solid var(--lp-line); }
+.si-win-kv dt { font-size: 12px; color: var(--lp-fg3); }
+.si-win-kv dd { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.si-win .st-more { margin-top: 16px; align-self: flex-start; }
+
+/* charts: per-model summary, the plot frame, legend */
+.si-sum { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+.si-sum-card { min-width: 0; padding: 12px 14px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); }
+.si-sum-name { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 13.5px; font-weight: 600; color: var(--lp-fg); min-width: 0; }
+.si-sum-name span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.si-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 10px 0 0; }
+.si-figs dt { font-size: 11.5px; color: var(--lp-fg3); }
+.si-figs dd { margin: 2px 0 0; font-family: var(--lp-font-disp); font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.si-plot { margin: 0; padding: 16px 12px 14px 4px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); min-width: 0; }
+.si-chart { height: 340px; min-width: 0; }
+.si-radar { height: 440px; min-width: 0; }
+.si-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 20px; margin: 10px 0 0; padding: 0 12px; font-size: 13px; color: var(--lp-fg2); list-style: none; }
+.si-legend li { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.si-plot .recharts-text { font-variant-numeric: tabular-nums; }
+.si-plot .recharts-surface { overflow: visible; }
+
+/* chart tooltips, as small studio cards: value first, then the model, keyed by its line colour */
+.si-tip { min-width: 180px; max-width: 280px; padding: 10px 12px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); box-shadow: var(--lp-shadow-2); font-size: 13px; line-height: 1.4; color: var(--lp-fg2); }
+.si-tip-h { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--lp-fg3); }
+.si-tip-row { display: grid; grid-template-columns: 16px auto minmax(0, 1fr); align-items: center; column-gap: 8px; padding: 2px 0; }
+.si-tip-row b { font-weight: 700; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.si-tip-row span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* tables in the dialog sit in their own frame */
+.si-tablebox { border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); overflow: hidden; }
+.si-th { display: inline-flex; align-items: center; gap: 8px; }
+.si-model-cell { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.si-model-cell b { display: block; font-size: 14px; font-weight: 600; color: var(--lp-fg); white-space: nowrap; }
+.si-model-cell small { display: block; font-size: 12px; color: var(--lp-fg3); }
+
+/* a percentage judged by the page's thresholds: 80+ good, 60+ warn, under 60 bad */
+.si-pct { font-weight: 600; font-variant-numeric: tabular-nums; }
+.si-pct.is-good { color: var(--lp-good); }
+.si-pct.is-warn { color: var(--lp-warn); }
+.si-pct.is-bad { color: var(--lp-bad); }
+
+/* performance: a card per model with weighted metric bars */
+.si-perf { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.si-perf-card { min-width: 0; padding: 16px 18px 18px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); }
+.st .si-perf-name { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; font-size: 15px; font-weight: 600; letter-spacing: -.01em; color: var(--lp-fg); }
+.si-metric + .si-metric { margin-top: 12px; }
+.si-metric-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 13.5px; color: var(--lp-fg2); }
+.si-metric-h small { font-size: 12px; color: var(--lp-fg3); }
+.si-bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--lp-fg) 9%, transparent); overflow: hidden; }
+.si-bar i { display: block; height: 100%; border-radius: 3px; background: var(--lp-accent); transform-origin: left center; animation: siGrow .9s var(--lp-ease) both; transition: width .6s var(--lp-ease), background-color .3s; }
+.si-bar.is-good i { background: var(--lp-good); }
+.si-bar.is-warn i { background: var(--lp-warn); }
+.si-bar.is-bad i { background: var(--lp-bad); }
+
+/* ── download dialog ───────────────────────────────────────────────── */
+.si-dl-id { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.si-dl-id b { display: block; font-size: 16px; font-weight: 600; color: var(--lp-fg); }
+.si-dl-id span { display: block; margin-top: 1px; font-size: 13px; color: var(--lp-fg3); }
+.si-dl-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+.st .si-dl-opts .st-card:disabled { opacity: .55; cursor: progress; }
+.si-dl-opts .st-ar { margin-left: auto; color: var(--lp-fg3); }
+
+/* ── Free preview ──────────────────────────────────────────────────── */
+.si-lockbar { position: sticky; top: calc(var(--st-top) + 12px); z-index: 30; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 10px 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--lp-accent) 30%, var(--lp-line)); border-radius: 16px; background: color-mix(in srgb, var(--lp-accent-bg) 55%, var(--lp-card)); box-shadow: var(--lp-shadow-1); }
+.si-lockbar-t { flex: 1 1 300px; min-width: 0; display: grid; gap: 2px; }
+.si-lockbar-t b { font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.si-lockbar-t span { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+
+.si-locked { display: flex; flex-direction: column; overflow: hidden; }
+.si-locked-art { position: relative; height: 150px; padding: 20px 22px 0; filter: blur(2px); opacity: .8; pointer-events: none; user-select: none;
+  -webkit-mask-image: linear-gradient(to bottom, black 35%, transparent 100%); mask-image: linear-gradient(to bottom, black 35%, transparent 100%); }
+.si-locked-art svg { display: block; width: 100%; height: 110px; }
+.si-locked-art.is-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 10px; }
+.si-locked-art.is-filters span { display: flex; align-items: center; height: 40px; padding: 0 14px; border: 1px solid var(--lp-line2); border-radius: 10px; font-size: 13.5px; color: var(--lp-fg2); }
+.si-locked-copy { display: grid; justify-items: start; gap: 8px; padding: 0 22px 22px; }
+.st .si-locked-t { margin: 0; font-family: var(--lp-font-disp) !important; font-size: 19px; font-weight: 600; letter-spacing: -.015em; color: var(--lp-fg); }
+.si-locked-copy p { margin: 0 0 6px; max-width: 48ch; font-size: 14.5px; line-height: 1.55; color: var(--lp-fg2); }
+.si-trial { margin: -8px 0 20px; font-size: 14px; font-weight: 600; color: var(--lp-fg2); }
+
+/* ── phones ────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .si-tools { margin-bottom: 16px; }
+  /* filter chips scroll sideways inside the pane instead of wrapping into a block */
+  .si-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding: 2px 16px; scrollbar-width: none; scroll-padding-inline: 16px; }
+  .si-chips::-webkit-scrollbar { display: none; }
+  .st .si-chips .st-chip { height: 40px; flex: none; }
+  .si-ctl { width: 100%; }
+  .st .si-ctl .st-seg button { height: 36px; }
+  .si-grid { gap: 12px; }
+  .st .si-card-act .st-btn, .st .si-pick { height: 40px; }
+  .si-tray { bottom: 10px; padding: 12px; gap: 10px; }
+  .si-tray-list { display: none; }
+  .si-tray-n { flex: 1 1 100%; }
+  .si-tray-act { flex: 1 1 100%; margin-left: 0; }
+  .st .si-tray-act .st-btn { flex: 1; height: 44px; }
+
+  /* the dialog is a bottom sheet: period above the tabs, tabs scroll sideways */
+  .si-cmp { height: 92vh; }
+  .si-cmp-bar { flex-direction: column-reverse; align-items: stretch; gap: 0; padding: 0; }
+  .si-cmp-bar .st-tabs { padding: 0 4px; }
+  .si-period { display: flex; margin: 0 16px 12px; }
+  .st .si-period button { flex: 1; height: 36px; padding: 0 8px; }
+  .si-wins { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 12px; }
+  .si-win { padding: 18px 12px 14px; }
+  .si-win-id { grid-template-columns: minmax(0, 1fr); row-gap: 10px; }
+  .st .si-win-name { font-size: 14.5px; }
+  .si-win-score { font-size: 34px; margin-top: 14px; }
+  .si-win-kv { grid-template-columns: minmax(0, 1fr); }
+  .si-win-kv > div + div { padding-left: 0; border-left: 0; }
+  .si-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .si-sum-card { padding: 10px 12px; }
+  .si-sum-name { font-size: 13px; }
+  .si-figs dd { font-size: 15.5px; }
+  .si-chart { height: 260px; }
+  .si-radar { height: 330px; }
+  .si-plot { padding: 12px 6px 12px 0; }
+  .si-dl-opts { grid-template-columns: minmax(0, 1fr); }
+  .si-lockbar { position: static; padding: 14px; }
+  .st .si-lockbar .st-btn { flex: 1 1 100%; height: 44px; }
+  .si-locked-art { height: 128px; padding: 16px 16px 0; }
+  .si-locked-copy { padding: 0 16px 18px; }
+  .st .si-locked-copy .st-btn { width: 100%; height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .si-meter i, .si-bar i, .si-tray { animation: none; }
+  .si-meter i, .si-bar i, .si-switch-ui, .si-switch-ui::after, .st .si-card, .si-cmp-in { transition: none; }
+}

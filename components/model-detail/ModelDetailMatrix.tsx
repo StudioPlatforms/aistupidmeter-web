@@ -5,7 +5,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   ResponsiveContainer, Tooltip
 } from 'recharts';
-import ProFeatureBlur from '../ProFeatureBlur';
+import { Pane, Empty, Locked, Tag } from '@/components/studio';
 
 type ScoringMode = 'combined' | 'reasoning' | 'speed' | 'tooling';
 type ViewMode = 'cards' | 'radar';
@@ -44,41 +44,41 @@ interface ModelDetailMatrixProps {
 interface AxisSpec { key: string; label: string; weight: string; description: string; }
 
 const CODING_AXES: AxisSpec[] = [
-  { key: 'correctness', label: 'CORRECTNESS', weight: '55%', description: 'Did the code work, and on repo tasks did it fix the real defect?' },
-  { key: 'stability',   label: 'STABILITY', weight: '10%', description: 'Same answer run to run' },
-  { key: 'edgeCases',   label: 'EDGE CASES', weight: '10%', description: 'On repo tasks: the hidden tests it never saw' },
-  { key: 'debugging',   label: 'DEBUGGING', weight: '10%', description: 'Did it locate the defect rather than patch the symptom?' },
-  { key: 'codeQuality', label: 'CODE QUALITY', weight: '5%',  description: 'Readability and structure' },
-  { key: 'efficiency',  label: 'EFFICIENCY', weight: '5%',  description: 'Output throughput' },
-  { key: 'format',      label: 'FORMAT', weight: '3%',  description: 'Guardrail: clean, parseable output' },
-  { key: 'safety',      label: 'SAFETY', weight: '2%',  description: 'Guardrail: no dangerous operations' },
-  { key: 'complexity',  label: 'COMPLEXITY', weight: '0%',  description: 'Measured, but varies too little between models to rank them' },
+  { key: 'correctness', label: 'Correctness', weight: '55%', description: 'Did the code work, and on repo tasks did it fix the real defect?' },
+  { key: 'stability',   label: 'Stability', weight: '10%', description: 'Same answer run to run' },
+  { key: 'edgeCases',   label: 'Edge cases', weight: '10%', description: 'On repo tasks: the hidden tests it never saw' },
+  { key: 'debugging',   label: 'Debugging', weight: '10%', description: 'Did it locate the defect rather than patch the symptom?' },
+  { key: 'codeQuality', label: 'Code quality', weight: '5%',  description: 'Readability and structure' },
+  { key: 'efficiency',  label: 'Efficiency', weight: '5%',  description: 'Output throughput' },
+  { key: 'format',      label: 'Format', weight: '3%',  description: 'Guardrail: clean, parseable output' },
+  { key: 'safety',      label: 'Safety', weight: '2%',  description: 'Guardrail: no dangerous operations' },
+  { key: 'complexity',  label: 'Complexity', weight: '0%',  description: 'Measured, but varies too little between models to rank them' },
 ];
 
 const TOOLING_AXES: AxisSpec[] = [
-  { key: 'taskCompletion',    label: 'TASK COMPLETION', weight: '30%', description: 'Did the objective actually get done?' },
-  { key: 'toolSelection',     label: 'TOOL SELECTION', weight: '20%', description: 'Choosing the right tool' },
-  { key: 'parameterAccuracy', label: 'PARAM ACCURACY', weight: '15%', description: 'Calling it with correct arguments' },
-  { key: 'efficiency',        label: 'TOOL EFFICIENCY', weight: '15%', description: 'Without unnecessary calls' },
-  { key: 'errorHandling',     label: 'ERROR HANDLING', weight: '10%', description: 'Recovering when a call fails' },
-  { key: 'contextAwareness',  label: 'CTX AWARENESS', weight: '5%',  description: 'Carrying earlier output forward' },
-  { key: 'safetyCompliance',  label: 'SAFETY COMPLNC.', weight: '5%',  description: 'Avoiding destructive operations' },
+  { key: 'taskCompletion',    label: 'Task completion', weight: '30%', description: 'Did the objective actually get done?' },
+  { key: 'toolSelection',     label: 'Tool selection', weight: '20%', description: 'Choosing the right tool' },
+  { key: 'parameterAccuracy', label: 'Parameter accuracy', weight: '15%', description: 'Calling it with correct arguments' },
+  { key: 'efficiency',        label: 'Tool efficiency', weight: '15%', description: 'Without unnecessary calls' },
+  { key: 'errorHandling',     label: 'Error handling', weight: '10%', description: 'Recovering when a call fails' },
+  { key: 'contextAwareness',  label: 'Context awareness', weight: '5%',  description: 'Carrying earlier output forward' },
+  { key: 'safetyCompliance',  label: 'Safety compliance', weight: '5%',  description: 'Avoiding destructive operations' },
 ];
 
 // Deep-reasoning weights are set per task, so a single percentage would be a fiction. The
 // axes are real and measured; the weight column says so instead of inventing a number.
 const REASONING_AXES: AxisSpec[] = [
-  { key: 'correctness',      label: 'CORRECTNESS', weight: 'per task', description: 'Steps that passed their tests or checks' },
+  { key: 'correctness',      label: 'Correctness', weight: 'per task', description: 'Steps that passed their tests or checks' },
   // Since 2026-09-23 the three continuity axes are executable: rules stated once in the
   // conversation (at the start or mid-session), and the decisions a model declares in its own plan, are checked by running
   // code at every later step. They used to compare words (identifier overlap).
-  { key: 'memoryRetention',  label: 'MEMORY RETENTION', weight: 'per task', description: 'Rules stated once in the session, still followed later' },
-  { key: 'planCoherence',    label: 'PLAN COHERENCE', weight: 'per task', description: 'Code keeps the decisions declared in its own plan' },
-  { key: 'contextWindow',    label: 'CONTEXT WINDOW', weight: 'per task', description: 'Rules from the first message still followed at the end' },
+  { key: 'memoryRetention',  label: 'Memory retention', weight: 'per task', description: 'Rules stated once in the session, still followed later' },
+  { key: 'planCoherence',    label: 'Plan coherence', weight: 'per task', description: 'Code keeps the decisions declared in its own plan' },
+  { key: 'contextWindow',    label: 'Context window', weight: 'per task', description: 'Rules from the first message still followed at the end' },
   // `debugging` was correctness under another name and is folded into it; `codeQuality`,
   // `stability` and `safety` are retracted. `edgeCases` is reported only when a code step
   // failed, since recovery cannot be observed otherwise.
-  { key: 'edgeCases',        label: 'RECOVERY', weight: 'per task', description: 'Code passing again after a failed step' },
+  { key: 'edgeCases',        label: 'Recovery', weight: 'per task', description: 'Code passing again after a failed step' },
 ];
 
 /** Only axes the suite actually reported. No stand-ins, no derived values. */
@@ -90,46 +90,25 @@ function measuredMetrics(specs: AxisSpec[], measured: Record<string, number> | u
 }
 
 const tierLabel = (pct: number): string => {
-  if (pct >= 90) return 'ELITE';
-  if (pct >= 80) return 'EXCELLENT';
-  if (pct >= 70) return 'GOOD';
-  if (pct >= 60) return 'FAIR';
-  if (pct >= 40) return 'POOR';
-  return 'CRITICAL';
+  if (pct >= 90) return 'Elite';
+  if (pct >= 80) return 'Excellent';
+  if (pct >= 70) return 'Good';
+  if (pct >= 60) return 'Fair';
+  if (pct >= 40) return 'Poor';
+  return 'Critical';
 };
 
-const pctColor = (pct: number): string =>
-  pct >= 80 ? 'var(--phosphor-green)' : pct >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)';
+/** Same thresholds as ever: 80 and up healthy, 60–80 a warning, under 60 a problem. */
+const tierTone = (pct: number): 'good' | 'warn' | 'bad' => (pct >= 80 ? 'good' : pct >= 60 ? 'warn' : 'bad');
+const barTone = (pct: number): string => (pct < 60 ? ' is-bad' : pct < 80 ? ' is-warn' : '');
 
-const barColor = (pct: number, category: string): string => {
-  if (pct < 60) return 'var(--red-alert)';
-  if (pct < 80) return 'var(--amber-warning)';
-  switch (category) {
-    case 'speed': return 'var(--phosphor-green)';
-    case 'reasoning': return '#8a2be2';
-    case 'tooling': return '#ff8c00';
-    default: return 'var(--phosphor-green)';
-  }
-};
+const GROUPS: Array<{ category: string; label: string }> = [
+  { category: 'speed', label: 'Coding' },
+  { category: 'reasoning', label: 'Reasoning' },
+  { category: 'tooling', label: 'Tool use' },
+];
 
-const bgFill = (pct: number, category: string): string => {
-  if (pct < 60) return 'rgba(255, 45, 0, 0.08)';
-  if (pct < 80) return 'rgba(255, 176, 0, 0.08)';
-  switch (category) {
-    case 'speed': return 'rgba(26, 115, 232, 0.08)';
-    case 'reasoning': return 'rgba(138, 43, 226, 0.08)';
-    case 'tooling': return 'rgba(255, 140, 0, 0.08)';
-    default: return 'rgba(26, 115, 232, 0.08)';
-  }
-};
-
-const radarColor = (category: string): string => {
-  switch (category) {
-    case 'reasoning': return '#8a2be2';
-    case 'tooling': return '#ff8c00';
-    default: return '#1a73e8';
-  }
-};
+const PERIOD_WORDS: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '1m': '1 month' };
 
 interface MetricDef {
   key: string;
@@ -143,157 +122,73 @@ interface MetricDef {
 // ─── Radar Chart Custom Tooltip ───────────────────────────────────────────────
 const RadarTooltip = ({ active, payload }: any) => {
   if (!active || !payload || payload.length === 0) return null;
-  const { subject, value } = payload[0].payload;
+  const { fullLabel, subject, value } = payload[0].payload;
   return (
-    <div style={{
-      background: 'var(--terminal-dark)',
-      border: '1px solid var(--metal-silver)',
-      borderRadius: '10px',
-      padding: '8px 12px',
-      fontSize: '11px',
-      fontFamily: 'var(--font-mono)',
-      boxShadow: '0 4px 14px rgba(60,64,67,0.18)',
-    }}>
-      <div style={{ color: '#1a73e8', fontWeight: 'bold', marginBottom: '3px' }}>{subject}</div>
-      <div style={{ color: pctColor(value) }}>{value.toFixed(1)}% — {tierLabel(value)}</div>
+    <div className="sm-tip">
+      <span className="sm-tip-h">{fullLabel ?? subject}</span>
+      <span className="sm-tip-v"><strong>{value.toFixed(1)}%</strong> {tierLabel(value)}</span>
     </div>
   );
 };
 
 // ─── Metric Card ──────────────────────────────────────────────────────────────
-function MetricCard({ metric, index, hasProAccess, onShowProModal }: {
-  metric: MetricDef;
-  index: number;
-  hasProAccess: boolean;
-  onShowProModal: (f: 'historical-data' | 'performance-matrix') => void;
-}) {
+function MetricCard({ metric }: { metric: MetricDef }) {
   const pct = Math.max(0, Math.min(100, metric.value));
-  const color = pctColor(pct);
-  const bar = barColor(pct, metric.category);
-  const bg = bgFill(pct, metric.category);
-
-  const card = (
-    <div className={`md-metric-card category-${metric.category}`}>
-      <div className="md-metric-bg" style={{ width: `${pct}%`, background: bg }} />
-      <div className="md-metric-content">
-        <div className="md-metric-top">
-          <div className="md-metric-left">
-            <div className="md-metric-name">
-              <span className="md-metric-label">{metric.label}</span>
-              <span className="md-metric-weight">({metric.weight})</span>
-            </div>
-            <div className="md-metric-desc">{metric.description}</div>
-          </div>
-          <div className="md-metric-pct" style={{ color }}>
-            {pct.toFixed(1)}%
-          </div>
-        </div>
-        <div className="md-metric-bar-track">
-          <div
-            className="md-metric-bar-fill"
-            style={{ width: `${pct}%`, background: bar, boxShadow: `0 0 5px ${bar}` }}
-          />
-        </div>
-        <div className="md-metric-tier">{tierLabel(pct)}</div>
-      </div>
-    </div>
-  );
-
-  if (index === 0 || hasProAccess) return card;
-
   return (
-    <ProFeatureBlur
-      key={metric.key}
-      isLocked={true}
-      onUnlock={() => onShowProModal('performance-matrix')}
-      title="Performance Matrix"
-    >
-      {card}
-    </ProFeatureBlur>
+    <div className="sm-mx-card">
+      <div className="sm-mx-top">
+        <div>
+          <div className="sm-mx-name">
+            {metric.label}
+            <Tag tone="line" title="Weight in the suite's score">{metric.weight}</Tag>
+          </div>
+          <div className="sm-mx-desc">{metric.description}</div>
+        </div>
+        <div className="sm-mx-pct">{pct.toFixed(1)}<small>%</small></div>
+      </div>
+      <div className="sm-mx-bar" aria-hidden="true"><i className={barTone(pct).trim()} style={{ width: `${pct}%` }} /></div>
+      <div className="sm-mx-foot"><Tag tone={tierTone(pct)}>{tierLabel(pct)}</Tag></div>
+    </div>
   );
 }
 
 // ─── Radar View ───────────────────────────────────────────────────────────────
-function RadarView({ metrics, category }: { metrics: MetricDef[]; category: string }) {
+function RadarView({ metrics }: { metrics: MetricDef[] }) {
   const radarData = metrics.map(m => ({
-    subject: m.label.length > 12 ? m.label.substring(0, 12) + '…' : m.label,
+    subject: m.label.length > 14 ? m.label.substring(0, 13) + '…' : m.label,
     fullLabel: m.label,
     value: Math.max(0, Math.min(100, m.value)),
   }));
 
-  const stroke = radarColor(category);
-
   return (
-    <div style={{ padding: '16px 0' }}>
-      <div style={{
-        fontSize: '10px',
-        color: 'var(--phosphor-dim)',
-        textAlign: 'center',
-        marginBottom: '12px',
-      }}>
-        Web chart showing all axes — hover a point for details
+    <div>
+      <p className="sm-mx-note">Web chart showing all axes — hover a point for details</p>
+      <div className="sm-chart sm-radar">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart data={radarData} margin={{ top: 10, right: 34, bottom: 10, left: 34 }} outerRadius="72%">
+            <PolarGrid stroke="var(--lp-line)" gridType="polygon" />
+            <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--lp-fg2)', fontSize: 11.5, fontWeight: 600 }} />
+            <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: 'var(--lp-fg3)', fontSize: 10.5 }} tickCount={5} stroke="var(--lp-line)" axisLine={false} />
+            <Radar
+              name="Score"
+              dataKey="value"
+              stroke="var(--lp-accent)"
+              strokeWidth={2}
+              fill="var(--lp-accent)"
+              fillOpacity={0.14}
+              dot={{ fill: 'var(--lp-accent)', stroke: 'var(--lp-card)', strokeWidth: 1.5, r: 3.5 }}
+              activeDot={{ fill: 'var(--lp-card)', stroke: 'var(--lp-accent)', strokeWidth: 2.5, r: 5 }}
+            />
+            <Tooltip content={<RadarTooltip />} wrapperStyle={{ outline: 'none' }} />
+          </RadarChart>
+        </ResponsiveContainer>
       </div>
-      <ResponsiveContainer width="100%" height={380}>
-        <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-          <PolarGrid
-            stroke="rgba(192, 192, 192, 0.15)"
-            gridType="polygon"
-          />
-          <PolarAngleAxis
-            dataKey="subject"
-            tick={{
-              fill: 'var(--phosphor-dim)',
-              fontSize: 10,
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 'bold',
-            }}
-          />
-          <PolarRadiusAxis
-            angle={30}
-            domain={[0, 100]}
-            tick={{ fill: 'var(--phosphor-dim)', fontSize: 8, fontFamily: 'var(--font-mono)' }}
-            tickCount={5}
-            stroke="rgba(192, 192, 192, 0.1)"
-          />
-          <Radar
-            name="Score"
-            dataKey="value"
-            stroke={stroke}
-            fill={stroke}
-            fillOpacity={0.15}
-            dot={{ fill: stroke, strokeWidth: 2, r: 4 }}
-            activeDot={{ fill: stroke, strokeWidth: 2, r: 6, style: { filter: `drop-shadow(0 0 6px ${stroke})` } }}
-          />
-          <Tooltip content={<RadarTooltip />} />
-        </RadarChart>
-      </ResponsiveContainer>
 
-      {/* Legend */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '8px',
-        justifyContent: 'center',
-        padding: '8px 16px',
-        marginTop: '8px',
-      }}>
+      {/* Legend: every axis with its value, so nothing rests on reading the web alone */}
+      <div className="sm-radar-keys">
         {metrics.map(m => {
           const pct = Math.max(0, Math.min(100, m.value));
-          return (
-            <div key={m.key} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: '9px',
-              color: 'var(--phosphor-dim)',
-              padding: '3px 8px',
-              border: '1px solid rgba(192, 192, 192, 0.1)',
-              background: 'rgba(0,0,0,0.04)',
-            }}>
-              <span style={{ color: pctColor(pct), fontWeight: 'bold' }}>{pct.toFixed(0)}%</span>
-              <span>{m.label}</span>
-            </div>
-          );
+          return <Tag key={m.key} tone="line"><b>{pct.toFixed(0)}%</b> {m.label}</Tag>;
         })}
       </div>
     </div>
@@ -312,16 +207,11 @@ export default function ModelDetailMatrix({
 
   if (!axesData) {
     return (
-      <div className="md-matrix-section">
-        <div className="md-matrix-empty">
-          <div style={{ color: 'var(--red-alert)', fontWeight: 'bold', marginBottom: '8px' }}>
-            No performance data available for this period
-          </div>
-          <div style={{ color: 'var(--phosphor-dim)', fontSize: '11px' }}>
-            Try selecting a different time period or check back later
-          </div>
-        </div>
-      </div>
+      <Pane title="Performance matrix">
+        <Empty title="No performance data available for this period">
+          Try selecting a different time period or check back later
+        </Empty>
+      </Pane>
     );
   }
 
@@ -329,42 +219,32 @@ export default function ModelDetailMatrix({
   let title = '';
   let subtitle = '';
   let note = '';
-  let primaryCategory = 'speed';
-
-  const periodLabel = selectedPeriod === 'latest' ? ''
-    : selectedPeriod === '24h' ? '(24H)'
-    : selectedPeriod === '7d' ? '(7D)'
-    : '(1M)';
 
   if (scoringMode === 'speed') {
-    title = `CODING PERFORMANCE MATRIX ${periodLabel}`;
+    title = 'Coding performance matrix';
     subtitle = 'The nine coding measures, with the weight each carries in the coding score';
     if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
-    primaryCategory = 'speed';
 
     metrics = measuredMetrics(CODING_AXES, axesData.measured, 'speed');
   } else if (scoringMode === 'reasoning') {
-    title = `REASONING PERFORMANCE MATRIX ${periodLabel}`;
+    title = 'Reasoning performance matrix';
     subtitle = 'The reasoning measures; each task weights them differently';
     if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
-    primaryCategory = 'reasoning';
 
     metrics = measuredMetrics(REASONING_AXES, axesData.measured, 'reasoning');
   } else if (scoringMode === 'tooling') {
-    title = `TOOL CALLING PERFORMANCE MATRIX ${periodLabel}`;
+    title = 'Tool calling performance matrix';
     subtitle = 'The seven tool-use measures, with the weight each carries in the tool-use score';
     if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
-    primaryCategory = 'tooling';
 
     metrics = measuredMetrics(TOOLING_AXES, axesData.measured, 'tooling');
   } else {
     // combined
-    title = `COMBINED PERFORMANCE MATRIX ${periodLabel}`;
+    title = 'Combined performance matrix';
     // The combined score is coding 50%, reasoning 25%, tool use 25%. This said "70% Speed
     // Benchmarks + 30% Deep Reasoning", a weighting the site has not used in a long time.
     subtitle = 'Measures from all three suites · combined score: coding 50%, reasoning 25%, tool use 25%';
     if (selectedPeriod !== 'latest') note = 'Averaged over the runs in this period';
-    primaryCategory = 'speed';
 
     // Combined view: the coding axes are the ones that exist on every model, and the
     // deep/tooling axes appear only when those suites reported for this period.
@@ -375,92 +255,79 @@ export default function ModelDetailMatrix({
     ];
   }
 
+  const titleNode = (
+    <>
+      {title}
+      {selectedPeriod !== 'latest' && <> <Tag>{PERIOD_WORDS[selectedPeriod] ?? selectedPeriod}</Tag></>}
+    </>
+  );
+  const subNode = note ? `${subtitle}. ${note}.` : subtitle;
+
   // Measured-only: if this suite reported nothing for the period, say so rather than drawing a
   // chart out of whatever other suite happened to have data. The old code could not reach this
   // state because it synthesised every missing axis from a coding one.
   if (metrics.length === 0) {
     return (
-      <div className="md-matrix-section">
-        <div className="md-matrix-empty">
-          <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-            Nothing measured for this view in the selected period
-          </div>
-          <div style={{ fontSize: '11px', opacity: 0.8 }}>
-            This suite has not reported for this model in the chosen timeframe. Try a wider
-            period, or a different benchmark view.
-          </div>
-        </div>
-      </div>
+      <Pane title={titleNode} sub={subNode}>
+        <Empty title="Nothing measured for this view in the selected period">
+          This suite has not reported for this model in the chosen timeframe. Try a wider
+          period, or a different benchmark view.
+        </Empty>
+      </Pane>
     );
   }
 
+  // Pro gating, as before: everyone sees the first measure; the rest are Pro.
+  const visible = hasProAccess ? metrics : metrics.slice(0, 1);
+  const locked = hasProAccess ? [] : metrics.slice(1);
+  const groups = GROUPS
+    .map(g => ({ ...g, items: visible.filter(m => m.category === g.category) }))
+    .filter(g => g.items.length > 0);
+  const labelGroups = new Set(metrics.map(m => m.category)).size > 1;
+  const lockedNames = locked.map(m => m.label.toLowerCase());
+  const lockedList = lockedNames.length > 6
+    ? `${lockedNames.slice(0, 5).join(', ')} and ${lockedNames.length - 5} more`
+    : lockedNames.join(', ');
+
   return (
-    <div className="md-matrix-section">
-      <div className="md-matrix-header">
-        <div className="md-matrix-title">{title}</div>
-        <div className="md-matrix-sub">{subtitle}</div>
-        {note && <div className="md-matrix-note">{note}</div>}
-
-        {/* View toggle */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '1px', marginTop: '12px' }}>
-          <button
-            onClick={() => setViewMode('cards')}
-            style={{
-              padding: '5px 16px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              border: '1px solid rgba(192,192,192,0.25)',
-              background: viewMode === 'cards' ? 'var(--phosphor-green)' : 'var(--terminal-black)',
-              color: viewMode === 'cards' ? 'var(--terminal-black)' : 'var(--phosphor-dim)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-mono)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.4px',
-              transition: 'all 0.15s',
-            }}
-          >
-            CARDS
-          </button>
-          <button
-            onClick={() => setViewMode('radar')}
-            style={{
-              padding: '5px 16px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              border: '1px solid rgba(192,192,192,0.25)',
-              background: viewMode === 'radar' ? radarColor(primaryCategory) : 'var(--terminal-black)',
-              color: viewMode === 'radar' ? 'var(--terminal-black)' : 'var(--phosphor-dim)',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-mono)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.4px',
-              transition: 'all 0.15s',
-            }}
-          >
-            WEB CHART
-          </button>
+    <Pane
+      title={titleNode}
+      sub={subNode}
+      actions={
+        <div className="st-seg" role="group" aria-label="Matrix view">
+          <button type="button" aria-pressed={viewMode === 'cards'} onClick={() => setViewMode('cards')}>Cards</button>
+          <button type="button" aria-pressed={viewMode === 'radar'} onClick={() => setViewMode('radar')}>Web chart</button>
         </div>
-      </div>
-
+      }
+    >
       {/* Card Grid View */}
       {viewMode === 'cards' && (
-        <div className="md-matrix-grid">
-          {metrics.map((metric, index) => (
-            <MetricCard
-              key={metric.key}
-              metric={metric}
-              index={index}
-              hasProAccess={hasProAccess}
-              onShowProModal={onShowProModal}
-            />
-          ))}
-        </div>
+        hasProAccess ? (
+          groups.map(g => (
+            <div key={g.category} className="sm-mx-group">
+              {labelGroups && <p className="st-label">{g.label}</p>}
+              <div className="sm-mx-grid">
+                {g.items.map(metric => <MetricCard key={metric.key} metric={metric} />)}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="sm-mx-lockrow">
+            {visible.map(metric => <MetricCard key={metric.key} metric={metric} />)}
+            {locked.length > 0 && (
+              <Locked title="The full performance matrix" onOpen={() => onShowProModal('performance-matrix')}>
+                {locked.length} more {locked.length === 1 ? 'measure' : 'measures'} for this view ({lockedList}),
+                each with its weight, score and tier.
+              </Locked>
+            )}
+          </div>
+        )
       )}
 
       {/* Radar / Web Chart View */}
       {viewMode === 'radar' && (
-        <RadarView metrics={metrics} category={primaryCategory} />
+        <RadarView metrics={metrics} />
       )}
-    </div>
+    </Pane>
   );
 }

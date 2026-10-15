@@ -6,15 +6,18 @@
  *
  * The seat rule is stated on the page rather than left to be discovered by hitting the limit:
  * owner and editors consume a seat, viewers never do.
+ *
+ * Look: the studio shell (styles/studio.css, components/studio) plus styles/studio-team.css.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import '@/styles/workspace.css';
+import '@/styles/studio-team.css';
 import Tabs, { useTab } from '@/components/workspace/Tabs';
 import SpendChart from '@/components/workspace/SpendChart';
 import WatchlistPanel from '@/components/workspace/WatchlistPanel';
+import { PageHead, Pane, Stats, Stat, CountUp, CopyButton, Loader, Empty, Tag, ProviderMark, Meter } from '@/components/studio';
 import {
   wsApi, money, pct, num, ago, day, ROLE_LABEL, PROVIDERS, providerLabel,
   type ModelOption, type WatchModel,
@@ -52,6 +55,11 @@ function usage(used: number, limit: number | undefined, noun: string): string {
   return `${used} of ${limit ?? 0} ${noun}${limit === 1 ? '' : 's'} used`;
 }
 
+/** A number that counts up, or a dash when there is none. */
+function count(n: number | null | undefined, format?: (n: number) => string): ReactNode {
+  return typeof n === 'number' && Number.isFinite(n) ? <CountUp value={n} format={format} /> : '—';
+}
+
 const EVENT_WORDS: Record<string, string> = {
   'model.regression': 'A watched model dropped or regressed',
   'budget.threshold': 'A project crossed a budget threshold',
@@ -59,6 +67,11 @@ const EVENT_WORDS: Record<string, string> = {
   'member.cap_warning': 'Someone used 80% of their cap',
   'member.cap_reached': 'Someone reached their cap',
 };
+
+const PLAN_WORDS: Record<string, string> = { enterprise: 'Enterprise', teams: 'Teams', developer: 'Developer' };
+const ROLE_TONE: Record<string, 'ink' | 'accent' | 'line'> = { owner: 'ink', editor: 'accent', viewer: 'line' };
+
+const ar = <span className="st-ar" aria-hidden="true">→</span>;
 
 export default function TeamClient() {
   const { status } = useSession();
@@ -83,54 +96,90 @@ export default function TeamClient() {
     return r;
   }, [flash, load]);
 
+  // Signed out, AccountShell renders the public chrome (no studio shell), so this stays plain.
   if (status === 'unauthenticated') {
     return (
-      <div className="ws-page narrow" style={{ textAlign: 'center', paddingTop: 60 }}>
-        <h1 className="ws-title">Team</h1>
-        <p className="ws-sub" style={{ marginBottom: 22 }}>Sign in to manage your workspace.</p>
-        <Link href="/auth/signin" className="ws-btn primary">Sign in</Link>
+      <div style={{ maxWidth: 640, margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.3em', marginBottom: 12 }}>Team</h1>
+        <p style={{ color: 'var(--phosphor-dim)', marginBottom: 22 }}>Sign in to manage your workspace.</p>
+        <Link href="/auth/signin" className="vintage-btn" style={{ padding: '11px 22px', textDecoration: 'none' }}>Sign in</Link>
       </div>
     );
   }
-  if (loading) return <div data-page-loading className="ws-page" style={{ textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) return <div data-page-loading><Loader label="Loading your workspace" minHeight={420} /></div>;
 
   if (!d?.org && d?.canCreate === false) {
     return (
-      <div className="ws-page narrow" style={{ textAlign: 'center', paddingTop: 50 }}>
-        <h1 className="ws-title">Workspaces start on Developer</h1>
-        <p className="ws-sub" style={{ margin: '10px auto 24px', maxWidth: 560 }}>
-          A workspace gives a team a shared watchlist with alerts, and projects with their own Smart
-          Router keys, budgets and spend reports. Developer includes one project; Teams adds five editors,
-          each with the full Teams plan, three projects, webhooks, single sign-on and an audit trail.
-          Viewers are free on both.
-        </p>
-        <Link href="/pricing" className="ws-btn primary">Compare plans</Link>
-      </div>
+      <>
+        <PageHead
+          kicker="Team"
+          title="Workspace"
+          lead="Where a team watches models together and runs projects with their own Smart Router keys, budgets and reports."
+        />
+        <div className="st-body sw-body">
+          <section className="st-pane is-accent st-lock st-up">
+            <div className="st-lock-main">
+              <p className="st-kicker">Developer and Teams</p>
+              <h2 className="st-lock-t">Workspaces start on Developer</h2>
+              <p className="st-lead">
+                A workspace gives a team a shared watchlist with alerts, and projects with their own Smart
+                Router keys, budgets and spend reports.
+              </p>
+              <div className="st-actions sw-lock-act">
+                <Link href="/pricing" className="st-btn is-primary is-lg">Compare plans {ar}</Link>
+              </div>
+            </div>
+            <div className="st-lock-side">
+              <p className="st-label">What each plan includes</p>
+              <dl className="st-kv sw-kv">
+                <div><dt>Developer</dt><dd>One project.</dd></div>
+                <div><dt>Teams</dt><dd>Five editors, each with the full Teams plan, three projects, webhooks, single sign-on and an audit trail.</dd></div>
+                <div><dt>Viewers</dt><dd>Free on both.</dd></div>
+              </dl>
+            </div>
+          </section>
+        </div>
+      </>
     );
   }
-  if (!d) return <div className="ws-page" style={{ textAlign: 'center', color: 'var(--phosphor-dim)' }}>Could not load your workspace.</div>;
+  if (!d) {
+    return (
+      <>
+        <PageHead kicker="Team" title="Workspace" />
+        <div className="st-body sw-body"><Empty title="Could not load your workspace." /></div>
+      </>
+    );
+  }
   if (!d.org) {
     return (
-      <div className="ws-page narrow" style={{ paddingTop: 40 }}>
-        <h1 className="ws-title">Create your workspace</h1>
-        <p className="ws-sub" style={{ margin: '8px 0 20px' }}>
-          {d.seatLimit === 1
+      <>
+        <PageHead
+          kicker="Team"
+          title="Create your workspace"
+          lead={d.seatLimit === 1
             ? <>A workspace is where a team watches models together and runs projects with their own Smart Router keys,
                 budgets and reports. Your plan includes one editor seat — yours — and {plural(d.projectLimit, 'project')}.
                 Viewers do not use a seat: invite clients or colleagues to read along.</>
             : <>A workspace is where your team watches models together and runs projects with their own Smart Router keys,
                 budgets and reports. You get {plural(d.seatLimit, 'editor seat')} — every editor gets your plan&rsquo;s
                 features — plus unlimited read-only viewers.</>}
-        </p>
-        <form className="ws-form" onSubmit={async e => {
-          e.preventDefault();
-          await act('', 'POST', { name: new FormData(e.currentTarget).get('name') }, 'Workspace created');
-        }}>
-          <input name="name" required placeholder="Acme AI" className="ws-input" style={{ flex: 1, minWidth: 200 }} />
-          <button className="ws-btn primary">Create</button>
-        </form>
-        {msg && <p className="ws-note" style={{ marginTop: 12, color: msg.bad ? 'var(--bad)' : undefined }}>{msg.text}</p>}
-      </div>
+        />
+        <div className="st-body sw-body sw-narrow">
+          <Pane title="Name your workspace">
+            <form className="sw-form-row" onSubmit={async e => {
+              e.preventDefault();
+              await act('', 'POST', { name: new FormData(e.currentTarget).get('name') }, 'Workspace created');
+            }}>
+              <label className="st-field is-wide">
+                <span className="st-field-label">Workspace name</span>
+                <input name="name" required placeholder="Acme AI" className="st-input" />
+              </label>
+              <button type="submit" className="st-btn is-primary">Create workspace</button>
+            </form>
+            {msg && <p role="status" className={`sw-flash sw-msg${msg.bad ? ' is-bad' : ''}`}>{msg.text}</p>}
+          </Pane>
+        </div>
+      </>
     );
   }
   return <Workspace d={d} load={load} act={act} msg={msg} secret={secret} clearSecret={() => setSecret(null)} flash={flash} />;
@@ -153,38 +202,44 @@ function Workspace({ d, load, act, msg, secret, clearSecret, flash }: {
   const [tab, setTab] = useTab(tabs);
 
   return (
-    <div className="ws-page">
-      <div className="ws-head">
-        <div style={{ minWidth: 0 }}>
-          <h1 className="ws-title">{d.org!.name}</h1>
-          <p className="ws-sub">
-            <span className="ws-chip accent">{d.org!.plan === 'enterprise' ? 'Enterprise' : d.org!.plan === 'teams' ? 'Teams' : d.org!.plan === 'developer' ? 'Developer' : d.org!.plan}</span>{' '}
-            <span className="ws-chip">You: {ROLE_LABEL[d.role ?? 'viewer']}</span>
-          </p>
+    <>
+      <PageHead
+        kicker="Team"
+        title={d.org!.name}
+        lead="Your workspace's projects and what they spend, the team watchlist, and the people in it."
+        actions={<Link href="/docs/teams" className="st-btn">How workspaces work {ar}</Link>}
+      >
+        <div className="sw-meta">
+          <Tag tone="accent">{PLAN_WORDS[d.org!.plan] ?? d.org!.plan}</Tag>
+          <Tag tone="line">You: {ROLE_LABEL[d.role ?? 'viewer']}</Tag>
         </div>
-        <div className="ws-head-actions">
-          <Link href="/docs/teams" className="ws-link">How workspaces work →</Link>
-        </div>
-      </div>
-      <Tabs tabs={tabs} value={tab} onChange={setTab} />
-      {msg && <div role="status" className={`ws-flash${msg.bad ? ' bad' : ''}`}>{msg.text}</div>}
-      {secret && (
-        <div className="ws-secret">
-          <strong style={{ fontSize: 14 }}>Signing secret — shown once</strong>
-          <p className="ws-note" style={{ margin: '6px 0 0' }}>
-            Verify each delivery by recomputing <code>HMAC-SHA256(timestamp + &quot;.&quot; + body)</code> and comparing it
-            with the <code>X-ASL-Signature</code> header. Reject anything whose <code>X-ASL-Timestamp</code> is more than a few minutes old.
-          </p>
-          <code>{secret}</code>
-          <button className="ws-btn small" onClick={clearSecret}>Done</button>
-        </div>
-      )}
+      </PageHead>
 
-      {tab === 'overview' && <Overview d={d} seat={seat} act={act} />}
-      {tab === 'watchlist' && <TeamWatchlist isOwner={isOwner} flash={flash} />}
-      {tab === 'people' && <People d={d} isOwner={isOwner} act={act} flash={flash} />}
-      {tab === 'settings' && isOwner && <Settings d={d} act={act} flash={flash} load={load} />}
-    </div>
+      <div className="st-body sw-body">
+        <Tabs tabs={tabs} value={tab} onChange={setTab} />
+        {msg && (
+          <div role="status" className={`st-note sw-flash${msg.bad ? ' is-bad' : ''}`}><div>{msg.text}</div></div>
+        )}
+        {secret && (
+          <Pane
+            tone="accent"
+            title="Signing secret — shown once"
+            sub={<>
+              Verify each delivery by recomputing <code className="st-ic">HMAC-SHA256(timestamp + &quot;.&quot; + body)</code> and comparing it
+              with the <code className="st-ic">X-ASL-Signature</code> header. Reject anything whose <code className="st-ic">X-ASL-Timestamp</code> is more than a few minutes old.
+            </>}
+          >
+            <div className="st-secret"><code>{secret}</code><CopyButton text={secret} /></div>
+            <div className="st-actions sw-gap-top"><button type="button" className="st-btn is-sm" onClick={clearSecret}>Done</button></div>
+          </Pane>
+        )}
+
+        {tab === 'overview' && <Overview d={d} seat={seat} act={act} />}
+        {tab === 'watchlist' && <TeamWatchlist isOwner={isOwner} flash={flash} />}
+        {tab === 'people' && <People d={d} isOwner={isOwner} act={act} flash={flash} />}
+        {tab === 'settings' && isOwner && <Settings d={d} act={act} flash={flash} load={load} />}
+      </div>
+    </>
   );
 }
 
@@ -211,49 +266,45 @@ function Overview({ d, seat, act }: { d: Data; seat: boolean; act: Act }) {
   return (
     <>
       {seat && t && (
-        <div className="ws-tiles">
-          <div className="ws-tile">
-            <div className="ws-tile-label">Spend this month</div>
-            <div className="ws-tile-value">{money(t.spendUsd)}</div>
-            <div className="ws-tile-sub">{t.spendChange === null ? 'across your projects' : <>
-              <span className={t.spendChange > 0 ? 'ws-up' : 'ws-down'}>{t.spendChange > 0 ? '+' : ''}{pct(t.spendChange)}</span> on the same days last month</>}</div>
-          </div>
-          <div className="ws-tile">
-            <div className="ws-tile-label">Requests</div>
-            <div className="ws-tile-value">{num(t.requests)}</div>
-            <div className="ws-tile-sub">{t.requests ? `${pct(t.successRate, 1)} answered` : 'none yet'}</div>
-          </div>
-          <div className="ws-tile">
-            <div className="ws-tile-label">People sending requests</div>
-            <div className="ws-tile-value">{num(t.activePeople)}</div>
-            <div className="ws-tile-sub">of {num((d.members ?? []).filter(m => !m.pending).length)} in the workspace</div>
-          </div>
-          <div className="ws-tile">
-            <div className="ws-tile-label">Projects</div>
-            <div className="ws-tile-value">{num(projects.length)}</div>
-            <div className="ws-tile-sub">{d.projectLimit === -1 ? 'no limit on your plan' : `of ${d.projectLimit} on your plan`}</div>
-          </div>
-        </div>
+        <Stats columns={4}>
+          <Stat
+            value={count(t.spendUsd, money)}
+            label="Spend this month"
+            sub={t.spendChange === null ? 'across your projects' : <>
+              <span className={t.spendChange > 0 ? 'sw-tone-bad' : 'sw-tone-good'}>{t.spendChange > 0 ? '+' : ''}{pct(t.spendChange)}</span> on the same days last month</>}
+          />
+          <Stat value={count(t.requests)} label="Requests" sub={t.requests ? `${pct(t.successRate, 1)} answered` : 'none yet'} />
+          <Stat value={count(t.activePeople)} label="People sending requests" sub={`of ${num((d.members ?? []).filter(m => !m.pending).length)} in the workspace`} />
+          <Stat value={count(projects.length)} label="Projects" sub={d.projectLimit === -1 ? 'no limit on your plan' : `of ${d.projectLimit} on your plan`} />
+        </Stats>
       )}
 
-      <section className="ws-section">
-        <h2>Projects</h2>
-        <p className="ws-lead">
+      <Pane
+        title="Projects"
+        sub={<>
           A project is a client or product: the people working on it, the models it depends on (with alerts when one
           slips), and its own Smart Router keys, routing rules, provider keys and budget — with a report of what it
           spent and who spent it. {seat ? usage(d.projectCount ?? projects.length, d.projectLimit, 'project') + '.' : 'You see the projects you were added to.'}
-        </p>
-        {projects.length === 0 ? <p className="ws-empty">{seat ? 'No projects yet.' : 'No projects have been shared with you yet.'}</p> : (
-          <div className="ws-table-wrap">
-            <table className="ws-table ws-stack">
+        </>}
+        ruled
+        flush
+      >
+        {projects.length === 0 ? (
+          <div className="sw-none">
+            <span className="st-empty-mark" aria-hidden="true"><i /><i /><i /></span>
+            <p>{seat ? 'No projects yet.' : 'No projects have been shared with you yet.'}</p>
+          </div>
+        ) : (
+          <div className="st-table-wrap">
+            <table className="st-table is-stack">
               <thead>
                 <tr>
                   <th>Project</th>
-                  <th className="ws-hide-sm">Your role</th>
-                  <th className="num">People</th>
-                  <th className="num ws-hide-sm">Watching</th>
-                  <th style={{ minWidth: 150 }}>This month</th>
-                  <th className="num ws-hide-sm">Last request</th>
+                  <th className="sw-hide-sm">Your role</th>
+                  <th className="is-num">People</th>
+                  <th className="is-num sw-hide-sm">Watching</th>
+                  <th style={{ minWidth: 170 }}>This month</th>
+                  <th className="is-num sw-hide-sm">Last request</th>
                 </tr>
               </thead>
               <tbody>
@@ -261,22 +312,24 @@ function Overview({ d, seat, act }: { d: Data; seat: boolean; act: Act }) {
                   const used = p.budgetUsd && p.monthSpendUsd !== null ? p.monthSpendUsd / p.budgetUsd : null;
                   return (
                     <tr key={p.id}>
-                      <td>
-                        <Link href={`/account/team/projects/${p.id}`} className="ws-name">{p.name}</Link>
-                        <div className="ws-meta">{p.description || (p.managers.length ? `Managed by ${p.managers.join(', ')}` : '')}</div>
+                      <td className="is-head">
+                        <Link href={`/account/team/projects/${p.id}`} className="sw-t">{p.name}</Link>
+                        <div className="sw-s">{p.description || (p.managers.length ? `Managed by ${p.managers.join(', ')}` : '')}</div>
                       </td>
-                      <td className="ws-hide-sm">{p.myRole ? ROLE_LABEL[p.myRole] : '—'}</td>
-                      <td className="num" data-label="People">{p.people}</td>
-                      <td className="num ws-hide-sm">{p.watching} model{p.watching === 1 ? '' : 's'}</td>
+                      <td className="sw-hide-sm">{p.myRole ? <Tag tone="line">{ROLE_LABEL[p.myRole]}</Tag> : <span className="sw-dim">—</span>}</td>
+                      <td className="is-num" data-label="People">{p.people}</td>
+                      <td className="is-num sw-hide-sm">{p.watching} model{p.watching === 1 ? '' : 's'}</td>
                       <td data-label="This month">
-                        <div>{money(p.monthSpendUsd)}{p.budgetUsd ? <span className="dim"> of {money(p.budgetUsd)}</span> : ''}</div>
-                        {used !== null && (
-                          <div className={`ws-bar${used >= 1 ? ' bad' : used >= 0.8 ? ' warn' : ''}`} style={{ marginTop: 5 }} title={`${pct(used)} of the monthly budget`}>
-                            <i style={{ width: `${Math.min(100, used * 100)}%` }} />
-                          </div>
-                        )}
+                        <div className="sw-cellbox">
+                          <div className="st-num">{money(p.monthSpendUsd)}{p.budgetUsd ? <span className="sw-dim"> of {money(p.budgetUsd)}</span> : ''}</div>
+                          {used !== null && (
+                            <div className={`st-meter sw-meter${used >= 1 ? ' is-bad' : used >= 0.8 ? ' is-warn' : ''}`} title={`${pct(used)} of the monthly budget`}>
+                              <i style={{ width: `${Math.min(100, used * 100)}%` }} />
+                            </div>
+                          )}
+                        </div>
                       </td>
-                      <td className="num ws-hide-sm dim">{p.lastRequestAt ? ago(p.lastRequestAt) : '—'}</td>
+                      <td className="is-num is-dim sw-hide-sm">{p.lastRequestAt ? ago(p.lastRequestAt) : '—'}</td>
                     </tr>
                   );
                 })}
@@ -285,69 +338,70 @@ function Overview({ d, seat, act }: { d: Data; seat: boolean; act: Act }) {
           </div>
         )}
         {d.canCreateProject && (limitReached ? (
-          <p className="ws-note" style={{ marginTop: 12 }}>Your plan includes {plural(d.projectLimit, 'project')}. Delete one or <Link href="/pricing" className="ws-link">upgrade</Link> for more.</p>
+          <div className="sw-addbar">
+            <p className="st-hint">Your plan includes {plural(d.projectLimit, 'project')}. Delete one or <Link href="/pricing" className="st-link-inline">upgrade</Link> for more.</p>
+          </div>
         ) : (
-          <form className="ws-form" style={{ marginTop: 14 }} onSubmit={async e => {
+          <form className="sw-addbar" onSubmit={async e => {
             e.preventDefault();
             const form = e.currentTarget;
             const f = new FormData(form);
             const r = await act('/projects', 'POST', { name: f.get('name'), description: f.get('description') }, 'Project created');
             if (r.ok) { form.reset(); window.location.href = `/account/team/projects/${r.data.id}`; }
           }}>
-            <label className="ws-field" style={{ flex: '1 1 200px' }}>
-              <span>New project</span>
-              <input name="name" required maxLength={80} className="ws-input" placeholder="Client A" />
-            </label>
-            <label className="ws-field" style={{ flex: '2 1 260px' }}>
-              <span>Description (optional)</span>
-              <input name="description" maxLength={300} className="ws-input" placeholder="What it is, who it is for" />
-            </label>
-            <button className="ws-btn primary">Create project</button>
+            <p className="st-label">New project</p>
+            <div className="sw-form-row">
+              <label className="st-field">
+                <span className="st-field-label">Name</span>
+                <input name="name" required maxLength={80} className="st-input" placeholder="Client A" />
+              </label>
+              <label className="st-field is-wide">
+                <span className="st-field-label">Description <small>optional</small></span>
+                <input name="description" maxLength={300} className="st-input" placeholder="What it is, who it is for" />
+              </label>
+              <button type="submit" className="st-btn is-primary">Create project</button>
+            </div>
           </form>
         ))}
-      </section>
+      </Pane>
 
       {seat && ov && t && t.requests > 0 && (
-        <section className="ws-section">
-          <h2>Spend by day, this month</h2>
-          <p className="ws-lead">All projects together, at each provider&rsquo;s list price for the tokens used.</p>
+        <Pane title="Spend by day, this month" sub="All projects together, at each provider’s list price for the tokens used.">
           <SpendChart days={ov.daily} nameOf={id => names.get(id) ?? 'Former member'} />
-          {ov.insights.length > 0 && <ul className="ws-insights">{ov.insights.map(i => <li key={i}>{i}</li>)}</ul>}
-        </section>
+          {ov.insights.length > 0 && <ul className="sw-insights">{ov.insights.map(i => <li key={i}>{i}</li>)}</ul>}
+        </Pane>
       )}
 
       {seat && ov && ov.matrix.length > 0 && ov.projects.length > 0 && (
-        <section className="ws-section">
-          <h2>Who works on what</h2>
-          <p className="ws-lead">Each person&rsquo;s role in each project, and what they spent there this month.</p>
-          <div className="ws-table-wrap">
-            <table className="ws-table ws-matrix">
+        <Pane title="Who works on what" sub="Each person’s role in each project, and what they spent there this month." ruled flush>
+          <div className="st-table-wrap">
+            <table className="st-table sw-matrix">
               <thead>
                 <tr>
                   <th>Person</th>
-                  {ov.projects.map(p => <th key={p.id} style={{ textAlign: 'center' }}><Link href={`/account/team/projects/${p.id}`}>{p.name}</Link></th>)}
-                  <th className="num">Total</th>
+                  {ov.projects.map(p => <th key={p.id} className="is-proj"><Link href={`/account/team/projects/${p.id}`}>{p.name}</Link></th>)}
+                  <th className="is-num">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {ov.matrix.map(m => (
                   <tr key={m.userId}>
-                    <td><div className="ws-name">{m.name}</div><div className="ws-meta">{ROLE_LABEL[m.wsRole]}</div></td>
+                    <td><div className="sw-t">{m.name}</div><div className="sw-s">{ROLE_LABEL[m.wsRole]}</div></td>
                     {m.cells.map(c => (
-                      <td key={c.projectId} className={`cell${c.role ? '' : ' none'}`}>
+                      <td key={c.projectId} className={`sw-cell${c.role ? '' : ' is-none'}`}>
                         {c.role ? <>
-                          <div>{c.spendUsd > 0 ? money(c.spendUsd) : '—'}</div>
-                          <div className="r">{ROLE_LABEL[c.role]}{c.requests ? ` · ${num(c.requests)} req` : ''}</div>
-                        </> : c.spendUsd > 0 ? <div title="Spent here before leaving the project">{money(c.spendUsd)}</div> : '·'}
+                          <div className="st-num">{c.spendUsd > 0 ? money(c.spendUsd) : '—'}</div>
+                          <div className="sw-s">{ROLE_LABEL[c.role]}{c.requests ? ` · ${num(c.requests)} req` : ''}</div>
+                        </> : c.spendUsd > 0 ? <div className="st-num" title="Spent here before leaving the project">{money(c.spendUsd)}</div> : '·'}
                       </td>
                     ))}
-                    <td className="num">{money(m.totalSpendUsd)}</td>
+                    <td className="is-num sw-strong">{money(m.totalSpendUsd)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </section>
+        </Pane>
       )}
     </>
   );
@@ -360,18 +414,22 @@ function TeamWatchlist({ isOwner, flash }: { isOwner: boolean; flash: (t: string
   const [catalog, setCatalog] = useState<ModelOption[]>([]);
   const load = useCallback(() => wsApi<any>('/watchlist').then(r => { if (r.ok) setW(r.data); }), []);
   useEffect(() => { load(); wsApi<{ models: ModelOption[] }>('/models').then(r => setCatalog(r.data?.models ?? [])); }, [load]);
-  if (!w) return <p className="ws-empty">Loading…</p>;
+  if (!w) return <Loader label="Loading the team watchlist" />;
 
   return (
     <>
-      <section className="ws-section">
-        <h2>Team watchlist</h2>
-        <p className="ws-lead">
+      <Pane
+        title="Team watchlist"
+        sub={<>
           Models the whole workspace depends on. Everyone in the workspace sees this list, and when one of these models
           drops by {w.alerts.minDropPoints} points or more over a week, or a benchmark task starts failing, everyone is
           emailed{w.alerts.recipients === 'managers' ? ' (the owner and editors, as set below)' : w.alerts.recipients === 'none' ? ' — except that team emails are switched off below' : ''}.
           Projects keep their own lists.
-        </p>
+        </>}
+        actions={w.limit !== null ? <Tag tone="line">{w.models.length} of {w.limit}</Tag> : undefined}
+        ruled
+        flush
+      >
         <WatchlistPanel
           models={w.models} catalog={catalog} canEdit={w.canEdit} limit={w.limit}
           empty={w.canEdit ? 'Nothing on the team watchlist yet. Add the models your products run on.' : 'Nothing on the team watchlist yet.'}
@@ -379,44 +437,50 @@ function TeamWatchlist({ isOwner, flash }: { isOwner: boolean; flash: (t: string
           onRemove={async id => { await wsApi(`/watchlist/${id}`, { method: 'DELETE' }); load(); }}
           onNote={async (id, note) => { await wsApi(`/watchlist/${id}`, { method: 'PATCH', body: { note } }); load(); }}
         />
-      </section>
-      <section className="ws-section">
-        <h2>Alerts</h2>
-        <label className="ws-check" style={{ marginBottom: 14 }}>
-          <input type="checkbox" checked={!w.alerts.mutedForMe} onChange={async e => {
+      </Pane>
+
+      <Pane
+        title="Alerts"
+        delay={0.06}
+        foot={<>
+          Changes are judged on real measurements only; a model we could not measure this week is shown as such, never as a change.
+          A workspace webhook also receives each alert as <code className="st-ic">model.regression</code>.
+        </>}
+      >
+        <label className="st-toggle">
+          <input type="checkbox" className="st-check" checked={!w.alerts.mutedForMe} onChange={async e => {
             const r = await wsApi('/alerts/mute', { method: 'PUT', body: { muted: !e.target.checked } });
             if (r.ok) { flash(e.target.checked ? 'You will get team alerts again.' : 'Team alerts muted for you.'); load(); }
           }} />
-          <span>Email me about the team watchlist<small>Only affects you. Your own watchlist and project alerts are separate.</small></span>
+          <span className="sw-toggle-text"><b>Email me about the team watchlist</b><span>Only affects you. Your own watchlist and project alerts are separate.</span></span>
         </label>
         {isOwner && w.canConfigure && (
-          <form className="ws-form" onSubmit={async e => {
+          <form className="sw-form-row sw-rule-top" onSubmit={async e => {
             e.preventDefault();
             const f = new FormData(e.currentTarget);
             const r = await wsApi('/alerts', { method: 'PUT', body: { minDropPoints: Number(f.get('drop')), recipients: f.get('recipients') } });
             flash(r.ok ? 'Team alert settings saved.' : (r.error ?? 'Could not save'), !r.ok);
             if (r.ok) load();
           }}>
-            <label className="ws-field" style={{ width: 170 }}>
-              <span>Alert on a drop of at least</span>
-              <input name="drop" type="number" min={1} max={50} step={0.5} defaultValue={w.alerts.minDropPoints} className="ws-input" />
+            <label className="st-field is-narrow">
+              <span className="st-field-label">Alert on a drop of at least</span>
+              <span className="sw-suffix">
+                <input name="drop" type="number" min={1} max={50} step={0.5} defaultValue={w.alerts.minDropPoints} className="st-input" />
+                <span aria-hidden="true">points</span>
+              </span>
             </label>
-            <label className="ws-field" style={{ flex: '1 1 220px' }}>
-              <span>Who is emailed</span>
-              <select name="recipients" defaultValue={w.alerts.recipients} className="ws-select">
+            <label className="st-field is-wide">
+              <span className="st-field-label">Who is emailed</span>
+              <select name="recipients" defaultValue={w.alerts.recipients} className="st-select">
                 <option value="members">Everyone in the workspace, viewers included</option>
                 <option value="managers">The owner and editors</option>
                 <option value="none">Nobody (webhooks only)</option>
               </select>
             </label>
-            <button className="ws-btn">Save</button>
+            <button type="submit" className="st-btn">Save</button>
           </form>
         )}
-        <p className="ws-note" style={{ marginTop: 12 }}>
-          Changes are judged on real measurements only; a model we could not measure this week is shown as such, never as a change.
-          A workspace webhook also receives each alert as <code>model.regression</code>.
-        </p>
-      </section>
+      </Pane>
     </>
   );
 }
@@ -428,81 +492,118 @@ function People({ d, isOwner, act, flash }: { d: Data; isOwner: boolean; act: Ac
     try { await navigator.clipboard.writeText(text); flash('Invitation link copied'); }
     catch { window.prompt('Copy the invitation link:', text); }
   };
-  return (
-    <section className="ws-section">
-      <h2>People</h2>
-      <p className="ws-lead">
-        {usage(d.seatsUsed ?? 0, d.seatLimit, 'editor seat')}. <strong>Owners and editors take a seat, get the workspace&rsquo;s
-        plan, can hold Smart Router keys and change watchlists. Viewers are free and read-only</strong>: they see the team
-        watchlist and the projects they are added to, and get their alerts — useful for clients and stakeholders.
-        Invitations are emailed with a link that works for {d.inviteTtlDays ?? 14} days, for the invited address only.
-      </p>
-      <div className="ws-table-wrap">
-        <table className="ws-table ws-stack">
-          <thead><tr><th>Person</th><th>Role</th><th>Status</th>{(isOwner) && <th />}</tr></thead>
-          <tbody>
-            {(d.members ?? []).map(m => (
-              <tr key={m.id}>
-                <td>
-                  <div className="ws-name">{m.name || m.email || '—'}{m.self && <span className="dim" style={{ fontWeight: 400 }}> (you)</span>}</div>
-                  {m.name && <div className="ws-meta">{m.email}</div>}
-                </td>
-                <td data-label="Role">{ROLE_LABEL[m.role] ?? m.role}</td>
-                <td style={{ fontSize: 12.5 }}>
-                  {m.pending && !m.expired && <span className="ws-chip warn">Invited · until {day(m.expiresAt)}</span>}
-                  {m.pending && m.expired && <span className="ws-chip bad">Invitation expired</span>}
-                  {m.deactivated && <span className="ws-chip bad">Deactivated</span>}
-                  {!m.pending && !m.deactivated && <span className="dim">{m.provisionedBy === 'scim' ? 'Managed by your directory' : m.provisionedBy === 'sso' ? 'Joined through single sign-on' : 'Member'}</span>}
-                </td>
-                {isOwner && (
-                  <td className="actions">
-                    {m.pending && <button className="ws-btn small" onClick={() => act(`/members/${m.id}/resend`, 'POST', {}, 'Invitation sent again')}>Resend</button>}{' '}
-                    {m.pending && m.inviteUrl && !m.expired && <button className="ws-btn small" onClick={() => copy(m.inviteUrl!)}>Copy link</button>}{' '}
-                    {m.role !== 'owner' && (
-                      <button className="ws-btn small danger" onClick={() => {
-                        if (!m.pending && !window.confirm(`Remove ${m.email} from the workspace? Their project keys stop working.`)) return;
-                        act(`/members/${m.id}`, 'DELETE', undefined, m.pending ? 'Invitation withdrawn' : 'Removed from the workspace');
-                      }}>{m.pending ? 'Withdraw' : 'Remove'}</button>
-                    )}
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+  const all = d.members ?? [];
+  const joined = all.filter(m => !m.pending);
+  const pending = all.filter(m => m.pending);
+  const used = d.seatsUsed ?? 0;
+
+  const person = (m: Member) => (
+    <div key={m.id} className="sw-person">
+      <span className={`sw-avatar${m.pending ? ' is-pending' : m.role === 'owner' ? ' is-ink' : ''}`} aria-hidden="true">
+        {(m.name || m.email || '?').trim().charAt(0).toUpperCase()}
+      </span>
+      <div className="sw-person-main">
+        <div className="sw-person-line">
+          <span className="sw-t">{m.name || m.email || '—'}{m.self && <span className="sw-you"> (you)</span>}</span>
+          <Tag tone={ROLE_TONE[m.role] ?? 'line'}>{ROLE_LABEL[m.role] ?? m.role}</Tag>
+          {m.pending && !m.expired && <Tag tone="warn">Invited · until {day(m.expiresAt)}</Tag>}
+          {m.pending && m.expired && <Tag tone="bad">Invitation expired</Tag>}
+          {m.deactivated && <Tag tone="bad">Deactivated</Tag>}
+        </div>
+        {(m.name || (!m.pending && !m.deactivated)) && (
+          <div className="sw-s">
+            {m.name && m.email}
+            {m.name && !m.pending && !m.deactivated && ' · '}
+            {!m.pending && !m.deactivated && (m.provisionedBy === 'scim' ? 'Managed by your directory' : m.provisionedBy === 'sso' ? 'Joined through single sign-on' : 'Member')}
+          </div>
+        )}
       </div>
       {isOwner && (
-        <form className="ws-form" style={{ marginTop: 16 }} onSubmit={async e => {
-          e.preventDefault();
-          const form = e.currentTarget;
-          const f = new FormData(form);
-          const r = await act('/members', 'POST', { email: f.get('email'), role: f.get('role') }, 'Invitation sent');
-          if (r.ok) form.reset();
-        }}>
-          <label className="ws-field" style={{ flex: '1 1 220px' }}>
-            <span>Invite by email</span>
-            <input name="email" type="email" required placeholder="colleague@company.com" className="ws-input" />
-          </label>
-          <label className="ws-field">
-            <span>Role</span>
-            <select name="role" defaultValue="viewer" className="ws-select" aria-label="Role">
-              <option value="viewer">Viewer (free, read-only)</option>
-              <option value="editor">Editor (uses a seat)</option>
-            </select>
-          </label>
-          <button className="ws-btn primary">Send invitation</button>
-        </form>
-      )}
-      {!isOwner && (
-        <div style={{ marginTop: 16 }}>
-          <button className="ws-btn small danger" onClick={async () => {
-            if (!window.confirm(`Leave ${d.org!.name}? You lose access to its projects, and your project keys stop working.`)) return;
-            const r = await wsApi('/leave', { method: 'POST' });
-            if (r.ok) window.location.reload(); else flash(r.error ?? 'Could not leave', true);
-          }}>Leave workspace</button>
+        <div className="sw-person-acts">
+          {m.pending && <button type="button" className="st-btn is-sm" onClick={() => act(`/members/${m.id}/resend`, 'POST', {}, 'Invitation sent again')}>Resend</button>}
+          {m.pending && m.inviteUrl && !m.expired && <button type="button" className="st-btn is-sm" onClick={() => copy(m.inviteUrl!)}>Copy link</button>}
+          {m.role !== 'owner' && (
+            <button type="button" className="st-btn is-sm is-quiet sw-bad-text" onClick={() => {
+              if (!m.pending && !window.confirm(`Remove ${m.email} from the workspace? Their project keys stop working.`)) return;
+              act(`/members/${m.id}`, 'DELETE', undefined, m.pending ? 'Invitation withdrawn' : 'Removed from the workspace');
+            }}>{m.pending ? 'Withdraw' : 'Remove'}</button>
+          )}
         </div>
       )}
-    </section>
+    </div>
+  );
+
+  return (
+    <div className="st-split">
+      <div className="sw-col">
+        <Pane title="Members" sub={`${joined.length} ${joined.length === 1 ? 'person' : 'people'} in ${d.org!.name}`} ruled flush>
+          <div className="sw-people">{joined.map(person)}</div>
+        </Pane>
+        {pending.length > 0 && (
+          <Pane
+            title="Pending invitations"
+            sub={`${pending.length} not accepted yet`}
+            ruled
+            flush
+            delay={0.05}
+          >
+            <div className="sw-people">{pending.map(person)}</div>
+          </Pane>
+        )}
+      </div>
+
+      <div className="sw-col">
+        {isOwner && (
+          <Pane title="Invite someone" delay={0.08}>
+            <form className="sw-stack" onSubmit={async e => {
+              e.preventDefault();
+              const form = e.currentTarget;
+              const f = new FormData(form);
+              const r = await act('/members', 'POST', { email: f.get('email'), role: f.get('role') }, 'Invitation sent');
+              if (r.ok) form.reset();
+            }}>
+              <label className="st-field">
+                <span className="st-field-label">Invite by email</span>
+                <input name="email" type="email" required placeholder="colleague@company.com" className="st-input" />
+              </label>
+              <label className="st-field">
+                <span className="st-field-label">Role</span>
+                <select name="role" defaultValue="viewer" className="st-select" aria-label="Role">
+                  <option value="viewer">Viewer (free, read-only)</option>
+                  <option value="editor">Editor (uses a seat)</option>
+                </select>
+              </label>
+              <button type="submit" className="st-btn is-primary is-block">Send invitation</button>
+            </form>
+          </Pane>
+        )}
+
+        <Pane title="Seats and roles" delay={0.12}>
+          <div className="sw-figure">
+            <b>{count(used)}</b>
+            <small>{d.seatLimit === -1
+              ? `editor seat${used === 1 ? '' : 's'} used — no limit on your plan`
+              : `of ${d.seatLimit ?? 0} editor seat${d.seatLimit === 1 ? '' : 's'} used`}</small>
+          </div>
+          {d.seatLimit !== -1 && <Meter used={used} limit={d.seatLimit ?? 0} />}
+          <dl className="st-kv sw-kv sw-gap-top">
+            <div><dt>Owners and editors</dt><dd>Take a seat, get the workspace&rsquo;s plan, can hold Smart Router keys and change watchlists.</dd></div>
+            <div><dt>Viewers</dt><dd>Free and read-only: they see the team watchlist and the projects they are added to, and get their alerts — useful for clients and stakeholders.</dd></div>
+            <div><dt>Invitations</dt><dd>Emailed with a link that works for {d.inviteTtlDays ?? 14} days, for the invited address only.</dd></div>
+          </dl>
+        </Pane>
+
+        {!isOwner && (
+          <Pane title="Leave the workspace" sub="You lose access to its projects, and your project keys stop working." delay={0.16}>
+            <button type="button" className="st-btn is-danger" onClick={async () => {
+              if (!window.confirm(`Leave ${d.org!.name}? You lose access to its projects, and your project keys stop working.`)) return;
+              const r = await wsApi('/leave', { method: 'POST' });
+              if (r.ok) window.location.reload(); else flash(r.error ?? 'Could not leave', true);
+            }}>Leave workspace</button>
+          </Pane>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -515,40 +616,51 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
   const loadKeys = useCallback(() => wsApi<{ keys: SharedKey[] }>('/provider-keys').then(r => setKeys(r.data?.keys ?? [])), []);
   useEffect(() => { loadKeys(); }, [loadKeys]);
   const events = d.webhookEvents ?? Object.keys(EVENT_WORDS);
+  const hooks = d.webhooks ?? [];
 
   return (
     <>
-      <section className="ws-section">
-        <h2>Provider keys for every project</h2>
-        <p className="ws-lead">
+      <Pane
+        title="Provider keys for every project"
+        sub={<>
           A key added here pays for that provider&rsquo;s requests in every project, unless a project has its own key for it
           (a client&rsquo;s own account, say). Projects can also let people fall back to their own keys. Keys are stored
           encrypted and never shown again; you see the last four characters.
-        </p>
+        </>}
+        ruled
+        flush
+      >
         {keys && keys.length > 0 && (
-          <div className="ws-table-wrap">
-            <table className="ws-table ws-stack">
-              <thead><tr><th>Provider</th><th>Key</th><th className="ws-hide-sm">Added</th><th>Check</th><th /></tr></thead>
+          <div className="st-table-wrap">
+            <table className="st-table is-stack">
+              <thead><tr><th>Provider</th><th>Key</th><th className="sw-hide-sm">Added</th><th>Last check</th><th><span className="st-sr">Actions</span></th></tr></thead>
               <tbody>
                 {keys.map(k => (
                   <tr key={k.id}>
-                    <td className="ws-name">{providerLabel(k.provider)}{k.alias && <div className="ws-meta">{k.alias}</div>}</td>
-                    <td className="nowrap" data-label="Key"><code>…{k.hint}</code></td>
-                    <td className="ws-hide-sm dim">{k.addedBy ?? '—'} · {day(k.createdAt)}</td>
-                    <td style={{ fontSize: 12.5 }} data-label="Last check">
-                      {k.validationError ? <span className="ws-chip bad" title={k.validationError}>Refused</span>
-                        : k.lastValidatedAt ? <span className="ws-chip good">Works</span> : <span className="dim">Not checked</span>}
+                    <td className="is-head">
+                      <div className="sw-prov">
+                        <ProviderMark provider={k.provider} size="sm" />
+                        <div><div className="sw-t">{providerLabel(k.provider)}</div>{k.alias && <div className="sw-s">{k.alias}</div>}</div>
+                      </div>
                     </td>
-                    <td className="actions">
-                      <button className="ws-btn small" onClick={async () => {
-                        const r = await wsApi<any>(`/provider-keys/${k.id}/test`, { method: 'POST' });
-                        flash(r.data?.valid ? `${providerLabel(k.provider)} accepted the key.` : `${providerLabel(k.provider)} refused the key: ${r.data?.error ?? r.error}`, !r.data?.valid);
-                        loadKeys();
-                      }}>Check</button>{' '}
-                      <button className="ws-btn small danger" onClick={async () => {
-                        if (!window.confirm(`Remove the shared ${providerLabel(k.provider)} key? Projects without their own key fall back to people's own keys, where allowed.`)) return;
-                        await wsApi(`/provider-keys/${k.id}`, { method: 'DELETE' }); loadKeys();
-                      }}>Remove</button>
+                    <td data-label="Key"><code className="st-ic">…{k.hint}</code></td>
+                    <td className="sw-hide-sm is-dim">{k.addedBy ?? '—'} · {day(k.createdAt)}</td>
+                    <td data-label="Last check">
+                      {k.validationError ? <Tag tone="bad" title={k.validationError}>Refused</Tag>
+                        : k.lastValidatedAt ? <Tag tone="good">Works</Tag> : <span className="sw-status">Not checked</span>}
+                    </td>
+                    <td className="sw-acts-cell">
+                      <div className="sw-acts">
+                        <button type="button" className="st-btn is-sm" onClick={async () => {
+                          const r = await wsApi<any>(`/provider-keys/${k.id}/test`, { method: 'POST' });
+                          flash(r.data?.valid ? `${providerLabel(k.provider)} accepted the key.` : `${providerLabel(k.provider)} refused the key: ${r.data?.error ?? r.error}`, !r.data?.valid);
+                          loadKeys();
+                        }}>Check</button>
+                        <button type="button" className="st-btn is-sm is-quiet sw-bad-text" onClick={async () => {
+                          if (!window.confirm(`Remove the shared ${providerLabel(k.provider)} key? Projects without their own key fall back to people's own keys, where allowed.`)) return;
+                          await wsApi(`/provider-keys/${k.id}`, { method: 'DELETE' }); loadKeys();
+                        }}>Remove</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -556,7 +668,7 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
             </table>
           </div>
         )}
-        <form className="ws-form" style={{ marginTop: 14 }} autoComplete="off" onSubmit={async e => {
+        <form className="sw-addbar" autoComplete="off" onSubmit={async e => {
           e.preventDefault();
           const form = e.currentTarget;
           const f = new FormData(form);
@@ -564,46 +676,62 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
           flash(r.ok ? (r.message ?? 'Key added') : (r.error ?? 'Could not add the key'), !r.ok);
           if (r.ok) { form.reset(); loadKeys(); }
         }}>
-          <label className="ws-field">
-            <span>Provider</span>
-            <select name="provider" className="ws-select" defaultValue="openai">{PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select>
-          </label>
-          <label className="ws-field" style={{ flex: '2 1 240px' }}>
-            <span>API key</span>
-            <input name="apiKey" type="password" required className="ws-input" placeholder="Paste the key" autoComplete="new-password" />
-          </label>
-          <label className="ws-field" style={{ flex: '1 1 160px' }}>
-            <span>Label (optional)</span>
-            <input name="alias" maxLength={60} className="ws-input" placeholder="Agency account" />
-          </label>
-          <button className="ws-btn primary">Add key</button>
+          <p className="st-label">Add a key</p>
+          <div className="sw-form-row">
+            <label className="st-field is-narrow">
+              <span className="st-field-label">Provider</span>
+              <select name="provider" className="st-select" defaultValue="openai">{PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select>
+            </label>
+            <label className="st-field is-wide">
+              <span className="st-field-label">API key</span>
+              <input name="apiKey" type="password" required className="st-input is-code" placeholder="Paste the key" autoComplete="new-password" />
+            </label>
+            <label className="st-field">
+              <span className="st-field-label">Label <small>optional</small></span>
+              <input name="alias" maxLength={60} className="st-input" placeholder="Agency account" />
+            </label>
+            <button type="submit" className="st-btn is-primary">Add key</button>
+          </div>
+          <p className="st-hint">Adding a key for a provider that already has one replaces it.</p>
         </form>
-        <p className="ws-note" style={{ marginTop: 8 }}>Adding a key for a provider that already has one replaces it.</p>
-      </section>
+      </Pane>
 
-      <section className="ws-section">
-        <h2>Webhooks</h2>
-        <p className="ws-lead">
+      <Pane
+        title="Webhooks"
+        sub={<>
           Signed JSON POSTs to your own endpoint for the events you choose. A workspace-wide webhook hears about every list
           and project; one for a single project hears only about that project. One attempt, five-second timeout, outcome
           recorded below. {d.webhooksAllowed ? '' : 'Webhooks are part of Teams.'}
-        </p>
-        {(d.webhooks ?? []).length > 0 && (
-          <div className="ws-table-wrap">
-            <table className="ws-table ws-stack">
-              <thead><tr><th>Endpoint</th><th>Events</th><th>Last delivery</th><th /></tr></thead>
+        </>}
+        ruled={hooks.length > 0 || !!d.webhooksAllowed}
+        flush
+        delay={0.06}
+        foot={<>
+          HTTPS only, never to private or loopback addresses. Single sign-on, directory sync and the audit trail are under{' '}
+          <Link href="/account/security" className="st-link-inline">Security</Link>.
+        </>}
+      >
+        {hooks.length > 0 && (
+          <div className="st-table-wrap">
+            <table className="st-table is-stack">
+              <thead><tr><th>Endpoint</th><th>Events</th><th>Last delivery</th><th><span className="st-sr">Actions</span></th></tr></thead>
               <tbody>
-                {(d.webhooks ?? []).map(w => (
+                {hooks.map(w => (
                   <tr key={w.id}>
-                    <td style={{ minWidth: 180 }}>
-                      <div className="ws-name" style={{ fontWeight: 400, overflowWrap: 'anywhere' }}>{w.url}</div>
-                      <div className="ws-meta">{w.projectName ? `Project: ${w.projectName}` : 'Whole workspace'}{w.active ? '' : ' · paused'}</div>
+                    <td className="is-head" style={{ minWidth: 200 }}>
+                      <div className="sw-url">{w.url}</div>
+                      <div className="sw-s">
+                        {w.projectName ? `Project: ${w.projectName}` : 'Whole workspace'}
+                        {w.active ? '' : <> · <Tag tone="warn">Paused</Tag></>}
+                      </div>
                     </td>
-                    <td className="dim" style={{ fontSize: 12.5 }} data-label="Events">{w.events ? w.events.split(',').join(', ') : 'All events'}</td>
-                    <td className="dim" style={{ fontSize: 12.5 }} data-label="Last delivery">{w.last_sent_at ? `${w.last_status === 0 ? 'Failed' : `HTTP ${w.last_status}`} · ${ago(w.last_sent_at)}` : 'Never'}</td>
-                    <td className="actions">
-                      <button className="ws-btn small" onClick={async () => { await wsApi(`/webhooks/${w.id}`, { method: 'PATCH', body: { active: !w.active } }); load(); }}>{w.active ? 'Pause' : 'Resume'}</button>{' '}
-                      <button className="ws-btn small danger" onClick={() => act(`/webhooks/${w.id}`, 'DELETE', undefined, 'Webhook removed')}>Remove</button>
+                    <td className="is-dim sw-small" data-label="Events">{w.events ? w.events.split(',').join(', ') : 'All events'}</td>
+                    <td className="is-dim sw-small" data-label="Last delivery">{w.last_sent_at ? `${w.last_status === 0 ? 'Failed' : `HTTP ${w.last_status}`} · ${ago(w.last_sent_at)}` : 'Never'}</td>
+                    <td className="sw-acts-cell">
+                      <div className="sw-acts">
+                        <button type="button" className="st-btn is-sm" onClick={async () => { await wsApi(`/webhooks/${w.id}`, { method: 'PATCH', body: { active: !w.active } }); load(); }}>{w.active ? 'Pause' : 'Resume'}</button>
+                        <button type="button" className="st-btn is-sm is-quiet sw-bad-text" onClick={() => act(`/webhooks/${w.id}`, 'DELETE', undefined, 'Webhook removed')}>Remove</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -612,7 +740,7 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
           </div>
         )}
         {d.webhooksAllowed && (
-          <form style={{ marginTop: 14 }} onSubmit={async e => {
+          <form className="sw-addbar" onSubmit={async e => {
             e.preventDefault();
             const form = e.currentTarget;
             const f = new FormData(form);
@@ -620,34 +748,35 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
             const r = await act('/webhooks', 'POST', { url: f.get('url'), projectId: f.get('scope') || null, events: chosen }, 'Webhook added');
             if (r.ok) form.reset();
           }}>
-            <div className="ws-form">
-              <label className="ws-field" style={{ flex: '2 1 260px' }}>
-                <span>Endpoint URL (https)</span>
-                <input name="url" type="url" required className="ws-input" placeholder="https://your-app.example.com/asl" />
+            <p className="st-label">Add a webhook</p>
+            <div className="sw-form-row">
+              <label className="st-field is-wide">
+                <span className="st-field-label">Endpoint URL <small>https</small></span>
+                <input name="url" type="url" required className="st-input" placeholder="https://your-app.example.com/asl" />
               </label>
-              <label className="ws-field" style={{ flex: '1 1 180px' }}>
-                <span>For</span>
-                <select name="scope" className="ws-select" defaultValue="">
+              <label className="st-field">
+                <span className="st-field-label">For</span>
+                <select name="scope" className="st-select" defaultValue="">
                   <option value="">The whole workspace</option>
                   {(d.projects ?? []).map(p => <option key={p.id} value={p.id}>Project: {p.name}</option>)}
                 </select>
               </label>
             </div>
-            <fieldset style={{ border: 'none', padding: 0, margin: '12px 0' }}>
-              <legend className="ws-note" style={{ marginBottom: 6 }}>Events (none ticked = all)</legend>
-              <div className="ws-grid-2">
+            <fieldset className="sw-fieldset sw-gap-top">
+              <legend>Events <small>none ticked = all</small></legend>
+              <div className="sw-checks">
                 {events.map(ev => (
-                  <label key={ev} className="ws-check"><input type="checkbox" name={`ev:${ev}`} /><span>{EVENT_WORDS[ev] ?? ev}<small><code>{ev}</code></small></span></label>
+                  <label key={ev} className="st-toggle">
+                    <input type="checkbox" className="st-check" name={`ev:${ev}`} />
+                    <span className="sw-toggle-text"><b>{EVENT_WORDS[ev] ?? ev}</b><span><code className="st-ic">{ev}</code></span></span>
+                  </label>
                 ))}
               </div>
             </fieldset>
-            <button className="ws-btn primary">Add webhook</button>
+            <div className="st-actions sw-gap-top"><button type="submit" className="st-btn is-primary">Add webhook</button></div>
           </form>
         )}
-        <p className="ws-note" style={{ marginTop: 12 }}>
-          HTTPS only, never to private or loopback addresses. Single sign-on, directory sync and the audit trail are under <Link href="/account/security" className="ws-link">Security</Link>.
-        </p>
-      </section>
+      </Pane>
     </>
   );
 }

@@ -4,25 +4,44 @@ import { ENTRY_PAID_PLAN, ROUTER_PLAN, planName, monthly } from '@/lib/pricing-d
 
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import Modal from './studio/Modal';
+import '../styles/studio-board.css';
+
+/** The tick on each benefit line, as on the studio upgrade gate. */
+function Tick() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3.5 9.5l3.4 3.4L14.5 5.3" />
+    </svg>
+  );
+}
 
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot' | 'latest-scores';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
   const router = useRouter();
   const { data: session } = useSession();
 
-  if (!isOpen) return null;
-
   const featureDetails = {
-    'historical-data': {
-      title: 'Unlock historical trends',
-      description: 'Compare every model over 24 hours, 7 days and 30 days — so you catch quiet regressions before they reach your users.',
+    'latest-scores': {
+      title: 'See the latest scores, as they land',
+      description: 'Your free account shows each model’s averages over the last 24 hours, 7 days and 30 days. Pro shows the newest benchmark run the moment it finishes — the number to check before you deploy, switch models or chase a regression.',
       benefits: [
-        '24-hour, 7-day and 30-day performance history',
+        'The newest score for every model, refreshed after each benchmark run',
+        'Coding runs every 4 hours; reasoning and tool use daily',
+        'The Latest view on the leaderboard and on every model page',
+        'Plus full history, the full performance matrix and drift curves',
+      ],
+    },
+    'historical-data': {
+      title: 'Unlock full history',
+      description: 'Every account sees 24-hour, 7-day and 30-day views. Pro keeps every measurement we hold — so a slow decline over months shows, not just this month.',
+      benefits: [
+        'Every measurement we hold, not just the last 30 days',
         'Per-model trend lines and drift detection',
         'Confidence intervals on every score',
         'Spot degradations days before anyone else',
@@ -105,41 +124,47 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
     router.push(session ? '/pricing' : '/auth/signup');
   };
 
+  // The studio dialog (components/studio Modal): Escape and the backdrop close it, focus moves in
+  // and back, and on phones it is a bottom sheet. It portals into the page's .st wrapper, so the
+  // model pages, which render this outside their StudioPage, get the same look.
   return (
-    <div className="pro-modal" onClick={onClose}>
-      <div className="pro-modal-card" onClick={(e) => e.stopPropagation()}>
-        <button className="pro-modal-close" onClick={onClose} aria-label="Close">×</button>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      size="narrow"
+      title={details.title}
+      footer={
+        <div className="sb-pf-foot">
+          <button type="button" className="st-btn is-quiet sb-pf-later" onClick={onClose}>Maybe later</button>
+          {!session && (
+            <button type="button" className="st-btn" onClick={() => router.push('/auth/signin')}>
+              I already have an account
+            </button>
+          )}
+          <button type="button" className="st-btn is-primary" onClick={handleUpgrade}>
+            {session ? 'Start your free trial' : 'Start your free trial'} <span className="st-ar" aria-hidden="true">→</span>
+          </button>
+        </div>
+      }
+    >
+      <div className="sb-pf">
+        <p className="st-kicker">Pro feature</p>
+        <p className="sb-pf-lead">{details.description}</p>
 
-        <span className="pro-modal-badge">PRO feature</span>
-        <div className="pro-modal-title">{details.title}</div>
-        <div className="pro-modal-sub">{details.description}</div>
-
-        <ul className="pro-modal-features">
+        <ul className="sb-pf-list">
           {details.benefits.map((benefit, i) => (
             <li key={i}>
-              <span className="pro-modal-check">✓</span>
+              <Tick />
               <span>{benefit}</span>
             </li>
           ))}
         </ul>
 
-        <div className="pro-modal-pricebox">
-          <div className="pro-modal-price"><b>{monthly(unlockedBy)}</b><span> · {planName(unlockedBy)}</span></div>
-          <div className="pro-modal-priceline">Free trial · cancel anytime · a card is collected at checkout</div>
-        </div>
-
-        <div className="pro-modal-actions">
-          <button className="pro-modal-btn primary" onClick={handleUpgrade}>
-            {session ? 'Start your free trial' : 'Start your free trial'}
-          </button>
-          {!session && (
-            <button className="pro-modal-btn ghost" onClick={() => router.push('/auth/signin')}>
-              I already have an account
-            </button>
-          )}
-          <button className="pro-modal-btn ghost" onClick={onClose}>Maybe later</button>
+        <div className="sb-pf-price">
+          <b>{monthly(unlockedBy)}<span>{planName(unlockedBy)}</span></b>
+          <small>Free trial · cancel anytime · a card is collected at checkout</small>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

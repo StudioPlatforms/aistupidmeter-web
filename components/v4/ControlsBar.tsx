@@ -1,6 +1,8 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { PLANS } from '@/lib/entitlements';
+import '../../styles/studio-board.css';
 
 interface ControlsBarProps {
   leaderboardPeriod: 'latest' | '24h' | '7d' | '1m';
@@ -11,7 +13,9 @@ interface ControlsBarProps {
   onPeriodChange: (period: 'latest' | '24h' | '7d' | '1m') => void;
   onSortByChange: (sortBy: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price') => void;
   onModeChange: (mode: 'leaderboard' | 'drift') => void;
-  onShowProModal: (feature: 'historical-data' | 'performance-matrix') => void;
+  onShowProModal: (feature: 'historical-data' | 'performance-matrix' | 'latest-scores') => void;
+  /** The newest run is a paid view (lib/capabilities 'latest-scores'); false shows Latest locked. */
+  latestAllowed?: boolean;
   /** Draw attention to the drift tab until the visitor has opened it once. */
   nudgeDrift?: boolean;
   /**
@@ -19,6 +23,8 @@ interface ControlsBarProps {
    * layout. The other layouts show all four boards at once, so it is hidden there.
    */
   showSort?: boolean;
+  /** Shown at the end of the bar on wider screens (the page's Share button). */
+  extra?: ReactNode;
 }
 
 export default function ControlsBar({
@@ -33,6 +39,8 @@ export default function ControlsBar({
   onShowProModal,
   nudgeDrift = false,
   showSort = true,
+  latestAllowed = true,
+  extra,
 }: ControlsBarProps) {
   // What a signed-out visitor gets. Everything below is derived from the plan
   // table rather than hard-coded, so the entitlement matrix on /faq and the
@@ -52,11 +60,14 @@ export default function ControlsBar({
   };
 
   const periods: Array<{ key: 'latest' | '24h' | '7d' | '1m'; label: string; proOnly: boolean }> = (
-    [['latest', 'LATEST'], ['24h', '24H'], ['7d', '7D'], ['1m', '1M']] as const
-  ).map(([key, label]) => ({ key, label, proOnly: needsUpgrade(PERIOD_DAYS[key]) }));
+    [['latest', 'Latest'], ['24h', '24 hours'], ['7d', '7 days'], ['1m', '1 month']] as const
+  ).map(([key, label]) => ({ key, label, proOnly: key === 'latest' ? !latestAllowed : needsUpgrade(PERIOD_DAYS[key]) }));
+  // Latest has its own lock (the plan, not a history length), and its own upgrade pitch.
+  const isLocked = (p: { key: string; proOnly: boolean }) => (p.key === 'latest' ? p.proOnly : p.proOnly && !hasProAccess);
+  const lockedFeature = (p: { key: string }) => (p.key === 'latest' ? 'latest-scores' as const : 'historical-data' as const);
 
   const sortModes: Array<{ key: 'combined' | 'reasoning' | 'speed' | 'tooling' | 'price'; label: string; proOnly: boolean }> = (
-    [['combined', 'COMBINED'], ['reasoning', 'REASONING'], ['speed', 'CODING'], ['tooling', 'TOOLING'], ['price', 'PRICE']] as const
+    [['combined', 'Combined'], ['reasoning', 'Reasoning'], ['speed', 'Coding'], ['tooling', 'Tool use'], ['price', 'Price']] as const
   ).map(([key, label]) => ({
     key, label,
     // Category sorts are public utility on every plan; only the combined and
@@ -66,8 +77,8 @@ export default function ControlsBar({
   }));
 
   const handlePeriodClick = (period: typeof periods[number]) => {
-    if (period.proOnly && !hasProAccess) {
-      onShowProModal('historical-data');
+    if (isLocked(period)) {
+      onShowProModal(lockedFeature(period));
       return;
     }
     onPeriodChange(period.key);
@@ -81,41 +92,52 @@ export default function ControlsBar({
     onSortByChange(sort.key);
   };
 
+  /** What a locked option's tooltip says, as before for Latest; history lengths name the plan too. */
+  const lockTitle = (p: { key: string; label: string }) =>
+    p.key === 'latest' ? 'The newest run is part of Pro' : `${p.label} of history is part of Pro`;
+
+  // Desktop: the model page's pill controls (styles/studio-board.css .sb-controls). Phones keep
+  // the native selects underneath (.sb-controls-m), restyled.
   return (
-    <div className="v4-controls">
-      <span className="v4-ctrl-label">Period</span>
-      <div className="v4-ctrl-group">
-        {periods.map(p => (
-          <button
-            key={p.key}
-            className={`v4-ctrl-btn ${leaderboardPeriod === p.key ? 'active' : ''} ${p.proOnly && !hasProAccess ? 'pro-locked' : ''}`}
-            onClick={() => handlePeriodClick(p)}
-            disabled={isLoading}
-          >
-            {p.label}
-            {p.proOnly && !hasProAccess && <span className="lock-icon">🔒</span>}
-          </button>
-        ))}
+    <div className="sb-controls">
+      <div className="sb-ctl" role="group" aria-label="Period">
+        <span className="sb-ctl-l" aria-hidden="true">Period</span>
+        <div className="st-seg is-scroll">
+          {periods.map(p => (
+            <button
+              key={p.key}
+              type="button"
+              aria-pressed={leaderboardPeriod === p.key}
+              onClick={() => handlePeriodClick(p)}
+              disabled={isLoading}
+              title={isLocked(p) ? lockTitle(p) : undefined}
+            >
+              {p.label}
+              {isLocked(p) && <span className="sb-pro">Pro</span>}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {showSort && <>
-      <div className="v4-ctrl-sep"></div>
-
-      <span className="v4-ctrl-label">Sort</span>
-      <div className="v4-ctrl-group">
-        {sortModes.map(s => (
-          <button
-            key={s.key}
-            className={`v4-ctrl-btn ${leaderboardSortBy === s.key ? 'active' : ''} ${s.proOnly && !hasProAccess ? 'pro-locked' : ''}`}
-            onClick={() => handleSortClick(s)}
-            disabled={isLoading}
-          >
-            {s.label}
-            {s.proOnly && !hasProAccess && <span className="lock-icon">🔒</span>}
-          </button>
-        ))}
-      </div>
-      </>}
+      {showSort && (
+        <div className="sb-ctl" role="group" aria-label="Sort">
+          <span className="sb-ctl-l" aria-hidden="true">Sort</span>
+          <div className="st-seg is-scroll">
+            {sortModes.map(s => (
+              <button
+                key={s.key}
+                type="button"
+                aria-pressed={leaderboardSortBy === s.key}
+                onClick={() => handleSortClick(s)}
+                disabled={isLoading}
+              >
+                {s.label}
+                {s.proOnly && !hasProAccess && <span className="sb-pro">Pro</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* LuckyLarry ad image - desktop only.
           Temporarily disabled; uncomment to bring the banner back.
@@ -129,77 +151,77 @@ export default function ControlsBar({
       </a>
       */}
 
-      <div className="v4-ctrl-right">
-        <div style={{ display: 'flex', gap: '1px' }}>
+      <div className="sb-ctl sb-ctl-view" role="group" aria-label="View">
+        <div className="st-seg">
           <button
-            className={`v4-mode-btn ${dashboardMode === 'leaderboard' ? 'active' : ''}`}
+            type="button"
+            aria-pressed={dashboardMode === 'leaderboard'}
             onClick={() => onModeChange('leaderboard')}
           >
-            LEADERBOARD
+            Leaderboard
           </button>
           <button
-            className={`v4-mode-btn ${dashboardMode === 'drift' ? 'active' : ''}${nudgeDrift ? ' is-nudge' : ''}`}
+            type="button"
+            aria-pressed={dashboardMode === 'drift'}
+            className={nudgeDrift ? 'is-nudge' : undefined}
             onClick={() => onModeChange('drift')}
           >
-            DRIFT MONITOR
+            Drift monitor
+            {nudgeDrift && dashboardMode !== 'drift' && <span className="sb-nudge" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile: compact dropdown pills (Period / Sort / View) */}
-      <div className="v4-controls-mobile">
-        <label className="v4-mc-item">
-          <span className="v4-mc-label">Period</span>
-          <span className="v4-mc-select">
-            <select
-              value={leaderboardPeriod}
-              disabled={isLoading}
-              onChange={(e) => {
-                const p = periods.find(x => x.key === e.target.value)!;
-                if (p.proOnly && !hasProAccess) { onShowProModal('historical-data'); return; }
-                onPeriodChange(p.key);
-              }}
-            >
-              {periods.map(p => (
-                <option key={p.key} value={p.key}>{p.label}{p.proOnly && !hasProAccess ? '  🔒' : ''}</option>
-              ))}
-            </select>
-            <span className="v4-mc-chev" aria-hidden>▾</span>
-          </span>
+      {extra && <div className="sb-ctl-extra">{extra}</div>}
+
+      {/* Phones: compact selects (Period / Sort / View) */}
+      <div className={`sb-controls-m${showSort ? ' has-sort' : ''}`}>
+        <label className="sb-mc">
+          <span className="sb-mc-l">Period</span>
+          <select
+            className="st-select"
+            value={leaderboardPeriod}
+            disabled={isLoading}
+            onChange={(e) => {
+              const p = periods.find(x => x.key === e.target.value)!;
+              if (isLocked(p)) { onShowProModal(lockedFeature(p)); return; }
+              onPeriodChange(p.key);
+            }}
+          >
+            {periods.map(p => (
+              <option key={p.key} value={p.key}>{p.label}{isLocked(p) ? ' · Pro' : ''}</option>
+            ))}
+          </select>
         </label>
 
-        {showSort && <label className="v4-mc-item">
-          <span className="v4-mc-label">Sort</span>
-          <span className="v4-mc-select">
-            <select
-              value={leaderboardSortBy}
-              disabled={isLoading}
-              onChange={(e) => {
-                const s = sortModes.find(x => x.key === e.target.value)!;
-                if (s.proOnly && !hasProAccess) { onShowProModal('performance-matrix'); return; }
-                onSortByChange(s.key);
-              }}
-            >
-              {sortModes.map(s => (
-                <option key={s.key} value={s.key}>{s.label}{s.proOnly && !hasProAccess ? '  🔒' : ''}</option>
-              ))}
-            </select>
-            <span className="v4-mc-chev" aria-hidden>▾</span>
-          </span>
+        {showSort && <label className="sb-mc">
+          <span className="sb-mc-l">Sort</span>
+          <select
+            className="st-select"
+            value={leaderboardSortBy}
+            disabled={isLoading}
+            onChange={(e) => {
+              const s = sortModes.find(x => x.key === e.target.value)!;
+              if (s.proOnly && !hasProAccess) { onShowProModal('performance-matrix'); return; }
+              onSortByChange(s.key);
+            }}
+          >
+            {sortModes.map(s => (
+              <option key={s.key} value={s.key}>{s.label}{s.proOnly && !hasProAccess ? ' · Pro' : ''}</option>
+            ))}
+          </select>
         </label>}
 
-        <label className="v4-mc-item">
-          <span className="v4-mc-label">View</span>
-          <span className="v4-mc-select">
-            <select
-              value={dashboardMode}
-              onChange={(e) => onModeChange(e.target.value as 'leaderboard' | 'drift')}
-            >
-              <option value="leaderboard">Leaderboard</option>
-              <option value="drift">Drift Monitor</option>
-            </select>
-            <span className="v4-mc-chev" aria-hidden>▾</span>
-          </span>
+        <label className="sb-mc">
+          <span className="sb-mc-l">View</span>
+          <select
+            className="st-select"
+            value={dashboardMode}
+            onChange={(e) => onModeChange(e.target.value as 'leaderboard' | 'drift')}
+          >
+            <option value="leaderboard">Leaderboard</option>
+            <option value="drift">Drift monitor</option>
+          </select>
         </label>
       </div>
     </div>

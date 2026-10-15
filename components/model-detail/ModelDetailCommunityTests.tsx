@@ -21,6 +21,8 @@
  */
 
 import { useEffect, useState } from 'react';
+import { Pane, Note } from '@/components/studio';
+import '@/styles/studio-model-panels.css';
 
 interface SuiteAggregate {
   n: number;
@@ -80,47 +82,43 @@ export default function ModelDetailCommunityTests({
   const totalTesters = Math.max(...suites.map(([, v]) => v.testers));
 
   return (
-    <div className="md-chart-section">
-      <div className="md-chart-title">
-        Tested by others with their own keys
-        <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 400, marginLeft: 8 }}>
-          {totalRuns} run{totalRuns === 1 ? '' : 's'} · {totalTesters} tester{totalTesters === 1 ? '' : 's'}
-        </span>
+    <Pane
+      title="Tested by others with their own keys"
+      sub={`${totalRuns} run${totalRuns === 1 ? '' : 's'} · ${totalTesters} tester${totalTesters === 1 ? '' : 's'}`}
+      ruled
+      flush
+    >
+      {/* The honesty label comes first: these are individual samples, not measurement. */}
+      <div className="sq-pad is-ruled">
+        <Note>{data.explainer}</Note>
       </div>
-
-      <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', marginTop: 10 }}>
+      <div className="sq-cols is-narrow">
         {suites.map(([suite, v]) => {
           const delta = v.median != null && publishedScore != null ? v.median - publishedScore : null;
           return (
-            <div key={suite} style={{ border: '1px solid var(--metal-silver,#e3e6ea)', borderRadius: 8, padding: '12px 14px' }}>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', opacity: 0.6 }}>
-                {SUITE_LABEL[suite] ?? suite}
+            <div key={suite} className="sq-col">
+              <p className="st-label">{SUITE_LABEL[suite] ?? suite}</p>
+              <div className="sq-big">
+                <b>{v.median != null ? Math.round(v.median) : '—'}</b>
+                <span>median of {v.n}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-                <span style={{ fontSize: 26, fontWeight: 600 }}>{v.median != null ? Math.round(v.median) : '—'}</span>
-                <span style={{ fontSize: 11, opacity: 0.6 }}>median of {v.n}</span>
-              </div>
-              <div style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>
+              <p className="sq-ct-range">
                 range {v.min != null ? Math.round(v.min) : '—'}–{v.max != null ? Math.round(v.max) : '—'}
                 {delta != null && (
-                  <> · <span style={{ color: Math.abs(delta) < 5 ? 'inherit' : delta > 0 ? '#2e7d32' : '#b26a00' }}>
+                  <> · <span className={Math.abs(delta) < 5 ? '' : delta > 0 ? 'is-up' : 'is-dn'}>
                     {delta > 0 ? '+' : ''}{Math.round(delta)} vs our score
                   </span></>
                 )}
-              </div>
+              </p>
               {v.latest && (
-                <div style={{ fontSize: 10, opacity: 0.5, marginTop: 4 }}>
+                <p className="sq-ct-latest">
                   latest {new Date(v.latest).toLocaleDateString(undefined, { dateStyle: 'medium' })}
-                </div>
+                </p>
               )}
             </div>
           );
         })}
       </div>
-
-      <div style={{ fontSize: 11, opacity: 0.7, marginTop: 12, lineHeight: 1.5 }}>
-        {data.explainer}
-      </div>
-    </div>
+    </Pane>
   );
 }

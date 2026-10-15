@@ -3,6 +3,14 @@ import { permanentRedirect, notFound } from 'next/navigation';
 import { resolveModelParam, isNumericId, type SlugModel } from '../../../lib/model-slug';
 import { BOARD_KEYS, buildBoards, standingOnBoard, type BoardKey, type Standing } from '../../../lib/boards-core';
 import ModelDetailClient from './ModelDetailClient';
+import { auth } from '@/auth';
+import { isPlan, planMeets, type Plan } from '../../../lib/entitlements';
+import { REQUIRED_PLAN } from '../../../lib/capabilities';
+import { latestTokenHeaders } from '../../../lib/latest-token';
+import { lpBody, lpDisplay } from '../../../lib/fonts';
+import '../../../styles/landing.css';
+import '../../../styles/studio.css';
+import '../../../styles/studio-model-panels.css';
 
 // Server-rendered so search engines get a unique title, description, canonical
 // URL and JSON-LD for every model — the interactive dashboard hydrates on top.
@@ -40,9 +48,13 @@ function vendorLabel(vendor?: string): string {
  * sorted by score and called the position a rank, so a community-funded model whose combined
  * score is coding-only read as "#3 of 22" when the board does not rank it at all.
  */
-async function fetchModelStanding(modelId: string): Promise<ModelStanding | null> {
+async function fetchModelStanding(modelId: string, period: 'latest' | '24h'): Promise<ModelStanding | null> {
   try {
-    const res = await fetch(`${API_INTERNAL}/dashboard/boards?period=latest`, { next: { revalidate: 900 } });
+    const res = await fetch(`${API_INTERNAL}/dashboard/boards?period=${period}`, {
+      next: { revalidate: 900 },
+      // `latest` is asked for only after the page checked the plan (see latestAllowed below).
+      headers: period === 'latest' ? latestTokenHeaders() : {},
+    });
     if (!res.ok) return null;
     const body = await res.json();
     if (!body?.data) return null;
@@ -144,6 +156,12 @@ export default async function ModelDetailPage(
 ) {
   const models = await fetchModels();
 
+  // The newest run is a paid view (lib/capabilities 'latest-scores'). Visitors — search engines
+  // included — and free accounts get the 24-hour view here and in the text below.
+  const session = await auth().catch(() => null);
+  const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
+  const latestAllowed = planMeets(plan, REQUIRED_PLAN['latest-scores']);
+
   // Graceful degradation: if the API is unreachable we can't build the slug map.
   // For a legacy numeric URL, still render the interactive client (it retries on
   // its own); otherwise there is nothing to resolve.
@@ -155,6 +173,7 @@ export default async function ModelDetailPage(
           slug={params.id}
           initialName={params.id}
           initialVendor="AI"
+          latestAllowed={latestAllowed}
         />
       );
     }
@@ -175,7 +194,8 @@ export default async function ModelDetailPage(
   const name = model.displayName || model.name;
   const vendor = vendorLabel(model.vendor);
   const canonical = `${SITE}/models/${slug}`;
-  const standing = await fetchModelStanding(String(model.id));
+  const standingPeriod = latestAllowed ? 'latest' : '24h';
+  const standing = await fetchModelStanding(String(model.id), standingPeriod);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -225,8 +245,9 @@ export default async function ModelDetailPage(
         initialName={model.name}
         initialDisplayName={model.displayName}
         initialVendor={model.vendor || 'AI'}
+        latestAllowed={latestAllowed}
       />
-      <ModelSeoContent name={name} vendor={vendor} standing={standing} />
+      <ModelSeoContent name={name} vendor={vendor} standing={standing} period={standingPeriod} />
     </>
   );
 }
@@ -257,10 +278,13 @@ function ModelSeoContent({
   name,
   vendor,
   standing,
+  period,
 }: {
   name: string;
   vendor: string;
   standing: ModelStanding | null;
+  /** Which board the standing was read from: the paid latest view, or the 24-hour view. */
+  period: 'latest' | '24h';
 }) {
   const combined = standing?.combined;
   const community = combined?.kind === 'community';
@@ -270,25 +294,6 @@ function ModelSeoContent({
   const fundedResult = (k: BoardKey) => {
     const st = standing?.[k];
     return st && st.kind === 'community' ? `${st.row.score} (last funded run, ${st.row.when})` : null;
-  };
-
-  const s = {
-    wrap: {
-      maxWidth: '980px',
-      margin: '0 auto',
-      padding: '8px 20px 56px',
-      color: 'var(--phosphor-green, #202124)',
-      fontSize: '14.5px',
-      lineHeight: 1.7,
-    } as React.CSSProperties,
-    h2: {
-      fontSize: '17px',
-      fontWeight: 600,
-      color: 'var(--phosphor-green, #202124)',
-      margin: '32px 0 8px',
-    } as React.CSSProperties,
-    p: { margin: '0 0 12px', color: 'var(--phosphor-dim, #5f6368)' } as React.CSSProperties,
-    a: { color: 'var(--accent, #1a73e8)' } as React.CSSProperties,
   };
 
   let standingText: string;
@@ -312,7 +317,7 @@ function ModelSeoContent({
       })
       .filter(Boolean);
     standingText =
-      `In the latest results ${name} scores ${combined.row.score}/100 on the combined board, ${placeOn(combined)} ranked there, ` +
+      `${period === 'latest' ? 'In the latest results' : 'Over the last 24 hours'} ${name} scores ${combined.row.score}/100 on the combined board, ${placeOn(combined)} ranked there, ` +
       `and its recent trend is ${trendWord}. ` +
       (parts.length ? `On the individual boards it is ${parts.join(', ').replace(/, ([^,]*)$/, ' and $1')}. ` : '') +
       `"Joint" means its lead over, or gap to, the models around it is smaller than the measurement can resolve, so they share the place.`;
@@ -320,57 +325,73 @@ function ModelSeoContent({
     standingText =
       `It is not ranked on the combined board right now` +
       (combined.row.staleReason ? ` (${combined.row.staleReason})` : '') +
-      `; its latest scores are shown above.`;
+      `; its ${period === 'latest' ? 'latest ' : ''}scores are shown above.`;
   }
 
+  // Its own .st root (tokens, landing typefaces) because it renders beside the client page, not
+  // inside it. An editorial block in the landing's FAQ style: display-face questions on the left,
+  // answers at reading width on the right, ruled between.
   return (
-    <section style={s.wrap}>
-      <h2 style={s.h2}>What is the {name} benchmark score?</h2>
-      <p style={s.p}>
-        {name} is a large language model from {vendor}. AI Stupid Level re-tests it on a fixed schedule and publishes a
-        combined score from 0 to 100 — half coding, a quarter reasoning and a quarter tool use — where higher means
-        stronger measured performance. {standingText} The scores come from our own runs through the provider&apos;s public
-        API, not from vendor-reported numbers, so they show how the model behaves as it is served today.
-      </p>
+    <section className={`st st-page sq-about ${lpBody.variable} ${lpDisplay.variable}`}>
+      <div className="sq-about-in">
+        <p className="st-kicker">About this page</p>
+        <div className="sq-about-list">
+          <div className="sq-about-row">
+            <h2>What is the {name} benchmark score?</h2>
+            <p>
+              {name} is a large language model from {vendor}. AI Stupid Level re-tests it on a fixed schedule and publishes a
+              combined score from 0 to 100 — half coding, a quarter reasoning and a quarter tool use — where higher means
+              stronger measured performance. {standingText} The scores come from our own runs through the provider&apos;s public
+              API, not from vendor-reported numbers, so they show how the model behaves as it is served today.
+            </p>
+          </div>
 
-      <h2 style={s.h2}>How we test {name}</h2>
-      <p style={s.p}>
-        The coding suite runs every four hours: seven tasks, seven attempts each, most of them real debugging jobs in
-        which the model gets a small working project and a bug report and has to find and fix the fault. It is graded by
-        running the project&apos;s own tests, including tests the model never sees, and scored on nine measures led by
-        correctness (60%) and stability, edge cases and debugging (10% each); complexity and efficiency are measured but carry no
-        weight. The reasoning suite runs daily: four long working sessions of five or six turns, scored on correctness,
-        recovery after a failed step, and three continuity measures — memory retention, plan coherence and context use —
-        checked by running code against rules stated earlier in the conversation. The tool-use suite runs daily: nine
-        tasks in real sandboxed machines, scored on task completion (30%), tool selection (20%), parameter accuracy,
-        efficiency, error handling, context awareness and safety. A suite that is missing or out of date drops out of
-        the combined score and the others are reweighted; the page says when that happens.
-        {community && ` For ${name}, the reasoning and tool-use suites run only when a member of the community funds a run; the coding suite runs on our schedule, as for every model.`}{' '}
-        Full details, including every weight, are on our{' '}
-        <a href="/methodology" style={s.a}>benchmarking methodology page</a>.
-      </p>
+          <div className="sq-about-row">
+            <h2>How we test {name}</h2>
+            <p>
+              The coding suite runs every four hours: seven tasks, seven attempts each, most of them real debugging jobs in
+              which the model gets a small working project and a bug report and has to find and fix the fault. It is graded by
+              running the project&apos;s own tests, including tests the model never sees, and scored on nine measures led by
+              correctness (60%) and stability, edge cases and debugging (10% each); complexity and efficiency are measured but carry no
+              weight. The reasoning suite runs daily: four long working sessions of five or six turns, scored on correctness,
+              recovery after a failed step, and three continuity measures — memory retention, plan coherence and context use —
+              checked by running code against rules stated earlier in the conversation. The tool-use suite runs daily: nine
+              tasks in real sandboxed machines, scored on task completion (30%), tool selection (20%), parameter accuracy,
+              efficiency, error handling, context awareness and safety. A suite that is missing or out of date drops out of
+              the combined score and the others are reweighted; the page says when that happens.
+              {community && ` For ${name}, the reasoning and tool-use suites run only when a member of the community funds a run; the coding suite runs on our schedule, as for every model.`}{' '}
+              Full details, including every weight, are on our{' '}
+              <a href="/methodology">benchmarking methodology page</a>.
+            </p>
+          </div>
 
-      <h2 style={s.h2}>Is {name} getting worse over time?</h2>
-      <p style={s.p}>
-        This is the question the platform exists to answer. A provider can change a model behind the same API name, and
-        without continuous measurement that change is invisible to the people relying on it. Each of {name}&apos;s suites has
-        its own Page-Hinkley change-point detector, run on daily results, which separates a sustained decline from
-        ordinary run-to-run noise; it needs ten days of history on the current version of the tests before it can fire.
-        An hourly canary — two fixed probes — watches for a sudden collapse and tests it against the previous week with
-        Welch&apos;s t-test, and records an incident when the fall is large and significant. A Page-Hinkley detection is
-        marked on the chart above and changes {name}&apos;s status on the drift monitor. See{' '}
-        <a href="/ai-drift-detection" style={s.a}>how AI drift detection works</a> for the method.
-      </p>
+          <div className="sq-about-row">
+            <h2>Is {name} getting worse over time?</h2>
+            <p>
+              This is the question the platform exists to answer. A provider can change a model behind the same API name, and
+              without continuous measurement that change is invisible to the people relying on it. Each of {name}&apos;s suites has
+              its own Page-Hinkley change-point detector, run on daily results, which separates a sustained decline from
+              ordinary run-to-run noise; it needs ten days of history on the current version of the tests before it can fire.
+              An hourly canary — two fixed probes — watches for a sudden collapse and tests it against the previous week with
+              Welch&apos;s t-test, and records an incident when the fall is large and significant. A Page-Hinkley detection is
+              marked on the chart above and changes {name}&apos;s status on the drift monitor. See{' '}
+              <a href="/ai-drift-detection">how AI drift detection works</a> for the method.
+            </p>
+          </div>
 
-      <h2 style={s.h2}>Compare {name} with other models</h2>
-      <p style={s.p}>
-        Scores mean most next to the alternatives. The <a href="/" style={s.a}>live leaderboard</a> shows every model on
-        all four boards — the Table layout puts each model&apos;s combined, coding, reasoning and tool-use scores and ranks in
-        one row, with prices — and the heatmap under the boards compares the nine coding measures across every model. Sign
-        in and star {name} to add it to your watchlist: it then appears at the top of the leaderboards with its place on
-        each board, and we email you if its measured coding score falls five points or more in a week, plus a weekly
-        summary of what changed.
-      </p>
+          <div className="sq-about-row">
+            <h2>Compare {name} with other models</h2>
+            <p>
+              Scores mean most next to the alternatives. The <a href="/">live leaderboard</a> shows every model on
+              all four boards — the Table layout puts each model&apos;s combined, coding, reasoning and tool-use scores and ranks in
+              one row, with prices — and the heatmap under the boards compares the nine coding measures across every model. Sign
+              in and star {name} to add it to your watchlist: it then appears at the top of the leaderboards with its place on
+              each board, and we email you if its measured coding score falls five points or more in a week, plus a weekly
+              summary of what changed.
+            </p>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

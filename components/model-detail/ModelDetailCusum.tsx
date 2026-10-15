@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import {
   ComposedChart,
   Area,
@@ -14,6 +14,8 @@ import {
   ReferenceArea,
   ResponsiveContainer,
 } from 'recharts';
+import { Pane, Locked, Loader, Empty, Note } from '@/components/studio';
+import { useChartReveal } from '../PerformanceChart';
 
 type CusumPeriod = '7d' | '1m' | 'all';
 // One curve per suite, never a blend: each suite has its own scale, noise and configuration.
@@ -66,20 +68,27 @@ interface ModelDetailCusumProps {
   onShowProModal: (feature: 'drift-cusum') => void;
 }
 
-/* Validated against scripts/validate_palette.js (light, surface #ffffff):
-   #1a73e8 ↔ #d93025 — CVD ΔE 29.1 (protan), normal ΔE 36.5, all checks pass. */
-const LINE = '#1a73e8';
-const DETECTION = '#d93025';
+/* The curve is the accent, change-points the "bad" token: in light theme exactly the pair
+   validated against scripts/validate_palette.js (#1a73e8 ↔ #d93025 — CVD ΔE 29.1 protan,
+   normal ΔE 36.5); dark theme swaps both for its own lighter tokens. Change-points never rest
+   on colour alone: a triangle, a dashed day rule and a tooltip line mark them too. */
+const LINE = 'var(--lp-accent)';
+const DETECTION = 'var(--lp-bad)';
 
 const PERIOD_LABEL: Record<CusumPeriod, string> = {
-  '7d': '7D',
-  '1m': '30D',
-  'all': 'ALL',
+  '7d': '7 days',
+  '1m': '30 days',
+  'all': 'All',
 };
 const SUITE_LABEL: Record<CusumSuite, string> = {
-  hourly: 'CODING',
-  tooling: 'TOOL USE',
-  deep: 'REASONING',
+  hourly: 'Coding',
+  tooling: 'Tool use',
+  deep: 'Reasoning',
+};
+const SUITE_TITLE: Record<CusumSuite, string> = {
+  hourly: 'Coding suite: six sweeps a day, daily median',
+  tooling: 'Tool-use suite: nine sessions a day',
+  deep: 'Reasoning suite: four multi-turn tasks a day',
 };
 
 const fmtDay = (ts: string) =>
@@ -97,6 +106,11 @@ export default function ModelDetailCusum({
   const [series, setSeries] = useState<CusumSeries | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const host = useRef<HTMLDivElement>(null);
+  // The chart (and so its host) only renders once a Pro series with points has arrived.
+  const { inView, reduced } = useChartReveal(host, hasProAccess && !error && !!series && series.points.length > 0);
+  const gid = `sm-ph-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   useEffect(() => {
     // Deliberately no fetch for non-pro visitors. Blurring fetched data would
@@ -132,64 +146,60 @@ export default function ModelDetailCusum({
     return () => { cancelled = true; };
   }, [modelId, period, suite, hasProAccess]);
 
-  const Section = ({ children }: { children: React.ReactNode }) => (
-    <div className="md-chart-section">
-      <div className="md-chart-title">DRIFT DETECTION — PAGE-HINKLEY</div>
-      {children}
+  // The suite and period pickers sit in the pane's head in every Pro state, so a period with
+  // nothing in it never strands the reader without the way back.
+  const pickers = (
+    <div className="sm-pane-segs">
+      {/* Suite selector — the detector runs one series per suite (coding, tool use, reasoning) */}
+      <div className="st-seg is-scroll" role="group" aria-label="Suite">
+        {(Object.keys(SUITE_LABEL) as CusumSuite[]).map((sName) => (
+          <button key={sName} type="button" aria-pressed={suite === sName} onClick={() => setSuite(sName)} title={SUITE_TITLE[sName]}>
+            {SUITE_LABEL[sName]}
+          </button>
+        ))}
+      </div>
+      {/* Period selector */}
+      <div className="st-seg is-scroll" role="group" aria-label="Period">
+        {(Object.keys(PERIOD_LABEL) as CusumPeriod[]).map((p) => (
+          <button key={p} type="button" aria-pressed={period === p} onClick={() => setPeriod(p)}>
+            {PERIOD_LABEL[p]}
+          </button>
+        ))}
+      </div>
     </div>
+  );
+
+  const frame = (children: ReactNode, opts: { foot?: ReactNode; withPickers?: boolean } = {}) => (
+    <Pane
+      title="Drift detection"
+      sub={hasProAccess ? `Page-Hinkley statistic · ${SUITE_LABEL[suite].toLowerCase()} suite` : 'Page-Hinkley statistic'}
+      actions={opts.withPickers ? pickers : undefined}
+      foot={opts.foot}
+    >
+      {children}
+    </Pane>
   );
 
   // ── Locked ────────────────────────────────────────────────────────────
   if (!hasProAccess) {
-    return (
-      <Section>
-        <div
-          className="md-chart-empty"
-          role="button"
-          tabIndex={0}
-          style={{ cursor: 'pointer' }}
-          onClick={() => onShowProModal('drift-cusum')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onShowProModal('drift-cusum'); }}
-        >
-          <div className="md-chart-empty-inner">
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              CUSUM drift curve is a Pro feature
-            </div>
-            <div style={{ color: 'var(--phosphor-dim)', fontSize: 12, maxWidth: 420, margin: '0 auto' }}>
-              See the Page-Hinkley statistic behind every drift alert, with detected
-              change-points marked on the day they happened.
-            </div>
-          </div>
-        </div>
-      </Section>
+    return frame(
+      <Locked title="CUSUM drift curve" onOpen={() => onShowProModal('drift-cusum')}>
+        See the Page-Hinkley statistic behind every drift alert, with detected
+        change-points marked on the day they happened.
+      </Locked>,
     );
   }
 
   // ── Loading ───────────────────────────────────────────────────────────
   if (loading && !series) {
-    return (
-      <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)' }}>
-            Loading drift history…
-          </div>
-        </div>
-      </Section>
-    );
+    return frame(<Loader label="Loading drift history…" minHeight={280} />, { withPickers: true });
   }
 
   // ── Error ─────────────────────────────────────────────────────────────
   if (error) {
-    return (
-      <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner">
-            <div style={{ color: 'var(--phosphor-dim)', fontSize: 12 }}>
-              Could not load drift history — {error}
-            </div>
-          </div>
-        </div>
-      </Section>
+    return frame(
+      <Note tone="warn" title="Could not load drift history">{error}</Note>,
+      { withPickers: true },
     );
   }
 
@@ -200,36 +210,20 @@ export default function ModelDetailCusum({
   // un-armed spans and says so per point — so it is shown, marked provisional,
   // rather than replaced by a paragraph explaining why it is absent.
   if (series && !series.sufficientData && series.points.length === 0) {
-    return (
-      <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner">
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>
-              Not enough history yet
-            </div>
-            <div style={{ color: 'var(--phosphor-dim)', fontSize: 12, maxWidth: 460, margin: '0 auto' }}>
-              Change detection needs at least {series.minObservations} days on the current
-              benchmark configuration to establish a baseline before a curve means anything.
-              Earlier days were measured on a previous configuration and are not comparable.
-              This model has {series.totalDays} {series.totalDays === 1 ? 'day' : 'days'} on
-              the current one — about {series.daysUntilAvailable} more to go.
-            </div>
-          </div>
-        </div>
-      </Section>
+    return frame(
+      <Empty title="Not enough history yet">
+        Change detection needs at least {series.minObservations} days on the current
+        benchmark configuration to establish a baseline before a curve means anything.
+        Earlier days were measured on a previous configuration and are not comparable.
+        This model has {series.totalDays} {series.totalDays === 1 ? 'day' : 'days'} on
+        the current one — about {series.daysUntilAvailable} more to go.
+      </Empty>,
+      { withPickers: true },
     );
   }
 
   if (!series || series.points.length === 0) {
-    return (
-      <Section>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner" style={{ color: 'var(--phosphor-dim)', fontSize: 12 }}>
-            No drift data in this period.
-          </div>
-        </div>
-      </Section>
-    );
+    return frame(<Empty title="No drift data in this period." />, { withPickers: true });
   }
 
   // ── Chart ─────────────────────────────────────────────────────────────
@@ -247,6 +241,7 @@ export default function ModelDetailCusum({
   const yMax = Math.max(peak, series.threshold) * 1.15;
   const detectionCount = series.detections.length;
   const latest = series.points[series.points.length - 1];
+  const detectionDays = data.filter((p) => p.driftDetected).map((p) => p.day);
 
   // Contiguous spans where the detector could not fire. Shaded on the chart so a
   // curve crossing the threshold during warm-up doesn't read as a missed alert.
@@ -276,250 +271,196 @@ export default function ModelDetailCusum({
     if (!active || !payload || payload.length === 0) return null;
     const d: typeof data[number] = payload[0].payload;
     return (
-      <div
-        style={{
-          background: 'var(--terminal-dark)',
-          border: '1px solid var(--metal-silver)',
-          borderRadius: 6,
-          padding: '10px 12px',
-          fontSize: 12,
-          color: 'var(--phosphor-green)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>
+      <div className="sm-tip">
+        <span className="sm-tip-h">
           {new Date(d.ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-        </div>
-        <div>Page-Hinkley: <strong>{d.cusum.toFixed(3)}</strong> / {series.threshold.toFixed(2)}</div>
-        <div style={{ color: 'var(--phosphor-dim)' }}>
-          Daily median score: {d.score.toFixed(1)}
-        </div>
-        <div style={{ color: 'var(--phosphor-dim)' }}>
-          {d.samples} {d.samples === 1 ? 'run' : 'runs'} that day
-        </div>
+        </span>
+        <span className="sm-tip-v">
+          <i className="sm-tip-k" aria-hidden="true" />
+          Page-Hinkley <strong>{d.cusum.toFixed(3)}</strong> / {series.threshold.toFixed(2)}
+        </span>
+        <span className="sm-tip-s">Daily median score: {d.score.toFixed(1)}</span>
+        <span className="sm-tip-s">{d.samples} {d.samples === 1 ? 'run' : 'runs'} that day</span>
         {d.driftDetected && (
-          <div style={{ color: DETECTION, fontWeight: 600, marginTop: 6 }}>
-            ▲ Change-point detected
-          </div>
+          <span className="sm-tip-bad"><i className="sm-tri" aria-hidden="true" />Change-point detected</span>
         )}
         {!d.armed && (
-          <div style={{ marginTop: 6, maxWidth: 230, color: 'var(--phosphor-dim)' }}>
+          <span className="sm-tip-note">
             {d.minRequired === series.minObservations ? 'Building baseline' : 'Re-arming after a change-point'}
             {' '}— day {d.n} of {d.minRequired}. The threshold is inactive until the
             baseline is established.
-          </div>
+          </span>
         )}
       </div>
     );
   };
 
-  return (
-    <Section>
+  const tickStyle = { fill: 'var(--lp-fg3)', fontSize: 11.5 };
+
+  return frame(
+    <>
       {/* Warming up. Stated before the chart rather than under it, because the one thing a
           reader must not do with this curve is treat a rise as a detection: the threshold
           is inactive until the baseline is established. The shaded spans on the chart say
           the same thing per day. */}
       {provisional && (
-        <div className="md-cu-provisional">
-          <strong>Baseline still forming</strong> &mdash; {series.daysOnCurrentConfig} of{' '}
-          {series.minObservations} measured days on the current benchmark configuration
-          {series.daysUntilAvailable > 0 && <> ({series.daysUntilAvailable} to go)</>}. The curve
-          below is real, but the detector cannot fire yet, so nothing on it counts as a detection.
+        <div style={{ marginBottom: 14 }}>
+          <Note tone="warn" title="Baseline still forming">
+            {series.daysOnCurrentConfig} of{' '}
+            {series.minObservations} measured days on the current benchmark configuration
+            {series.daysUntilAvailable > 0 && <> ({series.daysUntilAvailable} to go)</>}. The curve
+            below is real, but the detector cannot fire yet, so nothing on it counts as a detection.
+          </Note>
         </div>
       )}
 
-      {/* Suite selector — the detector runs one series per suite (coding, tool use, reasoning) */}
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-        {(Object.keys(SUITE_LABEL) as CusumSuite[]).map((sName) => (
-          <button
-            key={sName}
-            onClick={() => setSuite(sName)}
-            title={sName === 'hourly' ? 'Coding suite: six sweeps a day, daily median' : sName === 'tooling' ? 'Tool-use suite: nine sessions a day' : 'Reasoning suite: four multi-turn tasks a day'}
-            style={{
-              padding: '4px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              borderRadius: 4,
-              border: `1px solid ${suite === sName ? LINE : 'var(--metal-silver)'}`,
-              background: suite === sName ? 'var(--accent-bg)' : 'transparent',
-              color: suite === sName ? LINE : 'var(--phosphor-dim)',
-            }}
-          >
-            {SUITE_LABEL[sName]}
-          </button>
-        ))}
+      <div
+        ref={host}
+        className={`sm-chart${loading ? ' is-busy' : ''}`}
+        style={{ ['--sm-h' as string]: '300px', ['--sm-hm' as string]: '240px' }}
+        aria-busy={loading || undefined}
+        role="img"
+        aria-label={`Page-Hinkley statistic for the ${SUITE_LABEL[suite].toLowerCase()} suite over ${data.length} days; current ${latest.cusum.toFixed(3)} against a threshold of ${series.threshold.toFixed(2)}; ${detectionCount} ${detectionCount === 1 ? 'detection' : 'detections'} in view.`}
+      >
+        {inView ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data} margin={{ top: 22, right: 12, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={LINE} stopOpacity={0.2} />
+                  <stop offset="100%" stopColor={LINE} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="var(--lp-line)" vertical={false} />
+
+              {/* Warm-up windows: the threshold is inactive here. */}
+              {warmupSpans.map((span, i) => (
+                <ReferenceArea
+                  key={`warmup-${i}`}
+                  x1={span.from}
+                  x2={span.to}
+                  fill="var(--lp-fg3)"
+                  fillOpacity={0.09}
+                  stroke="none"
+                  label={{
+                    value: span.kind === 'baseline' ? 'Building baseline' : 'Re-arming',
+                    position: 'insideTop',
+                    fill: 'var(--lp-fg3)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                />
+              ))}
+
+              <XAxis
+                dataKey="day"
+                tick={tickStyle}
+                tickLine={false}
+                axisLine={{ stroke: 'var(--lp-line2)' }}
+                tickMargin={10}
+                height={34}
+                interval="preserveStartEnd"
+                minTickGap={28}
+              />
+              <YAxis
+                domain={[0, yMax]}
+                tick={tickStyle}
+                tickLine={false}
+                axisLine={false}
+                width={44}
+                tickFormatter={(v: number) => v.toFixed(2)}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--lp-line2)', strokeWidth: 1 }} wrapperStyle={{ outline: 'none' }} />
+
+              {/* Change-points: a dashed rule on the day, in the detection colour. */}
+              {detectionDays.map((day) => (
+                <ReferenceLine key={`cp-${day}`} x={day} stroke={DETECTION} strokeDasharray="3 3" strokeOpacity={0.75} />
+              ))}
+
+              {/* Reference rule in muted ink, directly labelled — not a third hue. */}
+              <ReferenceLine
+                y={series.threshold}
+                stroke="var(--lp-fg2)"
+                strokeDasharray="6 4"
+                strokeWidth={1}
+                label={{
+                  value: (series.confirmObservations ?? 1) > 1
+                    ? `Alert threshold ${series.threshold.toFixed(2)} · held ${series.confirmObservations} days`
+                    : `Alert threshold ${series.threshold.toFixed(2)}`,
+                  position: 'insideTopRight',
+                  fill: 'var(--lp-fg2)',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                }}
+              />
+
+              <Area
+                type="monotone"
+                dataKey="cusum"
+                stroke="none"
+                fill={`url(#${gid})`}
+                isAnimationActive={!reduced}
+                animationDuration={1100}
+                animationEasing="ease-out"
+                activeDot={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="cusum"
+                stroke={LINE}
+                strokeWidth={2.25}
+                strokeLinejoin="round"
+                dot={false}
+                activeDot={{ r: 4.5, fill: 'var(--lp-card)', stroke: LINE, strokeWidth: 2.5 }}
+                isAnimationActive={!reduced}
+                animationDuration={1100}
+                animationEasing="ease-out"
+              />
+              {/* Detections as their own marked layer: identity is shape + color + tooltip label. */}
+              <Scatter
+                dataKey="detection"
+                fill={DETECTION}
+                shape="triangle"
+                isAnimationActive={false}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="sm-chart-wait" aria-hidden="true" />
+        )}
       </div>
-      {/* Period selector */}
-      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12 }}>
-        {(Object.keys(PERIOD_LABEL) as CusumPeriod[]).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            style={{
-              padding: '4px 12px',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-              borderRadius: 4,
-              border: `1px solid ${period === p ? LINE : 'var(--metal-silver)'}`,
-              background: period === p ? 'var(--accent-bg)' : 'transparent',
-              color: period === p ? LINE : 'var(--phosphor-dim)',
-            }}
-          >
-            {PERIOD_LABEL[p]}
-          </button>
-        ))}
-      </div>
-
-      <ResponsiveContainer width="100%" height={280}>
-        <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-          <CartesianGrid stroke="var(--metal-silver)" strokeDasharray="3 3" vertical={false} />
-
-          {/* Warm-up windows: the threshold is inactive here. */}
-          {warmupSpans.map((span, i) => (
-            <ReferenceArea
-              key={`warmup-${i}`}
-              x1={span.from}
-              x2={span.to}
-              fill="var(--phosphor-dim)"
-              fillOpacity={0.07}
-              stroke="none"
-              label={{
-                value: span.kind === 'baseline' ? 'BUILDING BASELINE' : 'RE-ARMING',
-                position: 'insideTop',
-                fill: 'var(--phosphor-dim)',
-                fontSize: 9,
-              }}
-            />
-          ))}
-
-          <XAxis
-            dataKey="day"
-            tick={{ fontSize: 11, fill: 'var(--phosphor-dim)' }}
-            stroke="var(--metal-silver)"
-            interval="preserveStartEnd"
-            minTickGap={24}
-          />
-          <YAxis
-            domain={[0, yMax]}
-            tick={{ fontSize: 11, fill: 'var(--phosphor-dim)' }}
-            stroke="var(--metal-silver)"
-            width={48}
-            tickFormatter={(v: number) => v.toFixed(2)}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--phosphor-dim)', strokeWidth: 1 }} />
-
-          {/* Reference rule in muted ink, directly labelled — not a third hue. */}
-          <ReferenceLine
-            y={series.threshold}
-            stroke="var(--phosphor-dim)"
-            strokeDasharray="6 4"
-            strokeWidth={1}
-            label={{
-              value: (series.confirmObservations ?? 1) > 1
-                ? `ALERT THRESHOLD ${series.threshold.toFixed(2)} · HELD ${series.confirmObservations} DAYS`
-                : `ALERT THRESHOLD ${series.threshold.toFixed(2)}`,
-              position: 'insideTopRight',
-              fill: 'var(--phosphor-dim)',
-              fontSize: 10,
-            }}
-          />
-
-          <Area
-            type="monotone"
-            dataKey="cusum"
-            stroke="none"
-            fill={LINE}
-            fillOpacity={0.10}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="cusum"
-            stroke={LINE}
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4, fill: LINE, stroke: 'var(--terminal-dark)', strokeWidth: 2 }}
-            isAnimationActive={false}
-          />
-          {/* Detections as their own marked layer: identity is shape + color + tooltip label. */}
-          <Scatter
-            dataKey="detection"
-            fill={DETECTION}
-            shape="triangle"
-            isAnimationActive={false}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
 
       {/* Reading guide — identity never rests on color alone */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 16,
-          justifyContent: 'center',
-          marginTop: 10,
-          fontSize: 11,
-          color: 'var(--phosphor-dim)',
-        }}
-      >
-        <span>
-          <span style={{ display: 'inline-block', width: 14, height: 2, background: LINE, verticalAlign: 'middle', marginRight: 6 }} />
-          Accumulated degradation
-        </span>
-        <span>
-          <span style={{ color: DETECTION, marginRight: 4 }}>▲</span>
-          Change-point detected
-        </span>
+      <ul className="sm-legend">
+        <li><i className="st-key is-accent" aria-hidden="true" />Accumulated degradation</li>
+        <li><i className="sm-tri" aria-hidden="true" />Change-point detected</li>
         {warmupSpans.length > 0 && (
-          <span>
-            <span
-              style={{
-                display: 'inline-block',
-                width: 14,
-                height: 10,
-                background: 'var(--phosphor-dim)',
-                opacity: 0.18,
-                verticalAlign: 'middle',
-                marginRight: 6,
-              }}
-            />
+          <li>
+            <i className="sm-swatch" aria-hidden="true" />
             {hasBaselineSpan && hasRearmSpan
               ? 'Building baseline / re-arming (threshold inactive)'
               : hasBaselineSpan
                 ? 'Building baseline (threshold inactive)'
                 : 'Detector re-arming (threshold inactive)'}
-          </span>
+          </li>
         )}
-        <span>
-          Current: <strong style={{ color: 'var(--phosphor-green)' }}>{latest.cusum.toFixed(3)}</strong>
-        </span>
-        <span>
-          {detectionCount} {detectionCount === 1 ? 'detection' : 'detections'} in view
-        </span>
-      </div>
-
-      <div
-        style={{
-          marginTop: 10,
-          fontSize: 11,
-          lineHeight: 1.6,
-          color: 'var(--phosphor-dim)',
-          textAlign: 'center',
-          maxWidth: 620,
-          margin: '10px auto 0',
-        }}
-      >
-        The Page-Hinkley statistic accumulates each day a model scores below its own
-        running baseline, and decays when it recovers. A sustained regression pushes
-        it past the threshold; ordinary day-to-day noise does not. After a
-        change-point the detector resets and spends {series.rearmObservations} days
-        re-learning the new baseline — in those shaded windows the threshold is
-        inactive by design. Computed over the same hourly series shown in the
-        performance timeline above: {series.totalRuns} runs across {series.totalDays} days.
-      </div>
-    </Section>
+        <li className="sm-legend-end">Current <b>{latest.cusum.toFixed(3)}</b></li>
+        <li>{detectionCount} {detectionCount === 1 ? 'detection' : 'detections'} in view</li>
+      </ul>
+    </>,
+    {
+      withPickers: true,
+      foot: (
+        <>
+          The Page-Hinkley statistic accumulates each day a model scores below its own
+          running baseline, and decays when it recovers. A sustained regression pushes
+          it past the threshold; ordinary day-to-day noise does not. After a
+          change-point the detector resets and spends {series.rearmObservations} days
+          re-learning the new baseline — in those shaded windows the threshold is
+          inactive by design. Computed over the same hourly series shown in the
+          performance timeline above: {series.totalRuns} runs across {series.totalDays} days.
+        </>
+      ),
+    },
   );
 }

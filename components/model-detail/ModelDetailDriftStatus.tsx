@@ -10,7 +10,8 @@
  * "warming up, N of 10 days". Free for every visitor; the curve behind it is the Pro chart below.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
+import { Pane, Pill, Tag } from '@/components/studio';
 
 type SuiteKey = 'hourly' | 'tooling' | 'deep';
 interface SuiteState {
@@ -30,6 +31,11 @@ interface Signature {
 
 const LABEL: Record<SuiteKey, string> = { hourly: 'Coding', tooling: 'Tool use', deep: 'Reasoning' };
 const ORDER: SuiteKey[] = ['hourly', 'tooling', 'deep'];
+const STATUS: Record<string, { label: string; tone: 'good' | 'warn' | 'bad' }> = {
+  NORMAL: { label: 'Normal', tone: 'good' },
+  WARNING: { label: 'Warning', tone: 'warn' },
+  ALERT: { label: 'Alert', tone: 'bad' },
+};
 
 // A reading above the threshold is an alert only once the detector has fired on it. Tool use
 // needs three consecutive daily readings above its threshold, so its first two are a warning.
@@ -63,16 +69,26 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
 
   const by = sig.pageHinkleyBySuite;
   const status = sig.driftStatus ?? 'NORMAL';
+  const statusView = STATUS[status] ?? { label: status, tone: 'good' as const };
   const anyArmed = ORDER.some(k => by[k]?.armed);
 
   return (
-    <div className="md-chart-section">
-      <div className="md-chart-title">
-        DRIFT STATUS BY SUITE
-        <span className={`md-ds-status md-ds-status-${status.toLowerCase()}`}>{status}</span>
-      </div>
-
-      <div className="md-ds-chips">
+    <Pane
+      title="Drift status by suite"
+      sub="How close each suite's change detector is to firing"
+      actions={<Pill tone={statusView.tone}>{statusView.label}</Pill>}
+      foot={
+        <p className="sm-ds-foot">
+          One Page-Hinkley statistic per suite on its own daily series, never blended. Coding and reasoning
+          fire at {by.hourly?.threshold.toFixed(2) ?? '0.30'}; tool use, which is noisier, fires only when its
+          statistic stays above {by.tooling?.threshold.toFixed(2) ?? '0.50'} for {by.tooling?.confirm ?? 3} consecutive
+          daily runs. The statistic is measured from day one, but a
+          suite needs ten measured days since its configuration last changed before a reading is allowed
+          to fire{anyArmed ? '' : ' — so the figures above are early readings, not verdicts'}.
+        </p>
+      }
+    >
+      <div className="sm-ds">
         {ORDER.map(k => {
           const s = by[k];
           if (!s) return null;
@@ -98,36 +114,45 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
           const title = s.armed
             ? `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)}; ${firesAt}. ${s.days} measured days on the current configuration.`
             : `${LABEL[k]}: Page-Hinkley statistic ${s.cusum.toFixed(3)} against a firing threshold of ${s.threshold.toFixed(2)}. ${s.days} of ${s.coldStart} measured days since this suite's configuration last changed — the detector cannot fire until it has ${s.coldStart}, so this figure is an early reading, not a verdict.`;
+
+          // The meter runs a quarter past the threshold (further if the statistic is beyond
+          // that), so the threshold is a visible mark and an overshoot shows as one.
+          const scaleMax = s.threshold > 0 ? Math.max(s.threshold * 1.25, s.cusum * 1.05) : 1;
+          const fill = Math.max(0, Math.min(100, (s.cusum / scaleMax) * 100));
+          const thr = s.threshold > 0 ? (s.threshold / scaleMax) * 100 : 100;
+          const cls = ['sm-ds-card', focus === k && 'is-focus', focus && focus !== k && 'is-dim'].filter(Boolean).join(' ');
+
           return (
-            <span key={k} className={`md-ds-chip md-ds-${state}${focus === k ? ' md-ds-focus' : ''}${focus && focus !== k ? ' md-ds-dim' : ''}`} title={title}>
-              <span className="md-ds-name">{LABEL[k]}</span>
-              <span className="md-ds-stat">
-                <span className="md-ds-stat-v">{s.cusum.toFixed(3)}</span>
-                <span className="md-ds-stat-of">/ {s.threshold.toFixed(2)}</span>
-              </span>
-              <span className="md-ds-meter" aria-hidden="true">
-                <span className={`md-ds-meter-fill md-ds-meter-${state}`} style={{ width: `${Math.max(pctOfThreshold, 1.5)}%` }} />
-              </span>
-              <span className="md-ds-detail">
+            <div key={k} className={cls} title={title}>
+              <div className="sm-ds-top">
+                <span className="sm-ds-name">{LABEL[k]}</span>
+                {s.armed ? <Tag tone="line">Armed</Tag> : <Tag>Warming up</Tag>}
+              </div>
+              <div className="sm-ds-v">
+                <strong>{s.cusum.toFixed(3)}</strong>
+                <span>/ {s.threshold.toFixed(2)}</span>
+              </div>
+              <div className="sm-dm" aria-hidden="true" style={{ '--thr': `${thr}%` } as CSSProperties}>
+                <div className="sm-dm-track">
+                  <i className={`sm-dm-fill is-${state}`} style={{ width: `${Math.max(fill, 1.5)}%` }} />
+                </div>
+                <span className="sm-dm-tick" />
+                <span className="sm-dm-zero">0</span>
+                <span className="sm-dm-tick-l">
+                  {confirm > 1 ? `${s.threshold.toFixed(2)} for ${confirm} days` : `fires at ${s.threshold.toFixed(2)}`}
+                </span>
+              </div>
+              <div className="sm-ds-detail">
                 {pending
                   ? `above threshold · day ${s.above} of the ${confirm} in a row needed to fire`
                   : s.armed
                   ? `${Math.round(pctOfThreshold)}% of the way to firing`
                   : `${Math.round(pctOfThreshold)}% of threshold · baseline ${days}/${s.coldStart} days`}
-              </span>
-            </span>
+              </div>
+            </div>
           );
         })}
       </div>
-
-      <div className="md-ds-foot">
-        One Page-Hinkley statistic per suite on its own daily series, never blended. Coding and reasoning
-        fire at {by.hourly?.threshold.toFixed(2) ?? '0.30'}; tool use, which is noisier, fires only when its
-        statistic stays above {by.tooling?.threshold.toFixed(2) ?? '0.50'} for {by.tooling?.confirm ?? 3} consecutive
-        daily runs. The statistic is measured from day one, but a
-        suite needs ten measured days since its configuration last changed before a reading is allowed
-        to fire{anyArmed ? '' : ' — so the figures above are early readings, not verdicts'}.
-      </div>
-    </div>
+    </Pane>
   );
 }

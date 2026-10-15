@@ -1,12 +1,14 @@
 'use client';
 
+import Link from 'next/link';
 import { ROUTER_PLAN, annualMonthly, annualSaving } from '@/lib/pricing-display';
 
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { isVolatile } from '../../lib/fleet-buckets';
+import ProviderLogo from '../ProviderLogo';
+import '../../styles/studio-boards.css';
 
 interface IntelligencePanelProps {
   recommendations: any;
@@ -15,14 +17,6 @@ interface IntelligencePanelProps {
   modelScores: any[];
   driftIncidents: any[];
 }
-
-const providerDotClass = (provider: string): string => {
-  const map: Record<string, string> = {
-    openai: 'openai', anthropic: 'anthropic', google: 'google',
-    xai: 'xai', deepseek: 'deepseek', glm: 'glm', kimi: 'kimi',
-  };
-  return map[provider?.toLowerCase()] || 'openai';
-};
 
 // Ids whose public name is not their formatted id. DeepSeek retired V4 Flash: requests to
 // deepseek-v4-flash are served by DeepSeek-V4.1-Flash (models.display_name says so too).
@@ -41,13 +35,20 @@ export const getCompactName = (name: string): string => {
     .replace(/^(GPT|GLM) (\d)/, '$1-$2');
 };
 
-const scoreColor = (score: number) =>
-  score >= 80 ? 'var(--phosphor-green)' : score >= 60 ? 'var(--amber-warning)' : 'var(--red-alert)';
+const PROVIDER_NAME: Record<string, string> = {
+  openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', deepseek: 'DeepSeek', glm: 'GLM', kimi: 'Kimi', xai: 'xAI',
+};
 
-// OFFICIAL VERIFIED pricing (Feb 17, 2026) - USD per 1M tokens
-// Pricing comes from the shared table in lib/model-pricing.ts so this panel
-// cannot disagree with the leaderboard or the model detail page.
+/** A provider's mark on a white chip (styles/studio-boards.css .sl-logo). */
+function Mark({ provider }: { provider?: string }) {
+  if (!provider) return null;
+  return <span className="sl-logo is-xs" aria-hidden="true"><ProviderLogo provider={provider} size={12} /></span>;
+}
 
+/**
+ * The left rail of the drift view on a wide screen: recommendations, active degradations,
+ * provider trust, the Smart Router and the latest activity, as a stack of panes.
+ */
 export default function IntelligencePanel({
   recommendations,
   degradations,
@@ -55,18 +56,10 @@ export default function IntelligencePanel({
   modelScores,
   driftIncidents,
 }: IntelligencePanelProps) {
-  const router = useRouter();
   const { data: session } = useSession();
 
   const recoItems = buildRecoItems(recommendations, modelScores);
-
-  const activityItems = buildActivityItems(degradations, modelScores, driftIncidents).map((a) => ({
-    time: a.time,
-    icon: a.tone === 'crit' ? '🔴' : a.tone === 'warn' ? '🟡' : a.tone === 'info' ? '🔵' : '🟢',
-    text: a.tone === 'crit' || a.tone === 'warn'
-      ? `<b class="${a.tone}">${a.model}</b> ${a.text}`
-      : a.value !== undefined ? `<b>${a.model}</b> ${a.text}: <b>${a.value}</b>` : `<b>${a.model}</b> ${a.text}`,
-  }));
+  const activityItems = buildActivityItems(degradations, modelScores, driftIncidents);
 
   // Provider trust data — show the top 4 providers by trust score.
   // xAI / Grok are excluded: the API no longer returns them, and the
@@ -74,129 +67,109 @@ export default function IntelligencePanel({
   const providerData = providerTrustList(providerReliability, modelScores).slice(0, 4);
 
   return (
-    <div className="v4-panel v4-left-panel">
-      <div className="v4-panel-header">
-        <span>INTELLIGENCE CENTER</span>
-        <span className="v4-badge v4-badge-green">LIVE</span>
+    <div className="v4-panel v4-left-panel sl-rail">
+      <div className="sl-rail-head">
+        <p className="st-label">Intelligence center</p>
+        <span className="st-pill is-good is-live">Live</span>
       </div>
 
       {/* Recommendations */}
-      <div className="v4-section-divider">SMART RECOMMENDATIONS</div>
-      <div className="v4-reco-section">
-        {recoItems.length > 0 ? (
-          recoItems.map((item, i) => (
-            <div key={i} className={`v4-reco-item ${item.danger ? 'danger' : ''}`}>
-              <div className="v4-reco-left">
-                <div className="v4-reco-type" style={item.danger ? { color: 'var(--red-alert)' } : undefined}>
-                  {item.type}
+      <section className="sl-pane st-up" aria-label="Smart recommendations">
+        <h3 className="sl-pane-t">Smart recommendations</h3>
+        <div className="sl-reco">
+          {recoItems.length > 0 ? (
+            recoItems.map((item, i) => (
+              <div key={i} className={`sl-reco-item${item.danger ? ' is-bad' : ''}`}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="sl-reco-type">{item.type}</div>
+                  <div className="sl-reco-name"><Mark provider={item.providerDot} /><span>{item.name}</span></div>
+                  <div className="sl-reco-detail">{item.detail}</div>
                 </div>
-                <div className="v4-reco-name" style={item.danger ? { color: 'var(--red-alert)', textShadow: '0 0 2px var(--red-alert)' } : undefined}>
-                  {item.providerDot && (
-                    <span className={`v4-prov-dot ${providerDotClass(item.providerDot)}`} style={{ display: 'inline-block', width: '6px', height: '6px', marginRight: '4px' }}></span>
-                  )}
-                  {item.name}
-                </div>
-                <div className="v4-reco-detail">{item.detail}</div>
-              </div>
-              <div className="v4-reco-right">
-                <div className="v4-reco-score" style={{ color: item.danger ? 'var(--red-alert)' : scoreColor(item.score) }}>
-                  {item.score > 0 ? Math.round(item.score) : '—'}
-                </div>
-                <div className="v4-reco-sub" style={item.danger ? { color: 'var(--red-alert)' } : undefined}>
-                  {item.status}
+                <div className="sl-reco-v">
+                  <b>{item.score > 0 ? Math.round(item.score) : '—'}</b>
+                  <small>{item.status}</small>
                 </div>
               </div>
-            </div>
-          ))
-        ) : (
-          <div style={{ padding: '8px', color: 'var(--phosphor-dim)', fontSize: '10px', textAlign: 'center' }}>
-            Loading recommendations...
-          </div>
-        )}
-      </div>
+            ))
+          ) : (
+            <p className="sl-pane-sub">Loading recommendations…</p>
+          )}
+        </div>
+      </section>
 
       {/* Active Degradations */}
       {degradations.length > 0 && (
-        <>
-          <div className="v4-section-divider">ACTIVE DEGRADATIONS</div>
-          <div className="v4-deg-list">
+        <section className="sl-pane st-up" aria-label="Active degradations">
+          <h3 className="sl-pane-t">Active degradations</h3>
+          <div className="sl-deg">
             {degradations.slice(0, 4).map((deg: any, i: number) => (
-              <div key={i} className={`v4-deg-card ${deg.severity === 'critical' ? 'critical' : ''}`}>
-                <div className="v4-deg-header">
-                  <span className="v4-deg-model" style={{ color: deg.severity === 'critical' ? 'var(--red-alert)' : 'var(--amber-warning)' }}>
-                    {(deg.modelName || 'Unknown').toUpperCase()} ({(deg.provider || '').toUpperCase()})
-                  </span>
-                  <span className="v4-deg-badge" style={{
-                    background: deg.severity === 'critical' ? 'var(--red-alert)' : 'var(--amber-warning)',
-                    color: 'var(--terminal-black)',
-                  }}>
-                    {deg.severity === 'critical' ? 'CRIT' : 'WARN'}
-                  </span>
-                </div>
-                <div className="v4-deg-detail">
+              <div key={i} className={`st-note ${deg.severity === 'critical' ? 'is-bad' : 'is-warn'}`}>
+                <div>
+                  <div className="sl-deg-head">
+                    <b>{deg.modelName || 'Unknown'}{deg.provider ? ` (${deg.provider})` : ''}</b>
+                    <span className={`st-tag ${deg.severity === 'critical' ? 'is-bad' : 'is-warn'}`}>{deg.severity === 'critical' ? 'Critical' : 'Warning'}</span>
+                  </div>
                   {deg.message || `Score dropped ${deg.dropPercentage || 0}%. ${deg.currentScore ? `Now at ${deg.currentScore}.` : ''}`}
                 </div>
               </div>
             ))}
           </div>
-        </>
+        </section>
       )}
 
       {/* Provider Trust */}
-      <div className="v4-section-divider">PROVIDER TRUST</div>
-      <div className="v4-trust-grid">
-        {providerData.map((prov: any, i: number) => (
-          <div key={i} className="v4-trust-card">
-            <div className="v4-trust-left">
-              <div className={`v4-prov-dot ${providerDotClass(prov.provider || prov.name)}`}></div>
-              <span className="v4-trust-name">{(prov.name || prov.provider || '').charAt(0).toUpperCase() + (prov.name || prov.provider || '').slice(1)}</span>
-            </div>
-            <div className="v4-trust-score" style={{ color: (prov.score || prov.trustScore || 0) >= 75 ? 'var(--phosphor-green)' : 'var(--amber-warning)' }}>
-              {Math.round(prov.score || prov.trustScore || 0)}
-            </div>
-          </div>
-        ))}
-      </div>
+      <section className="sl-pane st-up" aria-label="Provider trust">
+        <h3 className="sl-pane-t">Provider trust</h3>
+        <div className="sl-trust-grid">
+          {providerData.map((prov: any, i: number) => {
+            const name = prov.name || prov.provider || '';
+            const trust = Math.round(prov.score || prov.trustScore || 0);
+            return (
+              <div key={i} className="sl-trust-card">
+                <span><Mark provider={prov.provider || prov.name} /><span>{PROVIDER_NAME[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1)}</span></span>
+                <b className={trust >= 75 ? '' : 'is-warn'}>{trust}</b>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/*
         Sends signed-out visitors to /pricing, not /router. /router is behind
         auth, so an advert that landed there bounced the reader straight into a
         sign-in wall before they had been told what they would be buying.
       */}
-      <div className="v4-pro-cta" onClick={() => router.push(session ? '/router' : '/pricing')}>
-        <div className="v4-pro-cta-title">SMART ROUTER</div>
-        <div className="v4-pro-cta-sub">
+      <Link href={session ? '/router' : '/pricing'} className="sl-cta st-up">
+        <span className="st-kicker">Smart Router</span>
+        <span className="sl-cta-sub">
           Every request goes to the model measuring best right now. Bring your own provider keys —
           in our benchmark the cheapest model matching the top score cost {SAVINGS_PCT}% less.
-        </div>
-        <div className="v4-pro-cta-price">
-          {annualMonthly(ROUTER_PLAN)}{' '}
-          <span className="cta-note">
-            billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}
-          </span>
-        </div>
-      </div>
+        </span>
+        <span className="sl-cta-price">
+          <b>{annualMonthly(ROUTER_PLAN)}</b>
+          <small>billed annually{annualSaving(ROUTER_PLAN) ? ` · saves ${annualSaving(ROUTER_PLAN)} a year` : ''}</small>
+        </span>
+      </Link>
 
       {/* Activity Feed */}
-      <div className="v4-section-divider">LIVE ACTIVITY</div>
-      <ul className="v4-activity">
-        {activityItems.length > 0 ? (
-          activityItems.slice(0, 8).map((item, i) => (
-            <li key={i} className="v4-act-item">
-              <span className="v4-act-time">{item.time}</span>
-              <span className="v4-act-icon">{item.icon}</span>
-              <span className="v4-act-text" dangerouslySetInnerHTML={{ __html: item.text }}></span>
-            </li>
-          ))
-        ) : (
-          <li className="v4-act-item">
-            <span className="v4-act-time">—</span>
-            <span className="v4-act-icon">⏳</span>
-            <span className="v4-act-text" style={{ color: 'var(--phosphor-dim)' }}>Waiting for activity data...</span>
-          </li>
-        )}
-      </ul>
-
+      <section className="sl-pane st-up" aria-label="Live activity">
+        <h3 className="sl-pane-t">Live activity</h3>
+        <ul className="sl-activity" style={{ marginTop: 10 }}>
+          {activityItems.length > 0 ? (
+            activityItems.slice(0, 8).map((a, i) => (
+              <li key={i} className={`is-${a.tone}`}>
+                <span className="sl-dot" aria-hidden="true" />
+                <span className="sl-activity-text">
+                  <b>{a.model}</b> {a.text}{a.tone !== 'crit' && a.tone !== 'warn' && a.value !== undefined ? <>: <b>{a.value}</b></> : null}
+                </span>
+                <span className="sl-activity-time">{a.time}</span>
+              </li>
+            ))
+          ) : (
+            <li><span className="sl-activity-time">—</span><span className="sl-activity-text">Waiting for activity data…</span></li>
+          )}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -263,11 +236,11 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
   if (recommendations?.bestForCode?.name) {
     const b = recommendations.bestForCode;
     recoItems.push({
-      kind: 'best', type: 'BEST FOR CODE',
+      kind: 'best', type: 'Best for code',
       name: nameOf(b), rawName: b.name,
       detail: b.reason || (typeof b.correctness === 'number' ? `${Math.round(b.correctness)}% correct` : 'top coding score'),
       score: b.codingScore ?? b.score ?? 0,
-      status: 'STBL',
+      status: 'Stable',
       providerDot: b.vendor || b.provider,
     });
   }
@@ -275,11 +248,11 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
   if (recommendations?.mostReliable?.name) {
     const r = recommendations.mostReliable;
     recoItems.push({
-      kind: 'best', type: 'MOST RELIABLE',
+      kind: 'best', type: 'Most reliable',
       name: nameOf(r), rawName: r.name,
       detail: r.reason || 'Lowest variance',
       score: r.score || 0,
-      status: 'STBL',
+      status: 'Stable',
       providerDot: r.vendor || r.provider,
     });
   }
@@ -287,11 +260,11 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
   if (recommendations?.fastestResponse?.name) {
     const f = recommendations.fastestResponse;
     recoItems.push({
-      kind: 'best', type: 'FASTEST RESPONSE',
+      kind: 'best', type: 'Fastest response',
       name: nameOf(f), rawName: f.name,
       detail: f.reason || 'Quick response time',
       score: f.score || 0,
-      status: 'FAST',
+      status: 'Fast',
       providerDot: f.vendor || f.provider,
     });
   }
@@ -302,11 +275,11 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
   if (recommendations?.bestValue?.name) {
     const v = recommendations.bestValue;
     recoItems.push({
-      kind: 'best', type: 'BEST VALUE',
+      kind: 'best', type: 'Best value',
       name: nameOf(v), rawName: v.name,
       detail: v.reason || 'Most points per dollar',
       score: v.score || 0,
-      status: typeof v.costPerRun === 'number' ? `$${v.costPerRun < 0.1 ? v.costPerRun.toFixed(3) : v.costPerRun.toFixed(2)}` : 'VALUE',
+      status: typeof v.costPerRun === 'number' ? `$${v.costPerRun < 0.1 ? v.costPerRun.toFixed(3) : v.costPerRun.toFixed(2)}` : 'Value',
       providerDot: v.vendor || v.provider,
     });
   }
@@ -317,11 +290,11 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
     recommendations.poorValue.slice(0, 2).forEach((model: any) => {
       if (!model?.name) return;
       recoItems.push({
-        kind: 'poor', type: '⚠ POOR VALUE',
+        kind: 'poor', type: 'Poor value',
         name: nameOf(model), rawName: model.name,
         detail: model.reason || 'A cheaper model scores as high',
         score: model.score || 0,
-        status: 'COST',
+        status: 'Cost',
         providerDot: model.vendor || model.provider,
       });
     });
@@ -332,11 +305,11 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
     recommendations.avoidNow.slice(0, 2).forEach((model: any) => {
       if (!model?.name) return;
       recoItems.push({
-        kind: 'avoid', type: '⛔ AVOID NOW',
+        kind: 'avoid', type: 'Avoid now',
         name: nameOf(model), rawName: model.name,
         detail: model.reason || 'Performance problem',
         score: typeof model.score === 'number' ? model.score : 0,
-        status: 'AVOID',
+        status: 'Avoid',
         danger: true,
         providerDot: model.provider,
       });
@@ -360,13 +333,13 @@ export function buildRecoItems(recommendations: any, modelScores: any[]): RecoIt
 
   volatileModels.forEach(m => {
     recoItems.push({
-      kind: 'unreliable', type: '⚠ UNRELIABLE',
+      kind: 'unreliable', type: 'Unreliable',
       name: getCompactName(m.name), rawName: m.name,
       detail: typeof m.standardError === 'number'
         ? `±${m.standardError.toFixed(1)} pts between identical runs`
         : 'High variance between identical runs',
       score: m.currentScore,
-      status: 'VOLA',
+      status: 'Volatile',
       danger: true,
       providerDot: m.provider,
     });

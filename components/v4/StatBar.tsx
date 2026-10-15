@@ -2,7 +2,9 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { bucketOf, fleetTrend, VOLATILE_STANDARD_ERROR } from '../../lib/fleet-buckets';
-import StatCellDetail, { DetailEntry } from './StatCellDetail';
+import StatCellDetail, { DetailEntry, type StatCellClasses } from './StatCellDetail';
+import CountUp from '../studio/CountUp';
+import '../../styles/studio-board.css';
 
 interface StatBarProps {
   globalIndex: any;
@@ -15,6 +17,12 @@ const scoreOf = (m: any): number | null =>
 
 /** Highest score first; a model without one sorts last. */
 const byScoreDesc = (a: any, b: any) => (scoreOf(b) ?? -1) - (scoreOf(a) ?? -1);
+
+/** The studio stat look (styles/studio-board.css): the number first, in the display face. */
+const CELL: StatCellClasses = { value: 'sb-stat-v', label: 'sb-stat-l', detail: 'sb-stat-s', more: 'sb-stat-more' };
+
+/** Colour only what needs a look; a healthy figure stays in ink. */
+const cellClass = (tone?: 'warn' | 'bad' | 'accent') => `sb-stat${tone ? ` is-${tone}` : ''}`;
 
 export default function StatBar({ globalIndex, modelScores, driftIncidents }: StatBarProps) {
   // Which cell's detail panel is showing. `pinned` survives a tap; `hovered` does not.
@@ -97,17 +105,25 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
     onClose: closeAll,
   });
 
-  const indexColor = globalScore >= 70 ? 'var(--phosphor-green)' : globalScore >= 50 ? 'var(--amber-warning)' : 'var(--red-alert)';
+  // Ink at 70 and above (the old "phosphor" colour was the theme's ink), amber from 50, red below;
+  // no score at all is a dash, not a warning.
+  const indexTone = !globalScore || globalScore >= 70 ? undefined : globalScore >= 50 ? 'warn' : 'bad';
+  const trendTone = globalTrend === 'improving' ? ' is-good' : globalTrend === 'declining' ? ' is-bad' : '';
+  const incidents = driftIncidents?.length || 0;
 
   return (
-    <div className="v4-stat-bar">
+    // The wrapper only draws the phone strip's "more this way" fade; the card is .sb-stats.
+    <div className="sb-stats-wrap">
+    <div className="sb-stats" role="group" aria-label="Fleet summary">
       <StatCellDetail
         id="stat-index"
-        className={`v4-stat-cell ${globalScore >= 70 ? 'color-green' : globalScore >= 50 ? 'color-amber' : 'color-red'}`}
+        className={cellClass(indexTone as 'warn' | 'bad' | undefined)}
+        classes={CELL}
+        valueFirst
         title="Mean score of the models listed below, for the period and benchmark currently selected."
-        label="GLOBAL INDEX"
-        value={<span style={{ color: indexColor }}>{globalScore || '—'}</span>}
-        detail={<>{trendSymbol} {globalTrend}</>}
+        label="Global index"
+        value={globalScore ? <CountUp value={globalScore} /> : '—'}
+        detail={<span className={`sb-trend${trendTone}`}>{trendSymbol} {globalTrend}</span>}
         caption={`Mean of ${availableModels.length} scored model${availableModels.length === 1 ? '' : 's'} — highest and lowest`}
         entries={indexEntries}
         emptyText="No scored models in this view."
@@ -116,10 +132,12 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-stable"
-        className="v4-stat-cell color-green"
+        className={cellClass()}
+        classes={CELL}
+        valueFirst
         title="Neither trending, nor noisy enough to flag. One model counts in exactly one of these four, for the period and benchmark currently selected. This is a summary of the board below — the formal drift regime, computed from a model's own history, is on the drift monitor."
-        label="STABLE"
-        value={<span style={{ color: 'var(--phosphor-green)' }}>{stableCount}</span>}
+        label="Stable"
+        value={<CountUp value={stableCount} />}
         detail={`${stablePercent}% of fleet`}
         caption="Holding steady — not trending, not noisy"
         entries={rows(grouped.stable)}
@@ -129,10 +147,12 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-volatile"
-        className={`v4-stat-cell ${volatileCount > 0 ? 'color-amber' : 'color-green'}`}
+        className={cellClass(volatileCount > 0 ? 'warn' : undefined)}
+        classes={CELL}
+        valueFirst
         title={`Standard error of ${VOLATILE_STANDARD_ERROR} points or more across recent runs, against a fleet median near 3. Genuinely noisy, not merely declining.`}
-        label="VOLATILE"
-        value={<span style={{ color: volatileCount > 0 ? 'var(--amber-warning)' : 'var(--phosphor-green)' }}>{volatileCount}</span>}
+        label="Volatile"
+        value={<CountUp value={volatileCount} />}
         detail={volatileCount > 0 ? 'high variance' : 'all clear'}
         caption={`Standard error ≥ ${VOLATILE_STANDARD_ERROR} points across recent runs`}
         entries={rows(grouped.volatile)}
@@ -142,10 +162,12 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-degraded"
-        className={`v4-stat-cell ${degradedCount > 0 ? 'color-red' : 'color-green'}`}
+        className={cellClass(degradedCount > 0 ? 'bad' : undefined)}
+        classes={CELL}
+        valueFirst
         title="Its latest runs on the selected benchmark score clearly below its own recent baseline: the median of its last day of coding runs (or last three daily reasoning or tool-use runs) is more than 5 points under the runs before them, and by more than its normal run-to-run variation. Only runs on the current benchmark configuration are compared."
-        label="DEGRADED"
-        value={<span style={{ color: degradedCount > 0 ? 'var(--red-alert)' : 'var(--phosphor-green)' }}>{degradedCount}</span>}
+        label="Degraded"
+        value={<CountUp value={degradedCount} />}
         detail={degradedCount > 0 ? 'needs attention' : 'none'}
         caption="Clearly below its own recent baseline"
         entries={rows(grouped.degraded)}
@@ -155,10 +177,12 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-improving"
-        className={`v4-stat-cell ${recoveringCount > 0 ? 'color-blue' : 'color-green'}`}
+        className={cellClass(recoveringCount > 0 ? 'accent' : undefined)}
+        classes={CELL}
+        valueFirst
         title="Its latest runs on the selected benchmark score clearly above its own recent baseline, by the same test. Not the same as 'recovering', which would require knowing it had been down."
-        label="IMPROVING"
-        value={<span style={{ color: recoveringCount > 0 ? '#1a73e8' : 'var(--phosphor-green)' }}>{recoveringCount}</span>}
+        label="Improving"
+        value={<CountUp value={recoveringCount} />}
         detail={recoveringCount > 0 ? 'trending up' : 'none'}
         caption="Clearly above its own recent baseline"
         entries={rows(grouped.improving)}
@@ -168,9 +192,11 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-models"
-        className="v4-stat-cell color-green"
-        label="MODELS"
-        value={<span style={{ color: 'var(--phosphor-green)' }}>{totalModels}</span>}
+        className={cellClass()}
+        classes={CELL}
+        valueFirst
+        label="Models"
+        value={<CountUp value={totalModels} />}
         detail={`${availableModels.length} active`}
         caption={`${availableModels.length} scored, ${unavailable.length} without a score in this view`}
         entries={modelEntries}
@@ -180,13 +206,11 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-incidents"
-        className="v4-stat-cell color-green"
-        label="INCIDENTS"
-        value={
-          <span style={{ color: (driftIncidents?.length || 0) > 0 ? 'var(--amber-warning)' : 'var(--phosphor-green)' }}>
-            {driftIncidents?.length || 0}
-          </span>
-        }
+        className={cellClass(incidents > 0 ? 'warn' : undefined)}
+        classes={CELL}
+        valueFirst
+        label="Incidents"
+        value={<CountUp value={incidents} />}
         detail="last 24h"
         caption="Drift incidents recorded in the last 24 hours"
         entries={incidentEntries}
@@ -196,15 +220,18 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
 
       <StatCellDetail
         id="stat-providers"
-        className="v4-stat-cell color-green"
-        label="PROVIDERS"
-        value={<span style={{ color: 'var(--phosphor-green)' }}>{providerEntries.length}</span>}
+        className={cellClass()}
+        classes={CELL}
+        valueFirst
+        label="Providers"
+        value={<CountUp value={providerEntries.length} />}
         detail="monitored"
         caption="Providers on the board, and how many of their models are scored"
         entries={providerEntries}
         emptyText="No providers tracked."
         {...cell('providers')}
       />
+    </div>
     </div>
   );
 }

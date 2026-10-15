@@ -9,6 +9,8 @@
  * The page shows the callback URLs the customer has to paste into their identity
  * provider, because that is the step people get wrong and it is not something
  * they can guess.
+ *
+ * Look: the studio shell (styles/studio.css, components/studio) plus styles/studio-team.css.
  */
 
 import { useEffect, useState } from 'react';
@@ -16,8 +18,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { PLANS, isPlan, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
-// Ruled tables, and the phone rules (16px fields, stacked audit rows) the team pages share.
-import '@/styles/workspace.css';
+import { PageHead, Pane, CopyButton, Loader, Empty, Pill, Tag } from '@/components/studio';
+import '@/styles/studio-team.css';
 
 interface ScimToken {
   id: number; token_prefix: string; name: string | null;
@@ -39,42 +41,26 @@ interface AuditRow {
   targetType: string | null; targetLabel: string | null; ip: string | null; createdAt: string;
 }
 
-const card: React.CSSProperties = {
-  border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6,
-  padding: '18px 20px', marginBottom: 16,
-};
-const input: React.CSSProperties = {
-  width: '100%', padding: '8px 10px', borderRadius: 4,
-  background: 'var(--terminal-black)', border: '1px solid var(--metal-silver)',
-  color: 'inherit', fontFamily: 'inherit', fontSize: '0.88em',
-};
-const lbl: React.CSSProperties = {
-  display: 'block', fontSize: '0.8em', color: 'var(--phosphor-dim)', marginBottom: 5,
-};
+const LEAD = 'Single sign-on, directory provisioning and the audit trail for your workspace.';
+const ar = <span className="st-ar" aria-hidden="true">→</span>;
 
+/** A value to paste somewhere else, with its label and a copy button. */
 function Copyable({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
   return (
-    <div style={{ marginBottom: 10 }}>
-      <span style={lbl}>{label}</span>
-      <div style={{ display: 'flex', gap: 6 }}>
-        <code style={{
-          flex: 1, minWidth: 0, padding: '7px 9px', borderRadius: 4, fontSize: '0.8em',
-          background: 'var(--terminal-black)', border: '1px solid var(--metal-silver)',
-          overflowX: 'auto', whiteSpace: 'nowrap',
-        }}>{value}</code>
-        <button
-          type="button"
-          onClick={() => {
-            navigator.clipboard?.writeText(value).then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            }).catch(() => {});
-          }}
-          className="vintage-btn" style={{ padding: '6px 12px', fontSize: '0.78em', whiteSpace: 'nowrap' }}>
-          {copied ? 'Copied' : 'Copy'}
-        </button>
-      </div>
+    <div className="sw-copy">
+      <span className="sw-copy-l">{label}</span>
+      <div className="sw-copy-v"><code>{value}</code><CopyButton text={value} /></div>
+    </div>
+  );
+}
+
+/** The TXT record that proves the workspace controls a domain. */
+function DnsBlock({ record }: { record: DnsRecord }) {
+  return (
+    <div className="sw-dns">
+      <div className="sw-dns-head"><span className="st-label">DNS record</span><Tag tone="line">{record.type || 'TXT'}</Tag></div>
+      <Copyable label="Record name (host)" value={record.name} />
+      <Copyable label="Record value (TXT)" value={record.value} />
     </div>
   );
 }
@@ -141,6 +127,7 @@ export default function SecurityClient() {
 
   const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : 'free';
 
+  // Signed out, AccountShell renders the public chrome (no studio shell), so this stays plain.
   if (status === 'unauthenticated') {
     return (
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
@@ -150,47 +137,64 @@ export default function SecurityClient() {
       </div>
     );
   }
-  if (loading) return <div data-page-loading style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) return <div data-page-loading><Loader label="Loading security settings" minHeight={420} /></div>;
 
   // Entitled, but with nowhere to put the settings yet.
   if (needsWorkspace && planMeets(plan, REQUIRED_PLAN.governance)) {
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '50px 20px' }}>
-        <h1 style={{ fontSize: '1.4em', margin: '0 0 10px' }}>Create your workspace first</h1>
-        <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 22 }}>
-          Single sign-on, SCIM provisioning and the audit trail all belong to a workspace — they
-          decide who may act inside one. Your {PLANS[plan].label} plan includes them; create the
-          workspace and these settings become available immediately.
-        </p>
-        <Link href="/account/team" className="vintage-btn vintage-btn--primary"
-          style={{ padding: '10px 20px', textDecoration: 'none' }}>
-          Create a workspace
-        </Link>
-      </div>
+      <>
+        <PageHead kicker="Team" title="Security & governance" lead={LEAD} />
+        <div className="st-body sw-body">
+          <Empty
+            title="Create your workspace first"
+            actions={<Link href="/account/team" className="st-btn is-primary">Create a workspace {ar}</Link>}
+          >
+            Single sign-on, SCIM provisioning and the audit trail all belong to a workspace — they
+            decide who may act inside one. Your {PLANS[plan].label} plan includes them; create the
+            workspace and these settings become available immediately.
+          </Empty>
+        </div>
+      </>
     );
   }
 
   if (needsWorkspace || gateMsg || !planMeets(plan, REQUIRED_PLAN.governance)) {
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '50px 20px' }}>
-        <h1 style={{ fontSize: '1.4em', margin: '0 0 10px' }}>Security &amp; governance</h1>
-        <p style={{ color: 'var(--phosphor-dim)', lineHeight: 1.65, marginBottom: 20 }}>
-          {gateMsg ?? `Single sign-on, SCIM provisioning and the audit trail are part of ${PLANS.teams.label}. You are on ${PLANS[plan].label}.`}
-        </p>
-        <ul style={{ color: 'var(--phosphor-dim)', fontSize: '0.9em', lineHeight: 1.9, marginBottom: 24 }}>
-          <li>Sign in through your own identity provider, over OIDC or SAML</li>
-          <li>Joiners and leavers handled by your directory through SCIM 2.0</li>
-          <li>An exportable record of who changed what, and when</li>
-        </ul>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link href="/pricing" className="vintage-btn vintage-btn--primary" style={{ padding: '10px 20px', textDecoration: 'none' }}>
-            See plans
-          </Link>
-          <Link href="/contact?topic=enterprise" className="vintage-btn" style={{ padding: '10px 20px', textDecoration: 'none' }}>
-            Talk to us
-          </Link>
+      <>
+        <PageHead kicker="Team" title="Security & governance" lead={LEAD} />
+        <div className="st-body sw-body">
+          <section className="st-pane is-accent st-lock st-up">
+            <div className="st-lock-main">
+              <p className="st-kicker">Part of {PLANS.teams.label}</p>
+              <h2 className="st-lock-t">Single sign-on, SCIM and the audit trail</h2>
+              <p className="st-lead">
+                {gateMsg ?? `Single sign-on, SCIM provisioning and the audit trail are part of ${PLANS.teams.label}. You are on ${PLANS[plan].label}.`}
+              </p>
+              <div className="st-actions sw-lock-act">
+                <Link href="/pricing" className="st-btn is-primary is-lg">See plans {ar}</Link>
+                <Link href="/contact?topic=enterprise" className="st-btn is-lg">Talk to us</Link>
+              </div>
+            </div>
+            <div className="st-lock-side">
+              <p className="st-label">What it covers</p>
+              <ul className="st-lock-list">
+                {[
+                  ['Single sign-on', 'Sign in through your own identity provider, over OIDC or SAML'],
+                  ['Directory provisioning', 'Joiners and leavers handled by your directory through SCIM 2.0'],
+                  ['Audit trail', 'An exportable record of who changed what, and when'],
+                ].map(([t, d]) => (
+                  <li key={t}>
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div><b>{t}</b><span>{d}</span></div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -248,268 +252,248 @@ export default function SecurityClient() {
     load();
   };
 
+  const active = tokens.filter(t => !t.revoked);
+  const ssoPill = !sso ? <Pill>Not set up</Pill>
+    : !sso.domainVerified ? <Pill tone="warn">Domain not verified</Pill>
+    : sso.enabled ? <Pill tone="good" live>Live</Pill>
+    : <Pill>Switched off</Pill>;
+
   return (
-    <div className="ws-phone-fields" style={{ width: '100%', boxSizing: 'border-box', maxWidth: 820, margin: '0 auto', padding: '26px 16px 96px' }}>
-      <h1 style={{ fontSize: '1.4em', margin: '0 0 6px' }}>Security &amp; governance</h1>
-      <p style={{ color: 'var(--phosphor-dim)', margin: '0 0 22px', fontSize: '0.92em', lineHeight: 1.6 }}>
-        Single sign-on, directory provisioning and the audit trail for your workspace.{' '}
-        <Link href="/docs/teams#sso" style={{ color: 'var(--accent, #1a73e8)' }}>How to set these up →</Link>
-      </p>
+    <>
+      <PageHead
+        kicker="Team"
+        title="Security & governance"
+        lead={LEAD}
+        actions={<Link href="/docs/teams#sso" className="st-btn">How to set these up {ar}</Link>}
+      />
 
-      {msg && (
-        <div style={{
-          marginBottom: 16, padding: '11px 13px', borderRadius: 4, fontSize: '0.86em', lineHeight: 1.6,
-          border: '1px solid rgba(26,115,232,0.35)', background: 'rgba(26,115,232,0.07)',
-        }}>{msg}</div>
-      )}
+      <div className="st-body sw-body">
+        {msg && <div role="status" className="st-note sw-flash"><div>{msg}</div></div>}
 
-      {/* ── SSO ─────────────────────────────────────────────────────────── */}
-      <section style={card}>
-        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Single sign-on</h2>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
-          Once your domain is verified and the connection is on, people whose email ends in that domain
-          sign in through your identity provider — a password or Google/GitHub sign-in is refused. As the
-          owner you keep your own password, so a broken provider can never lock you out of fixing it.
-        </p>
+        <div className="st-split">
+          {/* ── SSO ─────────────────────────────────────────────────────────── */}
+          <Pane
+            title="Single sign-on"
+            sub={<>
+              Once your domain is verified and the connection is on, people whose email ends in that domain
+              sign in through your identity provider — a password or Google/GitHub sign-in is refused. As the
+              owner you keep your own password, so a broken provider can never lock you out of fixing it.
+            </>}
+            actions={ssoPill}
+          >
+            {sso && (
+              sso.domainVerified ? (
+                <div className="st-note is-good sw-gap-bottom">
+                  <div><strong>{sso.domain}</strong> is verified and {sso.enabled ? 'live' : 'configured but switched off'}.</div>
+                </div>
+              ) : (
+                <div className="st-note is-warn sw-gap-bottom">
+                  <div>
+                    <strong>{sso.domain}</strong> is saved but not verified yet, so sign-ins are not routed to your
+                    identity provider. Prove you control the domain by adding this TXT record at your DNS host,
+                    then click Verify domain. It stops anyone claiming a domain they do not own.
+                    {sso.verification && <DnsBlock record={sso.verification} />}
+                    <div className="sw-verify">
+                      <button type="button" onClick={verifyDomain} disabled={verifying} className="st-btn is-primary">
+                        {verifying ? 'Checking DNS…' : 'Verify domain'}
+                      </button>
+                      <span className="st-hint">
+                        New records can take a few minutes to an hour to appear. If your DNS host adds the
+                        domain for you, enter just <code className="st-ic">_asl-verification</code> as the name.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+            {claimRecord && (
+              <div className="st-note is-warn sw-gap-bottom">
+                <div>
+                  Publish this TXT record to prove the domain is yours, then save again:
+                  <DnsBlock record={claimRecord} />
+                </div>
+              </div>
+            )}
 
-        {sso && (
-          <div style={{
-            marginBottom: 16, padding: '10px 12px', borderRadius: 4, fontSize: '0.83em', lineHeight: 1.6,
-            border: `1px solid ${sso.domainVerified ? 'rgba(26,115,232,0.3)' : 'var(--amber-warning, #f9ab00)'}`,
-            background: sso.domainVerified ? 'rgba(26,115,232,0.06)' : 'rgba(249,171,0,0.07)',
-          }}>
-            {sso.domainVerified
-              ? <><strong>{sso.domain}</strong> is verified and {sso.enabled ? 'live' : 'configured but switched off'}.</>
-              : <>
-                  <strong>{sso.domain}</strong> is saved but not verified yet, so sign-ins are not routed to your
-                  identity provider. Prove you control the domain by adding this TXT record at your DNS host,
-                  then click Verify domain. It stops anyone claiming a domain they do not own.
-                  {sso.verification && (
-                    <div style={{ marginTop: 10 }}>
-                      <Copyable label="Record name (host)" value={sso.verification.name} />
-                      <Copyable label="Record value (TXT)" value={sso.verification.value} />
+            <form onSubmit={saveSso} className="sw-stack">
+              <div className="sw-grid2">
+                <div className="st-field">
+                  <label className="st-field-label" htmlFor="sso-protocol">Protocol</label>
+                  <select id="sso-protocol" className="st-select" value={protocol}
+                    onChange={e => setProtocol(e.target.value as 'oidc' | 'saml')}>
+                    <option value="oidc">OIDC (Okta, Entra ID, Google)</option>
+                    <option value="saml">SAML 2.0</option>
+                  </select>
+                </div>
+                <div className="st-field">
+                  <label className="st-field-label" htmlFor="sso-domain">Email domain</label>
+                  <input id="sso-domain" className="st-input" value={domain} required
+                    onChange={e => setDomain(e.target.value)} placeholder="acme.com" />
+                </div>
+              </div>
+
+              {protocol === 'oidc' ? (
+                <>
+                  <div className="st-field">
+                    <label className="st-field-label" htmlFor="sso-issuer">Issuer URL</label>
+                    <input id="sso-issuer" className="st-input" value={issuer} onChange={e => setIssuer(e.target.value)}
+                      placeholder="https://acme.okta.com/oauth2/default" />
+                  </div>
+                  <div className="sw-grid2">
+                    <div className="st-field">
+                      <label className="st-field-label" htmlFor="sso-clientid">Client ID</label>
+                      <input id="sso-clientid" className="st-input is-code" value={clientId} onChange={e => setClientId(e.target.value)} />
+                    </div>
+                    <div className="st-field">
+                      <label className="st-field-label" htmlFor="sso-secret">
+                        Client secret {sso?.hasClientSecret && <small>leave blank to keep</small>}
+                      </label>
+                      <input id="sso-secret" className="st-input is-code" type="password" value={clientSecret}
+                        onChange={e => setClientSecret(e.target.value)} autoComplete="new-password" />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="st-field">
+                    <label className="st-field-label" htmlFor="sso-url">Sign-on URL</label>
+                    <input id="sso-url" className="st-input" value={ssoUrl} onChange={e => setSsoUrl(e.target.value)}
+                      placeholder="https://acme.okta.com/app/…/sso/saml" />
+                  </div>
+                  <div className="st-field">
+                    <label className="st-field-label" htmlFor="sso-cert">
+                      Signing certificate {sso?.hasCertificate && <small>leave blank to keep</small>}
+                    </label>
+                    <textarea id="sso-cert" rows={4} className="st-textarea is-code"
+                      value={certificate} onChange={e => setCertificate(e.target.value)}
+                      placeholder="-----BEGIN CERTIFICATE-----" />
+                  </div>
+                </>
+              )}
+
+              <div className="sw-grid2 sw-align-end">
+                <div className="st-field">
+                  <label className="st-field-label" htmlFor="sso-role">Role for new people</label>
+                  <select id="sso-role" className="st-select" value={defaultRole} onChange={e => setDefaultRole(e.target.value)}>
+                    <option value="viewer">Viewer (does not use a seat)</option>
+                    <option value="editor">Editor (uses a seat)</option>
+                  </select>
+                </div>
+                <div className="sw-toggles">
+                  <label className="st-toggle">
+                    <input type="checkbox" className="st-check" checked={jit} onChange={e => setJit(e.target.checked)} />
+                    <b>Create accounts on first sign-in</b>
+                  </label>
+                  <label className="st-toggle">
+                    <input type="checkbox" className="st-check" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
+                    <b>Connection enabled</b>
+                  </label>
+                </div>
+              </div>
+
+              <div className="st-actions sw-form-foot">
+                <button type="submit" disabled={saving} className="st-btn is-primary">
+                  {saving ? 'Saving…' : sso ? 'Save connection' : 'Create connection'}
+                </button>
+              </div>
+            </form>
+          </Pane>
+
+          <div className="sw-col">
+            {endpoints && (
+              <Pane title="Paste these into your identity provider" sub={protocol === 'oidc' ? 'For an OIDC application.' : 'For a SAML 2.0 application.'} delay={0.06}>
+                <div className="sw-stack">
+                  {protocol === 'oidc'
+                    ? <Copyable label="Redirect / callback URI" value={endpoints.oidcRedirectUri} />
+                    : (<>
+                        <Copyable label="ACS (reply) URL" value={endpoints.samlAcsUrl} />
+                        <Copyable label="Entity ID / Audience" value={endpoints.samlEntityId} />
+                      </>)}
+                </div>
+              </Pane>
+            )}
+
+            {/* ── SCIM ────────────────────────────────────────────────────────── */}
+            <Pane
+              title="Directory provisioning (SCIM 2.0)"
+              sub={<>
+                Let your directory add and remove people here. Deactivating someone in your directory blocks
+                their sign-in immediately; we never delete the record, so a returning colleague keeps their
+                history.
+              </>}
+              actions={active.length > 0 ? <Pill tone="good">{active.length} active token{active.length === 1 ? '' : 's'}</Pill> : undefined}
+              delay={0.1}
+            >
+              <div className="sw-stack">
+                {endpoints && <Copyable label="SCIM base URL" value={endpoints.scimBaseUrl} />}
+
+                {freshToken && (
+                  <div className="sw-fresh">
+                    <p><strong>Copy this now.</strong> We store only a hash, so it cannot be shown again.</p>
+                    <div className="st-secret"><code>{freshToken}</code><CopyButton text={freshToken} /></div>
+                  </div>
+                )}
+
+                <div>
+                  <p className="st-label">Tokens</p>
+                  {active.length === 0 ? (
+                    <p className="sw-quiet">No active tokens.</p>
+                  ) : (
+                    <div className="sw-tokens">
+                      {active.map(t => (
+                        <div key={t.id} className="sw-token">
+                          <code className="st-ic">{t.token_prefix}…</code>
+                          <span className="sw-s">{t.last_used_at ? `Last used ${new Date(t.last_used_at).toLocaleDateString()}` : 'Never used'}</span>
+                          <button type="button" onClick={() => revokeToken(t.id)} className="st-btn is-sm is-quiet sw-bad-text">Revoke</button>
+                        </div>
+                      ))}
                     </div>
                   )}
-                  <button type="button" onClick={verifyDomain} disabled={verifying}
-                    className="vintage-btn vintage-btn--primary" style={{ padding: '7px 16px', fontSize: '0.92em' }}>
-                    {verifying ? 'Checking DNS…' : 'Verify domain'}
-                  </button>
-                  <span style={{ marginLeft: 10, color: 'var(--phosphor-dim)' }}>
-                    New records can take a few minutes to an hour to appear. If your DNS host adds the
-                    domain for you, enter just <code>_asl-verification</code> as the name.
-                  </span>
-                </>}
-          </div>
-        )}
-        {claimRecord && (
-          <div style={{
-            marginBottom: 16, padding: '10px 12px', borderRadius: 4, fontSize: '0.83em', lineHeight: 1.6,
-            border: '1px solid var(--amber-warning, #f9ab00)', background: 'rgba(249,171,0,0.07)',
-          }}>
-            Publish this TXT record to prove the domain is yours, then save again:
-            <div style={{ marginTop: 10 }}>
-              <Copyable label="Record name (host)" value={claimRecord.name} />
-              <Copyable label="Record value (TXT)" value={claimRecord.value} />
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={saveSso}>
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 12 }}>
-            <div>
-              <label style={lbl} htmlFor="sso-protocol">Protocol</label>
-              <select id="sso-protocol" style={input} value={protocol}
-                onChange={e => setProtocol(e.target.value as 'oidc' | 'saml')}>
-                <option value="oidc">OIDC (Okta, Entra ID, Google)</option>
-                <option value="saml">SAML 2.0</option>
-              </select>
-            </div>
-            <div>
-              <label style={lbl} htmlFor="sso-domain">Email domain</label>
-              <input id="sso-domain" style={input} value={domain} required
-                onChange={e => setDomain(e.target.value)} placeholder="acme.com" />
-            </div>
-          </div>
-
-          {protocol === 'oidc' ? (
-            <>
-              <div style={{ marginBottom: 12 }}>
-                <label style={lbl} htmlFor="sso-issuer">Issuer URL</label>
-                <input id="sso-issuer" style={input} value={issuer} onChange={e => setIssuer(e.target.value)}
-                  placeholder="https://acme.okta.com/oauth2/default" />
-              </div>
-              <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 12 }}>
-                <div>
-                  <label style={lbl} htmlFor="sso-clientid">Client ID</label>
-                  <input id="sso-clientid" style={input} value={clientId} onChange={e => setClientId(e.target.value)} />
                 </div>
-                <div>
-                  <label style={lbl} htmlFor="sso-secret">
-                    Client secret {sso?.hasClientSecret && <span style={{ opacity: 0.7 }}>(leave blank to keep)</span>}
-                  </label>
-                  <input id="sso-secret" style={input} type="password" value={clientSecret}
-                    onChange={e => setClientSecret(e.target.value)} autoComplete="new-password" />
+
+                <div className="st-actions">
+                  <button type="button" onClick={issueToken} className="st-btn">Issue a token</button>
                 </div>
               </div>
-            </>
-          ) : (
-            <>
-              <div style={{ marginBottom: 12 }}>
-                <label style={lbl} htmlFor="sso-url">Sign-on URL</label>
-                <input id="sso-url" style={input} value={ssoUrl} onChange={e => setSsoUrl(e.target.value)}
-                  placeholder="https://acme.okta.com/app/…/sso/saml" />
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <label style={lbl} htmlFor="sso-cert">
-                  Signing certificate {sso?.hasCertificate && <span style={{ opacity: 0.7 }}>(leave blank to keep)</span>}
-                </label>
-                <textarea id="sso-cert" rows={4} style={{ ...input, resize: 'vertical', fontSize: '0.78em' }}
-                  value={certificate} onChange={e => setCertificate(e.target.value)}
-                  placeholder="-----BEGIN CERTIFICATE-----" />
-              </div>
-            </>
-          )}
-
-          <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', marginBottom: 14 }}>
-            <div>
-              <label style={lbl} htmlFor="sso-role">Role for new people</label>
-              <select id="sso-role" style={input} value={defaultRole} onChange={e => setDefaultRole(e.target.value)}>
-                <option value="viewer">Viewer (does not use a seat)</option>
-                <option value="editor">Editor (uses a seat)</option>
-              </select>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 8 }}>
-              <label style={{ fontSize: '0.85em', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="checkbox" checked={jit} onChange={e => setJit(e.target.checked)} />
-                Create accounts on first sign-in
-              </label>
-              <label style={{ fontSize: '0.85em', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} />
-                Connection enabled
-              </label>
-            </div>
+            </Pane>
           </div>
-
-          <button type="submit" disabled={saving} className="vintage-btn vintage-btn--primary"
-            style={{ padding: '9px 20px', fontSize: '0.88em' }}>
-            {saving ? 'Saving…' : sso ? 'Save connection' : 'Create connection'}
-          </button>
-        </form>
-
-        {endpoints && (
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-subtle, #2a2a2a)' }}>
-            <div style={{ fontSize: '0.85em', marginBottom: 10, fontWeight: 600 }}>Paste these into your identity provider</div>
-            {protocol === 'oidc'
-              ? <Copyable label="Redirect / callback URI" value={endpoints.oidcRedirectUri} />
-              : (<>
-                  <Copyable label="ACS (reply) URL" value={endpoints.samlAcsUrl} />
-                  <Copyable label="Entity ID / Audience" value={endpoints.samlEntityId} />
-                </>)}
-          </div>
-        )}
-      </section>
-
-      {/* ── SCIM ────────────────────────────────────────────────────────── */}
-      <section style={card}>
-        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Directory provisioning (SCIM 2.0)</h2>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
-          Let your directory add and remove people here. Deactivating someone in your directory blocks
-          their sign-in immediately; we never delete the record, so a returning colleague keeps their
-          history.
-        </p>
-
-        {endpoints && <Copyable label="SCIM base URL" value={endpoints.scimBaseUrl} />}
-
-        {freshToken && (
-          <div style={{
-            margin: '12px 0', padding: '12px 13px', borderRadius: 4,
-            border: '1px solid var(--phosphor-green)', background: 'rgba(0,200,83,0.06)',
-          }}>
-            <div style={{ fontSize: '0.83em', marginBottom: 8, lineHeight: 1.6 }}>
-              <strong>Copy this now.</strong> We store only a hash, so it cannot be shown again.
-            </div>
-            <code style={{
-              display: 'block', padding: '8px 9px', borderRadius: 4, fontSize: '0.76em',
-              background: 'var(--terminal-black)', overflowX: 'auto', whiteSpace: 'nowrap',
-            }}>{freshToken}</code>
-          </div>
-        )}
-
-        {tokens.filter(t => !t.revoked).length === 0 ? (
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '12px 0' }}>No active tokens.</p>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83em', margin: '12px 0' }}>
-            <thead>
-              <tr style={{ textAlign: 'left', color: 'var(--phosphor-dim)' }}>
-                <th style={{ padding: '6px 8px 6px 0' }}>Token</th>
-                <th style={{ padding: '6px 8px' }}>Last used</th>
-                <th style={{ padding: '6px 8px' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tokens.filter(t => !t.revoked).map(t => (
-                <tr key={t.id} style={{ borderTop: '1px solid var(--border-subtle, #2a2a2a)' }}>
-                  <td style={{ padding: '8px 8px 8px 0' }}><code>{t.token_prefix}…</code></td>
-                  <td style={{ padding: '8px', color: 'var(--phosphor-dim)' }}>
-                    {t.last_used_at ? new Date(t.last_used_at).toLocaleDateString() : 'never'}
-                  </td>
-                  <td style={{ padding: '8px', textAlign: 'right' }}>
-                    <button onClick={() => revokeToken(t.id)}
-                      style={{
-                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                        color: 'var(--red-alert, #d93025)', fontSize: '0.95em', fontFamily: 'inherit',
-                      }}>
-                      Revoke
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        <button onClick={issueToken} className="vintage-btn" style={{ padding: '8px 16px', fontSize: '0.85em' }}>
-          Issue a token
-        </button>
-      </section>
-
-      {/* ── Audit ───────────────────────────────────────────────────────── */}
-      <section style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-          <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Audit trail</h2>
-          <a href="/api/account/org/audit?format=csv&limit=200" style={{ fontSize: '0.83em', color: 'var(--accent, #1a73e8)' }}>
-            Export CSV →
-          </a>
         </div>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
-          Who changed what in this workspace. Entries are never edited or removed.
-        </p>
 
-        {audit.length === 0 ? (
-          <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: 0 }}>
-            Nothing recorded yet. Changes to members, projects, webhooks and these settings appear here.
-          </p>
-        ) : (
-          <div className="ws-table-wrap">
-            {/* On a phone each entry stacks: when, then who, what and to what (styles/workspace.css). */}
-            <table className="ws-table ws-stack" style={{ fontSize: '0.86em' }}>
-              <thead>
-                <tr><th>When</th><th>Who</th><th>Action</th><th>Target</th></tr>
-              </thead>
-              <tbody>
-                {audit.map(r => (
-                  <tr key={r.id}>
-                    <td className="dim nowrap">{new Date(r.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                    <td data-label="Who" style={{ overflowWrap: 'anywhere' }}>{r.actorLabel ?? r.actorKind}</td>
-                    <td data-label="Action"><code style={{ fontSize: '0.95em' }}>{r.action}</code></td>
-                    <td className="dim" data-label="Target" style={{ overflowWrap: 'anywhere' }}>{r.targetLabel ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-    </div>
+        {/* ── Audit ───────────────────────────────────────────────────────── */}
+        <Pane
+          title="Audit trail"
+          sub="Who changed what in this workspace. Entries are never edited or removed."
+          actions={<a href="/api/account/org/audit?format=csv&limit=200" className="st-btn is-sm">Export CSV</a>}
+          ruled
+          flush
+        >
+          {/* flush stays fixed: a Pane whose class changes after it has faded in loses its reveal. */}
+          {audit.length === 0 ? (
+            <p className="sw-quiet sw-pad">
+              Nothing recorded yet. Changes to members, projects, webhooks and these settings appear here.
+            </p>
+          ) : (
+            <div className="st-table-wrap">
+              {/* On a phone each entry stacks into a card: when, then who, what and to what. */}
+              <table className="st-table is-stack sw-audit">
+                <thead>
+                  <tr><th>When</th><th>Who</th><th>Action</th><th>Target</th></tr>
+                </thead>
+                <tbody>
+                  {audit.map(r => (
+                    <tr key={r.id}>
+                      <td className="is-head is-dim sw-when">{new Date(r.createdAt).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                      <td data-label="Who" className="sw-wrap">{r.actorLabel ?? r.actorKind}</td>
+                      <td data-label="Action"><code className="st-ic">{r.action}</code></td>
+                      <td className="is-dim sw-wrap" data-label="Target">{r.targetLabel ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Pane>
+      </div>
+    </>
   );
 }

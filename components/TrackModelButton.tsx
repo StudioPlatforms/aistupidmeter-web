@@ -12,6 +12,9 @@
  * The plan limit is enforced by the API, not here. This component only decides
  * what to *show*; POST /account/watchlist re-checks and returns
  * `watchlist_limit_reached` regardless of what the browser believes.
+ *
+ * Styled for the studio look (`.st` — the model page's hero): the primary button until the
+ * model is tracked, then a quiet "Tracking" state that untracks on click.
  */
 
 import { useEffect, useState } from 'react';
@@ -81,42 +84,42 @@ export default function TrackModelButton({ modelId, modelName, small = false }: 
     }
   };
 
-  if (state === 'loading') return null;
+  // Hold the button's place while the watchlist loads, so the actions around it do not jump.
+  if (state === 'loading') {
+    return (
+      <span className="sm-track">
+        <span className={`st-skel sm-track-skel${small ? ' is-sm' : ''}`} aria-hidden="true" />
+      </span>
+    );
+  }
 
-  const label =
-    state === 'tracked' ? '★ Tracking'
-    : state === 'signed-out' ? '☆ Track this model'
-    : '☆ Track this model';
+  const tracked = state === 'tracked';
 
   return (
-    <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+    <span className="sm-track">
       <button
+        type="button"
         onClick={toggle}
         disabled={busy}
+        aria-busy={busy || undefined}
+        aria-pressed={state === 'signed-out' ? undefined : tracked}
         title={
-          state === 'tracked'
+          tracked
             ? `Stop tracking ${modelName ?? 'this model'}`
             : `Get notified when ${modelName ?? 'this model'} changes`
         }
-        className="md-ctrl-btn"
-        style={{
-          cursor: busy ? 'wait' : 'pointer',
-          fontWeight: 600,
-          padding: small ? '4px 10px' : '8px 14px',
-          fontSize: small ? '0.8em' : '0.9em',
-          color: state === 'tracked' ? 'var(--amber-warning)' : undefined,
-          borderColor: state === 'tracked' ? 'var(--amber-warning)' : undefined,
-        }}
+        className={`st-btn${tracked ? '' : ' is-primary'}${small ? ' is-sm' : ''}`}
       >
-        {busy ? '…' : label}
+        {tracked && <span className="sm-track-dot" aria-hidden="true" />}
+        {busy ? (tracked ? 'Updating…' : 'Adding…') : tracked ? 'Tracking' : 'Track this model'}
       </button>
 
       {limitMsg && (
-        <div style={{ fontSize: '0.78em', color: 'var(--amber-warning)', maxWidth: 280, lineHeight: 1.45 }}>
+        <p className="sm-track-msg" role="alert">
           {limitMsg}{' '}
-          <a href="/pricing" style={{ color: 'var(--phosphor-green)' }}>See plans →</a>
-        </div>
+          <a href="/pricing">See plans →</a>
+        </p>
       )}
-    </div>
+    </span>
   );
 }

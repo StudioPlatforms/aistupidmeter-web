@@ -3,6 +3,11 @@ import { slugifyModelName } from '../lib/model-slug';
 import { cookies } from 'next/headers';
 import HomeClient from './HomeClient';
 import { LAYOUT_COOKIE, isBoardLayout } from '../lib/board-layout';
+import { auth } from '@/auth';
+import Landing from '@/components/landing/Landing';
+import { isPlan, planMeets, type Plan } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
+import { latestTokenHeaders } from '@/lib/latest-token';
 
 // Thin server wrapper around the interactive dashboard. The dashboard itself is
 // a large client component that fetches live data, so its leaderboard content is
@@ -29,15 +34,18 @@ interface RankedModel {
   currentScore?: number | null;
 }
 
-async function fetchRankedModels(): Promise<RankedModel[]> {
+async function fetchRankedModels(latestAllowed: boolean): Promise<RankedModel[]> {
   try {
+    // The Combined board in the visitor's default period: the newest run for paid plans (with the
+    // token the API asks for), 24 hours for everyone else. /dashboard/boards is ~20KB; the
+    // /dashboard/cached payload this used to read is ~855KB, nearly all of it history.
     const res = await fetch(
-      `${API_INTERNAL}/dashboard/cached?period=latest&sortBy=combined`,
-      { next: { revalidate: 900 } } // 15 min — leaderboard is hourly
+      `${API_INTERNAL}/dashboard/boards?period=${latestAllowed ? 'latest' : '24h'}`,
+      { next: { revalidate: 900 }, headers: latestAllowed ? latestTokenHeaders() : {} } // 15 min
     );
     if (res.ok) {
       const data = await res.json();
-      const scores = data?.data?.modelScores;
+      const scores = data?.data?.combined;
       if (Array.isArray(scores) && scores.length) return scores;
     }
   } catch {
@@ -69,7 +77,17 @@ const srOnly: React.CSSProperties = {
 };
 
 export default async function HomePage() {
-  const models = await fetchRankedModels();
+  // The leaderboard is for signed-in accounts; everyone else, crawlers included, gets the landing
+  // page (components/landing). A session check that fails counts as signed out.
+  const session = await auth().catch(() => null);
+  if (!session?.user) return <Landing />;
+
+  // The newest run is a paid view (lib/capabilities 'latest-scores'): a free account's board opens on
+  // 24 hours, and its HTML must not carry the latest numbers either.
+  const plan: Plan = isPlan((session.user as any).plan) ? (session.user as any).plan : 'free';
+  const latestAllowed = planMeets(plan, REQUIRED_PLAN['latest-scores']);
+
+  const models = await fetchRankedModels(latestAllowed);
   // The visitor's leaderboard layout, so the first paint is already the one they chose
   // (lib/board-layout.ts). This page is rendered per request anyway (force-dynamic).
   const layoutCookie = cookies().get(LAYOUT_COOKIE)?.value;
@@ -141,7 +159,7 @@ export default async function HomePage() {
                 <a href={`/models/${m.slug || m.id}`}>
                   {m.label}
                   {m.vendorLabel ? ` — ${m.vendorLabel}` : ''}
-                  {typeof m.currentScore === 'number' ? ` benchmark score ${m.currentScore}` : ''}
+                  {latestAllowed && typeof m.currentScore === 'number' ? ` benchmark score ${m.currentScore}` : ''}
                 </a>
               </li>
             ))}
@@ -178,7 +196,7 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <HomeClient initialLayout={initialLayout} />
+      <HomeClient initialLayout={initialLayout} latestAllowed={latestAllowed} />
     </>
   );
 }

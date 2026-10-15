@@ -1,0 +1,217 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MODEL PAGE (/models/<slug>) — page frame and upper half in the studio
+   look. Everything here is prefixed sm- and scoped under .st (the page is
+   wrapped in <StudioPage>, so .st.st-page carries the tokens and fonts).
+   Shared pieces (panes, stats, segs, tags, Locked, Loader) come from
+   styles/studio.css; this file only adds what the model page needs.
+   Never use pulse/marquee/shine/flicker/glitch/typewriter/scanline in a
+   class name: clean-theme.css kills animation on any class containing them.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── hero ──────────────────────────────────────────────────────────── */
+.st .sm-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; color: var(--lp-fg2) !important; text-decoration: none !important; transition: color .18s; }
+.st .sm-back:hover { color: var(--lp-accent) !important; }
+.st .sm-back span { display: inline-block; transition: transform .25s var(--lp-ease); }
+.st .sm-back:hover span { transform: translateX(-3px); }
+.st .sm-kicker { gap: 10px; }
+.st .sm-kicker::before { display: none; }
+.st .sm-title { overflow-wrap: anywhere; }
+.st .sm-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 16px; font-size: 14.5px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sm-meta b { color: var(--lp-fg); font-weight: 600; }
+.st .sm-meta-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--lp-line2); flex: none; }
+.st .sm-hero-act { align-items: flex-start; }
+.st .sm-hero .st-skel.sm-meta-skel { width: min(320px, 70%); height: 18px; margin-top: 18px; }
+
+/* auto-refresh: a quiet button carrying a small switch */
+.st .sm-switch { position: relative; flex: none; width: 28px; height: 16px; border-radius: 999px; background: var(--lp-line2); transition: background-color .2s; }
+.st .sm-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--lp-card); box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .22s var(--lp-ease); }
+.st [aria-pressed='true'] > .sm-switch { background: var(--lp-accent); }
+.st [aria-pressed='true'] > .sm-switch::after { transform: translateX(12px); }
+.st .sm-ico { width: 16px; height: 16px; flex: none; }
+.st .sm-ico.is-spin { animation: smSpin .9s linear infinite; }
+@keyframes smSpin { to { transform: rotate(360deg); } }
+
+/* track this model */
+.st .sm-track { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; max-width: 300px; }
+.st .sm-track .st-btn[aria-busy='true'] { cursor: wait; }
+.st .sm-track-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-good) 22%, transparent); flex: none; }
+.st .sm-track-msg { margin: 0; font-size: 13px; line-height: 1.5; color: var(--lp-warn); }
+.st .sm-track-msg a { color: var(--lp-accent) !important; font-weight: 600; text-decoration: none !important; white-space: nowrap; }
+.st .sm-track-skel { display: inline-block; width: 168px; height: 40px; border-radius: 10px; }
+.st .sm-track-skel.is-sm { width: 130px; height: 32px; border-radius: 8px; }
+
+@media (max-width: 1100px) {
+  .st .sm-hero .st-head-in { grid-template-columns: minmax(0, 1fr); }
+  .st .sm-hero .st-head-act { justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .st .sm-back { margin-bottom: 14px; }
+  .st .sm-meta { margin-top: 12px; font-size: 14px; }
+  /* the primary call to action first and full width, the refresh pair under it */
+  .st .sm-hero-act .sm-track { order: -1; flex: 1 1 100%; max-width: none; }
+  .st .sm-hero-act .sm-track .st-btn, .st .sm-hero-act .sm-track-skel { width: 100%; height: 44px; }
+  .st .sm-hero-act > .st-btn { flex: 1 1 0; height: 42px; }
+}
+
+/* ── loading + not found ───────────────────────────────────────────── */
+.st .sm-loading { max-width: 640px; width: 100%; margin: clamp(12px, 3vw, 40px) auto 0; }
+.st .sm-loading .st-loader { padding: 48px 24px 20px; color: var(--lp-fg2); font-size: 14.5px; }
+.st .sm-progress { display: grid; gap: 8px; padding: 0 clamp(20px, 6vw, 72px) 34px; }
+.st .sm-progress-bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--lp-fg) 9%, transparent); overflow: hidden; }
+.st .sm-progress-bar i { display: block; height: 100%; border-radius: 3px; background: var(--lp-accent); transition: width .6s var(--lp-ease); }
+.st .sm-progress-l { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.st .sm-progress-l b { color: var(--lp-fg); font-weight: 600; }
+.st .sm-progress p { margin: 6px 0 0; text-align: center; font-size: 13px; line-height: 1.5; color: var(--lp-fg3); }
+.st .sm-progress p b { color: var(--lp-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.st .sm-missing { max-width: 720px; width: 100%; margin: clamp(24px, 6vw, 72px) auto 0; }
+
+/* ── period + scoring mode bar ─────────────────────────────────────── */
+.st .sm-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 8px 10px 8px 16px; border: 1px solid var(--lp-line); border-radius: 16px; background: var(--lp-card); min-width: 0; transition: box-shadow .25s, background-color .25s; }
+.st .sm-ctl { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
+.st .sm-ctl-l { flex: none; font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--lp-fg3); }
+.st .sm-controls .st-seg { min-width: 0; }
+.st .sm-controls .st-seg button { display: inline-flex; align-items: center; gap: 7px; }
+.st .sm-pro { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: .03em; background: var(--lp-accent-bg); color: var(--lp-accent); }
+.st .st-seg button[aria-pressed='true'] .sm-pro { background: color-mix(in srgb, var(--lp-bg) 22%, transparent); color: inherit; }
+.st .sm-ctl-end { margin-left: auto; display: flex; align-items: center; min-height: 32px; }
+.st .sm-refreshing { display: inline-flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; color: var(--lp-fg2); }
+@media (min-width: 761px) {
+  /* Sticky under the site's top bar: the mode drives every panel below, so it stays in reach. */
+  .st .sm-controls { position: sticky; top: calc(var(--st-top) + 10px); z-index: 30;
+    background: color-mix(in srgb, var(--lp-card) 88%, transparent); -webkit-backdrop-filter: saturate(1.4) blur(14px); backdrop-filter: saturate(1.4) blur(14px); }
+  .st .sm-controls.is-stuck { box-shadow: var(--lp-shadow-2); border-color: color-mix(in srgb, var(--lp-line2) 60%, var(--lp-line)); }
+}
+@media (max-width: 760px) {
+  .st .sm-controls { display: grid; gap: 8px; padding: 0; border: 0; background: transparent; }
+  .st .sm-ctl-l, .st .sm-ctl-end:empty { display: none; }
+  .st .sm-ctl .st-seg { width: 100%; }
+  .st .sm-ctl .st-seg button { flex: 1 0 auto; justify-content: center; height: 38px; padding: 0 13px; }
+  .st .sm-ctl-end { margin: 0; min-height: 0; }
+}
+
+/* ── charts (performance timeline, Page-Hinkley curve) ─────────────── */
+.st .sm-chart { position: relative; width: 100%; height: var(--sm-h, 360px); }
+.st .sm-chart .recharts-wrapper, .st .sm-chart svg { overflow: visible; }
+.st .sm-chart .recharts-surface:focus, .st .sm-chart .recharts-wrapper:focus { outline: none; }
+.st .sm-chart .recharts-cartesian-axis-tick-value { fill: var(--lp-fg3); font-size: 11.5px; font-family: var(--lp-font-body); font-variant-numeric: tabular-nums; }
+.st .sm-chart .recharts-reference-line-line, .st .sm-chart .recharts-reference-area-rect { shape-rendering: crispEdges; }
+.st .sm-chart .recharts-label { font-family: var(--lp-font-body); }
+.st .sm-chart-wait { height: 100%; border-radius: 12px; background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--lp-accent) 4%, transparent)); }
+.st .sm-chart.is-busy { opacity: .55; transition: opacity .25s; }
+@media (max-width: 760px) {
+  .st .sm-chart { height: var(--sm-hm, 260px); }
+  .st .sm-chart .recharts-cartesian-axis-tick-value { font-size: 11px; }
+  .st .sm-timeline .st-pane-body { padding: 14px 10px 8px 2px; }
+}
+/* the tooltip: a small studio card, value first */
+.st .sm-tip { display: grid; gap: 3px; min-width: 150px; max-width: 260px; padding: 10px 12px 11px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); box-shadow: var(--lp-shadow-2); font-size: 12.5px; line-height: 1.45; color: var(--lp-fg2); }
+.st .sm-tip-h { font-size: 12px; font-weight: 600; color: var(--lp-fg3); }
+.st .sm-tip-v { display: flex; align-items: baseline; gap: 6px; color: var(--lp-fg2); }
+.st .sm-tip-v strong { font-family: var(--lp-font-disp); font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sm-tip-k { display: inline-block; width: 12px; height: 3px; border-radius: 2px; background: var(--lp-accent); transform: skewX(-16deg); align-self: center; }
+.st .sm-tip-s { font-size: 12px; color: var(--lp-fg3); }
+.st .sm-tip-bad { margin-top: 4px; font-weight: 600; color: var(--lp-bad); display: flex; align-items: center; gap: 6px; }
+.st .sm-tip-note { margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--lp-fg3); white-space: normal; }
+
+/* chart legend / reading guide */
+.st .sm-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--lp-fg2); }
+.st .sm-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.st .sm-legend b { color: var(--lp-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+.st .sm-tri { flex: none; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 10px solid var(--lp-bad); }
+.st .sm-swatch { flex: none; width: 16px; height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--lp-fg3) 22%, transparent); }
+.st .sm-legend .sm-legend-end { margin-left: auto; }
+@media (max-width: 760px) { .st .sm-legend .sm-legend-end { margin-left: 0; } }
+
+/* ── drift status by suite ─────────────────────────────────────────── */
+.st .sm-ds { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.st .sm-ds-card { display: grid; gap: 10px; align-content: start; min-width: 0; padding: 16px 18px 15px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); transition: opacity .25s, border-color .25s; }
+.st .sm-ds-card.is-focus { border-color: color-mix(in srgb, var(--lp-accent) 55%, var(--lp-line)); background: color-mix(in srgb, var(--lp-accent) 4%, var(--lp-card)); }
+.st .sm-ds-card.is-dim { opacity: .62; }
+.st .sm-ds-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.st .sm-ds-name { font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.st .sm-ds-v { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+.st .sm-ds-v strong { font-family: var(--lp-font-disp); font-size: 30px; font-weight: 700; letter-spacing: -.035em; line-height: 1; color: var(--lp-fg); }
+.st .sm-ds-v span { font-size: 13px; color: var(--lp-fg3); }
+.st .sm-ds-detail { font-size: 13px; line-height: 1.45; color: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+.st .sm-ds-foot { font-size: 13px; line-height: 1.6; }
+/* the meter: the track runs past the threshold so overshoot shows, the firing zone is tinted
+   and the threshold itself is a labelled tick */
+.st .sm-dm { position: relative; padding-bottom: 20px; margin-top: 2px; }
+.st .sm-dm-track { position: relative; height: 8px; border-radius: 4px; overflow: hidden;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--lp-fg) 9%, transparent) 0 var(--thr), color-mix(in srgb, var(--lp-bad) 16%, transparent) var(--thr) 100%); }
+.st .sm-dm-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--lp-fg3); transition: width 1s var(--lp-ease) .2s; }
+.st .sm-dm-fill.is-ok { background: var(--lp-good); }
+.st .sm-dm-fill.is-warn { background: var(--lp-warn); }
+.st .sm-dm-fill.is-alert { background: var(--lp-bad); }
+.st .sm-dm-fill.is-cold { background: color-mix(in srgb, var(--lp-fg3) 75%, transparent); }
+.st .sm-dm-tick { position: absolute; top: -4px; left: var(--thr); width: 2px; height: 16px; margin-left: -1px; border-radius: 1px; background: var(--lp-fg); }
+.st .sm-dm-tick-l { position: absolute; top: 15px; left: var(--thr); transform: translateX(-50%); font-size: 11.5px; line-height: 1.2; color: var(--lp-fg3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.st .sm-dm-zero { position: absolute; top: 15px; left: 0; font-size: 11.5px; line-height: 1.2; color: var(--lp-fg3); }
+.st-js .st-up:not(.is-in) .sm-dm-fill, .st-js .st-up:not(.is-in) .sm-mx-bar i { width: 0 !important; }
+@media (max-width: 1180px) { .st .sm-ds { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 761px) and (max-width: 1180px) {
+  .st .sm-ds-card { grid-template-columns: minmax(150px, .8fr) minmax(0, 2fr); column-gap: 24px; align-items: center; }
+  .st .sm-ds-card > .sm-ds-top { grid-column: 1; }
+  .st .sm-ds-card > .sm-ds-v { grid-column: 1; }
+  .st .sm-ds-card > .sm-dm { grid-column: 2; grid-row: 1 / span 2; }
+  .st .sm-ds-card > .sm-ds-detail { grid-column: 2; }
+}
+
+/* ── segmented pickers inside a pane head ──────────────────────────── */
+.st .sm-pane-segs { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; max-width: 100%; }
+.st .sm-pane-segs .st-seg { min-width: 0; }
+@media (max-width: 760px) {
+  .st .sm-pane-segs { width: 100%; }
+  .st .sm-pane-segs .st-seg { width: 100%; }
+  .st .sm-pane-segs .st-seg button { flex: 1 0 auto; height: 36px; }
+}
+
+/* ── current performance + pricing (two columns) ───────────────────── */
+.st .sm-info > .st-pane { display: flex; flex-direction: column; }
+.st .sm-info > .st-pane > .st-pane-body { flex: 1 1 auto; }
+.st .sm-big { display: flex; align-items: flex-end; gap: 16px; padding: 4px 0 18px; }
+.st .sm-big-v { font-family: var(--lp-font-disp); font-size: clamp(48px, 4.4vw, 64px); font-weight: 700; line-height: .92; letter-spacing: -.045em; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sm-big-l { display: grid; gap: 6px; justify-items: start; padding-bottom: 4px; font-size: 13.5px; font-weight: 500; color: var(--lp-fg2); }
+.st .sm-kv-good { color: var(--lp-good) !important; }
+.st .sm-kv-warn { color: var(--lp-warn) !important; }
+.st .sm-kv-bad { color: var(--lp-bad) !important; }
+.st .sm-kv dd { font-weight: 600; font-variant-numeric: tabular-nums; }
+.st .sm-kv dd small { font-size: 12.5px; font-weight: 500; color: var(--lp-fg3); margin-left: 6px; }
+.st .sm-kv dt small { font-size: 12.5px; color: var(--lp-fg3); margin-left: 6px; }
+.st .sm-kv + .st-label, .st .sm-kv + .sm-cost-note + .st-label { margin-top: 22px; }
+.st .sm-kv-tight { border-top: 0; }
+.st .sm-cost-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--lp-fg3); }
+.st .sm-value { margin-top: 18px; }
+
+/* ── performance matrix ────────────────────────────────────────────── */
+.st .sm-mx-group + .sm-mx-group { margin-top: 22px; }
+.st .sm-mx-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
+.st .sm-mx-card { display: grid; gap: 8px; align-content: start; min-width: 0; padding: 15px 16px 14px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); }
+.st .sm-mx-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.st .sm-mx-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.st .sm-mx-desc { font-size: 13px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sm-mx-pct { flex: none; font-family: var(--lp-font-disp); font-size: 24px; font-weight: 700; letter-spacing: -.03em; line-height: 1.05; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.st .sm-mx-pct small { font-size: 14px; font-weight: 600; margin-left: 1px; color: var(--lp-fg2); }
+.st .sm-mx-bar { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--lp-fg) 9%, transparent); overflow: hidden; margin-top: 2px; }
+.st .sm-mx-bar i { display: block; height: 100%; border-radius: 3px; background: var(--lp-accent); transition: width 1s var(--lp-ease) .15s; }
+.st .sm-mx-bar i.is-warn { background: var(--lp-warn); }
+.st .sm-mx-bar i.is-bad { background: var(--lp-bad); }
+.st .sm-mx-foot { display: flex; justify-content: flex-start; }
+.st .sm-mx-lockrow { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: stretch; }
+.st .sm-mx-lockrow .st-locked { padding: 26px 24px; align-content: center; }
+.st .sm-mx-note { margin: 0 0 14px; font-size: 13px; color: var(--lp-fg3); }
+.st .sm-radar { height: 400px; }
+.st .sm-radar .recharts-polar-angle-axis-tick-value { fill: var(--lp-fg2); font-size: 11.5px; font-weight: 600; font-family: var(--lp-font-body); }
+.st .sm-radar .recharts-polar-radius-axis-tick-value { fill: var(--lp-fg3); font-size: 10.5px; font-family: var(--lp-font-body); }
+.st .sm-radar-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.st .sm-radar-keys .st-tag b { color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+  .st .sm-mx-lockrow { grid-template-columns: minmax(0, 1fr); }
+  .st .sm-radar { height: 320px; }
+  .st .sm-big-v { font-size: 52px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st .sm-back span, .st .sm-switch, .st .sm-switch::after, .st .sm-controls, .st .sm-dm-fill, .st .sm-mx-bar i, .st .sm-progress-bar i, .st .sm-ds-card, .st .sm-chart.is-busy { transition: none; }
+  .st .sm-ico.is-spin { animation: none; }
+}

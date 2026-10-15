@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // 6s, not 2.5s: the dashboard routes take 4.3-4.8s on a cold SQLite cache
     // (first hit after a restart), and a 2.5s budget silently fell back to the
     // generic description — which is the exact failure this fix was for.
-    const response = await fetch(`${API_INTERNAL}/dashboard/scores?period=latest&sortBy=combined`, {
+    // The 24-hour view: share previews are public, and the newest run is a paid view.
+    const response = await fetch(`${API_INTERNAL}/dashboard/scores?period=24h&sortBy=combined`, {
       signal: AbortSignal.timeout(6000),
       next: { revalidate: 60 },
     });
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         description = `Alert: ${criticalModels.length} AI models scoring below 50. ${criticalModels.slice(0, 3).map((m: any) => `${m.name}: ${m.currentScore}`).join(' • ')}`;
       } else {
         const top3 = modelScores.slice(0, 3);
-        description = `Top AI models right now: ${top3.map((m: any, i: number) => `#${i + 1} ${m.name} (${m.currentScore})`).join(' • ')}`;
+        description = `Top AI models over the last 24 hours: ${top3.map((m: any, i: number) => `#${i + 1} ${m.name} (${m.currentScore})`).join(' • ')}`;
       }
     }
   } catch (error) {

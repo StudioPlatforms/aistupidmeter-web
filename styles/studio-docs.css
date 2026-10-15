@@ -1,0 +1,221 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · DOCS — /router/docs (the Smart Router API reference) and
+   /router/help (the help center). Page pieces on top of studio.css (st-*).
+   Every class here is sd-*, scoped under .st, and uses only the --lp-*
+   tokens, so light and dark both follow the shell.
+
+   Never put pulse, marquee, shine, flicker, glitch, typewriter or
+   scanline in a class name: clean-theme.css kills their animation.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── shared bits ───────────────────────────────────────────────────── */
+
+.st .sd-page { min-width: 0; }
+.st .sd-page .st-lead code { overflow-wrap: anywhere; }
+
+/* Prose inside a pane: paragraphs, code cards and tables in one rhythm, sub-headings with room above. */
+.st .sd-flow { display: flow-root; min-width: 0; }
+.st .sd-flow > * + * { margin-top: 12px; }
+.st .sd-flow > .sd-h3 { margin-top: 30px; }
+.st .sd-flow > .sd-h3:first-child { margin-top: 0; }
+.st .sd-flow > .sd-h3 + * { margin-top: 10px; }
+.st .sd-h3 { margin: 0; font-family: var(--lp-font-disp) !important; font-size: 16px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--lp-fg); }
+.st .sd-flow .st-text { max-width: 76ch; }
+.st .sd-flow .st-text a, .st .sd-notes a, .st .sd-ans a, .st .sd-hdrs a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Paragraphs ruled apart, each led by its bold point (tools, routing notes). */
+.st .sd-notes { max-width: 84ch; }
+.st .sd-notes > * { padding: 14px 0; font-size: 14.5px; line-height: 1.65; color: var(--lp-fg2); }
+.st .sd-flow > .sd-tbox + .sd-notes { margin-top: 22px; }
+.st .sd-notes > * + * { border-top: 1px solid var(--lp-line); }
+.st .sd-notes > :first-child { padding-top: 0; }
+.st .sd-notes > :last-child { padding-bottom: 0; }
+.st .sd-notes strong { color: var(--lp-fg); font-weight: 600; }
+
+/* A one-line value to copy (base URL, auth header): the landing's code chip with a copy button. */
+.st .sd-copyline { display: flex; align-items: center; gap: 10px; max-width: 640px; min-width: 0; padding: 7px 7px 7px 14px; border: 1px solid var(--lp-line2); border-radius: 12px; background: var(--lp-sunk); }
+.st .sd-copyline code { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg); overflow-wrap: anywhere; }
+
+/* "Questions? …" line that closes a page. */
+.st .sd-end { padding-top: 18px; border-top: 1px solid var(--lp-line); font-size: 14px; color: var(--lp-fg3); }
+.st .sd-end a { color: var(--lp-accent) !important; font-weight: 600; text-decoration: none !important; }
+.st .sd-end a:hover { text-decoration: underline !important; text-underline-offset: 3px; }
+
+/* ── page header: quick reference strip ────────────────────────────── */
+/* Rules between cells are each cell's own top/left shadow, clipped by the card (as .st-stats). */
+.st .sd-ref { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1.3fr); margin: 6px 0 0; border: 1px solid var(--lp-line); border-radius: 16px; background: var(--lp-card); overflow: hidden; }
+.st .sd-ref > div { min-width: 0; padding: 14px 18px 15px; box-shadow: -1px 0 0 var(--lp-line), 0 -1px 0 var(--lp-line); }
+.st .sd-ref dt { font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--lp-fg3); }
+.st .sd-ref dd { display: flex; align-items: center; gap: 10px; min-height: 30px; margin: 6px 0 0; font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--lp-fg); }
+.st .sd-ref dd code { min-width: 0; font-size: 14px; font-weight: 500; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sd-ref .st-copy { margin-left: auto; }
+
+/* ── API reference layout: content + "on this page" ────────────────── */
+.st .sd-layout { display: grid; grid-template-columns: minmax(0, 1fr) 208px; column-gap: clamp(28px, 2.8vw, 44px); align-items: start; }
+.st .sd-main { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.st .sd-main > section[id] { scroll-margin-top: 24px; }
+
+/* wide screens: a sticky rail on the right */
+.st .sd-rail { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 2px 0 12px; }
+.st .sd-rail::-webkit-scrollbar { display: none; }
+.st .sd-rail-t { margin: 0 0 12px; padding-left: 15px; font-size: 11px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--lp-fg3); }
+.st .sd-rail ol { margin: 0; padding: 0; list-style: none; border-left: 1px solid var(--lp-line); }
+.st .sd-rail a { position: relative; display: flex; align-items: center; gap: 8px; padding: 7px 0 7px 15px; font-size: 13.5px; font-weight: 500; line-height: 1.35; color: var(--lp-fg2) !important; text-decoration: none !important; transition: color .18s; }
+.st .sd-rail a:hover { color: var(--lp-fg) !important; }
+/* the active item's marker: the shell's slanted bar, growing in as the reader arrives */
+.st .sd-rail a::before { content: ''; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--lp-accent); opacity: 0; transform: skewX(-16deg) scaleY(.3); transition: opacity .25s, transform .35s var(--lp-ease); }
+.st .sd-rail a[aria-current='location'] { color: var(--lp-accent) !important; font-weight: 600; }
+.st .sd-rail a[aria-current='location']::before { opacity: 1; transform: skewX(-16deg); }
+.st .sd-rail .st-tag { flex: none; font-size: 10px; letter-spacing: .04em; padding: 0 6px; }
+.st .sd-rail-foot { display: grid; gap: 10px; margin-top: 20px; padding: 16px 0 0 15px; border-top: 1px solid var(--lp-line); }
+.st .sd-rail-foot a { padding: 0; font-weight: 600; color: var(--lp-accent) !important; }
+.st .sd-rail-foot a::before { content: none; }
+
+/* narrower screens: a sticky row of chips under the header */
+.st .sd-chips { display: none; }
+.st .sd-chips .st-chip { flex: none; text-decoration: none !important; }
+
+/* ── endpoint heads ────────────────────────────────────────────────── */
+.st .sd-ep { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.st .sd-ep .st-tag { font-size: 12px; letter-spacing: .04em; padding: 2px 9px; }
+.st .sd-ep-path { min-width: 0; font-size: 16.5px; font-weight: 600; letter-spacing: -.01em; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sd-ep-note { font-family: var(--lp-font-body); font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--lp-fg3); }
+
+/* ── tables in a card of their own ─────────────────────────────────── */
+.st .sd-tbox { border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); overflow: hidden; }
+/* tabular figures space hyphens out in Inter ("0 - 2"); these tables are mostly words */
+.st .sd-tbox .st-table { font-variant-numeric: normal; }
+.st .sd-tbox .st-table th { background: var(--lp-sunk); padding-top: 10px; padding-bottom: 10px; }
+.st .sd-tbox .st-table td { vertical-align: baseline; line-height: 1.5; }
+.st .sd-tbox .st-table :is(th, td):first-child { padding-left: 16px; }
+.st .sd-tbox .st-table :is(th, td):last-child { padding-right: 16px; }
+.st .sd-tbox .st-table td.sd-desc { color: var(--lp-fg2); }
+.st .sd-tbox .st-table th.sd-th-code { font-family: var(--font-code) !important; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.st .sd-tbox .sd-name { font-size: 13px; font-weight: 600; color: var(--lp-fg); }
+.st .sd-tbox td.is-head { white-space: nowrap; }
+.st .sd-tbox td.sd-type { font-family: var(--font-code) !important; font-size: 12.5px; color: var(--lp-fg2); white-space: nowrap; }
+.st .sd-tbox td.sd-req { white-space: nowrap; color: var(--lp-fg3); }
+.st .sd-tbox td.sd-req[data-req='Required'] { color: var(--lp-fg); font-weight: 600; }
+.st .sd-tbox td.sd-nowrap { white-space: nowrap; }
+.st .sd-path { color: var(--lp-fg) !important; text-decoration: none !important; }
+.st a.sd-path:hover code { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.st .sd-path code { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+/* error codes: alternatives that wrap between, never inside, a code */
+.st .sd-codes { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+.st .sd-codes code { font-size: 12.5px; color: var(--lp-fg); white-space: nowrap; }
+.st .sd-codes i { font-style: normal; color: var(--lp-fg3); }
+.st .sd-errors { min-width: 680px; }
+.st .sd-errors th:nth-child(3) { width: 31%; }
+.st .sd-faint { color: var(--lp-fg3); }
+
+/* response headers: a ruled list of names */
+.st .sd-hdrs > div { grid-template-columns: minmax(176px, .5fr) minmax(0, 1.5fr); align-items: baseline; }
+.st .sd-hdrs dt code { font-size: 13px; font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sd-hdrs dd { color: var(--lp-fg2); line-height: 1.55; }
+
+/* ── help center ───────────────────────────────────────────────────── */
+.st .sd-quick-arrow { margin-left: auto; color: var(--lp-fg3); transition: transform .25s var(--lp-ease), color .2s; }
+.st a.st-card:hover .sd-quick-arrow { transform: translateX(3px); color: var(--lp-accent); }
+
+/* quick start: the landing's numbered steps, the number running into a rule */
+.st .sd-steps { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: 28px clamp(24px, 3vw, 44px); margin: 0; padding: 0; list-style: none; }
+.st .sd-steps > li { min-width: 0; }
+.st .sd-step-n { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; font-family: var(--lp-font-disp); font-size: 15px; font-weight: 700; color: var(--lp-accent); font-variant-numeric: tabular-nums; }
+.st .sd-step-n::after { content: ''; flex: 1; height: 1px; background: var(--lp-line2); }
+.st .sd-steps > li:last-child .sd-step-n::after { background: linear-gradient(90deg, var(--lp-line2), transparent); }
+.st .sd-step-t { margin: 0 0 6px; font-family: var(--lp-font-disp) !important; font-size: 17px; font-weight: 600; letter-spacing: -.012em; line-height: 1.3; color: var(--lp-fg); }
+.st .sd-steps p { font-size: 14.5px; line-height: 1.6; color: var(--lp-fg2); }
+.st .sd-steps p a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .sd-steps .st-codecard { margin-top: 14px; }
+.st .sd-steps .st-code { font-size: 12.5px; }
+
+/* question lists: the landing's FAQ in a pane — the heading on the left, ruled questions on the right */
+.st .sd-qa > .st-pane-body { padding: clamp(22px, 2.2vw, 32px) clamp(22px, 2.2vw, 32px) clamp(14px, 1.4vw, 22px); }
+.st .sd-qa-grid { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1.6fr); column-gap: clamp(28px, 4vw, 72px); row-gap: 18px; align-items: start; }
+.st .sd-qa-head { position: sticky; top: 24px; }
+.st .sd-qa-head h2 { margin: 0; font-family: var(--lp-font-disp) !important; font-size: clamp(24px, 2vw, 30px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; color: var(--lp-fg); text-wrap: balance; }
+.st .sd-qa-head p { margin-top: 10px; font-size: 14.5px; line-height: 1.6; color: var(--lp-fg2); max-width: 40ch; }
+.st .sd-qa-head p a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .sd-faq details { border-bottom: 1px solid var(--lp-line); }
+.st .sd-faq details:first-child { border-top: 1px solid var(--lp-line); }
+/* the pane's own edge closes the list */
+.st .sd-qa .sd-faq details:last-child { border-bottom: 0; }
+.st .sd-faq summary { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 18px 0; list-style: none; cursor: pointer; border-radius: 6px;
+  font-family: var(--lp-font-disp); font-size: clamp(16.5px, 1.25vw, 18.5px); font-weight: 600; letter-spacing: -.012em; line-height: 1.35; color: var(--lp-fg); transition: color .18s; }
+.st .sd-faq summary::-webkit-details-marker { display: none; }
+.st .sd-faq summary::after { content: ''; flex: none; width: 9px; height: 9px; margin: 6px 4px 0 0; border-right: 2px solid var(--lp-fg3); border-bottom: 2px solid var(--lp-fg3); transform: rotate(45deg); transition: transform .3s var(--lp-ease), margin-top .3s var(--lp-ease), border-color .18s; }
+.st .sd-faq summary:hover { color: var(--lp-accent); }
+.st .sd-faq summary:hover::after { border-color: var(--lp-accent); }
+.st .sd-faq details[open] > summary::after { transform: rotate(-135deg); margin-top: 11px; }
+.st .sd-ans { padding: 0 0 22px; min-width: 0; }
+.st .sd-ans > p { max-width: 70ch; font-size: 15px; line-height: 1.7; color: var(--lp-fg2); }
+.st .sd-faq details[open] > .sd-ans { animation: sdOpen .4s var(--lp-ease) both; }
+@keyframes sdOpen { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* tools and how each one is set up: a ruled two-column list */
+.st .sd-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); column-gap: 28px; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--lp-line); }
+.st .sd-tools li { min-width: 0; padding: 12px 0 13px; border-top: 1px solid var(--lp-line); }
+.st .sd-tools b { display: block; font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.st .sd-tools span { display: block; margin-top: 3px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .sd-note-p + .sd-note-p { margin-top: 6px; }
+
+/* troubleshooting: problem, then the fix */
+.st .sd-fixes { margin: 0; border-top: 1px solid var(--lp-line); }
+.st .sd-fixes > div { display: grid; grid-template-columns: minmax(150px, .42fr) minmax(0, 1fr); column-gap: 20px; row-gap: 4px; padding: 13px 0; border-bottom: 1px solid var(--lp-line); }
+.st .sd-fixes dt { display: flex; align-items: center; gap: 10px; align-self: start; min-height: 22px; font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.st .sd-fixes dt::before { content: ''; flex: none; width: 14px; height: 4px; border-radius: 2px; transform: skewX(-16deg); background: var(--lp-bad); }
+.st .sd-fixes dd { margin: 0; min-width: 0; font-size: 14px; line-height: 1.6; color: var(--lp-fg2); overflow-wrap: anywhere; }
+
+/* ── responsive ────────────────────────────────────────────────────── */
+@media (max-width: 1359px) {
+  .st .sd-layout { grid-template-columns: minmax(0, 1fr); }
+  .st .sd-rail { display: none; }
+  .st .sd-chips { position: sticky; top: var(--st-top); z-index: 40; display: flex; gap: 8px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none;
+    padding: 10px var(--st-gutter); border-bottom: 1px solid var(--lp-line);
+    background: color-mix(in srgb, var(--lp-bg) 86%, transparent); -webkit-backdrop-filter: saturate(1.5) blur(14px); backdrop-filter: saturate(1.5) blur(14px); }
+  .st .sd-chips::-webkit-scrollbar { display: none; }
+  .st .sd-main > section[id] { scroll-margin-top: calc(var(--st-top) + 72px); }
+}
+@media (max-width: 1180px) {
+  .st .sd-ref { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 1100px) {
+  .st .sd-steps { grid-template-columns: minmax(0, 1fr); }
+  .st .sd-qa-grid { grid-template-columns: minmax(0, 1fr); }
+  .st .sd-qa-head { position: static; }
+}
+@media (max-width: 760px) {
+  .st .sd-ref-wide { grid-column: 1 / -1; }
+  .st .sd-ref > div { padding: 12px 14px 13px; }
+  .st .sd-ref dd { font-size: 14px; }
+  .st .sd-ref dd code, .st .sd-copyline code { font-size: 13px; }
+  .st .sd-chips { gap: 6px; padding: 8px 16px; }
+  .st .sd-chips .st-chip { height: 40px; padding: 0 15px; font-size: 14px; }
+  .st .sd-ep-path { font-size: 15.5px; }
+  .st .sd-hdrs > div { grid-template-columns: minmax(0, 1fr); row-gap: 3px; }
+  .st .sd-errors { min-width: 0; }
+  .st .sd-fixes > div { grid-template-columns: minmax(0, 1fr); }
+  .st .sd-faq summary { padding: 16px 0; font-size: 16.5px; }
+  .st .sd-qa > .st-pane-body { padding: 20px 16px 8px; }
+  .st .sd-ans > p { font-size: 14.5px; }
+
+  /* Stacked tables: the name (and its short facts) on one line, what it does under it — one card a row. */
+  .st .sd-tbox .st-table.is-stack tr { display: grid; column-gap: 10px; row-gap: 6px; align-items: center; padding: 14px 16px; }
+  .st .sd-tbox .st-table.is-stack td { display: block; width: auto; min-width: 0; padding: 0 !important; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+  .st .sd-tbox .st-table.is-stack td::before { content: none; }
+  .st .sd-tbox .st-table.is-stack td.sd-desc { grid-column: 1 / -1; font-size: 14px; }
+  .st .sd-tbox .st-table.is-stack tr:hover td { background: transparent !important; }
+  .st .sd-tbox .sd-t-ep tr { grid-template-columns: auto minmax(0, 1fr); }
+  .st .sd-tbox .sd-t-params tr { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .st .sd-tbox .sd-t-strat tr { grid-template-columns: minmax(0, 1fr) auto; }
+  .st .sd-tbox .sd-t-err tr { grid-template-columns: auto minmax(0, 1fr); }
+  .st .sd-tbox .sd-t-err td.sd-codes-cell { grid-column: 1 / -1; }
+  /* "Yes" / "No" under a Required heading means nothing without the heading: say it in words */
+  .st .sd-tbox .st-table.is-stack td.sd-req .sd-yn { display: none; }
+  .st .sd-tbox .st-table.is-stack td.sd-req::before { content: attr(data-req); font-size: 12.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st .sd-rail a::before, .st .sd-faq summary::after, .st .sd-quick-arrow { transition: none; }
+  .st .sd-faq details[open] > .sd-ans { animation: none; }
+}

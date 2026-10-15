@@ -183,15 +183,17 @@ async function getJSON(path: string): Promise<any | null> {
  * The old route pulled the big one and used 1% of it: 99% of that payload is
  * `historyMap`, which no card has ever rendered.
  */
+// The 24-hour view, not the latest run: the card is public, and the newest run is a paid view
+// (apps/api middleware/latest-gate.ts refuses it without a paid token).
 async function getModels(): Promise<ModelRow[]> {
-  const json = await getJSON('/dashboard/scores?period=latest&sortBy=combined');
+  const json = await getJSON('/dashboard/scores?period=24h&sortBy=combined');
   const rows = json?.data;
   if (!Array.isArray(rows)) return [];
   return rows.filter((m: any) => m && typeof m.name === 'string');
 }
 
 async function getDegradations(): Promise<any[]> {
-  const json = await getJSON('/analytics/degradations?period=latest');
+  const json = await getJSON('/analytics/degradations?period=24h');
   const rows = Array.isArray(json?.data) ? json.data : [];
   // The feed can carry the same model more than once (one entry per detection
   // window), which reads as a rendering bug on a card that only shows four

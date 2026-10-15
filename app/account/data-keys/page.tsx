@@ -7,6 +7,8 @@
  * point of this page. Third parties were reading the open endpoints for months
  * because the site advertised them as free, so the migration path has to be
  * something they can complete in thirty seconds without reaching for a card.
+ *
+ * Look: the studio shell (styles/studio.css, components/studio) plus styles/studio-team.css.
  */
 
 import { useEffect, useState } from 'react';
@@ -15,6 +17,32 @@ import RouterLayout from '@/components/RouterLayout';
 import { apiClient } from '@/lib/api-client';
 import type { DataApiKey, DataApiTier } from '@/lib/api-client';
 import EnterpriseContact from '@/components/EnterpriseContact';
+import { PageHead, Pane, Stats, Stat, CountUp, CodeBlock, CopyButton, Loader, Empty, Note, Tag } from '@/components/studio';
+import '@/styles/studio-team.css';
+
+const ar = <span className="st-ar" aria-hidden="true">→</span>;
+
+const SAMPLES = [
+  {
+    label: 'cURL', lang: 'bash' as const,
+    code: `curl -H "Authorization: Bearer asl_live_your_key_here" \\\n  "https://aistupidlevel.info/api/v1/models?period=24h&sortBy=combined"`,
+  },
+  {
+    label: 'Python', lang: 'python' as const,
+    code: `import requests\n\nr = requests.get(\n    "https://aistupidlevel.info/api/v1/models",\n    headers={"Authorization": "Bearer asl_live_your_key_here"},\n    params={"period": "24h", "sortBy": "combined"},\n)\nfor m in r.json()["data"][:5]:\n    print(m["name"], m["currentScore"])`,
+  },
+  {
+    label: 'Node.js', lang: 'js' as const,
+    code: `const res = await fetch(\n  "https://aistupidlevel.info/api/v1/models?period=24h",\n  { headers: { Authorization: "Bearer asl_live_your_key_here" } }\n);\nconst { data } = await res.json();\nconsole.log(data.slice(0, 5));`,
+  },
+];
+
+const TERMS = [
+  'Attribution is required — cite aistupidlevel.info wherever the data is shown.',
+  'Do not republish the data as your own leaderboard or resell it.',
+  'One key per application. Do not share a key across products or users.',
+  'Keys can be revoked without notice if usage looks like a mirror rather than a client.',
+];
 
 export default function DataKeysPage() {
   const { data: session, status } = useSession();
@@ -27,7 +55,6 @@ export default function DataKeysPage() {
   const [newKeyUrl, setNewKeyUrl] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
@@ -77,13 +104,7 @@ export default function DataKeysPage() {
     }
   };
 
-  const copy = async (text: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(label);
-      setTimeout(() => setCopied(null), 2000);
-    } catch { /* clipboard unavailable */ }
-  };
+  const closeModal = () => { setShowCreateModal(false); setCreatedKey(null); setNewKeyName(''); setNewKeyUrl(''); };
 
   const usedToday = keys.reduce((sum, k) => sum + (k.usedToday || 0), 0);
   const dailyLimit = keys.length > 0 ? Math.max(...keys.map(k => k.dailyLimit || 0)) : (tiers.free?.daily ?? 1000);
@@ -91,338 +112,205 @@ export default function DataKeysPage() {
 
   return (
     <RouterLayout>
-      <div className="rv4-page-header">
-        <div className="rv4-page-header-left">
-          <span style={{ fontSize: '18px' }}>📊</span>
-          <div>
-            <div className="rv4-page-title">DATA API KEYS<span className="blinking-cursor"></span></div>
-            <div className="rv4-page-title-sub">Free programmatic access to live benchmark data</div>
-          </div>
-        </div>
-        <div className="rv4-page-header-right">
-          <a href="/api-docs" className="rv4-ctrl-btn" style={{ textDecoration: 'none' }}>API DOCS →</a>
-          <button onClick={() => setShowCreateModal(true)} className="rv4-ctrl-btn primary">+ CREATE KEY</button>
-        </div>
-      </div>
+      <PageHead
+        kicker="Data API"
+        title="Data API keys"
+        lead="Free programmatic access to live benchmark data."
+        actions={<>
+          <a href="/api-docs" className="st-btn">API docs {ar}</a>
+          <button type="button" onClick={() => setShowCreateModal(true)} className="st-btn is-primary">Create key</button>
+        </>}
+      />
 
-      <div className="rv4-body">
+      <div className="st-body sw-body">
         {error && (
-          <div className="rv4-error-banner" style={{ marginBottom: '14px' }}>
-            <span>⚠</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>ERROR</div>
-              <div style={{ fontSize: '10px' }}>{error}</div>
+          <div className="st-note is-bad" role="alert">
+            <div className="sw-note-row">
+              <div><b className="st-note-t">Error</b>{error}</div>
+              <button type="button" onClick={fetchKeys} className="st-btn is-sm is-danger">Retry</button>
             </div>
-            <button onClick={fetchKeys} className="rv4-ctrl-btn danger" style={{ marginLeft: 'auto', fontSize: '10px' }}>RETRY</button>
           </div>
         )}
 
-        <div className="rv4-info-banner green" style={{ marginBottom: '14px' }}>
-          <span className="rv4-info-banner-icon">ℹ</span>
-          <div className="rv4-info-banner-content">
-            <div className="rv4-info-banner-title">WHAT THIS KEY IS FOR</div>
-            <div className="rv4-info-banner-text">
-              A Data API key (<code style={codeStyle}>asl_live_…</code>) unlocks{' '}
-              <code style={codeStyle}>/api/v1/*</code> — model rankings, the global index, degradation
-              alerts, drift signatures and provider reliability, as JSON. It is read-only and free.
-              It is <strong>not</strong> an{' '}
-              <a href="/router/keys" style={{ color: 'var(--phosphor-green)', fontWeight: 'bold' }}>SR key</a>{' '}
-              (<code style={codeStyle}>aism_</code>) — those run live inference through your connected
-              providers and can spend money. Separate on purpose, so a leaked read key can never touch
-              your provider accounts.
-            </div>
-          </div>
-        </div>
+        <Note title="What this key is for">
+          A Data API key (<code className="st-ic">asl_live_…</code>) unlocks{' '}
+          <code className="st-ic">/api/v1/*</code> — model rankings, the global index, degradation
+          alerts, drift signatures and provider reliability, as JSON. It is read-only and free.
+          It is <strong>not</strong> an <a href="/router/keys">SR key</a>{' '}
+          (<code className="st-ic">aism_</code>) — those run live inference through your connected
+          providers and can spend money. Separate on purpose, so a leaked read key can never touch
+          your provider accounts.
+        </Note>
 
-        <div className="rv4-stat-bar cols-4" style={{ borderRadius: '3px', marginBottom: '14px' }}>
-          <div className="rv4-stat-cell accent-green">
-            <div className="rv4-stat-label">Active Keys</div>
-            <div className="rv4-stat-value">{loading ? '...' : String(keys.length)}</div>
-          </div>
-          <div className="rv4-stat-cell accent-blue">
-            <div className="rv4-stat-label">Requests Today</div>
-            <div className="rv4-stat-value blue">{loading ? '...' : usedToday.toLocaleString()}</div>
-          </div>
-          <div className="rv4-stat-cell accent-amber">
-            <div className="rv4-stat-label">Daily Limit</div>
-            <div className="rv4-stat-value amber">{loading ? '...' : dailyLimit.toLocaleString()}</div>
-          </div>
-          <div className="rv4-stat-cell accent-green">
-            <div className="rv4-stat-label">Tier</div>
-            <div className="rv4-stat-value" style={{ fontSize: '12px' }}>
-              {loading ? '...' : (tiers[currentTier]?.label || 'Free').toUpperCase()}
-            </div>
-          </div>
-        </div>
+        <Stats columns={4}>
+          <Stat value={loading ? '…' : <CountUp value={keys.length} />} label="Active keys" />
+          <Stat value={loading ? '…' : <CountUp value={usedToday} />} label="Requests today" sub="Resets 00:00 UTC" />
+          <Stat value={loading ? '…' : <CountUp value={dailyLimit} />} label="Daily limit" />
+          <Stat value={loading ? '…' : (tiers[currentTier]?.label || 'Free')} label="Tier" tone="accent" />
+        </Stats>
 
         {/* Keys list */}
-        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
-          <div className="rv4-panel-header">
-            <span className="rv4-panel-title">🔑 YOUR DATA KEYS ({loading ? '...' : `${keys.length} ACTIVE`})</span>
-          </div>
-          <div className="rv4-panel-body" style={{ padding: 0 }}>
-            {loading ? (
-              <div className="rv4-loading" style={{ padding: '32px' }}>
-                <div className="rv4-loading-dot" /><div className="rv4-loading-dot" /><div className="rv4-loading-dot" />
-                <span>LOADING KEYS</span>
-              </div>
-            ) : keys.length === 0 ? (
-              <div className="rv4-empty" style={{ padding: '40px' }}>
-                <div className="rv4-empty-icon">📊</div>
-                <div className="rv4-empty-title">No Data API Keys</div>
-                <div className="rv4-empty-text">
-                  Create one to read benchmark data from your own app, dashboard or status bar.
-                </div>
-                <button onClick={() => setShowCreateModal(true)} className="rv4-ctrl-btn primary" style={{ marginTop: '10px' }}>
-                  + CREATE FIRST KEY
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                {keys.map((key) => {
-                  const pct = key.dailyLimit > 0 ? Math.min(100, (key.usedToday / key.dailyLimit) * 100) : 0;
-                  const barColor = pct > 90 ? 'var(--error-red)' : pct > 70 ? 'var(--amber-warning)' : 'var(--phosphor-green)';
-                  return (
-                    <div key={key.id} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      gap: '12px', padding: '12px 14px',
-                      background: 'rgba(0,0,0,0.2)',
-                      borderLeft: '3px solid rgba(26, 115, 232,0.2)',
-                      flexWrap: 'wrap',
-                    }}>
-                      <div style={{ flex: 1, minWidth: '200px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--phosphor-green)' }}>{key.name}</span>
-                          <span className="rv4-badge green">{(tiers[key.tier]?.label || key.tier).toUpperCase()}</span>
-                          {key.appUrl && (
-                            <span style={{ fontSize: '9px', color: 'var(--phosphor-dim)' }}>→ {key.appUrl}</span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '10px', color: 'var(--phosphor-dim)', fontFamily: 'var(--font-mono)', marginBottom: '6px' }}>
-                          <span>{key.keyPrefix}…</span>
-                          {key.createdAt && <span style={{ marginLeft: '12px' }}>CREATED: {new Date(key.createdAt).toLocaleDateString()}</span>}
-                          <span style={{ marginLeft: '12px' }}>TOTAL: {(key.totalRequests || 0).toLocaleString()}</span>
-                        </div>
-                        {/* Daily quota bar */}
-                        <div style={{ maxWidth: '360px' }}>
-                          <div style={{
-                            height: '4px', borderRadius: '2px', overflow: 'hidden',
-                            background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)',
-                          }}>
-                            <div style={{ width: `${pct}%`, height: '100%', background: barColor, transition: 'width .3s ease' }} />
-                          </div>
-                          <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '3px' }}>
-                            {key.usedToday.toLocaleString()} / {key.dailyLimit.toLocaleString()} requests today · resets 00:00 UTC
-                          </div>
-                        </div>
+        <Pane
+          title="Your data keys"
+          sub={loading ? 'Loading…' : `${keys.length} active`}
+          ruled
+          flush
+        >
+          {/* flush stays fixed: a Pane whose class changes after it has faded in loses its reveal. */}
+          {loading ? (
+            <Loader label="Loading keys" />
+          ) : keys.length === 0 ? (
+            <div className="sw-pad">
+              <Empty
+                title="No Data API keys yet"
+                actions={<button type="button" onClick={() => setShowCreateModal(true)} className="st-btn is-primary">Create your first key {ar}</button>}
+              >
+                Create one to read benchmark data from your own app, dashboard or status bar.
+              </Empty>
+            </div>
+          ) : (
+            <div className="sw-keys">
+              {keys.map((key) => {
+                const pct = key.dailyLimit > 0 ? Math.min(100, (key.usedToday / key.dailyLimit) * 100) : 0;
+                return (
+                  <div key={key.id} className="sw-key">
+                    <div className="sw-key-main">
+                      <div className="sw-key-line">
+                        <span className="sw-t">{key.name}</span>
+                        <Tag tone="accent">{tiers[key.tier]?.label || key.tier}</Tag>
+                        {key.appUrl && <span className="sw-s sw-key-app">→ {key.appUrl}</span>}
                       </div>
-                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-                        <button onClick={() => handleRevoke(key.id)} className="rv4-ctrl-btn danger" style={{ fontSize: '10px' }}>
-                          REVOKE
-                        </button>
+                      <div className="sw-key-meta">
+                        <code className="st-ic">{key.keyPrefix}…</code>
+                        {key.createdAt && <span>Created {new Date(key.createdAt).toLocaleDateString()}</span>}
+                        <span>{(key.totalRequests || 0).toLocaleString()} requests in total</span>
+                      </div>
+                      {/* Daily quota */}
+                      <div className="sw-key-quota">
+                        <div className={`st-meter${pct > 90 ? ' is-bad' : pct > 70 ? ' is-warn' : ''}`} role="meter" aria-valuemin={0} aria-valuemax={key.dailyLimit} aria-valuenow={key.usedToday} aria-label="Requests today">
+                          <i style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="sw-s">
+                          <b className="sw-key-used">{key.usedToday.toLocaleString()}</b> / {key.dailyLimit.toLocaleString()} requests today · resets 00:00 UTC
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
+                    <div className="sw-key-end">
+                      <button type="button" onClick={() => handleRevoke(key.id)} className="st-btn is-sm is-quiet sw-bad-text">Revoke</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Pane>
 
         {/* Quick start */}
-        <div className="rv4-panel" style={{ marginBottom: '14px' }}>
-          <div className="rv4-panel-header">
-            <span className="rv4-panel-title">⚡ QUICK START</span>
-          </div>
-          <div className="rv4-panel-body" style={{ padding: '14px' }}>
-            <div style={{ fontSize: '10px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.5 }}>
-              Send the key as a bearer token. Every endpoint lives under{' '}
-              <code style={codeStyle}>https://aistupidlevel.info/api/v1</code>.
-            </div>
-            <Snippet
-              title="curl"
-              code={`curl -H "Authorization: Bearer asl_live_your_key_here" \\\n  "https://aistupidlevel.info/api/v1/models?period=latest&sortBy=combined"`}
-              copied={copied} onCopy={copy}
-            />
-            <Snippet
-              title="Python"
-              code={`import requests\n\nr = requests.get(\n    "https://aistupidlevel.info/api/v1/models",\n    headers={"Authorization": "Bearer asl_live_your_key_here"},\n    params={"period": "latest", "sortBy": "combined"},\n)\nfor m in r.json()["data"][:5]:\n    print(m["name"], m["currentScore"])`}
-              copied={copied} onCopy={copy}
-            />
-            <Snippet
-              title="Node.js"
-              code={`const res = await fetch(\n  "https://aistupidlevel.info/api/v1/models?period=latest",\n  { headers: { Authorization: "Bearer asl_live_your_key_here" } }\n);\nconst { data } = await res.json();\nconsole.log(data.slice(0, 5));`}
-              copied={copied} onCopy={copy}
-            />
-            <div style={{ marginTop: '10px' }}>
-              <a href="/api-docs" className="rv4-ctrl-btn" style={{ textDecoration: 'none', fontSize: '10px' }}>
-                FULL ENDPOINT REFERENCE →
-              </a>
-            </div>
-          </div>
-        </div>
+        <Pane
+          title="Quick start"
+          sub={<>Send the key as a bearer token. Every endpoint lives under <code className="st-ic">https://aistupidlevel.info/api/v1</code>.</>}
+          foot={<a href="/api-docs" className="st-more">Full endpoint reference</a>}
+          delay={0.04}
+        >
+          <CodeBlock samples={SAMPLES} />
+        </Pane>
 
         {/* Tiers */}
         {Object.keys(tiers).length > 0 && (
-          <div className="rv4-panel" style={{ marginBottom: '14px' }}>
-            <div className="rv4-panel-header">
-              <span className="rv4-panel-title">📈 RATE LIMITS</span>
-            </div>
-            <div className="rv4-panel-body" style={{ padding: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+          <Pane
+            title="Rate limits"
+            delay={0.06}
+            foot={<>
+              Free is an evaluation tier — enough to wire a client up and see real data, not enough
+              to poll on a schedule. Anything that refreshes by itself needs Pro. Enterprise is
+              arranged by hand rather than bought.
+            </>}
+          >
+            <div className="st-cards sw-tiers">
               {Object.entries(tiers).map(([id, t]) => (
-                <div key={id} style={{
-                  background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)',
-                  borderRadius: '3px', padding: '10px 12px',
-                  outline: id === currentTier ? '1px solid var(--phosphor-green)' : 'none',
-                }}>
-                  <div style={{ fontWeight: 700, fontSize: '11px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-                    {t.label.toUpperCase()}
-                    {id === currentTier && <span className="rv4-badge green" style={{ marginLeft: '6px' }}>CURRENT</span>}
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                    {t.daily.toLocaleString()} requests / day
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', fontFamily: 'var(--font-mono)' }}>
-                    {t.perMinute.toLocaleString()} requests / minute
-                  </div>
+                <div key={id} className={`st-card sw-tier${id === currentTier ? ' is-on' : ''}`}>
+                  <span className="st-card-t">
+                    {t.label}
+                    {id === currentTier && <Tag tone="solid">Current</Tag>}
+                  </span>
+                  <span className="sw-tier-n"><b>{t.daily.toLocaleString()}</b> requests / day</span>
+                  <span className="st-card-d">{t.perMinute.toLocaleString()} requests / minute</span>
                   {id === 'enterprise' && (
-                    <div style={{ marginTop: '8px' }}>
-                      <EnterpriseContact variant="inline" label="Ask about Enterprise" />
-                    </div>
+                    <span className="sw-ent">
+                      <EnterpriseContact variant="inline" label="Contact us" />
+                    </span>
                   )}
                 </div>
               ))}
             </div>
-            <div style={{ padding: '0 14px 14px', fontSize: '10px', color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-              Free is an evaluation tier — enough to wire a client up and see real data, not enough
-              to poll on a schedule. Anything that refreshes by itself needs Pro. Enterprise is
-              arranged by hand rather than bought.
-            </div>
-          </div>
+          </Pane>
         )}
 
-        <div className="rv4-info-banner amber">
-          <span className="rv4-info-banner-icon">⚠</span>
-          <div className="rv4-info-banner-content">
-            <div className="rv4-info-banner-title">TERMS OF USE</div>
-            <div className="rv4-info-banner-text">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {[
-                  'Attribution is required — cite aistupidlevel.info wherever the data is shown.',
-                  'Do not republish the data as your own leaderboard or resell it.',
-                  'One key per application. Do not share a key across products or users.',
-                  'Keys can be revoked without notice if usage looks like a mirror rather than a client.',
-                ].map((line, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '6px' }}>
-                    <span style={{ color: 'var(--phosphor-green)', flexShrink: 0 }}>[{i + 1}]</span>
-                    <span>{line}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        <Note tone="warn" title="Terms of use">
+          <ol className="sw-terms">
+            {TERMS.map(line => <li key={line}>{line}</li>)}
+          </ol>
+        </Note>
       </div>
 
-      {/* Create modal */}
+      {/* Create dialog. Own markup rather than <Modal>: once a key is shown, only Done or × may
+          close it — a stray click on the backdrop must not throw the key away. */}
       {showCreateModal && (
-        <div className="rv4-modal-backdrop" onClick={() => { if (!createdKey) setShowCreateModal(false); }}>
-          <div className="rv4-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="rv4-modal-header">
-              <span className="rv4-modal-title">📊 {createdKey ? 'KEY CREATED' : 'CREATE DATA API KEY'}</span>
-              <button
-                className="rv4-modal-close"
-                onClick={() => { setShowCreateModal(false); setCreatedKey(null); setNewKeyName(''); setNewKeyUrl(''); }}
-              >✕ CLOSE</button>
+        <div className="st-modal-back" onClick={() => { if (!createdKey) setShowCreateModal(false); }}>
+          <div className="st-modal is-narrow" role="dialog" aria-modal="true" aria-labelledby="dk-dialog-title" onClick={(e) => e.stopPropagation()}>
+            <div className="st-modal-head">
+              <div>
+                <h2 className="st-modal-title" id="dk-dialog-title">{createdKey ? 'Key created' : 'Create a Data API key'}</h2>
+                {!createdKey && <p className="st-modal-sub">Read-only access to /api/v1, free.</p>}
+              </div>
+              <button type="button" className="st-x" aria-label="Close" onClick={closeModal}>×</button>
             </div>
-            <div className="rv4-modal-body">
+            <div className="st-modal-body">
               {!createdKey ? (
-                <>
-                  <div className="rv4-form-group">
-                    <label className="rv4-input-label">KEY NAME *</label>
+                <div className="sw-stack">
+                  <label className="st-field">
+                    <span className="st-field-label">Key name <small>required</small></span>
                     <input
                       type="text" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)}
-                      placeholder="e.g. My status bar widget" className="rv4-input" maxLength={60} autoFocus
+                      placeholder="e.g. My status bar widget" className="st-input" maxLength={60} autoFocus
                     />
-                  </div>
-                  <div className="rv4-form-group">
-                    <label className="rv4-input-label">WHERE WILL YOU USE IT? (OPTIONAL)</label>
+                  </label>
+                  <label className="st-field">
+                    <span className="st-field-label">Where will you use it? <small>optional</small></span>
                     <input
                       type="text" value={newKeyUrl} onChange={(e) => setNewKeyUrl(e.target.value)}
-                      placeholder="https://your-app.example" className="rv4-input" maxLength={200}
+                      placeholder="https://your-app.example" className="st-input" maxLength={200}
                     />
-                    <div style={{ fontSize: '9px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                      Helps us reach you before revoking a key rather than after.
-                    </div>
+                    <span className="st-hint">Helps us reach you before revoking a key rather than after.</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="sw-stack">
+                  <div className="st-note is-good">
+                    <div><b className="st-note-t">Copy it now</b>It is stored hashed and cannot be shown again.</div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
-                    <button onClick={() => setShowCreateModal(false)} className="rv4-ctrl-btn">CANCEL</button>
-                    <button onClick={handleCreate} disabled={!newKeyName.trim() || creating} className="rv4-ctrl-btn primary">
-                      {creating ? 'CREATING…' : 'CREATE KEY'}
-                    </button>
+                  <div className="st-field">
+                    <span className="st-field-label">Your Data API key</span>
+                    <div className="st-secret"><code>{createdKey}</code><CopyButton text={createdKey} /></div>
                   </div>
+                </div>
+              )}
+            </div>
+            <div className="st-modal-foot">
+              {!createdKey ? (
+                <>
+                  <button type="button" onClick={() => setShowCreateModal(false)} className="st-btn">Cancel</button>
+                  <button type="button" onClick={handleCreate} disabled={!newKeyName.trim() || creating} className="st-btn is-primary">
+                    {creating ? 'Creating…' : 'Create key'}
+                  </button>
                 </>
               ) : (
-                <>
-                  <div className="rv4-success-banner" style={{ marginBottom: '14px' }}>
-                    <span>✓</span>
-                    <div>
-                      <strong>KEY CREATED</strong>
-                      <div style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8, marginTop: '2px' }}>
-                        Copy it now — it is stored hashed and cannot be shown again.
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rv4-form-group">
-                    <label className="rv4-input-label">YOUR DATA API KEY</label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <input type="text" value={createdKey} readOnly className="rv4-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }} />
-                      <button onClick={() => copy(createdKey, 'key')} className="rv4-ctrl-btn primary" style={{ flexShrink: 0 }}>
-                        {copied === 'key' ? '✓ COPIED' : 'COPY'}
-                      </button>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => { setShowCreateModal(false); setCreatedKey(null); setNewKeyName(''); setNewKeyUrl(''); }}
-                      className="rv4-ctrl-btn primary"
-                    >
-                      DONE
-                    </button>
-                  </div>
-                </>
+                <button type="button" onClick={closeModal} className="st-btn is-primary">Done</button>
               )}
             </div>
           </div>
         </div>
       )}
     </RouterLayout>
-  );
-}
-
-const codeStyle: React.CSSProperties = {
-  background: 'var(--bg-tertiary)', padding: '1px 4px', borderRadius: '2px',
-  fontFamily: 'var(--font-mono)', fontSize: '10px',
-};
-
-function Snippet({ title, code, copied, onCopy }: {
-  title: string; code: string;
-  copied: string | null; onCopy: (text: string, label: string) => void;
-}) {
-  return (
-    <div style={{ marginBottom: '10px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)' }}>{title}</span>
-        <button onClick={() => onCopy(code, title)} className="rv4-ctrl-btn" style={{ fontSize: '9px', padding: '2px 8px' }}>
-          {copied === title ? '✓ COPIED' : 'COPY'}
-        </button>
-      </div>
-      <pre style={{
-        background: 'var(--bg-tertiary)', borderRadius: '3px', padding: '10px 12px',
-        fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--phosphor-green)',
-        overflowX: 'auto', whiteSpace: 'pre', border: '1px solid var(--border-primary)',
-        lineHeight: 1.5, margin: 0,
-      }}>{code}</pre>
-    </div>
   );
 }

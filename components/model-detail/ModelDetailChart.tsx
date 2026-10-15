@@ -1,6 +1,7 @@
 'use client';
 
 import PerformanceChart from '../PerformanceChart';
+import { Pane, Empty } from '@/components/studio';
 
 type HistoricalPeriod = 'latest' | '24h' | '7d' | '1m';
 type ScoringMode = 'combined' | 'reasoning' | 'speed' | 'tooling';
@@ -34,6 +35,13 @@ const toDisplayScore = (point: any): number | null => {
   return null;
 };
 
+const MODE_LABEL: Record<ScoringMode, string> = {
+  combined: 'Combined', reasoning: 'Reasoning', speed: 'Coding', tooling: 'Tool use',
+};
+const PERIOD_SPAN: Record<HistoricalPeriod, string> = {
+  latest: 'latest runs', '24h': 'last 24 hours', '7d': 'last 7 days', '1m': 'last month',
+};
+
 export default function ModelDetailChart({
   history,
   selectedPeriod,
@@ -50,53 +58,52 @@ export default function ModelDetailChart({
 
   const data = [...filteredHistory].reverse(); // oldest → newest (left to right)
 
-  const modeLabel = selectedScoringMode === 'speed' ? 'CODING'
-    : selectedScoringMode.toUpperCase();
+  const modeLabel = MODE_LABEL[selectedScoringMode] ?? selectedScoringMode;
+  const sub = `${modeLabel} score · ${PERIOD_SPAN[selectedPeriod] ?? selectedPeriod}`;
 
   // Build empty state info
   const isEmpty = data.length === 0;
-  let emptyMessage = 'NO DATA AVAILABLE FOR THIS PERIOD';
-  let emptySuggestion = 'Showing most recent available data instead';
+  let emptyMessage = 'No data available for this period';
+  let emptySuggestion = 'No benchmark run of this kind finished in the selected period. Try a longer period.';
   let showSwitch = false;
 
   if (isEmpty) {
     if (selectedScoringMode === 'reasoning' && selectedPeriod === '24h') {
-      emptyMessage = 'REASONING DATA UNAVAILABLE FOR 24H';
-      emptySuggestion = 'Deep reasoning tests run daily. Try 7D for data.';
+      emptyMessage = 'Reasoning data unavailable for 24 hours';
+      emptySuggestion = 'Deep reasoning tests run daily. Try 7 days for data.';
       showSwitch = true;
     } else if (selectedScoringMode === 'tooling' && selectedPeriod === '24h') {
-      emptyMessage = 'TOOLING DATA UNAVAILABLE FOR 24H';
-      emptySuggestion = 'Tool calling tests run daily. Try 7D for data.';
+      emptyMessage = 'Tool-use data unavailable for 24 hours';
+      emptySuggestion = 'Tool calling tests run daily. Try 7 days for data.';
       showSwitch = true;
     } else if (selectedPeriod === '24h') {
-      emptyMessage = 'NO DATA IN LAST 24 HOURS';
-      emptySuggestion = 'Benchmarks may be paused. Try 7D view.';
+      emptyMessage = 'No data in the last 24 hours';
+      emptySuggestion = 'Benchmarks may be paused. Try the 7-day view.';
       showSwitch = true;
     }
 
     return (
-      <div className="md-chart-section">
-        <div className="md-chart-title">PERFORMANCE TIMELINE — {modeLabel}</div>
-        <div className="md-chart-empty">
-          <div className="md-chart-empty-inner">
-            <div className="md-chart-empty-title">{emptyMessage}</div>
-            <div className="md-chart-empty-sub">{emptySuggestion}</div>
-            {showSwitch && (
-              <button
-                onClick={() => onSwitchPeriod('7d')}
-                className="vintage-btn"
-                style={{ fontSize: '11px', padding: '6px 14px', marginTop: '4px' }}
-              >
-                VIEW 7-DAY DATA →
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <Pane title="Performance timeline" sub={sub}>
+        <Empty
+          title={emptyMessage}
+          actions={showSwitch && (
+            <button type="button" className="st-btn is-primary" onClick={() => onSwitchPeriod('7d')}>
+              View 7-day data <span className="st-ar" aria-hidden="true">→</span>
+            </button>
+          )}
+        >
+          {emptySuggestion}
+        </Empty>
+      </Pane>
     );
   }
 
-  // Format time labels based on period
+  // The first and last time in view decide how much a tick needs to say.
+  const first = new Date(data[0].timestamp);
+  const last = new Date(data[data.length - 1].timestamp);
+  const spanDays = Math.abs(last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24);
+
+  // Format time labels based on period (the tooltip's heading)
   const chartData = data.map((point) => {
     const ts = new Date(point.timestamp);
     let name = '';
@@ -108,9 +115,6 @@ export default function ModelDetailChart({
       name = ts.toLocaleDateString([], { month: 'short', day: 'numeric' });
     } else {
       // latest: smart label
-      const first = new Date(data[0].timestamp);
-      const last = new Date(data[data.length - 1].timestamp);
-      const spanDays = Math.abs(last.getTime() - first.getTime()) / (1000 * 60 * 60 * 24);
       if (spanDays < 3) {
         name = ts.toLocaleTimeString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
       } else {
@@ -124,19 +128,42 @@ export default function ModelDetailChart({
     };
   });
 
+  // Axis ticks stay flat and short — a time inside one day, otherwise one date per day (on the
+  // day's first run) — and the axis drops whichever would collide, so phones get a few clean
+  // labels instead of rotated soup. The tooltip keeps the full label.
+  const multiDay = spanDays >= 1.5;
+  const tick = (value: string) => {
+    const ts = new Date(value);
+    if (Number.isNaN(ts.getTime())) return String(value);
+    return multiDay
+      ? ts.toLocaleDateString([], { month: 'short', day: 'numeric' })
+      : ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  const dayTicks = multiDay
+    ? chartData
+        .filter((p, i) => i === 0 || new Date(p.timestamp).toDateString() !== new Date(chartData[i - 1].timestamp).toDateString())
+        .map(p => p.timestamp)
+    : undefined;
+
+  const latest = chartData[chartData.length - 1];
+  const ariaLabel = `${modeLabel} score over ${chartData.length} ${chartData.length === 1 ? 'run' : 'runs'}, `
+    + `from ${chartData[0].name} to ${latest.name}; latest ${latest.score}.`;
+
   return (
-    <div className="md-chart-section">
-      <div className="md-chart-title">PERFORMANCE TIMELINE — {modeLabel}</div>
+    <Pane title="Performance timeline" sub={sub} className="sm-timeline">
       <PerformanceChart
+        variant="studio"
         data={chartData}
         chartType="historical"
-        height={380}
-        showLegend={false}
-        showMinMax={false}
+        height={360}
+        mobileHeight={250}
+        xKey="timestamp"
+        xTickFormatter={tick}
+        xTicks={dayTicks}
         xAxisInterval="preserveStartEnd"
-        yAxisLabel="SCORE"
-        lineColor="#1a73e8"
+        lineColor="var(--lp-accent)"
+        ariaLabel={ariaLabel}
       />
-    </div>
+    </Pane>
   );
 }

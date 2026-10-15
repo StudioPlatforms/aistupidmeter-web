@@ -4,8 +4,11 @@
  * Spend per day: one series, so one colour (the accent) and no legend; the title names it.
  * Hovering (or tapping) a day shows its spend, requests and who spent most. The same numbers are
  * available as a table under the chart, for screen readers and for copying.
+ *
+ * Styles: styles/studio-team.css (sw-chart-*). The bars grow in when the pane holding the chart
+ * scrolls into view (the shell's .st-up reveal); with reduced motion they are simply there.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { money, num } from './ws';
 
 export interface DayPoint { date: string; spendUsd: number; requests: number; successful: number; top: Array<{ userId: number; spendUsd: number }> }
@@ -38,61 +41,61 @@ export default function SpendChart({ days, nameOf }: { days: DayPoint[]; nameOf?
   return (
     <div>
       {total === 0 ? (
-        <p className="ws-empty">No Smart Router spend in this period.</p>
+        <p className="sw-chart-empty">No Smart Router spend in this period.</p>
       ) : (
-        <div className="ws-chart" onMouseLeave={() => setOn(null)}>
-          <div className="ws-chart-plot">
+        <div className="sw-chart" onMouseLeave={() => setOn(null)}>
+          <div className="sw-chart-plot">
             {ticks.map(t => (
-              <div key={t} className="ws-chart-grid" style={{ bottom: `${(t / top) * 100}%` }}>
-                <span className="ws-chart-tick">{money(t)}</span>
+              <div key={t} className="sw-chart-grid" style={{ bottom: `${(t / top) * 100}%` }}>
+                <span className="sw-chart-tick">{money(t)}</span>
               </div>
             ))}
             {days.map((d, i) => (
               <div
                 key={d.date}
-                className={`ws-chart-col${on === i ? ' on' : ''}`}
+                className={`sw-chart-col${on === i ? ' is-on' : ''}`}
                 onMouseEnter={() => setOn(i)}
                 onClick={() => setOn(on === i ? null : i)}
                 aria-label={`${label(d.date, { day: 'numeric', month: 'short' })}: ${money(d.spendUsd)}`}
               >
-                <div className="ws-chart-bar" style={{ height: `${(d.spendUsd / top) * 100}%` }} />
+                <div className="sw-chart-bar" style={{ height: `${(d.spendUsd / top) * 100}%`, '--i': i } as CSSProperties} />
               </div>
             ))}
             {hovered && (
               <div
-                className="ws-chart-tip"
-                style={{ bottom: 'calc(100% - 4px)', left: `clamp(0px, calc(${leftPct}% - 75px), calc(100% - 160px))` }}
+                className="sw-chart-tip"
+                style={{ bottom: 'calc(100% + 6px)', left: `clamp(0px, calc(${leftPct}% - 80px), calc(100% - 170px))` }}
               >
                 <strong>{label(hovered.date, { weekday: 'short', day: 'numeric', month: 'short' })}</strong>
                 {money(hovered.spendUsd)} · {num(hovered.requests)} request{hovered.requests === 1 ? '' : 's'}
                 {hovered.requests > hovered.successful && <> · {num(hovered.requests - hovered.successful)} failed</>}
                 {nameOf && hovered.top.length > 0 && (
-                  <div style={{ marginTop: 4, color: 'var(--phosphor-dim)' }}>
+                  <div className="sw-chart-who">
                     {hovered.top.map(t => <div key={t.userId}>{nameOf(t.userId)}: {money(t.spendUsd)}</div>)}
                   </div>
                 )}
               </div>
             )}
           </div>
-          <div className="ws-chart-x">
+          <div className="sw-chart-x">
             <span>{label(days[0].date, { day: 'numeric', month: 'short' })}</span>
             {days.length > 6 && <span>{label(days[Math.floor(days.length / 2)].date, { day: 'numeric', month: 'short' })}</span>}
             <span>{label(days[days.length - 1].date, { day: 'numeric', month: 'short' })}</span>
           </div>
         </div>
       )}
-      <details style={{ marginTop: 8 }}>
-        <summary className="ws-note" style={{ cursor: 'pointer' }}>Show as a table</summary>
-        <div className="ws-table-wrap" style={{ marginTop: 6 }}>
-          <table className="ws-table">
-            <thead><tr><th>Day</th><th className="num">Spend</th><th className="num">Requests</th><th className="num">Failed</th></tr></thead>
+      <details className="sw-details">
+        <summary>Show as a table</summary>
+        <div className="st-table-wrap">
+          <table className="st-table">
+            <thead><tr><th>Day</th><th className="is-num">Spend</th><th className="is-num">Requests</th><th className="is-num">Failed</th></tr></thead>
             <tbody>
               {days.filter(d => d.requests > 0).map(d => (
                 <tr key={d.date}>
                   <td>{label(d.date, { weekday: 'short', day: 'numeric', month: 'short' })}</td>
-                  <td className="num">{money(d.spendUsd)}</td>
-                  <td className="num">{num(d.requests)}</td>
-                  <td className="num">{num(d.requests - d.successful)}</td>
+                  <td className="is-num">{money(d.spendUsd)}</td>
+                  <td className="is-num">{num(d.requests)}</td>
+                  <td className="is-num">{num(d.requests - d.successful)}</td>
                 </tr>
               ))}
             </tbody>

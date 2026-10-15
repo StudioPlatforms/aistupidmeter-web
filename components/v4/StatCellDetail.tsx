@@ -15,6 +15,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+// The popover's look (sb-pop-*); also loaded on the drift monitor, which shares this component.
+import '../../styles/studio-board.css';
 
 export interface DetailEntry {
   label: string;
@@ -61,6 +63,8 @@ interface Props {
 }
 
 const MAX_ROWS = 12;
+/** The popover's width (styles/studio-board.css .sb-pop), for the keep-on-screen check. */
+const POP_WIDTH = 300;
 
 export default function StatCellDetail({
   id, className, label, value, detail, title, valueFirst, classes,
@@ -80,7 +84,7 @@ export default function StatCellDetail({
   useEffect(() => {
     if (!open || !ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    setFlip(r.left + 280 > window.innerWidth - 8);
+    setFlip(r.left + 8 + POP_WIDTH > window.innerWidth - 8);
   }, [open]);
 
   useEffect(() => {
@@ -128,25 +132,25 @@ export default function StatCellDetail({
       {interactive && open && (
         <div
           id={`${id}-detail`}
-          className={`v4-stat-pop${flip ? ' is-flipped' : ''}`}
+          className={`sb-pop${flip ? ' is-flipped' : ''}`}
           role="dialog"
           aria-label={`${label} detail`}
           onClick={e => e.stopPropagation()}
         >
-          {caption && <div className="v4-stat-pop-caption">{caption}</div>}
+          {caption && <div className="sb-pop-cap">{caption}</div>}
           {shown.length > 0 ? (
-            <ul className="v4-stat-pop-list">
+            <ul className="sb-pop-list">
               {shown.map((e, i) => (
                 <li key={`${e.label}-${i}`}>
-                  <span className="v4-stat-pop-name">{e.label}</span>
-                  {e.note && <span className="v4-stat-pop-note">{e.note}</span>}
-                  {e.value != null && e.value !== '' && <span className="v4-stat-pop-val">{e.value}</span>}
+                  <span className="sb-pop-name">{e.label}</span>
+                  {e.note && <span className="sb-pop-note">{e.note}</span>}
+                  {e.value != null && e.value !== '' && <span className="sb-pop-val">{e.value}</span>}
                 </li>
               ))}
-              {more > 0 && <li className="v4-stat-pop-more">+{more} more</li>}
+              {more > 0 && <li className="sb-pop-more">+{more} more</li>}
             </ul>
           ) : (
-            <div className="v4-stat-pop-empty">{emptyText}</div>
+            <div className="sb-pop-empty">{emptyText}</div>
           )}
         </div>
       )}

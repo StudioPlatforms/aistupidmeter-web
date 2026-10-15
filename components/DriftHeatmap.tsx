@@ -28,10 +28,12 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StatCellDetail, { DetailEntry } from './v4/StatCellDetail';
 import { slugifyModelName } from '../lib/model-slug';
 import '../styles/drift-cards.css';
+import '../styles/studio-boards.css';
 
 interface AxisReading {
   status: 'STABLE' | 'VOLATILE' | 'DEGRADED';
@@ -327,7 +329,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
   }
 
   return (
-    <div className="drift-heatmap dm">
+    <div className="drift-heatmap dm st-up">
       <div className="dm-head">
         <div>
           <h3 className="dm-title">Drift by dimension</h3>
@@ -343,6 +345,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
           <button
             type="button"
             className={`dm-toggle${sortKey === '__board' ? ' is-on' : ''}`}
+            aria-pressed={sortKey === '__board'}
             onClick={() => setSortKey('__board')}
             title="Same order as the leaderboard for the selected sort"
           >
@@ -351,6 +354,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
           <button
             type="button"
             className={`dm-toggle${sortKey === '__movement' ? ' is-on' : ''}`}
+            aria-pressed={sortKey === '__movement'}
             onClick={() => setSortKey('__movement')}
             title="Largest movement on any dimension first"
           >
@@ -360,6 +364,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
             <button
               type="button"
               className={`dm-toggle${measuredOnly ? ' is-on' : ''}`}
+              aria-pressed={measuredOnly}
               onClick={() => setMeasuredOnly(v => !v)}
               title="Hide rows whose dimension figures are modelled while live benchmarking is paused"
             >
@@ -559,10 +564,10 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
             .sort((x, y) => Math.abs(y.axis?.changeMagnitude ?? 0) - Math.abs(x.axis?.changeMagnitude ?? 0));
           const tooFew = axes.every(a => !comparable(m.axes[a.key]));
           return (
-            <div
+            <Link
               className="dm-card"
               key={m.modelId}
-              onClick={() => router.push(`/models/${slugifyModelName(m.modelName)}`)}
+              href={`/models/${slugifyModelName(m.modelName)}`}
             >
               <div className="dm-card-top">
                 <div className="dm-card-id">
@@ -606,7 +611,7 @@ export default function DriftHeatmap({ models, period = 'latest', sortBy = 'comb
                   })}
                 </div>
               )}
-            </div>
+            </Link>
           );
         })}
       </div>

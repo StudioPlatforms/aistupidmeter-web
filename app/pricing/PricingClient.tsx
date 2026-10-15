@@ -35,6 +35,7 @@ import { PLANS, SELLABLE_PLANS, DATA_API_LIMITS, ROUTER_CREDITS, isUnlimited, pl
 import { REQUIRED_PLAN } from '@/lib/capabilities';
 import { SAVINGS_PCT, SAVINGS_QUALIFIER } from '@/lib/savings-estimate';
 import { upgradeHref } from '@/lib/checkout-url';
+import { PITCH, highlights } from '@/lib/plan-highlights';
 import '../../styles/pricing.css';
 
 type Interval = 'monthly' | 'annual';
@@ -83,47 +84,6 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
   ] },
 ];
 
-/** One-line summary of what a plan is for. */
-const PITCH: Record<Plan, string> = {
-  free: 'The public evidence, plus a watchlist of three models with email alerts and a weekly summary.',
-  pro: 'Full history, the diagnosis behind every change, calibration and substitute analysis, exports and custom alerts.',
-  developer: 'For running the Smart Router in production: ten times the requests, API monitoring and 30-day decision logs.',
-  teams: 'Five editors, each with the full Teams plan, three projects with their own router keys, budgets and spend reports, plus webhooks, single sign-on and an audit trail.',
-  enterprise: 'Contracted scope, unlimited seats and requests, 365-day decision logs and invoicing.',
-  legacy_pro: '',
-};
-
-/** What each card lists, derived from the plan table so a changed limit shows up here too. */
-function highlights(p: Plan): { lead?: string; items: string[] } {
-  const e = PLANS[p];
-  const api = DATA_API_LIMITS[e.dataApiTier];
-  const router = isUnlimited(e.routerRequestsPerMonth) ? 'Unlimited Smart Router requests' : `Smart Router: ${fmt(e.routerRequestsPerMonth)} requests a month`;
-  const dataApi = `Data API: ${fmt(api.daily)} requests a day`;
-  switch (p) {
-    case 'free': return { items: [
-      `${fmt(e.watchedModels)} tracked models, with email alerts`, `${e.historyDays} days of history`, 'Every category ranking', router, dataApi,
-    ] };
-    case 'pro': return { lead: 'Everything in Free, plus', items: [
-      `${fmt(e.watchedModels)} tracked models and custom alert thresholds`, 'Full history and the drift diagnosis behind every change',
-      'Calibration and cheaper-substitute analysis', 'Context-rot pilot: long-context accuracy up to 1M tokens',
-      'Routing analytics and CSV/JSON exports', router, dataApi,
-    ] };
-    case 'developer': return { lead: 'Everything in Pro, plus', items: [
-      router, 'API monitoring: per-key logs, costs, prompt auditing and budget limits', `${e.routerDiagnosticDays}-day decision logs`, dataApi,
-      'A workspace with one project and a shared watchlist; viewers free',
-    ] };
-    case 'teams': return { lead: 'Everything in Developer, plus', items: [
-      `${fmt(e.seats)} editors, each with the full Teams plan`,
-      `${fmt(e.projects)} projects, each with its own router keys, rules, budget and spend report`,
-      'A team watchlist with alerts to everyone', router, `${e.routerDiagnosticDays}-day decision logs`, dataApi,
-      'Webhooks for regressions and budgets', 'Single sign-on (OIDC or SAML), SCIM and an audit trail',
-    ] };
-    case 'enterprise': return { items: [
-      'Unlimited editor seats and projects', router, dataApi, `${e.routerDiagnosticDays}-day decision logs`, 'Contract and invoicing',
-    ] };
-    default: return { items: [] };
-  }
-}
 
 const Check = () => (
   <svg className="prc-check" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -179,9 +139,9 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
         <div className="prc-kicker">Pricing</div>
         <h1>Know when your model decisions stop being right</h1>
         <p>
-          The evidence is free — current scores, every category ranking, seven days of history and the full
-          methodology. Paid plans buy depth and workflow: longer comparable history, the diagnosis behind a
-          change, more tracked models, routing and team features.
+          The evidence is free — every category ranking over the last 24 hours, 7 days and 30 days, and the full
+          methodology. Paid plans buy freshness, depth and workflow: the newest run the moment it lands, full
+          comparable history, the diagnosis behind a change, more tracked models, routing and team features.
         </p>
       </header>
 
@@ -369,7 +329,7 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
           </section>
           <section>
             <h3>Free is a real tier</h3>
-            <p>Current scores, every category ranking, seven days of history and the full methodology cost nothing and need no account. A benchmark nobody can check is not worth reading, so the evidence is not the paid part. Depth and workflow are.</p>
+            <p>Every category ranking over the last 24 hours, 7 days and 30 days costs nothing with a free account, and model pages and the full methodology need no account at all. A benchmark nobody can check is not worth reading, so the evidence is not the paid part. The newest run as it lands, depth and workflow are.</p>
           </section>
           <section>
             <h3>What happens at a limit</h3>

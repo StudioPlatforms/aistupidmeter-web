@@ -9,13 +9,18 @@
  * read from the entitlement table or measured usage instead.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { monthlyLong } from '@/lib/pricing-display';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, SELLABLE_PLANS, ROUTER_CREDITS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
+import { PITCH } from '@/lib/plan-highlights';
 import type { SellablePlan } from '@/lib/stripe-plans';
+import { PageHead, Pane, Loader, Meter as MeterBar } from '@/components/studio';
+import { lpBody, lpDisplay } from '@/lib/fonts';
+import '@/styles/landing.css';
+import '@/styles/studio-account.css';
 
 interface Meter { key: string; label: string; used: number; limit: number; period: string }
 interface Credits {
@@ -74,23 +79,9 @@ const PORTAL_ERRORS: Record<string, { title: string; body: string; showFallback:
   },
 };
 
-const card: React.CSSProperties = {
-  border: '1px solid var(--border-subtle, #2a2a2a)', borderRadius: 6,
-  padding: '18px 20px',
-};
-
-function Bar({ used, limit }: { used: number; limit: number }) {
-  if (isUnlimited(limit)) {
-    return <div style={{ fontSize: '0.8em', color: 'var(--phosphor-green)' }}>No limit on your plan</div>;
-  }
-  const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
-  const colour = pct >= 90 ? 'var(--red-alert, #d93025)' : pct >= 70 ? 'var(--amber-warning)' : 'var(--phosphor-green)';
-  return (
-    <div style={{ height: 6, borderRadius: 999, background: 'rgba(128,128,128,0.18)', overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: colour, transition: 'width .3s ease' }} />
-    </div>
-  );
-}
+/** The four ladder plans as the landing's pricing cards; Enterprise as the strip under them. */
+const CARD_PLANS = SELLABLE_PLANS.filter(p => p !== 'enterprise');
+const SELLS_ENTERPRISE = SELLABLE_PLANS.includes('enterprise');
 
 export default function BillingClient({ buyable = [] }: { buyable?: string[] }) {
   const { data: session, status } = useSession();
@@ -187,16 +178,34 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
     setBuying(false);
   };
 
+  // Signed out, AccountShell renders this page without the app shell: the landing scope carries the look.
+  const guest = `lp ${lpBody.variable} ${lpDisplay.variable} sc-guest`;
+
   if (status === 'unauthenticated') {
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '60px 20px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '1.3em', marginBottom: 12 }}>Plan &amp; billing</h1>
-        <p style={{ color: 'var(--phosphor-dim)', marginBottom: 22 }}>Sign in to see your plan.</p>
-        <Link href="/auth/signin" className="vintage-btn" style={{ padding: '11px 22px', textDecoration: 'none' }}>Sign in</Link>
+      <div className={guest}>
+        <section className="lp-hero lp-textured sc-guest-hero">
+          <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
+          <div className="lp-wrap sc-guest-mini">
+            <p className="lp-kicker lp-intro">Account</p>
+            <h1 className="sc-guest-t lp-intro" style={{ ['--d' as string]: '.06s' }}>Plan &amp; billing</h1>
+            <p className="lp-lead lp-intro" style={{ ['--d' as string]: '.12s' }}>Sign in to see your plan.</p>
+            <div className="lp-cta lp-intro" style={{ ['--d' as string]: '.18s' }}>
+              <Link href="/auth/signin" className="lp-btn lp-btn-primary lp-btn-lg">Sign in <span className="lp-ar" aria-hidden="true">→</span></Link>
+            </div>
+          </div>
+        </section>
       </div>
     );
   }
-  if (loading) return <div data-page-loading style={{ padding: 50, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
+  if (loading) {
+    return (
+      status === 'authenticated'
+        ? <div data-page-loading><Loader label="Loading your plan" minHeight={420} /></div>
+        // Session still resolving: the public chrome is up and studio.css may not be, so no shared Loader.
+        : <div data-page-loading className={guest}><div className="sc-guest-load" role="status"><span className="sc-bars" aria-hidden="true"><i /><i /><i /></span>Loading…</div></div>
+    );
+  }
 
   const plan: Plan = usage && isPlan(usage.plan) ? usage.plan : 'free';
   const e = PLANS[plan];
@@ -204,212 +213,218 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
   // Never shown as "legacy" — see uiplan.md §5.1.
   const planLabel = isLegacy ? 'Pro' : e.label;
   const price = e.priceMonthly === null ? 'Contracted' : e.priceMonthly === 0 ? 'Free' : `$${e.priceMonthly}/month`;
+  const presetOn = (v: number) => Number(topup) === v;
+  const topupOk = Number(topup) >= ROUTER_CREDITS.minimumUsd;
+
+  /** What a plan card offers: the same four outcomes as before, in the card's button slot. */
+  const planAction = (p: Plan, current: boolean): ReactNode => {
+    if (current) return <p className="sc-plan-here">Your plan</p>;
+    if (p === 'free' || p === 'enterprise') {
+      return (
+        <Link href={p === 'free' ? '/pricing' : '/assessment'} className="st-btn">
+          {p === 'enterprise' ? 'Talk to us' : 'Compare'} <span className="st-ar" aria-hidden="true">→</span>
+        </Link>
+      );
+    }
+    if (buyable.includes(p)) {
+      return (
+        <button type="button" className="st-btn" onClick={() => switchTo(p as SellablePlan)} disabled={switching !== null}>
+          {switching === p ? 'Switching…' : <>Switch <span className="st-ar" aria-hidden="true">→</span></>}
+        </button>
+      );
+    }
+    return <p className="sc-plan-soon">Available shortly</p>;
+  };
+  const cardPrice = (n: number | null): ReactNode =>
+    n === null ? 'Talk to us' : n === 0 ? 'Free' : <>${n}<small>/mo</small></>;
 
   return (
-    <div className="acct-page">
-      <h1 style={{ fontSize: '1.4em', margin: '0 0 20px' }}>Plan &amp; billing</h1>
+    <>
+      <PageHead
+        kicker="Account"
+        title="Plan & billing"
+        lead="Your plan, what it includes, how much of it you are using, and how to change it."
+      />
 
-      {portalProblem && (
-        <div style={{
-          marginBottom: 18, padding: '14px 16px', borderRadius: 6, lineHeight: 1.6,
-          border: '1px solid var(--amber-warning, #f9ab00)', background: 'rgba(249,171,0,0.07)',
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>{portalProblem.title}</div>
-          <div style={{ fontSize: '0.88em', color: 'var(--phosphor-dim)' }}>{portalProblem.body}</div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-            {portalProblem.showFallback && PORTAL_LOGIN_URL && (
-              <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer"
-                className="vintage-btn vintage-btn--primary"
-                style={{ padding: '8px 16px', textDecoration: 'none', fontSize: '0.86em' }}>
-                Open the Stripe portal
-              </a>
-            )}
-            <Link href="/contact?topic=support" className="vintage-btn"
-              style={{ padding: '8px 16px', textDecoration: 'none', fontSize: '0.86em' }}>
-              Email us instead
-            </Link>
-          </div>
-        </div>
-      )}
-
-      <div className="acct-grid">
-      {/* Current plan */}
-      <section style={card}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', textTransform: 'uppercase', letterSpacing: '.6px' }}>Current plan</div>
-            <div style={{ fontSize: '1.6em', fontWeight: 700, margin: '4px 0' }}>{planLabel}</div>
-            <div style={{ fontSize: '0.95em', color: 'var(--phosphor-dim)' }}>{price}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {plan === 'free'
-              ? <Link href="/pricing" className="vintage-btn" style={{ padding: '9px 16px', textDecoration: 'none', fontSize: '0.86em' }}>See plans</Link>
-              : <a href="/api/stripe/portal" className="md-ctrl-btn" style={{ padding: '9px 16px', textDecoration: 'none', fontSize: '0.86em' }}>Manage billing</a>}
-          </div>
-        </div>
-
-        {/* A second route to the portal, always present for a paying customer.
-            "Manage billing" mints a session for them and needs no second
-            sign-in, but if it ever fails the customer must not be left without
-            a way to cancel — being unable to stop paying is the one failure
-            that is never acceptable on a billing page. */}
-        {plan !== 'free' && PORTAL_LOGIN_URL && (
-          <p style={{ margin: '12px 0 0', fontSize: '0.8em', color: 'var(--phosphor-dim)', lineHeight: 1.6 }}>
-            Cancel, change your card or download invoices from the billing portal. If the button
-            above does not open it,{' '}
-            <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer"
-              style={{ color: 'var(--accent, #1a73e8)' }}>
-              sign in to Stripe directly
-            </a>{' '}
-            with the email you pay from.
-          </p>
-        )}
-
-        {isLegacy && (
-          <p style={{
-            marginTop: 16, marginBottom: 0, padding: '11px 13px', borderRadius: 4,
-            background: 'rgba(26,115,232,0.06)', border: '1px solid rgba(26,115,232,0.25)',
-            fontSize: '0.85em', lineHeight: 1.6,
-          }}>
-            You are on our original Pro plan — routing and Data API access included, at your
-            original <strong>{monthlyLong('legacy_pro')}</strong>, held until September 2027. Nothing in our
-            current pricing reduces what you have; you only move if you choose to.
-          </p>
-        )}
-      </section>
-
-      {/* Allowances */}
-      <section style={card}>
-        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Your allowances</h2>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 18px', lineHeight: 1.6 }}>
-          What you are using against what your plan includes. Provider inference is billed by
-          your own providers and never appears here.
-        </p>
-        {(usage?.meters ?? []).map(m => (
-          <div key={m.key} style={{ marginBottom: 15 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86em', marginBottom: 6 }}>
-              <span>{m.label} <span style={{ color: 'var(--phosphor-dim)' }}>· {m.period}</span></span>
-              <span style={{ color: 'var(--phosphor-dim)' }}>
-                {m.used.toLocaleString()} / {isUnlimited(m.limit) ? '∞' : m.limit.toLocaleString()}
-              </span>
-            </div>
-            <Bar used={m.used} limit={m.limit} />
-          </div>
-        ))}
-        <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', fontSize: '0.82em', color: 'var(--phosphor-dim)', marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border-subtle, #2a2a2a)' }}>
-          <span>History: {usage?.retention.historyDays === null ? 'everything we hold' : `${usage?.retention.historyDays} days`}</span>
-          <span>Decision logs: {usage?.retention.decisionLogDays} days</span>
-          <span>Seats: {isUnlimited(usage?.seats ?? 1) ? '∞' : usage?.seats}</span>
-        </div>
-      </section>
-
-      {/* Smart Router credits: what happens when the monthly allowance runs out */}
-      <section style={card}>
-        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Smart Router credits</h2>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>
-          Your plan includes {credits ? (isUnlimited(credits.includedThisMonth) ? 'unlimited' : credits.includedThisMonth.toLocaleString()) : '…'} Smart
-          Router requests a month. When they are used up, routing pauses — unless you hold credits, which are used
-          one per successful request until the month resets. Nothing is ever billed after the fact: credits are
-          bought in advance, from ${ROUTER_CREDITS.minimumUsd}, at {(credits?.requestsPerUsd ?? ROUTER_CREDITS.requestsPerUsd).toLocaleString()} requests per $1, and they do not expire.
-        </p>
-
-        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 16 }}>
-          <div>
-            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>This month</div>
-            <div style={{ fontSize: '1.15em', fontWeight: 600 }}>
-              {credits ? `${credits.usedThisMonth.toLocaleString()} / ${isUnlimited(credits.includedThisMonth) ? '∞' : credits.includedThisMonth.toLocaleString()}` : '…'}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>Credits</div>
-            <div style={{ fontSize: '1.15em', fontWeight: 600 }}>{credits ? `${credits.balance.toLocaleString()} requests` : '…'}</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {[5, 25, 100].map(v => (
-            <button key={v} type="button" onClick={() => setTopup(String(v))} aria-pressed={Number(topup) === v}
-              style={{
-                height: 36, padding: '0 14px', borderRadius: 6, cursor: 'pointer', font: 'inherit', fontSize: '0.88em',
-                fontWeight: Number(topup) === v ? 600 : 400,
-                border: `1px solid ${Number(topup) === v ? 'var(--accent)' : 'var(--metal-silver)'}`,
-                background: Number(topup) === v ? 'var(--accent-bg)' : 'var(--terminal-dark)',
-                color: Number(topup) === v ? 'var(--accent)' : 'var(--phosphor-green)',
-              }}>${v}</button>
-          ))}
-          <span style={{ fontSize: '0.9em', marginLeft: 6 }}>$</span>
-          <input
-            type="number" min={ROUTER_CREDITS.minimumUsd} step={1} value={topup} aria-label="Top-up amount in US dollars"
-            onChange={e => setTopup(e.target.value)}
-            style={{
-              width: 110, height: 36, padding: '0 10px', font: 'inherit', fontSize: '0.9em',
-              background: 'var(--terminal-dark)', border: '1px solid var(--metal-silver)', borderRadius: 6, color: 'inherit',
-            }}
-          />
-          <button type="button" className="vintage-btn vintage-btn--primary" disabled={buying || !(Number(topup) >= ROUTER_CREDITS.minimumUsd)}
-            onClick={buyCredits} style={{ padding: '8px 16px', fontSize: '0.88em' }}>
-            {buying ? 'Opening checkout…' : `Buy ${Number(topup) >= ROUTER_CREDITS.minimumUsd ? Math.floor(Number(topup) * (credits?.requestsPerUsd ?? ROUTER_CREDITS.requestsPerUsd)).toLocaleString() : '…'} requests`}
-          </button>
-        </div>
-        <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 10, marginBottom: 0, lineHeight: 1.55 }}>
-          Minimum ${ROUTER_CREDITS.minimumUsd}, no maximum. Paid by card through Stripe, with an invoice. Topping up
-          every month? On Developer and Teams a request costs less than a credit.
-        </p>
-        {topupNote && <p style={{ fontSize: '0.85em', color: 'var(--phosphor-green)', marginTop: 10, marginBottom: 0 }}>{topupNote}</p>}
-      </section>
-
-      {/* Change plan */}
-      {/* spans: the plan cards below need the full row */}
-      <section className="acct-wide" style={card}>
-        <h2 style={{ fontSize: '1.02em', margin: '0 0 4px', fontWeight: 600 }}>Change plan</h2>
-        <p style={{ fontSize: '0.85em', color: 'var(--phosphor-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
-          {isLegacy
-            ? `Moving to a current plan ends your held ${monthlyLong('legacy_pro')} price. Compare carefully before switching — your plan already includes routing and Data API access.`
-            : 'Every plan collects a payment method at checkout, including during a free trial, and you can cancel any time.'}
-        </p>
-        {msg && <p role="status" style={{ fontSize: '0.85em', color: 'var(--phosphor-green)', margin: '0 0 12px' }}>{msg}</p>}
-        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}>
-          {SELLABLE_PLANS.map(p => {
-            const pe = PLANS[p];
-            const current = p === plan || (isLegacy && p === 'pro');
-            return (
-              <div key={p} style={{
-                border: `1px solid ${current ? 'var(--phosphor-green)' : 'var(--border-subtle, #2a2a2a)'}`,
-                borderRadius: 5, padding: '12px 13px',
-              }}>
-                <div style={{ fontSize: '0.86em', fontWeight: 600 }}>{pe.label}</div>
-                <div style={{ fontSize: '1.05em', fontWeight: 700, margin: '3px 0 8px' }}>
-                  {pe.priceMonthly === null ? 'Talk to us' : pe.priceMonthly === 0 ? 'Free' : `$${pe.priceMonthly}/mo`}
-                </div>
-                {current ? (
-                  <div style={{ fontSize: '0.78em', color: 'var(--phosphor-green)' }}>Your plan</div>
-                ) : p === 'free' || p === 'enterprise' ? (
-                  <Link href={p === 'free' ? '/pricing' : '/assessment'} style={{ fontSize: '0.8em', color: 'var(--phosphor-green)' }}>
-                    {p === 'enterprise' ? 'Talk to us →' : 'Compare →'}
-                  </Link>
-                ) : buyable.includes(p) ? (
-                  <button
-                    onClick={() => switchTo(p as SellablePlan)}
-                    disabled={switching !== null}
-                    style={{
-                      background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                      fontSize: '0.8em', color: 'var(--phosphor-green)', fontFamily: 'inherit',
-                      opacity: switching !== null ? 0.5 : 1,
-                    }}>
-                    {switching === p ? 'Switching…' : 'Switch →'}
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)' }}>Available shortly</span>
+      <div className="st-body">
+        {portalProblem && (
+          <div className="st-note is-warn st-up">
+            <div>
+              <b className="st-note-t">{portalProblem.title}</b>
+              {portalProblem.body}
+              <div className="st-actions" style={{ marginTop: 12 }}>
+                {portalProblem.showFallback && PORTAL_LOGIN_URL && (
+                  <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer" className="st-btn is-primary is-sm">
+                    Open the Stripe portal
+                  </a>
                 )}
+                <Link href="/contact?topic=support" className="st-btn is-sm">Email us instead</Link>
               </div>
-            );
-          })}
-        </div>
-        <p style={{ fontSize: '0.78em', color: 'var(--phosphor-dim)', marginTop: 16, marginBottom: 0 }}>
-          Full comparison on the <Link href="/pricing" style={{ color: 'var(--phosphor-green)' }}>pricing page</Link>.
-        </p>
-      </section>
+            </div>
+          </div>
+        )}
+
+        {/* Current plan */}
+        <section className="st-pane is-accent sc-plan st-up" aria-labelledby="sc-plan-name">
+          <div className="sc-plan-body">
+            <div className="sc-plan-main">
+              <p className="st-label">Current plan</p>
+              <h2 className="sc-plan-name" id="sc-plan-name">{planLabel}</h2>
+              <div className="st-actions">
+                {plan === 'free'
+                  ? <Link href="/pricing" className="st-btn is-primary">See plans <span className="st-ar" aria-hidden="true">→</span></Link>
+                  : <a href="/api/stripe/portal" className="st-btn is-primary">Manage billing</a>}
+                <a href="#change-plan" className="st-btn">Change plan</a>
+              </div>
+
+              {/* A second route to the portal, always present for a paying customer.
+                  "Manage billing" mints a session for them and needs no second
+                  sign-in, but if it ever fails the customer must not be left without
+                  a way to cancel — being unable to stop paying is the one failure
+                  that is never acceptable on a billing page. */}
+              {plan !== 'free' && PORTAL_LOGIN_URL && (
+                <p className="sc-plan-fine">
+                  Cancel, change your card or download invoices from the billing portal. If the button
+                  above does not open it,{' '}
+                  <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer">sign in to Stripe directly</a>{' '}
+                  with the email you pay from.
+                </p>
+              )}
+            </div>
+
+            <dl className="st-kv sc-plan-kv">
+              <div><dt>Price</dt><dd><b>{price}</b></dd></div>
+              <div><dt>History</dt><dd>{usage?.retention.historyDays === null ? 'everything we hold' : `${usage?.retention.historyDays} days`}</dd></div>
+              <div><dt>Decision logs</dt><dd>{usage?.retention.decisionLogDays} days</dd></div>
+              <div><dt>Seats</dt><dd>{isUnlimited(usage?.seats ?? 1) ? '∞' : usage?.seats}</dd></div>
+            </dl>
+
+            {isLegacy && (
+              <div className="st-note sc-plan-legacy">
+                <div>
+                  You are on our original Pro plan — routing and Data API access included, at your
+                  original <strong>{monthlyLong('legacy_pro')}</strong>, held until September 2027. Nothing in our
+                  current pricing reduces what you have; you only move if you choose to.
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Allowances */}
+        <Pane
+          title="Your allowances"
+          sub="What you are using against what your plan includes. Provider inference is billed by your own providers and never appears here."
+          ruled
+          delay={0.06}
+        >
+          <div className="sc-meters">
+            {(usage?.meters ?? []).map(m => (
+              <div key={m.key} className="sc-meter">
+                <div className="sc-meter-l">{m.label} <span className="st-faint">· {m.period}</span></div>
+                <div className="sc-meter-v">
+                  <b>{m.used.toLocaleString()}</b> / {isUnlimited(m.limit) ? '∞' : m.limit.toLocaleString()}
+                </div>
+                {isUnlimited(m.limit)
+                  ? <div className="sc-meter-free">No limit on your plan</div>
+                  : <MeterBar used={m.used} limit={m.limit} />}
+              </div>
+            ))}
+          </div>
+        </Pane>
+
+        {/* Smart Router credits: what happens when the monthly allowance runs out */}
+        <Pane title="Smart Router credits" sub="What happens when your monthly routing allowance runs out." ruled>
+          <div className="sc-credits">
+            <div>
+              <p className="st-text">
+                Your plan includes {credits ? (isUnlimited(credits.includedThisMonth) ? 'unlimited' : credits.includedThisMonth.toLocaleString()) : '…'} Smart
+                Router requests a month. When they are used up, routing pauses — unless you hold credits, which are used
+                one per successful request until the month resets. Nothing is ever billed after the fact: credits are
+                bought in advance, from ${ROUTER_CREDITS.minimumUsd}, at {(credits?.requestsPerUsd ?? ROUTER_CREDITS.requestsPerUsd).toLocaleString()} requests per $1, and they do not expire.
+              </p>
+              <div className="sc-figs">
+                <div>
+                  <div className="sc-fig-v">
+                    {credits ? `${credits.usedThisMonth.toLocaleString()} / ${isUnlimited(credits.includedThisMonth) ? '∞' : credits.includedThisMonth.toLocaleString()}` : '…'}
+                  </div>
+                  <div className="sc-fig-l">This month</div>
+                </div>
+                <div>
+                  <div className="sc-fig-v">{credits ? `${credits.balance.toLocaleString()} requests` : '…'}</div>
+                  <div className="sc-fig-l">Credits</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="sc-topup">
+              <p className="st-label">Top up</p>
+              <div className="sc-topup-row">
+                <div className="st-seg" role="group" aria-label="Top-up amount">
+                  {[5, 25, 100].map(v => (
+                    <button key={v} type="button" onClick={() => setTopup(String(v))} aria-pressed={presetOn(v)}>${v}</button>
+                  ))}
+                </div>
+                <span className="sc-amount">
+                  <span aria-hidden="true">$</span>
+                  <input
+                    type="number" min={ROUTER_CREDITS.minimumUsd} step={1} value={topup} aria-label="Top-up amount in US dollars"
+                    onChange={e => setTopup(e.target.value)}
+                    className="st-input"
+                  />
+                </span>
+              </div>
+              <button type="button" className="st-btn is-primary is-block" disabled={buying || !topupOk} onClick={buyCredits}>
+                {buying ? 'Opening checkout…' : `Buy ${topupOk ? Math.floor(Number(topup) * (credits?.requestsPerUsd ?? ROUTER_CREDITS.requestsPerUsd)).toLocaleString() : '…'} requests`}
+              </button>
+              <p className="st-hint">
+                Minimum ${ROUTER_CREDITS.minimumUsd}, no maximum. Paid by card through Stripe, with an invoice. Topping up
+                every month? On Developer and Teams a request costs less than a credit.
+              </p>
+              {topupNote && <p className="sc-topup-note" role="status">{topupNote}</p>}
+            </div>
+          </div>
+        </Pane>
+
+        {/* Change plan: the landing's pricing cards */}
+        <section className="sc-sec sc-anchor st-up" id="change-plan" aria-labelledby="sc-change-t">
+          <div className="sc-sec-head">
+            <div>
+              <p className="st-kicker">Plans</p>
+              <h2 className="sc-sec-t" id="sc-change-t">Change plan</h2>
+              <p className="sc-sec-sub">
+                {isLegacy
+                  ? `Moving to a current plan ends your held ${monthlyLong('legacy_pro')} price. Compare carefully before switching — your plan already includes routing and Data API access.`
+                  : 'Every plan collects a payment method at checkout, including during a free trial, and you can cancel any time.'}
+              </p>
+            </div>
+          </div>
+          {msg && <div className="st-note" role="status"><div>{msg}</div></div>}
+          <div className="lp-plans sc-plans">
+            {CARD_PLANS.map(p => {
+              const pe = PLANS[p];
+              const current = p === plan || (isLegacy && p === 'pro');
+              return (
+                <div key={p} className={`lp-plan${current ? ' is-pop' : ''}`}>
+                  <p className="lp-plan-n">{pe.label}</p>
+                  <p className="lp-plan-p">{cardPrice(pe.priceMonthly)}</p>
+                  <p className="lp-plan-pitch">{PITCH[p]}</p>
+                  {planAction(p, current)}
+                </div>
+              );
+            })}
+          </div>
+          {SELLS_ENTERPRISE && (
+            <div className="lp-ent sc-ent">
+              <p><b>{PLANS.enterprise.label}</b><span>{PITCH.enterprise}</span></p>
+              {planAction('enterprise', plan === 'enterprise')}
+            </div>
+          )}
+          <p className="st-hint">
+            Full comparison on the <Link href="/pricing" className="st-link-inline">pricing page</Link>.
+          </p>
+        </section>
       </div>
-    </div>
+    </>
   );
 }

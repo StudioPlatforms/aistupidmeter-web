@@ -109,7 +109,7 @@ export interface Entitlements {
 export const PLANS: Record<Plan, Entitlements> = {
   free: {
     plan: 'free', label: 'Free',
-    watchedModels: 3, historyDays: 7, categorySorts: true,
+    watchedModels: 3, historyDays: 30, categorySorts: true,   // was 7 until 2026-10-15 (the month view opened; Latest became paid)
     dataApiTier: 'free',
     // 1,000 not 10,000. The GTM draft proposed 10K, but that is a running budget
     // rather than a taste, and it undercuts the Developer plan directly above it — if
