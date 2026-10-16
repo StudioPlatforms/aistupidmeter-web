@@ -58,7 +58,7 @@ function Locked({ signedIn }: { signedIn: boolean }) {
     <div className="crt-locked">
       <p><b>The results are part of Pro Intelligence and above.</b> They include every pilot model’s accuracy at each length from 8K to 1M tokens, its effective context length, what breaks first — finding, linking, tracking or counting — and where in the document it loses facts.</p>
       <div className="crt-locked-actions">
-        <Link className="lp-btn lp-btn-primary" href={upgradeHref('pro', 'annual')}>Start free trial <span className="lp-ar" aria-hidden="true">→</span></Link>
+        <Link className="lp-btn lp-btn-primary" href={upgradeHref('pro', 'annual')} prefetch={false}>Start free trial <span className="lp-ar" aria-hidden="true">→</span></Link>
         {!signedIn && <Link className="lp-btn lp-btn-ghost" href="/auth/signin?callbackUrl=/context-rot">Sign in</Link>}
         <Link className="lp-btn lp-btn-ghost" href="/pricing">Compare plans</Link>
       </div>

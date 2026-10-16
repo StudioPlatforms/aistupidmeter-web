@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { consumeEmailVerificationToken } from '@/lib/db-client';
 import { auth } from '@/auth';
+import { safeReturnPath } from '@/lib/return-path';
 
 /**
  * Consume a verification link.
@@ -14,14 +15,19 @@ import { auth } from '@/auth';
  * confirmed, so the person clicking is usually signed out. They go to the sign-in page,
  * which says the address is confirmed (or that the link has expired, with a way to get
  * a new one). Someone already signed in, confirming from Settings, goes back there.
+ * A link sent from a sign-up that started somewhere (a plan's checkout, a model page) carries that
+ * path as `next`; sign-in then continues there instead of the leaderboard.
  */
 export async function GET(request: NextRequest) {
-  const token = new URL(request.url).searchParams.get('token') ?? '';
+  const params = new URL(request.url).searchParams;
+  const token = params.get('token') ?? '';
+  const next = safeReturnPath(params.get('next'));
   const base = process.env.NEXT_PUBLIC_APP_URL || 'https://aistupidlevel.info';
   const ok = consumeEmailVerificationToken(token);
   const session = await auth().catch(() => null);
   if (session?.user) {
     return NextResponse.redirect(`${base}/account/settings?verified=${ok ? '1' : '0'}`);
   }
-  return NextResponse.redirect(`${base}/auth/signin?verified=${ok ? '1' : 'expired'}`);
+  const back = next === '/' ? '' : `&callbackUrl=${encodeURIComponent(next)}`;
+  return NextResponse.redirect(`${base}/auth/signin?verified=${ok ? '1' : 'expired'}${back}`);
 }

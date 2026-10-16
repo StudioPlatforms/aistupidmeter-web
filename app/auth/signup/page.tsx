@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import AuthShell from '@/components/auth/AuthShell';
+import { safeReturnPath, withReturn } from '@/lib/return-path';
 
 /**
  * Where to go once the account exists: the page that sent them here (?callbackUrl=, or the
@@ -15,14 +16,22 @@ import AuthShell from '@/components/auth/AuthShell';
 function returnPath(): string {
   if (typeof window === 'undefined') return '/';
   const sp = new URLSearchParams(window.location.search);
-  const raw = sp.get('callbackUrl') || sp.get('next') || '';
-  return raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/';
+  return safeReturnPath(sp.get('callbackUrl') || sp.get('next'));
 }
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // The same path for the sign-in links, set after mount (the page is statically rendered). A
+  // visitor who picked a plan keeps it whichever way they finish: a Google/GitHub sign-up, the
+  // confirmation email, "I have confirmed, sign in", or switching to sign-in.
+  const [ret, setRet] = useState('/');
+  useEffect(() => setRet(returnPath()), []);
+  const toCheckout = ret.startsWith('/api/stripe/checkout');
+  const planName = toCheckout
+    ? ({ pro: 'Pro', developer: 'Developer', teams: 'Teams' } as Record<string, string>)[new URLSearchParams(ret.split('?')[1] ?? '').get('plan') ?? ''] ?? null
+    : null;
   // Set once the account exists: the address the confirmation link went to.
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
@@ -54,7 +63,7 @@ export default function SignUpPage() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, password: formData.password }),
+        body: JSON.stringify({ email: formData.email, password: formData.password, callbackUrl: returnPath() }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -86,7 +95,7 @@ export default function SignUpPage() {
       const r = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: sentTo }),
+        body: JSON.stringify({ email: sentTo, callbackUrl: returnPath() }),
       });
       setResendState(r.ok ? 'sent' : 'failed');
     } catch {
@@ -99,7 +108,7 @@ export default function SignUpPage() {
       <AuthShell mode="signup">
         <h1 className="au-title">Check your inbox</h1>
         <p className="au-sub">
-          We sent a confirmation link to <b>{sentTo}</b>. Open it to finish creating your account, then sign in.
+          We sent a confirmation link to <b>{sentTo}</b>. Open it to finish creating your account, then sign in{toCheckout ? ' — you will go straight on to checkout for your plan' : ''}.
           The link is valid for 24 hours.
         </p>
         <div className="au-stack" style={{ marginTop: 24 }}>
@@ -115,7 +124,7 @@ export default function SignUpPage() {
           {resendState === 'failed' && (
             <div className="au-note au-note-warn" role="alert" style={{ marginTop: 0 }}>That did not work. Please wait a minute and try again.</div>
           )}
-          <Link href="/auth/signin" className="au-btn au-btn-primary au-btn-block">I have confirmed, sign in</Link>
+          <Link href={withReturn('/auth/signin', ret)} className="au-btn au-btn-primary au-btn-block">I have confirmed, sign in</Link>
         </div>
         <p className="au-alt">
           Wrong address?{' '}
@@ -132,8 +141,17 @@ export default function SignUpPage() {
 
   return (
     <AuthShell mode="signup">
-      <h1 className="au-title">Create your free account</h1>
-      <p className="au-sub">See every ranking, watch three models and route your first 1,000 requests. No card required.</p>
+      {toCheckout ? (
+        <>
+          <h1 className="au-title">Create your account</h1>
+          <p className="au-sub">Your {planName ? `${planName} ` : ''}free trial starts right after: make an account and you go straight on to checkout.</p>
+        </>
+      ) : (
+        <>
+          <h1 className="au-title">Create your free account</h1>
+          <p className="au-sub">See every ranking, watch three models and route your first 1,000 requests. No card required.</p>
+        </>
+      )}
 
       {error && <div className="au-note au-note-bad" role="alert">{error}</div>}
 
@@ -163,7 +181,7 @@ export default function SignUpPage() {
         <button type="button" className="au-btn au-btn-ghost au-btn-block" onClick={() => handleOAuthSignIn('github')} disabled={loading}>Continue with GitHub</button>
       </div>
 
-      <p className="au-alt">Already have an account? <Link href="/auth/signin">Sign in</Link></p>
+      <p className="au-alt">Already have an account? <Link href={withReturn('/auth/signin', ret)}>Sign in</Link></p>
     </AuthShell>
   );
 }

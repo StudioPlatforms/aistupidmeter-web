@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPasswordResetToken, findUserByEmail } from '@/lib/db-client';
 import { sendPasswordResetEmail } from '@/lib/email-service';
 import { clientIp, limited, secondsSince } from '@/lib/ip-rate-limit';
+import { refuseMailForm } from '@/lib/mail-form-guard';
 
 const SENT = 'If an account exists with this email, you will receive a password reset link.';
 
 export async function POST(request: NextRequest) {
+  const refused = await refuseMailForm(request, 'forgot-password');
+  if (refused) return refused;
   try {
     // Every reset email costs sending reputation, and an unlimited form can flood an inbox
     // from our server: five requests per IP per fifteen minutes.

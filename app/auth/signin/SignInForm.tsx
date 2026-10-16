@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import AuthShell from '@/components/auth/AuthShell';
+import { safeReturnPath } from '@/lib/return-path';
 
 /**
  * What each sign-in failure code (auth.ts, SignInFailure) means to the person.
@@ -24,9 +25,7 @@ const FAILURE: Record<string, string> = {
  * Where to go after signing in: the page that sent them here, if it is on this site; otherwise the
  * leaderboard, which is what an account unlocks.
  */
-export function safeReturnPath(raw: string | null): string {
-  return raw && raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\') ? raw : '/';
-}
+export { safeReturnPath };
 
 export function SignInForm() {
   const searchParams = useSearchParams();
@@ -77,7 +76,7 @@ export function SignInForm() {
       const r = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email }),
+        body: JSON.stringify({ email: formData.email, callbackUrl: returnTo }),
       });
       setResendState(r.ok ? 'sent' : 'failed');
     } catch {

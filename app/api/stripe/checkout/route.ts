@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import Stripe from 'stripe';
 import { redirectToPath } from '@/lib/safe-redirect';
+import { withReturn } from '@/lib/return-path';
 import { recordActivation } from '@/lib/activation';
 import { findUserById } from '@/lib/db-client';
 import {
@@ -88,20 +89,38 @@ async function buildSession(
   });
 }
 
+/**
+ * Next.js fetches a link's target before it is clicked (prefetch) and fetches it again as React
+ * Server Component data on a client-side navigation. Neither is someone asking to pay, but each
+ * used to open a Stripe Checkout Session — three at a time for a page showing three plans (90 on
+ * /pricing on 2026-10-15 alone), which also inflated the checkout_started count. Answered empty,
+ * the router falls back to a normal page load of this URL, and that request opens the session.
+ */
+function isRouterFetch(request: NextRequest): boolean {
+  const h = request.headers;
+  return h.get('rsc') === '1' || h.get('next-router-prefetch') === '1'
+    || /prefetch/i.test(h.get('purpose') ?? h.get('sec-purpose') ?? '');
+}
+
 /** GET — create a session and redirect straight to Stripe. */
 export async function GET(request: NextRequest) {
+  if (isRouterFetch(request)) return new NextResponse(null, { status: 204 });
   try {
-    const session = await auth();
-    if (!session?.user?.id || !session?.user?.email) {
-      // request.url carries the internal localhost origin behind nginx, so an
-      // absolute URL built from it points nowhere the browser can reach.
-      // See lib/safe-redirect.ts. Stripe's success/cancel URLs below must stay
-      // absolute - Stripe resolves those from outside this site.
-      return redirectToPath(request, '/auth/signin');
-    }
-
     const sel = resolveSelection(new URL(request.url).searchParams);
     if ('error' in sel) return redirectToPath(request, '/pricing?error=unknown_plan');
+
+    const session = await auth();
+    if (!session?.user?.id || !session?.user?.email) {
+      // Someone who picked a plan before having an account (every "Start free trial" on the
+      // landing page and /pricing for a visitor) makes one, then comes straight back here with
+      // the same plan. Sign-up, the confirmation email and sign-in all carry callbackUrl. This
+      // used to send them to /auth/signin with nothing, so after signing up they landed on the
+      // leaderboard and the plan they chose was lost.
+      // request.url carries the internal localhost origin behind nginx, so an absolute URL built
+      // from it points nowhere the browser can reach — see lib/safe-redirect.ts. Stripe's
+      // success/cancel URLs below must stay absolute; Stripe resolves those from outside.
+      return redirectToPath(request, withReturn('/auth/signup', `/api/stripe/checkout?plan=${sel.plan}&interval=${sel.interval}`));
+    }
 
     const buyer = findUserById(Number(session.user.id));
     const checkoutSession = await buildSession(

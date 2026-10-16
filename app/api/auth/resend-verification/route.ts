@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeReturnPath, verificationLink } from '@/lib/return-path';
 import { findUserByEmail, createEmailVerificationToken, secondsSinceVerificationSent } from '@/lib/db-client';
 import { sendVerificationEmail } from '@/lib/email-service';
 import { clientIp, limited } from '@/lib/ip-rate-limit';
+import { refuseMailForm } from '@/lib/mail-form-guard';
 
 /**
  * Send a new confirmation link to someone who cannot sign in yet.
@@ -18,6 +20,8 @@ const SENT = {
 };
 
 export async function POST(request: NextRequest) {
+  const refused = await refuseMailForm(request, 'resend-verification');
+  if (refused) return refused;
   if (limited(`resend-verification:${clientIp(request)}`, 5, 15 * 60_000)) {
     return NextResponse.json(
       { success: false, error: 'rate_limited', message: 'Too many requests. Please wait a few minutes and try again.' },
@@ -26,8 +30,11 @@ export async function POST(request: NextRequest) {
   }
 
   let email = '';
+  let returnTo = '/';
   try {
-    email = String((await request.json())?.email ?? '').trim();
+    const body = await request.json();
+    email = String(body?.email ?? '').trim();
+    returnTo = safeReturnPath(typeof body?.callbackUrl === 'string' ? body.callbackUrl : null);
   } catch {
     /* empty or malformed body: handled below */
   }
@@ -44,7 +51,7 @@ export async function POST(request: NextRequest) {
   const issued = createEmailVerificationToken(user.id);
   if (issued) {
     const base = process.env.NEXT_PUBLIC_APP_URL || 'https://aistupidlevel.info';
-    void sendVerificationEmail(user.email, `${base}/api/auth/verify?token=${issued.token}`).catch(() => {});
+    void sendVerificationEmail(user.email, verificationLink(base, issued.token, returnTo)).catch(() => {});
   }
   return NextResponse.json(SENT);
 }

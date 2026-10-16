@@ -3,11 +3,26 @@ import { findUserByEmail, createUserWithPassword, createEmailVerificationToken }
 import { recordActivation } from '@/lib/activation';
 import { sendWelcomeEmail } from '@/lib/email-service';
 import { hashPassword, validateEmail, validatePasswordStrength } from '@/lib/password';
+import { safeReturnPath, verificationLink } from '@/lib/return-path';
+import { clientIp, limited } from '@/lib/ip-rate-limit';
+import { refuseMailForm } from '@/lib/mail-form-guard';
 
 export async function POST(request: NextRequest) {
+  const refused = await refuseMailForm(request, 'signup');
+  if (refused) return refused;
+  // Each sign-up emails the address it was given. Ten attempts an hour per IP is plenty for an
+  // office behind one address and stops a single machine mailing a list of strangers.
+  if (limited(`signup:${clientIp(request)}`, 10, 60 * 60_000)) {
+    return NextResponse.json(
+      { error: 'Too many sign-up attempts from this network. Please wait a while and try again.' },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, password, name } = body;
+    const returnTo = safeReturnPath(typeof body?.callbackUrl === 'string' ? body.callbackUrl : null);
 
     // Validate input
     if (!email || !password) {
@@ -60,7 +75,8 @@ export async function POST(request: NextRequest) {
     const uid = (user as any)?.id ?? null;
     const issued = uid ? createEmailVerificationToken(uid) : null;
     const base = process.env.NEXT_PUBLIC_APP_URL || 'https://aistupidlevel.info';
-    const verifyLink = issued ? `${base}/api/auth/verify?token=${issued.token}` : null;
+    // The page they signed up from (a plan's checkout, a model to watch) rides along in the link.
+    const verifyLink = issued ? verificationLink(base, issued.token, returnTo) : null;
     void sendWelcomeEmail(email, name, verifyLink).catch(() => {});
 
     return NextResponse.json(

@@ -69,12 +69,27 @@ export function validatePasswordStrength(password: string): {
   };
 }
 
+const ATOM = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+";
+const LOCAL_PART = new RegExp(`^${ATOM}(?:\\.${ATOM})*$`);
+const LABEL = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/;
+const TOP_LABEL = /^(?:[A-Za-z]{2,63}|xn--[A-Za-z0-9-]{1,59})$/;
+
 /**
- * Validate email format
- * @param email - Email to validate
- * @returns True if email is valid, false otherwise
+ * True for an address a mail server will accept: an RFC 5321 dot-atom before the @ (no leading,
+ * trailing or doubled dot, no quotes or spaces) and real DNS labels after it. Until 2026-10-16
+ * this took anything with an @ and a dot, so we mailed addresses like "j..doe@gmail.com" and
+ * Gmail bounced them as invalid. International domains are checked in their punycode form.
  */
 export function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (typeof email !== 'string' || email.length > 254) return false;
+  const at = email.lastIndexOf('@');
+  const local = email.slice(0, at);
+  let domain = email.slice(at + 1);
+  if (at < 1 || local.length > 64 || !LOCAL_PART.test(local)) return false;
+  if (/[^\x21-\x7e]/.test(domain)) {
+    if (/[\s/\\:?#@%[\]]/.test(domain)) return false;
+    try { domain = new URL(`http://${domain}`).hostname; } catch { return false; }
+  }
+  const labels = domain.split('.');
+  return labels.length >= 2 && labels.every(l => LABEL.test(l)) && TOP_LABEL.test(labels[labels.length - 1]);
 }
