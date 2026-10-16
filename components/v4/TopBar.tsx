@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import ThemeButton from '../ThemeButton';
 import AccountMenu, { navClick } from '../AccountMenu';
 import { useVisitorStats } from '../../lib/use-visitor-stats';
@@ -49,16 +50,23 @@ export default function TopBar({ selectedView, onViewChange, todayVisits }: TopB
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const links: Array<{ view: string; href: string; label: string; go: () => void }> = [
+  // The Smart Router is what the paid plans sell, and until 2026-10-16 it was only in the account
+  // menu: about 1 in 20 new accounts ever opened it. Signed out, /router bounces to sign-in, so
+  // the link shows the landing's router section instead.
+  const { status } = useSession();
+  const routerHref = status === 'authenticated' ? '/router' : '/#router';
+
+  const links: Array<{ view: string; href: string; label: string; go: () => void; minor?: boolean }> = [
     { view: 'dashboard', href: '/', label: 'Leaderboard', go: () => { onViewChange('dashboard'); router.push('/'); } },
-    { view: 'about', href: '/about', label: 'About', go: () => router.push('/about') },
-    { view: 'faq', href: '/faq', label: 'FAQ', go: () => router.push('/faq') },
+    { view: 'router', href: routerHref, label: 'Smart Router', go: () => router.push(routerHref) },
+    { view: 'about', href: '/about', label: 'About', go: () => router.push('/about'), minor: true },
+    { view: 'faq', href: '/faq', label: 'FAQ', go: () => router.push('/faq'), minor: true },
     { view: 'pricing', href: '/pricing', label: 'Pricing', go: () => router.push('/pricing') },
     { view: 'forum', href: '/router/forum', label: 'Forum', go: () => router.push('/router/forum') },
     // Last, which is where people look for it. The site publishes no email address anywhere:
     // anyone wanting to reach us is sent to the form, which routes by topic and cannot be
     // harvested by a scraper.
-    { view: 'contact', href: '/contact', label: 'Contact', go: () => router.push('/contact') },
+    { view: 'contact', href: '/contact', label: 'Contact', go: () => router.push('/contact'), minor: true },
   ];
 
   return (
@@ -76,7 +84,7 @@ export default function TopBar({ selectedView, onViewChange, todayVisits }: TopB
           {links.map(l => (
             <a
               key={l.view}
-              className="sb-link"
+              className={`sb-link${l.minor ? ' is-minor' : ''}`}
               href={l.href}
               aria-current={selectedView === l.view ? 'page' : undefined}
               onClick={navClick(l.go)}

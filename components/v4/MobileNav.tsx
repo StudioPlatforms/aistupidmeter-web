@@ -10,6 +10,7 @@
  *
  * So it is now three thumb targets plus a sheet. Watchlist earns a permanent
  * slot because it is the return-visit surface the whole retention case rests on;
+ * the Smart Router, what the paid plans sell, has the third (since 2026-10-16). FAQ,
  * About, Pricing, Forum and Theme are lower-frequency and live behind More.
  *
  * In the landing's look: a frosted bar, sentence case, the current page marked in the accent
@@ -51,6 +52,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
   const go = (href: string) => { setDrawer(false); router.push(href); };
 
   const authed = status === 'authenticated';
+  const routerHref = authed ? '/router' : '/#router';
   const user = session?.user as any;
   const plan: Plan = isPlan(user?.plan) ? user.plan : 'free';
   const ent = PLANS[plan];
@@ -70,8 +72,10 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
           onClick={navClick(() => onViewChange('dashboard'))}>Leaderboard</a>
         <a className="sb-mtab" href="/watchlist" aria-current={selectedView === 'watchlist' ? 'page' : undefined}
           onClick={navClick(() => go('/watchlist'))}>Watchlist</a>
-        <a className="sb-mtab" href="/faq" aria-current={selectedView === 'faq' ? 'page' : undefined}
-          onClick={navClick(() => onViewChange('faq'))}>FAQ</a>
+        {/* The paid product gets the third slot (FAQ moved into More, 2026-10-16): buried in the
+            sheet, about 1 in 20 new accounts ever opened it. Signed out, /router asks for a
+            sign-in, so the tab shows the landing's router section instead. */}
+        <a className="sb-mtab" href={routerHref} onClick={navClick(() => go(routerHref))}>Smart Router</a>
         <button type="button" className="sb-mtab" aria-expanded={drawer} aria-controls="sb-more"
           onClick={() => setDrawer(d => !d)}>More</button>
       </nav>
@@ -94,6 +98,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
             <div className="sb-drawer-group">
               {item('Pricing', '/pricing')}
               {item('About', '/about', () => { setDrawer(false); onViewChange('about'); })}
+              {item('FAQ', '/faq', () => { setDrawer(false); onViewChange('faq'); })}
               {item('Compare models', '/compare')}
               {item('Methodology', '/methodology')}
               {/* The bottom bar stays at four items — a fifth shrinks every label, which is
@@ -109,7 +114,6 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
                   {item('Plan & billing', '/account/billing')}
                   {item('Settings', '/account/settings')}
                   {hasTeam && item('Team', '/account/team')}
-                  {item('Smart Router', '/router')}
                 </div>
                 <div className="sb-drawer-group is-one">
                   <button type="button" className="sb-drawer-item is-muted" onClick={() => { setDrawer(false); signOut({ redirectTo: '/' }); }}>

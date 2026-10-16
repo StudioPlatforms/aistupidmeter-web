@@ -104,9 +104,11 @@
 .sb-theme-tip b { display: block; margin-bottom: 1px; font-size: 13.5px; font-weight: 600; color: var(--lp-fg); }
 .sb-theme.is-row .sb-theme-tip { top: auto; bottom: calc(100% + 10px); }
 
-@media (max-width: 1279px) { .sb-live-clock { display: none; } }
+/* Seven links since the Smart Router joined (2026-10-16): the live line yields first, then the
+   links the footer also carries (About, FAQ, Contact), measured against "Sign in / Sign up free". */
+@media (max-width: 1339px) { .sb-live { display: none; } }
+@media (max-width: 1023px) { .sb-link.is-minor { display: none; } }
 @media (max-width: 1099px) {
-  .sb-live { display: none; }
   .sb-link { padding: 0 9px; font-size: 14px; }
   .sb-brand { margin-right: 8px; }
 }
@@ -117,6 +119,7 @@
   .sb-cta, .sb-quiet { height: 38px; }
 }
 @media (max-width: 379px) { .sb-auth .sb-quiet { display: none; } }
+@media (max-width: 340px) { .sb-mnav .sb-mtab { font-size: 12px; } }
 
 /* ── phone bottom bar + "More" sheet ───────────────────────────────── */
 .sb-mnav { display: none; }
