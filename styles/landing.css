@@ -722,7 +722,8 @@ html:has(.lp) { scroll-behavior: smooth; }
    the drift record, the assessment's sample report and custom benchmarks, router starters.
    Figures come from GET /dashboard/price (test records only). ═══ */
 
-/* hero */
+/* hero: the original router-first version on phones, the value-first one from 761px up */
+.lp-hero-m, .lp-phone-only { display: none; }
 .lp .lp-h1.is-q { font-size: clamp(38px, 4.9vw, 80px); line-height: 1.02; }
 .lp-fine a.lp-fine-a { color: var(--lp-fg2); text-decoration: underline; text-underline-offset: 3px; }
 .lp-fine a.lp-fine-a:hover { color: var(--lp-fg); }
@@ -851,6 +852,8 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-start-all::after { content: ' →'; }
 
 @media (max-width: 1180px) {
+  /* Stacked hero: the headline gets the full width, so it can be set at hero size. */
+  .lp .lp-h1.is-q { font-size: clamp(46px, 6.4vw, 72px); line-height: .98; }
   .lp-find { max-width: 680px; margin-top: 44px; }
   .lp-pr-grid { grid-template-columns: minmax(0, 1fr); }
   .lp-pr-card { position: static; }
@@ -863,7 +866,9 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp-start-row { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
-  .lp .lp-h1.is-q { font-size: clamp(31px, 8.4vw, 44px); line-height: 1.04; }
+  .lp .lp-hero-m { display: block; }
+  .lp .lp-phone-only { display: inline; }
+  .lp .lp-hero-d, .lp .lp-wide-only { display: none; }
   .lp-find { margin-top: 36px; border-radius: 16px; }
   .lp-find-rows { padding: 20px 14px 2px; }
   .lp-find-say { margin-inline: 14px; }

@@ -185,10 +185,38 @@ export default async function Landing() {
       <LandingEffects />
       <LandingNav signInHref={SIGN_IN} signUpHref={SIGN_UP} />
 
-      {/* ── hero: the question, and one measured answer beside it ── */}
+      {/* ── hero ── Two versions of the same first screen, one shown per width (styles/landing.css),
+          both server-rendered so every visitor and crawler gets the same page. Phones keep the original
+          router-first hero; wider screens ask the value question beside a measured finding. */}
       <header className="lp-hero lp-textured" id="top">
         <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
-        <div className="lp-wrap">
+        <div className="lp-wrap lp-hero-m">
+          <div className="lp-hero-top">
+            <p className="lp-live lp-intro" style={{ '--d': '.05s' } as CSSProperties}><i /><span><b>Live</b> · {modelCount} models re-ranked after every run</span></p>
+            <h1 className="lp-h1 lp-intro" style={{ '--d': '.12s' } as CSSProperties}>Models change overnight. <span className="lp-b">Your router should know.</span></h1>
+            <div className="lp-hero-row">
+              <div>
+                <p className="lp-lead lp-intro" style={{ '--d': '.22s' } as CSSProperties}>
+                  AI Stupid Level benchmarks {modelCount} frontier models around the clock and routes every request to whichever one
+                  is <strong>measurably best right now</strong> — for code, reasoning, tool use, speed or cost. One OpenAI-compatible
+                  endpoint. Your own provider keys. Zero markup on tokens.
+                </p>
+                <div className="lp-cta lp-intro" style={{ '--d': '.3s' } as CSSProperties}>
+                  <Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGN_UP_ROUTER}>Get your router key <span className="lp-ar">→</span></Link>
+                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href={SIGN_UP}>See today’s leaderboard</Link>
+                </div>
+                <p className="lp-fine lp-intro" style={{ '--d': '.36s' } as CSSProperties}>Free account: every ranking, a 3-model watchlist and 1,000 routed requests a month. No card.</p>
+              </div>
+              <RouterFacts className="lp-intro" style={{ '--d': '.42s' } as CSSProperties} />
+            </div>
+          </div>
+          <div className="lp-intro" style={{ '--d': '.5s' } as CSSProperties}>
+            {scenarios.length
+              ? <RouterDemo scenarios={scenarios} modelCount={modelCount} />
+              : <div className="lp-rv"><p className="lp-rv-fallback">Live routing decisions are refreshing. <Link className="lp-more" href="/router/docs">Read how the Smart Router decides</Link></p></div>}
+          </div>
+        </div>
+        <div className="lp-wrap lp-hero-d">
           <p className="lp-live lp-intro" style={{ '--d': '.05s' } as CSSProperties}><i /><span><b>Live</b> · {modelCount} models · real API tests since August 2025</span></p>
           <h1 className="lp-h1 is-q lp-intro" style={{ '--d': '.12s' } as CSSProperties}>Is your AI worth what you’re paying? <span className="lp-b">And is it still as good as last month?</span></h1>
           <div className="lp-hero-row">
@@ -328,11 +356,13 @@ export default async function Landing() {
         <div className="lp-wrap">
           <div className="lp-head lp-head-split lp-up">
             <p className="lp-kicker">Smart Router</p>
-            <h2 className="lp-h2">Models change overnight. Your router should know.</h2>
+            {/* Phones show the hero's own "Models change overnight" headline, so this one differs there. */}
+            <h2 className="lp-h2"><span className="lp-wide-only">Models change overnight. Your router should know.</span><span className="lp-phone-only">One endpoint. Fifteen ways to decide.</span></h2>
             <p className="lp-lead">Point any OpenAI-compatible client at ASL and every request goes to the model that is measurably best right now — for code, reasoning, tool use, speed or cost — ranked on the same results as this page. One endpoint, your own provider keys, zero markup on tokens.</p>
           </div>
-          {finding && <RouterFacts {...up('', 'is-row')} />}
-          <div {...up('.06s', 'lp-router-demo')}>
+          {/* On phones the hero already shows these two (.lp-hero-m), so they are hidden there. */}
+          {finding && <RouterFacts {...up('', 'is-row lp-wide-only')} />}
+          <div {...up('.06s', 'lp-router-demo lp-wide-only')}>
             {scenarios.length
               ? <RouterDemo scenarios={scenarios} modelCount={modelCount} />
               : <div className="lp-rv"><p className="lp-rv-fallback">Live routing decisions are refreshing. <Link className="lp-more" href="/router/docs">Read how the Smart Router decides</Link></p></div>}
