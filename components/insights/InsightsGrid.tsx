@@ -10,6 +10,9 @@ import { getModelPricing } from '../../lib/model-pricing';
 import { slugifyModelName } from '../../lib/model-slug';
 import { routerPrice } from '@/lib/pricing-display';
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
+import { PLANS } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
+import { Locked } from '../studio';
 import '../../styles/studio-boards.css';
 
 /**
@@ -47,6 +50,8 @@ const PROVIDER_NAME: Record<string, string> = {
   openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', deepseek: 'DeepSeek', glm: 'GLM', kimi: 'Kimi', xai: 'xAI',
 };
 const RADAR_COLORS = ['#1a73e8', '#12b5cb', '#7c4dff', '#f9ab00', '#9aa0a6', '#d93025'];
+/** The plan that unlocks Quick answers, the heatmap, price-performance and the radar (lib/capabilities). */
+const INSIGHTS_PLAN = PLANS[REQUIRED_PLAN['board-insights']].label;
 
 const hrefFor = (name?: string | null, id?: string | number) =>
   `/models/${(name && slugifyModelName(name)) || id || ''}`;
@@ -74,7 +79,7 @@ function Group({ title, note, right, children }: { title: string; note?: string;
 
 export default function InsightsGrid({
   recommendations, degradations, driftIncidents, providerReliability, modelScores, modelHistoryData,
-  transparencyMetrics, leaderboardSortBy, leaderboardPeriod, onSortChange,
+  transparencyMetrics, leaderboardSortBy, leaderboardPeriod, onSortChange, locked = false, onUnlock,
 }: {
   recommendations: any;
   degradations: any[];
@@ -86,7 +91,11 @@ export default function InsightsGrid({
   leaderboardSortBy: string;
   leaderboardPeriod: string;
   onSortChange: (s: Sort) => void;
+  /** A free account (lib/capabilities 'board-insights'): the analysis panes become Pro cards. */
+  locked?: boolean;
+  onUnlock?: () => void;
 }) {
+  const unlock = onUnlock ?? (() => {});
   const { data: session } = useSession();
   const health = useProviderHealth();
   const sort = (SORTS.some((s) => s.key === leaderboardSortBy) ? leaderboardSortBy : 'combined') as Sort;
@@ -144,7 +153,14 @@ export default function InsightsGrid({
         </Group>
       )}
 
-      {answers.length > 0 && (
+      {locked ? (
+        <Group title="Quick answers" note="Picked from the latest runs">
+          <Locked plan={INSIGHTS_PLAN} title="Which model should you use right now?" onOpen={unlock}>
+            Quick answers name the best model for code, the most reliable, the fastest and the best
+            value, picked from the latest runs.
+          </Locked>
+        </Group>
+      ) : answers.length > 0 && (
         <Group title="Quick answers" note="Picked from the latest runs">
           <div className="sl-answers">
             {answers.map((a, i) => (
@@ -169,8 +185,8 @@ export default function InsightsGrid({
 
       <Group
         title="Compare models"
-        note="The tabs switch both panes to that board"
-        right={(
+        note={locked ? 'Every model on every measure, and what each one costs' : 'The tabs switch both panes to that board'}
+        right={locked ? undefined : (
           <div className="st-seg is-scroll sl-seg-tabs" role="tablist" aria-label="Board">
             {SORTS.map((s) => (
               <button key={s.key} type="button" role="tab" aria-selected={sort === s.key} onClick={() => onSortChange(s.key)}>
@@ -180,6 +196,12 @@ export default function InsightsGrid({
           </div>
         )}
       >
+        {locked ? (
+          <Locked plan={INSIGHTS_PLAN} title="Compare every model on every measure" onOpen={unlock}>
+            The benchmark heatmap scores every model on each measure of the board you pick, and
+            price-performance shows how much score each one gives you per dollar.
+          </Locked>
+        ) : (
         <div className="sl-compare">
           <div className="sl-pane">
             <h3 className="sl-pane-t">{TITLES[sort].heat}</h3>
@@ -243,6 +265,7 @@ export default function InsightsGrid({
             )}
           </div>
         </div>
+        )}
       </Group>
 
       <Group title="Providers and method" note="Continuous, independent measurement of whether a model gets worse behind the same API name">
@@ -282,7 +305,13 @@ export default function InsightsGrid({
           <div className="sl-pane">
             <h3 className="sl-pane-t">{TITLES[sort].radar}</h3>
             <p className="sl-pane-sub">{config.subtitle}</p>
-            {!historyReady ? <div className="sl-empty-line">Loading the measurements…</div> : (
+            {locked ? (
+              <div className="sl-lock is-compact">
+                <Locked plan={INSIGHTS_PLAN} title="See what separates the best from the rest" onOpen={unlock}>
+                  The radar lays the top three and bottom three models over every measure.
+                </Locked>
+              </div>
+            ) : !historyReady ? <div className="sl-empty-line">Loading the measurements…</div> : (
               <>
                 <div className="sl-radar">
                   <RadarChart models={radarModels} colors={RADAR_COLORS} modelHistoryData={modelHistoryData}

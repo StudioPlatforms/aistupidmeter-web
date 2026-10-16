@@ -50,9 +50,15 @@ function resolveSelection(searchParams: URLSearchParams, body?: Record<string, u
   return { plan: rawPlan as SellablePlan, interval: rawInterval as Interval } as const;
 }
 
+/** Which upgrade prompt sent this buyer (e.g. "board-insights"); recorded with checkout_started, never trusted for anything else. */
+function sourceOf(searchParams: URLSearchParams): string | null {
+  const v = searchParams.get('from');
+  return v && /^[a-z0-9-]{1,40}$/.test(v) ? v : null;
+}
+
 async function buildSession(
   plan: SellablePlan, interval: Interval, userId: string, userEmail: string, cancelPath: string,
-  existingCustomerId?: string | null,
+  existingCustomerId?: string | null, from?: string | null,
 ) {
   const priceId = priceIdFor(plan, interval);
   if (!priceId) {
@@ -60,7 +66,7 @@ async function buildSession(
   }
 
   const trialDays = await trialDaysFor(priceId);
-  recordActivation(Number(userId), 'checkout_started', plan, { interval, trialDays });
+  recordActivation(Number(userId), 'checkout_started', plan, { interval, trialDays, ...(from ? { from } : {}) });
 
   return stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -106,8 +112,10 @@ function isRouterFetch(request: NextRequest): boolean {
 export async function GET(request: NextRequest) {
   if (isRouterFetch(request)) return new NextResponse(null, { status: 204 });
   try {
-    const sel = resolveSelection(new URL(request.url).searchParams);
+    const params = new URL(request.url).searchParams;
+    const sel = resolveSelection(params);
     if ('error' in sel) return redirectToPath(request, '/pricing?error=unknown_plan');
+    const from = sourceOf(params);
 
     const session = await auth();
     if (!session?.user?.id || !session?.user?.email) {
@@ -119,13 +127,13 @@ export async function GET(request: NextRequest) {
       // request.url carries the internal localhost origin behind nginx, so an absolute URL built
       // from it points nowhere the browser can reach — see lib/safe-redirect.ts. Stripe's
       // success/cancel URLs below must stay absolute; Stripe resolves those from outside.
-      return redirectToPath(request, withReturn('/auth/signup', `/api/stripe/checkout?plan=${sel.plan}&interval=${sel.interval}`));
+      return redirectToPath(request, withReturn('/auth/signup', `/api/stripe/checkout?plan=${sel.plan}&interval=${sel.interval}${from ? `&from=${from}` : ''}`));
     }
 
     const buyer = findUserById(Number(session.user.id));
     const checkoutSession = await buildSession(
       sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
-      buyer?.stripe_customer_id
+      buyer?.stripe_customer_id, from
     );
     return NextResponse.redirect(checkoutSession.url!);
   } catch (error: any) {

@@ -16,7 +16,7 @@ export const money = (n: number) => (Number.isInteger(n)
 /** One-line summary of what a plan is for. */
 export const PITCH: Record<Plan, string> = {
   free: 'The public evidence, plus a watchlist of three models with email alerts and a weekly summary.',
-  pro: 'Full history, the diagnosis behind every change, calibration and substitute analysis, exports and custom alerts.',
+  pro: 'The drift monitor and the full leaderboard analysis, full history, calibration and substitute analysis, exports and custom alerts.',
   developer: 'For running the Smart Router in production: ten times the requests, API monitoring and 30-day decision logs.',
   teams: 'Five editors, each with the full Teams plan, three projects with their own router keys, budgets and spend reports, plus webhooks, single sign-on and an audit trail.',
   enterprise: 'Contracted scope, unlimited seats and requests, 365-day decision logs and invoicing.',
@@ -34,7 +34,8 @@ export function highlights(p: Plan): { lead?: string; items: string[] } {
       `${fmt(e.watchedModels)} tracked models, with email alerts`, `${e.historyDays} days of history`, 'Every category ranking', router, dataApi,
     ] };
     case 'pro': return { lead: 'Everything in Free, plus', items: [
-      `${fmt(e.watchedModels)} tracked models and custom alert thresholds`, 'Full history and the drift diagnosis behind every change',
+      `${fmt(e.watchedModels)} tracked models and custom alert thresholds`, 'The drift monitor, quick answers, heatmap, radar and price-performance',
+      'Full history and the drift diagnosis behind every change',
       'Calibration and cheaper-substitute analysis', 'Context-rot pilot: long-context accuracy up to 1M tokens',
       'Routing analytics and CSV/JSON exports', router, dataApi,
     ] };

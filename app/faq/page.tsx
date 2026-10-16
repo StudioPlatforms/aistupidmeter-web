@@ -102,7 +102,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'free',
         q: 'Is AI Stupid Level free to use?',
-        a: 'Everything needed to judge the models is free. A free account opens all four leaderboards over the last 24 hours, 7 days and 30 days, and adds a watchlist of three models, with email alerts and a weekly summary. Model pages, the methodology and how fresh each measurement is need no account at all.\n\nPaid plans add the newest run the moment it lands (the Latest view), full history, the drift curve and measure breakdown behind an alert, more watched models, exports, custom alert thresholds and team features. The [Data API](/api-docs) has a free tier too, with a key. Subscriptions and paid API tiers help pay for the benchmark runs. No AI vendor pays us anything.',
+        a: 'Everything needed to judge the models is free. A free account opens all four leaderboards over the last 24 hours, 7 days and 30 days, and adds a watchlist of three models, with email alerts and a weekly summary. Model pages, the methodology and how fresh each measurement is need no account at all.\n\nPaid plans add the newest run the moment it lands (the Latest view), the drift monitor and the analysis under the boards (Quick answers, the heatmap, the radar and price-performance), full history, the drift curve and measure breakdown behind an alert, more watched models, exports, custom alert thresholds and team features. The [Data API](/api-docs) has a free tier too, with a key. Subscriptions and paid API tiers help pay for the benchmark runs. No AI vendor pays us anything.',
       },
     ],
   },
@@ -227,7 +227,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'choose',
         q: 'How do I choose the right AI model for my project?',
-        a: 'Start with the board that matches the work: Coding for code changes, Tool use for agents that call tools, Reasoning for long multi-step sessions. Then look at the Quick answers: Most reliable if consistency matters, Fastest response for latency and Best value for cost. Open a model\'s page to see its history, which tasks it loses points on, and whether its drift status is normal. Star the few you depend on, and you will be emailed if one of them drops.',
+        a: 'Start with the board that matches the work: Coding for code changes, Tool use for agents that call tools, Reasoning for long multi-step sessions. On Pro, the Quick answers narrow it further: Most reliable if consistency matters, Fastest response for latency and Best value for cost. Open a model\'s page to see its history, which tasks it loses points on, and whether its drift status is normal. Star the few you depend on, and you will be emailed if one of them drops.',
       },
       {
         id: 'status',

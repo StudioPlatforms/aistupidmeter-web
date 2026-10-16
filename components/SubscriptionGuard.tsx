@@ -188,6 +188,11 @@ const FEATURE_BENEFITS: Record<Capability, Array<{ title: string; description: s
     { title: 'On the board and every model page', description: 'The Latest view on the leaderboard and on each model’s page, next to the 24-hour, 7-day and 30-day views every account has.' },
     { title: 'With the rest of Pro', description: 'Full history, the complete performance matrix, drift curves, calibration and substitution analysis.' },
   ],
+  'board-insights': [
+    { title: 'The drift monitor', description: 'Every model compared with its own past runs, so a model that got worse behind the same name shows up.' },
+    { title: 'Quick answers', description: 'The best model for code, the most reliable, the fastest and the best value, picked from the latest runs.' },
+    { title: 'Heatmap, radar and price-performance', description: 'Every model on every measure of each board, and how much score each one gives you per dollar.' },
+  ],
   governance: [
     { title: 'Single sign-on', description: 'OIDC or SAML against your own identity provider, with domain-based routing.' },
     { title: 'Directory provisioning', description: 'SCIM 2.0, so joiners and leavers are handled by your directory rather than by hand.' },

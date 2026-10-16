@@ -50,7 +50,13 @@ export type Capability =
    * Free accounts and visitors see the 24-hour and 7-day views instead (owner, 2026-10-15): the
    * freshest numbers are what people come back for, so they are what the cheapest plan sells.
    */
-  | 'latest-scores';
+  | 'latest-scores'
+  /**
+   * The analysis around the leaderboard: the Drift monitor view, Quick answers, the benchmark
+   * heatmap, price-performance and the performance radar (owner, 2026-10-16). Free accounts keep
+   * every ranking and the measured problems ("Needs attention"); the analysis is what Pro adds.
+   */
+  | 'board-insights';
 
 /** The lowest plan on the ladder that unlocks each capability. */
 export const REQUIRED_PLAN: Record<Capability, Plan> = {
@@ -75,6 +81,7 @@ export const REQUIRED_PLAN: Record<Capability, Plan> = {
   team: 'teams',
   governance: 'teams',
   'latest-scores': 'pro',
+  'board-insights': 'pro',
 };
 
 /** Human-readable name for a locked surface, used in upgrade copy. */
@@ -90,4 +97,5 @@ export const CAPABILITY_LABEL: Record<Capability, string> = {
   team: 'Shared workspace',
   governance: 'Security and governance',
   'latest-scores': 'Latest benchmark results',
+  'board-insights': 'Leaderboard analysis',
 };

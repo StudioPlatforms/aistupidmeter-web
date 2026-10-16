@@ -18,6 +18,8 @@ interface ControlsBarProps {
   latestAllowed?: boolean;
   /** Draw attention to the drift tab until the visitor has opened it once. */
   nudgeDrift?: boolean;
+  /** The Drift monitor is Pro (lib/capabilities 'board-insights'): mark the tab as it marks Latest. */
+  driftLocked?: boolean;
   /**
    * The sort only means something where one board is shown: the drift monitor and the table
    * layout. The other layouts show all four boards at once, so it is hidden there.
@@ -38,6 +40,7 @@ export default function ControlsBar({
   onModeChange,
   onShowProModal,
   nudgeDrift = false,
+  driftLocked = false,
   showSort = true,
   latestAllowed = true,
   extra,
@@ -167,6 +170,7 @@ export default function ControlsBar({
             onClick={() => onModeChange('drift')}
           >
             Drift monitor
+            {driftLocked && <span className="sb-pro">Pro</span>}
             {nudgeDrift && dashboardMode !== 'drift' && <span className="sb-nudge" aria-hidden="true" />}
           </button>
         </div>
@@ -220,7 +224,7 @@ export default function ControlsBar({
             onChange={(e) => onModeChange(e.target.value as 'leaderboard' | 'drift')}
           >
             <option value="leaderboard">Leaderboard</option>
-            <option value="drift">Drift monitor</option>
+            <option value="drift">Drift monitor{driftLocked ? ' · Pro' : ''}</option>
           </select>
         </label>
       </div>

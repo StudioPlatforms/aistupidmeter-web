@@ -760,3 +760,9 @@
   .st .sl-line.is-hot.sl-trace-line { animation: none; stroke-dashoffset: 0; }
   .st .sl-sbar > i, .st .sl-trust > i, .st .sl-dots span, .st .sl-row, .st .sl-crow2, .st .sl-answer, .st .sl-layout { transition: none; }
 }
+
+/* Pro cards in a pane or a rail (lib/capabilities 'board-insights'): the studio Locked card, tighter. */
+.st .sl-lock { margin-top: 12px; }
+.st .sl-lock.is-compact .st-locked { padding: 22px 16px 20px; gap: 8px; border-radius: 12px; }
+.st .sl-lock.is-compact .st-locked-t { font-size: 17px; }
+.st .sl-lock.is-compact .st-locked-p { font-size: 13.5px; line-height: 1.55; }

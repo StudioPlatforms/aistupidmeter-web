@@ -86,6 +86,9 @@ export default async function HomePage() {
   // 24 hours, and its HTML must not carry the latest numbers either.
   const plan: Plan = isPlan((session.user as any).plan) ? (session.user as any).plan : 'free';
   const latestAllowed = planMeets(plan, REQUIRED_PLAN['latest-scores']);
+  // The analysis around the boards (drift monitor, quick answers, heatmap, radar, price-performance)
+  // is Pro too ('board-insights'); decided here so a paying account never sees a lock flash first.
+  const insightsAllowed = planMeets(plan, REQUIRED_PLAN['board-insights']);
 
   const models = await fetchRankedModels(latestAllowed);
   // The visitor's leaderboard layout, so the first paint is already the one they chose
@@ -196,7 +199,7 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <HomeClient initialLayout={initialLayout} latestAllowed={latestAllowed} />
+      <HomeClient initialLayout={initialLayout} latestAllowed={latestAllowed} insightsAllowed={insightsAllowed} />
     </>
   );
 }

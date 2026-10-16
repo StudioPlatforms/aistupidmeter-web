@@ -9,7 +9,9 @@ import TickerTape from '../components/TickerTape';
 import StupidMeter from '../components/StupidMeter';
 import ProFeatureModal from '../components/ProFeatureModal';
 import StudioPage from '../components/studio/StudioPage';
-import { Loader, Modal } from '../components/studio';
+import { Loader, Modal, Locked } from '../components/studio';
+import { PLANS } from '../lib/entitlements';
+import { REQUIRED_PLAN } from '../lib/capabilities';
 // The page frame (header band, fleet strip, controls, dialogs) and the site chrome: sb-*.
 import '../styles/studio-board.css';
 import OnboardingTour, { ONBOARDING_STORAGE_KEY } from '../components/OnboardingTour';
@@ -159,10 +161,16 @@ function useStickyParam<T extends string>(
   return [value, setValue] as const;
 }
 
-export default function Dashboard({ initialLayout = null, latestAllowed = true }: {
+export default function Dashboard({ initialLayout = null, latestAllowed = true, insightsAllowed = true }: {
   initialLayout?: BoardLayout | null;
   /** Whether this account may see the newest run (the "Latest" period). Decided on the server. */
   latestAllowed?: boolean;
+  /**
+   * Whether this account gets the analysis around the boards (lib/capabilities 'board-insights'):
+   * the Drift monitor view, Quick answers, the heatmap, the radar and price-performance. Decided on
+   * the server; free accounts see each of them as a Pro card instead.
+   */
+  insightsAllowed?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -232,7 +240,8 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
   
   // Pro feature modal state
   const [showProModal, setShowProModal] = useState(false);
-  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'latest-scores'>('historical-data');
+  const [proModalFeature, setProModalFeature] = useState<'historical-data' | 'performance-matrix' | 'latest-scores' | 'board-insights'>('historical-data');
+  const showInsightsPro = () => { setProModalFeature('board-insights'); setShowProModal(true); };
   
   // Session and subscription checking
   const { data: session, status: sessionStatus } = useSession();
@@ -1790,6 +1799,10 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
       /* ignore */
     }
     if (loading || showConsent || showOnboarding || showDriftTour || showChooser || showLayoutTour) return;
+    // A free account sees the view's Pro card, not the grid: four steps about reading a grid they
+    // cannot see would only stand between them and the card. "What am I looking at?" still opens it,
+    // and it shows by itself on their first visit after upgrading (nothing is marked seen here).
+    if (!insightsAllowed) return;
     let seen = true;
     try {
       seen = localStorage.getItem(DRIFT_TOUR_STORAGE_KEY) === 'true';
@@ -1799,7 +1812,7 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
     if (seen) return;
     const t = setTimeout(() => setShowDriftTour(true), 600);
     return () => clearTimeout(t);
-  }, [dashboardMode, loading, showConsent, showOnboarding, showDriftTour, showChooser, showLayoutTour]);
+  }, [dashboardMode, loading, showConsent, showOnboarding, showDriftTour, showChooser, showLayoutTour, insightsAllowed]);
 
   const handleConsentDecision = (accepted: boolean) => {
     try {
@@ -3802,6 +3815,7 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
             }}
             nudgeDrift={nudgeDrift}
             latestAllowed={latestAllowed}
+            driftLocked={!insightsAllowed}
             showSort={dashboardMode === 'drift' || layout === 'table'}
             extra={
               // Share sits at the end of the controls on wider screens, where it used to float
@@ -3830,6 +3844,8 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
         <div className="lbx-page">
           <div className="lbx-fullwidth">{leaderboards}</div>
           <InsightsGrid
+            locked={!insightsAllowed}
+            onUnlock={showInsightsPro}
             recommendations={recommendations}
             degradations={degradations}
             driftIncidents={driftIncidents}
@@ -3847,6 +3863,8 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
       <div className="v4-grid3">
         {/* LEFT PANEL: Intelligence Center (desktop only) */}
         <IntelligencePanel
+          locked={!insightsAllowed}
+          onUnlock={showInsightsPro}
           recommendations={recommendations}
           degradations={degradations}
           providerReliability={providerReliability}
@@ -3898,7 +3916,18 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
                 </button>
               </div>
 
-              {modelScores.length > 0 && (
+              {/* Pro (lib/capabilities 'board-insights'): a free account sees what the view is for,
+                  and a card in place of the grid and the per-model cards. */}
+              {!insightsAllowed ? (
+                <Locked
+                  plan={PLANS[REQUIRED_PLAN['board-insights']].label}
+                  title="See which models have quietly changed"
+                  onOpen={showInsightsPro}
+                >
+                  The drift monitor compares every model with its own past runs, so a model that got
+                  worse behind the same name shows up here.
+                </Locked>
+              ) : modelScores.length > 0 && (
                 <DriftHeatmap
                   models={modelScores.filter(m => typeof m.currentScore === 'number')}
                   period={leaderboardPeriod}
@@ -3910,7 +3939,7 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
                   the fold, saying the same thing as the grid in a form you have to scroll
                   through. They are still here for anyone who wants the per-model view,
                   but they are opt-in now. */}
-              <details className="dmz-details">
+              {insightsAllowed && <details className="dmz-details">
                 <summary>
                   Per-model cards
                   <span className="dmz-details-hint">
@@ -3922,12 +3951,14 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
                     <DriftAwareModelCard key={model.id} model={model} compact={true} showDriftInfo={true} />
                   ))}
                 </div>
-              </details>
+              </details>}
             </div>
           )}
           {/* MOBILE ANALYTICS: show right after leaderboard on mobile (hidden on desktop) */}
           <div className="v4-mobile-analytics">
             <AnalyticsPanel
+              locked={!insightsAllowed}
+              onUnlock={showInsightsPro}
               modelScores={modelScores}
               transparencyMetrics={transparencyMetrics}
               modelHistoryData={modelHistoryData}
@@ -3937,7 +3968,7 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
           </div>
 
           {/* QUICK INFO for mobile/tablet (when side panels hidden) */}
-          <QuickInfo recommendations={recommendations} degradations={degradations} />
+          <QuickInfo recommendations={recommendations} degradations={degradations} locked={!insightsAllowed} onUnlock={showInsightsPro} />
 
           {/* BELOW LEADERBOARD: Transparency + Schedule */}
           <BelowLeaderboard
@@ -3948,6 +3979,8 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true }
 
         {/* RIGHT PANEL: Analytics (desktop sidebar) */}
         <AnalyticsPanel
+          locked={!insightsAllowed}
+          onUnlock={showInsightsPro}
           modelScores={modelScores}
           transparencyMetrics={transparencyMetrics}
           modelHistoryData={modelHistoryData}

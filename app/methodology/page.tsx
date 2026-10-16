@@ -233,10 +233,10 @@ export default async function MethodologyPage() {
           <h3>Around the boards</h3>
           <ul>
             <li><b>Your watchlist</b>, above the boards when signed in: every model you have starred, with its place on each board. Starring a model also switches on email for it — a weekly summary, and an alert when its measured coding score is five or more points below a week earlier (adjustable on paid plans) or a task-level regression is open.</li>
-            <li><b>Needs attention</b>, only when a measured problem exists, and <b>Quick answers</b> — <a href="#quick">how they are picked</a>.</li>
-            <li><b>Compare models</b>: a heatmap of every model&apos;s measures, a radar of the top and bottom three, and a price-performance table (score per dollar of list price), switched between boards by the tabs above them.</li>
+            <li><b>Needs attention</b>, only when a measured problem exists, and <b>Quick answers</b> (Pro) — <a href="#quick">how they are picked</a>.</li>
+            <li><b>Compare models</b> (Pro): a heatmap of every model&apos;s measures, a radar of the top and bottom three, and a price-performance table (score per dollar of list price), switched between boards by the tabs above them.</li>
             <li><b>Providers and method</b>: each provider&apos;s live status from a check every ten minutes, a trust score from its incident history, and the test schedule.</li>
-            <li>The <b>Drift monitor</b> view, next to Leaderboard at the top, compares every model with its own past rather than with the other models.</li>
+            <li>The <b>Drift monitor</b> view (Pro), next to Leaderboard at the top, compares every model with its own past rather than with the other models.</li>
           </ul>
         </RdProse>
       </RdSection>

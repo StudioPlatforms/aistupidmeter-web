@@ -9,11 +9,17 @@
  * "avoid now" held models that were merely priced above $3 per 1M tokens.
  */
 
+import { Locked } from '../studio';
+import { PLANS } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
 import '../../styles/studio-boards.css';
 
 interface QuickInfoProps {
   recommendations: any;
   degradations?: any[];
+  /** A free account (lib/capabilities 'board-insights'): a Pro card instead of the answers. */
+  locked?: boolean;
+  onUnlock?: () => void;
 }
 
 function formatModelName(item: any): string {
@@ -28,7 +34,19 @@ function formatModelName(item: any): string {
 type Tone = 'good' | 'warn' | 'bad';
 type Card = { label: string; value: string; detail: string; tone: Tone; muted?: boolean };
 
-export default function QuickInfo({ recommendations, degradations }: QuickInfoProps) {
+export default function QuickInfo({ recommendations, degradations, locked = false, onUnlock }: QuickInfoProps) {
+  if (locked) {
+    return (
+      <section className="v4-quick-info sl-pane st-up" aria-label="Quick recommendations">
+        <h3 className="sl-pane-t">Quick recommendations</h3>
+        <div className="sl-lock is-compact">
+          <Locked plan={PLANS[REQUIRED_PLAN['board-insights']].label} title="Which model should you use right now?" onOpen={onUnlock ?? (() => {})}>
+            The best model for code, the most reliable, the fastest and the best value, from the latest runs.
+          </Locked>
+        </div>
+      </section>
+    );
+  }
   if (!recommendations) return null;
 
   const items: Card[] = [];

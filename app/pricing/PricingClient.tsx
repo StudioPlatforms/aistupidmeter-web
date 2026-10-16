@@ -50,6 +50,8 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
     { label: 'Tracked models',        get: p => fmt(PLANS[p].watchedModels), note: 'Email alerts when one drops, and a weekly summary' },
     { label: 'Comparable history',    get: p => PLANS[p].historyDays === null ? 'Full history' : `${PLANS[p].historyDays} days` },
     { label: 'Category rankings',     get: p => PLANS[p].categorySorts ? 'Yes' : '—', note: 'Coding, reasoning, tool-calling and price sorts' },
+    { label: 'Leaderboard analysis',  get: p => planMeets(p, REQUIRED_PLAN['board-insights']) ? 'Yes' : '—',
+      note: 'The drift monitor, quick answers, benchmark heatmap, performance radar and price-performance' },
     { label: 'Calibration & known-unknowns', get: p => planMeets(p, REQUIRED_PLAN.calibration) ? 'Yes' : '—',
       note: 'Per model: how often it invents an answer to a question that has none, and whether its stated confidence is worth anything' },
     { label: 'Cheaper substitutes',   get: p => planMeets(p, REQUIRED_PLAN.substitutes) ? 'Yes' : '—',

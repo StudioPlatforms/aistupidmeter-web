@@ -4,6 +4,9 @@ import { ENTRY_PAID_PLAN, ROUTER_PLAN, planName, monthly } from '@/lib/pricing-d
 
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { checkoutHref } from '@/lib/checkout-url';
+import { withReturn } from '@/lib/return-path';
 import Modal from './studio/Modal';
 import '../styles/studio-board.css';
 
@@ -19,7 +22,7 @@ function Tick() {
 interface ProFeatureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot' | 'latest-scores';
+  feature: 'historical-data' | 'performance-matrix' | 'api-monitoring' | 'drift-cusum' | 'calibration' | 'substitutes' | 'context-rot' | 'latest-scores' | 'board-insights';
 }
 
 export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeatureModalProps) {
@@ -27,6 +30,17 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
   const { data: session } = useSession();
 
   const featureDetails = {
+    'board-insights': {
+      title: 'Unlock the full leaderboard analysis',
+      description: 'Your free account shows every ranking over the last 24 hours, 7 days and 30 days. Pro adds the analysis around them: which models have quietly changed, which one to pick for each job, and what each one gives you for the money.',
+      benefits: [
+        'The drift monitor: every model compared with its own past runs',
+        'Quick answers: the best model for code, the most reliable, the fastest and the best value',
+        'The benchmark heatmap and performance radar: every model on every measure',
+        'Price-performance: how much score each model gives you per dollar',
+        'Plus the Latest scores, full history, calibration and cheaper-substitute analysis',
+      ],
+    },
     'latest-scores': {
       title: 'See the latest scores, as they land',
       description: 'Your free account shows each model’s averages over the last 24 hours, 7 days and 30 days. Pro shows the newest benchmark run the moment it finishes — the number to check before you deploy, switch models or chase a regression.',
@@ -120,8 +134,16 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
    */
   const unlockedBy = feature === 'api-monitoring' ? ROUTER_PLAN : ENTRY_PAID_PLAN;
 
+  // Straight to Stripe for the plan quoted below, with its free trial, rather than via /pricing:
+  // the button says "Start your free trial", so it starts one. `from` records which locked feature
+  // sold it (activation_events detail). Without an account, sign-up comes first and then continues
+  // to the same checkout (lib/return-path).
+  const sellable = unlockedBy === 'pro' || unlockedBy === 'developer' || unlockedBy === 'teams';
+  const trialHref = sellable ? `${checkoutHref(unlockedBy, 'monthly')}&from=${feature}` : '/pricing';
   const handleUpgrade = () => {
-    router.push(session ? '/pricing' : '/auth/signup');
+    if (!session) { router.push(withReturn('/auth/signup', trialHref)); return; }
+    // A full navigation: the route answers with a redirect to Stripe, not a page.
+    window.location.href = trialHref;
   };
 
   // The studio dialog (components/studio Modal): Escape and the backdrop close it, focus moves in
@@ -164,6 +186,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
           <b>{monthly(unlockedBy)}<span>{planName(unlockedBy)}</span></b>
           <small>Free trial · cancel anytime · a card is collected at checkout</small>
         </div>
+        <Link href="/pricing" className="st-more sb-pf-compare" onClick={onClose}>Compare all plans</Link>
       </div>
     </Modal>
   );

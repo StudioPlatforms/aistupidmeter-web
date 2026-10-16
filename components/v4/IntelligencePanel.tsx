@@ -8,6 +8,9 @@ import { SAVINGS_PCT } from '@/lib/savings-estimate';
 import { useSession } from 'next-auth/react';
 import { isVolatile } from '../../lib/fleet-buckets';
 import ProviderLogo from '../ProviderLogo';
+import { Locked } from '../studio';
+import { PLANS } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
 import '../../styles/studio-boards.css';
 
 interface IntelligencePanelProps {
@@ -16,6 +19,9 @@ interface IntelligencePanelProps {
   providerReliability: any[];
   modelScores: any[];
   driftIncidents: any[];
+  /** A free account (lib/capabilities 'board-insights'): the recommendations become a Pro card. */
+  locked?: boolean;
+  onUnlock?: () => void;
 }
 
 // Ids whose public name is not their formatted id. DeepSeek retired V4 Flash: requests to
@@ -55,6 +61,8 @@ export default function IntelligencePanel({
   providerReliability,
   modelScores,
   driftIncidents,
+  locked = false,
+  onUnlock,
 }: IntelligencePanelProps) {
   const { data: session } = useSession();
 
@@ -76,6 +84,13 @@ export default function IntelligencePanel({
       {/* Recommendations */}
       <section className="sl-pane st-up" aria-label="Smart recommendations">
         <h3 className="sl-pane-t">Smart recommendations</h3>
+        {locked ? (
+          <div className="sl-lock is-compact">
+            <Locked plan={PLANS[REQUIRED_PLAN['board-insights']].label} title="Which model should you use right now?" onOpen={onUnlock ?? (() => {})}>
+              The best model for code, the most reliable, the fastest and the best value, from the latest runs.
+            </Locked>
+          </div>
+        ) : (
         <div className="sl-reco">
           {recoItems.length > 0 ? (
             recoItems.map((item, i) => (
@@ -95,6 +110,7 @@ export default function IntelligencePanel({
             <p className="sl-pane-sub">Loading recommendations…</p>
           )}
         </div>
+        )}
       </section>
 
       {/* Active Degradations */}

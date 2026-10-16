@@ -7,6 +7,9 @@ import React from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { getModelPricing } from '../../lib/model-pricing';
+import { PLANS } from '@/lib/entitlements';
+import { REQUIRED_PLAN } from '@/lib/capabilities';
+import { Locked } from '../studio';
 import '../../styles/studio-boards.css';
 
 interface AnalyticsPanelProps {
@@ -15,6 +18,9 @@ interface AnalyticsPanelProps {
   modelHistoryData: Map<string, any[]>;
   leaderboardSortBy: string;
   leaderboardPeriod: string;
+  /** A free account (lib/capabilities 'board-insights'): radar, heatmap and prices become one Pro card. */
+  locked?: boolean;
+  onUnlock?: () => void;
 }
 
 // Combined/Speed benchmark: 9 axes (suite=combined & suite=hourly)
@@ -178,6 +184,8 @@ export default function AnalyticsPanel({
   modelHistoryData,
   leaderboardSortBy,
   leaderboardPeriod,
+  locked = false,
+  onUnlock,
 }: AnalyticsPanelProps) {
   const { data: session } = useSession();
   const available = modelScores.filter(m => typeof m.currentScore === 'number' && m.currentScore > 0);
@@ -219,6 +227,15 @@ export default function AnalyticsPanel({
         <span className="st-tag is-accent">{periodLabel}</span>
       </div>
 
+      {locked ? (
+        <section className="sl-pane st-up" aria-label="Analytics">
+          <div className="sl-lock is-compact">
+            <Locked plan={PLANS[REQUIRED_PLAN['board-insights']].label} title="Compare every model on every measure" onOpen={onUnlock ?? (() => {})}>
+              The performance radar, the benchmark heatmap and price-performance for every model, on every board.
+            </Locked>
+          </div>
+        </section>
+      ) : (<>
       {/* Radar Chart — adapts title/subtitle per mode */}
       <section className="sl-pane st-up" aria-label={config.title}>
         <h3 className="sl-pane-t">{config.title}</h3>
@@ -395,6 +412,8 @@ export default function AnalyticsPanel({
           })}
         </div>
       </section>
+
+      </>)}
 
       {/* Signed-out readers go to /pricing; /router is behind auth. */}
       <Link href={session ? '/router' : '/pricing'} className="sl-cta st-up">

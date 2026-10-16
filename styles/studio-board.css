@@ -426,6 +426,7 @@
 .st .sb-pf-price { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 14px 16px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-sunk); }
 .st .sb-pf-price b { font-family: var(--lp-font-disp); font-size: 28px; font-weight: 700; letter-spacing: -.035em; line-height: 1; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
 .st .sb-pf-price b span { margin-left: 8px; font-family: var(--lp-font-body); font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--lp-fg2); }
+.st .sb-pf-compare { display: inline-flex; margin-top: 12px; }
 .st .sb-pf-price small { font-size: 12.5px; line-height: 1.5; color: var(--lp-fg3); }
 .st .sb-pf-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; width: 100%; }
 .st .sb-pf-foot .sb-pf-later { margin-right: auto; }
