@@ -13,6 +13,7 @@ import {
   verifyUserEmail
 } from './lib/db-client';
 import { sendWelcomeEmail } from './lib/email-service';
+import { recordActivation } from './lib/activation';
 import { consumeTicket, ssoRequiredFor } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
 import { withWorkspace, workspaceFor } from './lib/workspace-plan';
@@ -42,6 +43,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      // GitHub now names itself in the callback (RFC 9207: iss=https://github.com/login/oauth).
+      // Without an issuer here Auth.js compares that against its placeholder and rejects every
+      // GitHub sign-in as "unexpected iss" (error=Configuration); no GitHub account was created
+      // after 16 Aug 2026 until this was set on 16 Oct.
+      issuer: 'https://github.com/login/oauth',
     }),
     Credentials({
       name: 'credentials',
@@ -182,6 +188,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               user.image || undefined
             );
             console.log('[AUTH] User created successfully', { userId: dbUser.id });
+            // Same funnel entry as a password sign-up; without it Google and GitHub accounts
+            // (most new ones) never appeared in activation_events.
+            recordActivation(dbUser.id, 'account_created', 'free', { via: provider });
             // Welcome mail for Google and GitHub sign-ups too. No confirmation link: the
             // provider has already verified the address. Fire-and-forget, like the
             // password sign-up's: a mail failure must never block a sign-in.
