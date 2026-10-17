@@ -8,6 +8,7 @@ import { SAVINGS_PCT } from '@/lib/savings-estimate';
 import { useSession } from 'next-auth/react';
 import { isVolatile } from '../../lib/fleet-buckets';
 import ProviderLogo from '../ProviderLogo';
+import { openIncidents, providerIncidentLabel } from '@/lib/incidents';
 import { Locked } from '../studio';
 import { PLANS } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
@@ -385,12 +386,13 @@ export function buildActivityItems(degradations: any[], modelScores: any[], drif
     .filter(m => m.trend === 'stable' && typeof m.currentScore === 'number' && m.currentScore >= 80)
     .slice(0, 2)
     .forEach(m => items.push({ time: formatTimeAgo(m.lastUpdated), tone: 'good', model: getCompactName(m.name), text: 'stable', value: m.currentScore }));
-  (driftIncidents || []).slice(0, 2).forEach((inc: any) => {
+  openIncidents(driftIncidents).slice(0, 2).forEach((inc: any) => {
+    const provider = providerIncidentLabel(inc);
     items.push({
       time: inc.detectedAt ? formatTimeAgo(inc.detectedAt) : 'recent',
       tone: 'info',
-      model: getCompactName(inc.modelName || 'Model'),
-      text: inc.type || 'drift detected',
+      model: provider ?? getCompactName(inc.modelName || 'Model'),
+      text: provider ? 'provider-wide drift' : inc.type || 'drift detected',
     });
   });
   return items;

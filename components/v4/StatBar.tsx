@@ -6,6 +6,7 @@ import { bucketOf, fleetTrend, VOLATILE_STANDARD_ERROR } from '../../lib/fleet-b
 import StatCellDetail, { DetailEntry, type StatCellClasses } from './StatCellDetail';
 import CountUp from '../studio/CountUp';
 import '../../styles/studio-board.css';
+import { incidentsLast24h, isProviderIncident, providerIncidentLabel } from '@/lib/incidents';
 
 interface StatBarProps {
   globalIndex: any;
@@ -99,9 +100,11 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
   }, [modelScores]);
 
   const nameOf = useMemo(() => new Map(modelScores.map(m => [m.name, modelLabel(m)])), [modelScores]);
-  const incidentEntries: DetailEntry[] = (driftIncidents ?? []).map((i: any) => ({
-    label: nameOf.get(i.modelName ?? i.model_name) ?? i.modelName ?? i.model_name ?? 'unknown model',
-    note: providerLabel(i.provider),
+  // The label says "last 24h": the page loads seven days, resolved ones included (lib/incidents).
+  const recentIncidents = incidentsLast24h(driftIncidents);
+  const incidentEntries: DetailEntry[] = recentIncidents.map((i: any) => ({
+    label: providerIncidentLabel(i) ?? nameOf.get(i.modelName ?? i.model_name) ?? i.modelName ?? i.model_name ?? 'unknown model',
+    note: isProviderIncident(i) ? 'Provider-wide' : providerLabel(i.provider),
     value: i.severity ?? null,
   }));
 
@@ -157,7 +160,7 @@ export default function StatBar({ globalIndex, modelScores, driftIncidents }: St
   // no score at all is a dash, not a warning.
   const indexTone = !globalScore || globalScore >= 70 ? undefined : globalScore >= 50 ? 'warn' : 'bad';
   const trendTone = globalTrend === 'improving' ? ' is-good' : globalTrend === 'declining' ? ' is-bad' : '';
-  const incidents = driftIncidents?.length || 0;
+  const incidents = recentIncidents.length;
 
   return (
     // The wrapper only draws the phone strip's "more this way" fade and chevron; the card is .sb-stats.

@@ -1,6 +1,7 @@
 'use client';
 
 import { isVolatile, VOLATILE_STANDARD_ERROR } from '../../lib/fleet-buckets';
+import { isProviderIncident, openIncidents } from '@/lib/incidents';
 
 import { useRouter } from 'next/navigation';
 import WatchStar from '../WatchStar';
@@ -347,10 +348,11 @@ export default function V4Leaderboard({
         const usesReasoning = model.usesReasoningEffort;
 
         // Check for incidents
-        const hasIncident = driftIncidents.some((inc: any) =>
+        // Open model incidents only: a provider-wide one is filed under the first model it lists.
+        const hasIncident = openIncidents(driftIncidents).some((inc: any) => !isProviderIncident(inc) && (
           inc.modelName?.toLowerCase() === model.name.toLowerCase() ||
           inc.modelId === parseInt(model.id)
-        );
+        ));
 
         // HONEST ABSENCE. A row can now carry a score that is real but incomplete (a suite
         // was skipped and the rest were reweighted), stale, or too old to rank. Each of
