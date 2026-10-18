@@ -108,23 +108,23 @@ const STEPS: Record<BoardLayout, TourStep[]> = {
       icon: ICON.people,
     },
   ],
-  top: [
+  simple: [
     {
-      eyebrow: 'Reading the boards',
-      title: 'The top five of every board',
+      eyebrow: 'Reading the list',
+      title: 'One board, best at the top',
       body: [
-        'The four cards show the first five on Combined, Coding, Reasoning and Tool use. “See all” opens that board in full underneath, where the tabs switch between boards.',
-        'Click any model for its full history.',
+        'Pick a tab: Overall, Coding, Reasoning or Using tools. Each model has its place, a score out of 100 (higher is better) and a bar to compare at a glance.',
+        'The coloured word says how good that score is (Excellent, Good, Fair or Weak), and the second one says which way it is moving: Steady, Getting better or Getting worse. Click any model for its full history.',
       ],
       icon: ICON.board,
     },
     {
-      eyebrow: 'Ties and the community strip',
-      title: 'What “=”, amber notes and the strip mean',
+      eyebrow: 'Shared places and notes',
+      title: 'Why two models can share a place',
       body: [
-        TIES,
+        'Models with the same number are too close to call apart: the gap between them is smaller than our own measuring error.',
         COVERAGE,
-        'The strip under the cards holds the community-funded models: their coding scores, which we still measure every four hours, their last funded reasoning and tool-use results, and a button to fund the next run.',
+        'The first ten are shown; “Show all” lists the rest, and any model without enough recent results to rank.',
       ],
       icon: ICON.people,
     },

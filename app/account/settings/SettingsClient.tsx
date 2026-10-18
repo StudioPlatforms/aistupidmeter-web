@@ -18,7 +18,7 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { PLANS, isPlan, type Plan } from '@/lib/entitlements';
 import {
-  BOARD_LAYOUTS, DEFAULT_LAYOUT, LAYOUT_INFO, isBoardLayout, markLayoutTourPending,
+  BOARD_LAYOUTS, DEFAULT_LAYOUT, LAYOUT_INFO, toBoardLayout, markLayoutTourPending,
   readLayoutCookie, writeLayoutCookie, type BoardLayout,
 } from '@/lib/board-layout';
 import { LayoutSketch } from '@/components/boards/LayoutChooser';
@@ -212,7 +212,7 @@ export default function SettingsClient() {
       if (p?.success) setPrefs(p.data);
       if (w?.success) setModels(w.data.models ?? []);
       const saved = u?.data?.leaderboardLayout;
-      setLayout(isBoardLayout(saved) ? saved : (readLayoutCookie() ?? DEFAULT_LAYOUT));
+      setLayout(toBoardLayout(saved) ?? readLayoutCookie() ?? DEFAULT_LAYOUT);
     }).finally(() => setLoading(false));
   }, [status]);
 

@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { slugifyModelName } from '../lib/model-slug';
 import { cookies } from 'next/headers';
 import HomeClient from './HomeClient';
-import { LAYOUT_COOKIE, isBoardLayout } from '../lib/board-layout';
+import { LAYOUT_COOKIE, toBoardLayout, type BoardLayout } from '../lib/board-layout';
+import { openIdentityDb } from '@/lib/identity-db';
 import { auth } from '@/auth';
 import Landing from '@/components/landing/Landing';
 import { isPlan, planMeets, type Plan } from '@/lib/entitlements';
@@ -76,6 +77,22 @@ const srOnly: React.CSSProperties = {
   border: 0,
 };
 
+/** The layout saved to this account (ui_preferences, written through the API), or null. */
+function savedLayout(userId: number): BoardLayout | null {
+  if (!Number.isFinite(userId)) return null;
+  let db: ReturnType<typeof openIdentityDb> | null = null;
+  try {
+    db = openIdentityDb();
+    const row = db.prepare('SELECT leaderboard_layout FROM ui_preferences WHERE user_id = ?')
+      .get(userId) as { leaderboard_layout: string | null } | undefined;
+    return toBoardLayout(row?.leaderboard_layout);
+  } catch {
+    return null; // table missing or DB busy: the client asks the API as before
+  } finally {
+    db?.close();
+  }
+}
+
 export default async function HomePage() {
   // The leaderboard is for signed-in accounts; everyone else, crawlers included, gets the landing
   // page (components/landing). A session check that fails counts as signed out.
@@ -93,8 +110,12 @@ export default async function HomePage() {
   const models = await fetchRankedModels(latestAllowed);
   // The visitor's leaderboard layout, so the first paint is already the one they chose
   // (lib/board-layout.ts). This page is rendered per request anyway (force-dynamic).
-  const layoutCookie = cookies().get(LAYOUT_COOKIE)?.value;
-  const initialLayout = isBoardLayout(layoutCookie) ? layoutCookie : null;
+  // Only a layout saved to the ACCOUNT counts as chosen: an account without one gets the layout
+  // chooser on its first visit, whatever this browser's cookie says (owner, 2026-10-18; before,
+  // a cookie from an earlier visit silently became a new account's choice and it never saw the
+  // chooser). The cookie still decides which layout the chooser starts on.
+  const initialLayout = savedLayout(Number((session.user as any).id));
+  const suggestedLayout = toBoardLayout(cookies().get(LAYOUT_COOKIE)?.value);
 
   const ranked = models
     .filter((m) => m && m.name)
@@ -199,7 +220,7 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <HomeClient initialLayout={initialLayout} latestAllowed={latestAllowed} insightsAllowed={insightsAllowed} />
+      <HomeClient initialLayout={initialLayout} suggestedLayout={suggestedLayout} latestAllowed={latestAllowed} insightsAllowed={insightsAllowed} />
     </>
   );
 }

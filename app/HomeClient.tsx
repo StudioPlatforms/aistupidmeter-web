@@ -22,7 +22,7 @@ import InsightsGrid from '../components/insights/InsightsGrid';
 import LayoutChooser from '../components/boards/LayoutChooser';
 import { LayoutTour } from '../components/boards/layout-tour';
 import {
-  DEFAULT_LAYOUT, LAYOUT_TOUR_PENDING_KEY, isBoardLayout, markLayoutTourPending,
+  DEFAULT_LAYOUT, LAYOUT_TOUR_PENDING_KEY, toBoardLayout, markLayoutTourPending,
   readLayoutCookie, writeLayoutCookie, type BoardLayout,
 } from '../lib/board-layout';
 import { useMinWidth } from '../lib/use-boards';
@@ -161,8 +161,11 @@ function useStickyParam<T extends string>(
   return [value, setValue] as const;
 }
 
-export default function Dashboard({ initialLayout = null, latestAllowed = true, insightsAllowed = true }: {
+export default function Dashboard({ initialLayout = null, suggestedLayout = null, latestAllowed = true, insightsAllowed = true }: {
+  /** The layout saved to the account; null means it has never chosen one, so the chooser opens. */
   initialLayout?: BoardLayout | null;
+  /** This browser's last layout (cookie): where the chooser starts when the account has none. */
+  suggestedLayout?: BoardLayout | null;
   /** Whether this account may see the newest run (the "Latest" period). Decided on the server. */
   latestAllowed?: boolean;
   /**
@@ -276,7 +279,7 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true, 
    * Signed in, the account wins and the cookie mirrors it; a choice made before signing up
    * is copied into the account the first time we see the session.
    */
-  const [layout, setLayout] = useState<BoardLayout>(initialLayout ?? DEFAULT_LAYOUT);
+  const [layout, setLayout] = useState<BoardLayout>(initialLayout ?? suggestedLayout ?? DEFAULT_LAYOUT);
   const [layoutChosen, setLayoutChosen] = useState<boolean>(!!initialLayout);
   const [layoutAccountChecked, setLayoutAccountChecked] = useState(false);
   const [showChooser, setShowChooser] = useState(false);
@@ -1692,21 +1695,14 @@ export default function Dashboard({ initialLayout = null, latestAllowed = true, 
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        const saved = d?.data?.leaderboardLayout;
-        if (isBoardLayout(saved)) {
+        const saved = toBoardLayout(d?.data?.leaderboardLayout);
+        if (saved) {
           setLayout(saved);
           setLayoutChosen(true);
           writeLayoutCookie(saved);
-        } else {
-          // Chose before signing up: keep that choice with the new account.
-          const local = readLayoutCookie();
-          if (local) {
-            fetch('/api/account/ui-preferences', {
-              method: 'PUT', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ leaderboardLayout: local }),
-            }).catch(() => {});
-          }
         }
+        // No layout on the account: the chooser opens (it starts on this browser's last one),
+        // and the choice made there is saved to the account. Nothing is copied silently.
       })
       .catch(() => { /* offline or API down: this browser's choice stands */ })
       .finally(() => { if (!cancelled) setLayoutAccountChecked(true); });

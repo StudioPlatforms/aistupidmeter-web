@@ -766,3 +766,52 @@
 .st .sl-lock.is-compact .st-locked { padding: 22px 16px 20px; gap: 8px; border-radius: 12px; }
 .st .sl-lock.is-compact .st-locked-t { font-size: 17px; }
 .st .sl-lock.is-compact .st-locked-p { font-size: 13.5px; line-height: 1.55; }
+
+/* ── Layout "Simple" (components/boards/LayoutSimple.tsx): one board, plain words, large type ── */
+.st .sl-simple { display: grid; gap: 14px; }
+.st .sl-simple-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.st .sl-simple-lead { margin: 0; font-size: 16px; line-height: 1.5; color: var(--lp-fg); font-weight: 500; }
+.st .sl-simple-about { margin: -4px 0 0; font-size: 14px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sl-simple-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.st .sl-simple-row { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1.4fr) 92px minmax(120px, 1fr) auto; align-items: center; column-gap: 16px;
+  min-height: 64px; padding: 10px 18px 10px 12px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); transition: border-color .18s, box-shadow .18s; }
+.st .sl-simple-row:hover { border-color: color-mix(in srgb, var(--lp-accent) 40%, var(--lp-line)); box-shadow: var(--lp-shadow-1); }
+.st .sl-simple-row.is-first { border-color: color-mix(in srgb, var(--lp-accent) 45%, var(--lp-line)); background: color-mix(in srgb, var(--lp-accent-bg) 45%, var(--lp-card)); }
+.st .sl-simple-rank { justify-self: center; font-family: var(--lp-font-disp); font-size: 22px; font-weight: 700; color: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+.st .sl-simple-row.is-first .sl-simple-rank { color: var(--lp-accent); }
+.st .sl-simple-model { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.st .sl-simple-model .sl-star { position: relative; z-index: 1; }
+.st .sl-simple-name { display: grid; min-width: 0; }
+.st .sl-simple-name .sl-name { font-size: 16px; }
+.st .sl-simple-score { display: flex; align-items: baseline; gap: 2px; justify-content: flex-end; font-variant-numeric: tabular-nums; }
+.st .sl-simple-score b { font-family: var(--lp-font-disp); font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--lp-fg); }
+.st .sl-simple-score small { font-size: 13px; color: var(--lp-fg3); }
+.st .sl-simple-bar { display: block; height: 8px; border-radius: 999px; background: var(--lp-sunk); overflow: hidden; }
+.st .sl-simple-bar i { display: block; height: 100%; border-radius: inherit; background: var(--lp-accent); }
+.st .sl-simple-tags { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.st .sl-simple-verdict, .st .sl-simple-trend { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.st .sl-simple-verdict.is-top { background: var(--lp-good-bg); color: var(--lp-good); }
+.st .sl-simple-verdict.is-good { background: var(--lp-accent-bg); color: var(--lp-accent); }
+.st .sl-simple-verdict.is-fair { background: var(--lp-warn-bg); color: var(--lp-warn); }
+.st .sl-simple-verdict.is-weak { background: var(--lp-bad-bg); color: var(--lp-bad); }
+.st .sl-simple-trend { border: 1px solid var(--lp-line); color: var(--lp-fg2); }
+.st .sl-simple-trend.is-up { border-color: color-mix(in srgb, var(--lp-good) 40%, var(--lp-line)); color: var(--lp-good); }
+.st .sl-simple-trend.is-down { border-color: color-mix(in srgb, var(--lp-bad) 40%, var(--lp-line)); color: var(--lp-bad); }
+.st .sl-simple-more { justify-self: center; }
+.st .sl-simple-unranked { padding: 14px 16px; border: 1px dashed var(--lp-line2); border-radius: 14px; }
+.st .sl-simple-unranked h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--lp-fg); }
+.st .sl-simple-unranked p { margin: 4px 0 10px; font-size: 13.5px; color: var(--lp-fg2); }
+.st .sl-simple-unranked ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.st .sl-simple-unranked li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.st .sl-simple-when { margin-left: auto; font-size: 13px; color: var(--lp-fg3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+  .st .sl-simple-row { grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: 'rank model score' 'rank bar bar' 'rank tags tags';
+    row-gap: 8px; column-gap: 12px; padding: 12px 14px 12px 8px; }
+  .st .sl-simple-rank { grid-area: rank; align-self: start; padding-top: 4px; font-size: 19px; }
+  .st .sl-simple-model { grid-area: model; }
+  .st .sl-simple-score { grid-area: score; }
+  .st .sl-simple-bar { grid-area: bar; }
+  .st .sl-simple-tags { grid-area: tags; justify-content: flex-start; }
+  .st .sl-simple-lead { font-size: 15px; }
+  .st .sl-simple-name .sl-name { white-space: normal; }
+}

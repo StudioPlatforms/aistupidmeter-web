@@ -8,7 +8,7 @@ import { LayoutSketch } from './LayoutChooser';
 import LayoutConnected from './LayoutConnected';
 import LayoutSide from './LayoutSide';
 import LayoutTable from './LayoutTable';
-import LayoutTop from './LayoutTop';
+import LayoutSimple from './LayoutSimple';
 import WatchlistCard from './WatchlistCard';
 import '../../styles/boards.css';
 import '../../styles/studio-boards.css';
@@ -73,7 +73,7 @@ export default function Leaderboards({ layout, period, sortKey, onSortChange, on
           ) : layout === 'table' ? (
             <LayoutTable boards={boards} sortKey={sortKey} onSortChange={onSortChange} />
           ) : (
-            <LayoutTop boards={boards} sortKey={sortKey} onSortChange={onSortChange} />
+            <LayoutSimple boards={boards} sortKey={sortKey} onSortChange={onSortChange} />
           )}
         </div>
       )}

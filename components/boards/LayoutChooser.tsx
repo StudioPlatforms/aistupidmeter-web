@@ -52,16 +52,17 @@ export function LayoutSketch({ layout }: { layout: BoardLayout }) {
           ))}
         </>
       )}
-      {layout === 'top' && (
+      {layout === 'simple' && (
         <>
-          {cols.map((x, c) => (
-            <g key={c}>
-              <rect x={x - 2} y="4" width="26" height="30" rx="3" className="lbx-sk-card" />
-              {[0, 1, 2].map((r) => bar(x + 2, 10 + r * 8, 18, `${c}-${r}`, r === 0))}
+          {[0, 1, 2, 3].map((r) => (
+            <g key={r}>
+              <rect x="4" y={4 + r * 15} width="112" height="12" rx="3" className="lbx-sk-card" />
+              {bar(9, 8.5 + r * 15, 6, `rk${r}`, r === 0)}
+              {bar(20, 8.5 + r * 15, 26, `nm${r}`)}
+              {bar(54, 8.5 + r * 15, 34 - r * 5, `br${r}`, true)}
+              {bar(96, 8.5 + r * 15, 14, `tg${r}`)}
             </g>
           ))}
-          <rect x="2" y="40" width="116" height="20" rx="3" className="lbx-sk-card lbx-sk-card--soft" />
-          {[8, 36, 64, 92].map((x, i) => bar(x, 49, 20, `st${i}`))}
         </>
       )}
     </svg>

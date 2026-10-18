@@ -5,7 +5,8 @@
  *   connected — four columns, a line joining each model across them (the default)
  *   side      — four full boards next to each other
  *   table     — one table, a row per model with all four scores
- *   top       — the top five of each board, then the full board underneath
+ *   simple    — one board at a time in plain words (replaced "top", the top five of each board, on
+ *               2026-10-18; a saved "top" reads as "simple" — see toBoardLayout)
  *
  * WHERE THE CHOICE LIVES
  * A cookie (`asl_lb_layout`), for everyone. The home page is rendered per request, so the
@@ -19,9 +20,10 @@
  * picked something, so it is a functional preference, not tracking.
  */
 
-export type BoardLayout = 'connected' | 'side' | 'table' | 'top';
+export type BoardLayout = 'simple' | 'connected' | 'side' | 'table';
 
-export const BOARD_LAYOUTS: BoardLayout[] = ['connected', 'side', 'table', 'top'];
+/** In the order the chooser and Settings offer them: the easiest to read first. */
+export const BOARD_LAYOUTS: BoardLayout[] = ['simple', 'connected', 'side', 'table'];
 export const DEFAULT_LAYOUT: BoardLayout = 'connected';
 export const LAYOUT_COOKIE = 'asl_lb_layout';
 
@@ -41,9 +43,9 @@ export const LAYOUT_INFO: Record<BoardLayout, { name: string; description: strin
     name: 'Table',
     description: 'One table, one row per model, with all four scores and ranks in the row.',
   },
-  top: {
-    name: 'Top 5',
-    description: 'The top five of every board at a glance, with the full ranking underneath.',
+  simple: {
+    name: 'Simple',
+    description: 'The easiest to read: one board at a time, every model with a score out of 100 and a word for how good it is.',
   },
 };
 
@@ -51,12 +53,18 @@ export function isBoardLayout(v: unknown): v is BoardLayout {
   return typeof v === 'string' && (BOARD_LAYOUTS as string[]).includes(v);
 }
 
+/** A stored layout (cookie or account), or null. "top" was retired for "simple" on 2026-10-18. */
+export function toBoardLayout(v: unknown): BoardLayout | null {
+  if (v === 'top') return 'simple';
+  return isBoardLayout(v) ? v : null;
+}
+
 /** Client only. */
 export function readLayoutCookie(): BoardLayout | null {
   if (typeof document === 'undefined') return null;
   const m = document.cookie.match(/(?:^|;\s*)asl_lb_layout=([^;]+)/);
   const v = m ? decodeURIComponent(m[1]) : null;
-  return isBoardLayout(v) ? v : null;
+  return toBoardLayout(v);
 }
 
 /** Client only. One year; Lax so it rides along on a normal visit from a link. */
