@@ -58,8 +58,22 @@ async function proxyRequest(
     if (method !== 'GET' && method !== 'HEAD') {
       const contentType = request.headers.get('content-type');
       if (contentType?.includes('application/json')) {
-        headers['Content-Type'] = 'application/json';
-        body = JSON.stringify(await request.json());
+        // A JSON content type with an empty body is "no body", and a body that is not JSON is the
+        // caller's mistake (400). request.json() threw on both, which surfaced as a 500
+        // ("Unexpected end of JSON input"), found by the 2026-10-19 end-to-end router test.
+        const text = await request.text();
+        if (text.trim()) {
+          try {
+            JSON.parse(text);
+          } catch {
+            return NextResponse.json(
+              { error: 'Invalid JSON', message: 'The request body is not valid JSON' },
+              { status: 400 }
+            );
+          }
+          headers['Content-Type'] = 'application/json';
+          body = text;
+        }
       }
     }
 
