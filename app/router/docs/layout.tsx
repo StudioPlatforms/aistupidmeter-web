@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'AI Router API Documentation — Endpoints, Parameters & Code Examples',
-  description: 'Complete API documentation for the AI Smart Router. OpenAI-compatible /v1/chat/completions, Anthropic /v1/messages passthrough, /v1/embeddings proxy, /v1/models endpoint. 16 parameters, curl/Python/Node.js examples, error handling, and integration guides for LangChain, Vercel AI SDK, and LiteLLM.',
+  description: 'Complete API documentation for the AI Smart Router. OpenAI-compatible /v1/chat/completions, Anthropic /v1/messages passthrough, /v1/embeddings proxy, /v1/models endpoint. Official TypeScript and Python SDKs, a Vercel AI SDK provider, a free sandbox, idempotent retries, error handling, and integration guides for LangChain, LlamaIndex and LiteLLM.',
   keywords: [
     'AI router API documentation',
     'OpenAI compatible API docs',
@@ -11,6 +11,9 @@ export const metadata: Metadata = {
     'AI embeddings API',
     'Anthropic Messages API',
     'AI router endpoints',
+    'AI router SDK',
+    'LLM router Python SDK',
+    'LLM router TypeScript SDK',
     'AI API code examples',
     'LLM API documentation',
     'AI gateway API reference',

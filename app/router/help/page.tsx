@@ -38,6 +38,7 @@ Model: auto-coding (or auto, auto-reasoning, etc.)`;
 const TOOLS: Array<{ name: string; how: ReactNode }> = [
   { name: 'Roo Code', how: 'Settings → "OpenAI Compatible" → paste Base URL + Key' },
   { name: 'Cline', how: 'Settings → "OpenAI Compatible" → paste Base URL + Key' },
+  { name: 'Kilo Code', how: 'Settings → API Provider "OpenAI Compatible" → paste Base URL + Key' },
   { name: 'Continue', how: <>Edit <C>config.yaml</C> → <C>provider: openai</C> + <C>apiBase</C> + <C>apiKey</C></> },
   { name: 'Cursor IDE', how: 'Settings → Override OpenAI Base URL (chat/plan mode only)' },
   { name: 'Aider', how: <>Set <C>OPENAI_API_BASE</C> + <C>OPENAI_API_KEY</C> env vars</> },

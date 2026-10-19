@@ -52,6 +52,17 @@ const IDE_TOOLS: ToolGuide[] = [
     ],
   },
   {
+    name: 'Kilo Code',
+    subtitle: 'VS Code / JetBrains',
+    steps: [
+      'Open Kilo Code settings → Providers',
+      'API Provider: "OpenAI Compatible"',
+      'Base URL: https://aistupidlevel.info/v1',
+      'Paste your aism_ key',
+      'Model: auto-coding',
+    ],
+  },
+  {
     name: 'Continue',
     subtitle: 'VS Code / JetBrains',
     steps: [

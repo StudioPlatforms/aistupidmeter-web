@@ -21,10 +21,13 @@ type Method = 'GET' | 'POST';
 
 const SECTIONS: Array<{ id: string; label: string; method?: Method }> = [
   { id: 'overview', label: 'Overview' },
+  { id: 'sdks', label: 'SDKs' },
   { id: 'chat', label: 'Chat completions', method: 'POST' },
   { id: 'strategies', label: 'Virtual models' },
   { id: 'models', label: 'Models', method: 'GET' },
   { id: 'features', label: 'Tools, JSON and streaming' },
+  { id: 'sandbox', label: 'Sandbox and preview' },
+  { id: 'reliability', label: 'Retries and idempotency' },
   { id: 'embeddings', label: 'Embeddings', method: 'POST' },
   { id: 'anthropic', label: 'Anthropic Messages', method: 'POST' },
   { id: 'errors', label: 'Error handling' },
@@ -39,6 +42,9 @@ const ENDPOINTS: Array<{ method: Method; path: string; desc: ReactNode; to?: str
   { method: 'POST', path: '/v1/messages', desc: 'Native Anthropic Messages API passthrough (Claude Code)', to: 'anthropic' },
   { method: 'POST', path: '/v1/messages/count_tokens', desc: 'Anthropic token counter (free; not counted against your plan)', to: 'anthropic' },
   { method: 'POST', path: '/v1/router/feedback', desc: 'Rate an answer up or down by its completion id', to: 'features' },
+  { method: 'POST', path: '/v1/route/preview', desc: 'The model, fallbacks and reasons a chat request would get, without sending it', to: 'sandbox' },
+  { method: 'GET', path: '/v1/usage', desc: "This month's requests, prepaid credits and the key's budget", to: 'sandbox' },
+  { method: 'GET', path: '/v1/openapi.json', desc: 'OpenAPI 3.1 description of the router API (no key needed)', to: 'sdks' },
   { method: 'POST', path: '/v1/explain', desc: <>Which model &ldquo;auto&rdquo; would pick for a prompt, without sending it</> },
   { method: 'POST', path: '/v1/compare', desc: 'What every strategy would pick for a prompt' },
   { method: 'POST', path: '/v1/analyze', desc: 'How the router classifies a prompt' },
@@ -100,6 +106,9 @@ const ERRORS: Array<{ http: number; type: string; code: string; desc: string }> 
   { http: 429, type: 'rate_limit_error', code: 'allowance_exhausted', desc: "This month's requests are used up and you have no prepaid credits" },
   { http: 429, type: 'rate_limit_error', code: 'insufficient_quota', desc: "This key's monthly hard budget would be exceeded" },
   { http: 429, type: 'rate_limit_error', code: 'provider_quota_exceeded', desc: 'Your provider account refused for credit or rate limits' },
+  { http: 400, type: 'invalid_request_error', code: 'invalid_idempotency_key', desc: 'Idempotency-Key must be 1–255 printable ASCII characters' },
+  { http: 422, type: 'invalid_request_error', code: 'idempotency_key_reused', desc: 'The Idempotency-Key was already used with a different request body' },
+  { http: 409, type: 'conflict_error', code: 'idempotency_in_progress', desc: 'A request with this Idempotency-Key is still running (see Retry-After)' },
   { http: 413, type: '—', code: '—', desc: 'The request body is over 32 MB' },
   { http: 502, type: 'api_error', code: 'model_unavailable', desc: 'Every model tried failed on the provider side' },
   { http: 502, type: 'api_error', code: 'tool_choice_not_honoured', desc: 'You forced a tool call and the model answered without one, twice (only models that cannot be forced natively; see Tools above)' },
@@ -212,34 +221,170 @@ const ERROR_EXAMPLE = `{
   }
 }`;
 
+const SDK_SAMPLES: CodeSample[] = [
+  { label: 'TypeScript', lang: 'ts', code: `// npm install @aistupidlevel/router
+import { ASLRouter } from '@aistupidlevel/router';
+
+const router = new ASLRouter(); // reads ASL_ROUTER_KEY
+
+const r = await router.chat.completions.create({
+  model: 'auto-coding',
+  messages: [{ role: 'user', content: 'Fix the off-by-one in this loop: ...' }],
+});
+console.log(r.choices[0].message.content);
+console.log(r.routing.model, r.routing.reasoning); // which model answered, and why
+
+// Streaming
+const stream = await router.chat.completions.create({ model: 'auto-best', messages, stream: true });
+for await (const text of stream.textStream()) process.stdout.write(text);` },
+  { label: 'Python', lang: 'python', code: `# pip install aistupidlevel
+from aistupidlevel import ASLRouter
+
+router = ASLRouter()  # reads ASL_ROUTER_KEY
+
+r = router.chat.completions.create(
+    model="auto-coding",
+    messages=[{"role": "user", "content": "Fix the off-by-one in this loop: ..."}],
+)
+print(r.choices[0].message.content)
+print(r.routing.model, r.routing.reasoning)  # which model answered, and why
+
+# Streaming (AsyncASLRouter has the same API with await)
+with router.chat.completions.create(model="auto-best", messages=messages, stream=True) as s:
+    for text in s.text_stream():
+        print(text, end="")` },
+  { label: 'Vercel AI SDK', lang: 'ts', code: `// npm install @aistupidlevel/ai-sdk-provider ai
+import { asl } from '@aistupidlevel/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text, providerMetadata } = await generateText({
+  model: asl('auto-coding'), // reads ASL_ROUTER_KEY
+  prompt: 'Write a React hook that debounces a value',
+});
+console.log(providerMetadata?.aistupidlevel); // { model, provider }` },
+];
+
+const TOOL_LOOP: CodeSample[] = [
+  { label: 'TypeScript', lang: 'ts', code: `const { completion, rounds } = await router.chat.runTools(
+  { model: 'auto-tooling', messages, tools },
+  { handlers: { get_weather: async ({ city }) => ({ city, temp: 7 }) } },
+);` },
+  { label: 'Python', lang: 'python', code: `out = router.chat.run_tools(
+    model="auto-tooling", messages=messages, tools=tools,
+    handlers={"get_weather": lambda city: {"city": city, "temp": 7}},
+)
+print(out["completion"].choices[0].message.content, out["rounds"])` },
+];
+
+const SANDBOX_SAMPLES: CodeSample[] = [
+  { label: 'cURL', lang: 'bash', code: `curl https://aistupidlevel.info/v1/chat/completions \\
+  -H "Authorization: Bearer aism_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -H "X-ASL-Sandbox: true" \\
+  -d '{"model": "auto-coding", "messages": [{"role": "user", "content": "Hello!"}]}'` },
+  { label: 'TypeScript', lang: 'ts', code: `const test = new ASLRouter({ sandbox: true });
+const r = await test.chat.completions.create({ model: 'auto-coding', messages });
+r.routing.sandbox; // true
+
+// Make the next request fail the way a real one can
+await test.chat.completions.create({ model: 'auto', messages }, { simulate: 'allowance_exhausted' });
+// → throws AllowanceExhaustedError` },
+  { label: 'Python', lang: 'python', code: `test = ASLRouter(sandbox=True)
+r = test.chat.completions.create(model="auto-coding", messages=messages)
+r.routing.sandbox  # True
+
+# Make the next request fail the way a real one can
+test.chat.completions.create(model="auto", messages=messages, simulate="allowance_exhausted")
+# → raises AllowanceExhaustedError` },
+];
+
+const PREVIEW_CURL = `curl https://aistupidlevel.info/v1/route/preview \\
+  -H "Authorization: Bearer aism_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{"model": "auto-coding", "messages": [{"role": "user", "content": "Fix this bug"}]}'`;
+
+const PREVIEW_RESPONSE = `{
+  "object": "route.preview",
+  "requested_model": "auto-coding",
+  "strategy": "best_coding",
+  "sandbox": false,
+  "primary": {
+    "model": "claude-opus-5-5",
+    "provider": "anthropic",
+    "score": 99,
+    "reasoning": "Selected claude-opus-5-5 from anthropic for best coding performance ...",
+    "estimated_cost_usd": 0.012
+  },
+  "fallbacks": [
+    { "model": "gpt-5.6-sol", "provider": "openai", "score": 96, "reasoning": "Fallback: ...", "estimated_cost_usd": 0.012 }
+  ],
+  "fallback_enabled": true
+}`;
+
+const USAGE_CURL = `curl https://aistupidlevel.info/v1/usage \\
+  -H "Authorization: Bearer aism_your_key_here"`;
+
+const IDEMPOTENCY_CURL = `curl https://aistupidlevel.info/v1/chat/completions \\
+  -H "Authorization: Bearer aism_your_key_here" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: order-4821-summary" \\
+  -d '{"model": "auto", "messages": [{"role": "user", "content": "Summarise order 4821"}]}'`;
+
 const INTEGRATIONS: CodeSample[] = [
+  { label: 'OpenAI SDK', lang: 'python', code: `from openai import OpenAI
+
+client = OpenAI(api_key="aism_your_key_here", base_url="https://aistupidlevel.info/v1")
+
+raw = client.chat.completions.with_raw_response.create(
+    model="auto-coding", messages=[{"role": "user", "content": "Hello!"}]
+)
+print(raw.headers["x-aism-model"])   # the model that answered
+print(raw.parse().choices[0].message.content)` },
   { label: 'LangChain', lang: 'python', code: `from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     model="auto-coding",
-    openai_api_key="aism_your_key_here",
-    openai_api_base="https://aistupidlevel.info/v1"
+    api_key="aism_your_key_here",
+    base_url="https://aistupidlevel.info/v1",
 )
-response = llm.invoke("Write a Python function")
-print(response.content)` },
-  { label: 'Vercel AI SDK', lang: 'ts', code: `import { createOpenAI } from '@ai-sdk/openai';
-import { generateText } from 'ai';
+print(llm.invoke("Write a Python function").content)` },
+  { label: 'LlamaIndex', lang: 'python', code: `# pip install llama-index-llms-openai-like
+from llama_index.llms.openai_like import OpenAILike
 
-const aism = createOpenAI({
-  baseURL: 'https://aistupidlevel.info/v1',
-  apiKey: 'aism_your_key_here'
-});
+llm = OpenAILike(
+    model="auto-reasoning",
+    api_key="aism_your_key_here",
+    api_base="https://aistupidlevel.info/v1",
+    is_chat_model=True,
+    is_function_calling_model=True,
+    context_window=200000,
+)
+print(llm.complete("Explain this stack trace: ..."))` },
+  { label: 'Vercel AI SDK', lang: 'ts', code: `import { createASL } from '@aistupidlevel/ai-sdk-provider';
+import { streamText } from 'ai';
 
-const { text } = await generateText({
-  model: aism('auto-coding'),
-  prompt: 'Write a React component'
-});` },
+const asl = createASL({ apiKey: process.env.ASL_ROUTER_KEY });
+
+const result = streamText({ model: asl('auto-best'), prompt: 'Draft a release note' });
+for await (const text of result.textStream) process.stdout.write(text);` },
   { label: 'LiteLLM', lang: 'text', code: `model_list:
   - model_name: aism-auto
     litellm_params:
       model: openai/auto-coding
       api_key: aism_your_key_here
       api_base: https://aistupidlevel.info/v1` },
+  { label: 'Cline / Kilo Code / Roo', lang: 'text', code: `API Provider:  OpenAI Compatible
+Base URL:      https://aistupidlevel.info/v1
+API Key:       aism_your_key_here
+Model ID:      auto-coding   (or auto-tooling for long agent sessions)` },
+  { label: 'Continue', lang: 'text', code: `# ~/.continue/config.yaml
+models:
+  - name: ASL auto-coding
+    provider: openai
+    model: auto-coding
+    apiBase: https://aistupidlevel.info/v1
+    apiKey: aism_your_key_here
+    roles: [chat, edit, apply]` },
 ];
 
 /** Inline code in running text. */
@@ -438,6 +583,52 @@ export default function DocsPage() {
                 </div>
               </Pane>
 
+              {/* ── SDKs ── */}
+              <Pane
+                id="sdks"
+                ruled
+                title="SDKs"
+                sub={<>Official clients for TypeScript and Python, and a provider for the Vercel AI SDK. Any OpenAI client works too (see <a href="#integrations" onClick={e => jump(e, 'integrations')}>Integration examples</a>); the SDKs add what an OpenAI client cannot see.</>}
+              >
+                <div className="sd-flow">
+                  <dl className="st-kv sd-hdrs">
+                    <div><dt><code>@aistupidlevel/router</code></dt><dd>TypeScript and JavaScript, Node 18+, ESM and CommonJS. No dependencies: it uses the built-in <C>fetch</C></dd></div>
+                    <div><dt><code>aistupidlevel</code></dt><dd>Python 3.9+, sync and asyncio clients. Depends only on httpx</dd></div>
+                    <div><dt><code>@aistupidlevel/ai-sdk-provider</code></dt><dd>Provider for the Vercel AI SDK (<C>generateText</C>, <C>streamText</C>, tools)</dd></div>
+                  </dl>
+                  <CodeBlock samples={SDK_SAMPLES} />
+
+                  <h3 className="sd-h3">What the SDKs add</h3>
+                  <div className="sd-notes">
+                    <p>
+                      <strong>Routing on every answer.</strong> <C>routing</C> carries the provider and model that answered, why they were chosen, the
+                      latency, the request id, and whether a fallback answered (<C>routing.fallback</C>). For a stream it is known before the first chunk.
+                    </p>
+                    <p>
+                      <strong>Safe retries.</strong> Connection failures, timeouts, 408, 409, 429 and 5xx are retried twice by default with backoff,
+                      honouring <C>Retry-After</C>. Every non-streaming request carries an <C>Idempotency-Key</C>, so a retry of a request whose answer was
+                      lost is never charged twice. Errors that retrying cannot fix (allowance used up, a budget reached, a provider key refused) are not retried.
+                    </p>
+                    <p>
+                      <strong>Errors that say whose problem it is.</strong> Each error class has a <C>party</C> (<C>request</C>, <C>account</C>,{' '}
+                      <C>provider_key</C>, <C>provider</C>, <C>router</C> or <C>network</C>) and a <C>retryable</C> flag, so an app can tell its user to top
+                      up, to fix a provider key, or simply to try again.
+                    </p>
+                    <p>
+                      <strong>Tool loops.</strong> <C>chat.runTools</C> (Python: <C>chat.run_tools</C>) runs a tool-calling conversation to its final answer:
+                      it calls your handlers, sends their results back, and reports a handler&apos;s exception to the model instead of crashing. The loop
+                      stays on one model throughout.
+                    </p>
+                  </div>
+                  <CodeBlock samples={TOOL_LOOP} />
+                  <p className="st-text">
+                    The API is also described in OpenAPI 3.1 at <a href="/v1/openapi.json"><C>/v1/openapi.json</C></a>, for generating a client in any
+                    other language. Source:{' '}
+                    <a href="https://github.com/StudioPlatforms/aistupidlevel-sdk" target="_blank" rel="noopener noreferrer">github.com/StudioPlatforms/aistupidlevel-sdk</a>.
+                  </p>
+                </div>
+              </Pane>
+
               {/* ── Chat completions ── */}
               <Pane
                 id="chat"
@@ -594,6 +785,72 @@ export default function DocsPage() {
                     Use the <C>id</C> from the completion (also in <C>X-AISM-Request-Id</C>); <C>rating</C> is <C>&quot;up&quot;</C>/<C>1</C> or{' '}
                     <C>&quot;down&quot;</C>/<C>-1</C>. Ratings nudge rankings only slightly, and only once enough have accumulated.
                   </p>
+                </div>
+              </Pane>
+
+              {/* ── Sandbox and preview ── */}
+              <Pane
+                id="sandbox"
+                ruled
+                title="Sandbox and preview"
+                sub="Build and test against the router without provider keys, without spending anything, and without using your allowance."
+              >
+                <div className="sd-flow">
+                  <h3 className="sd-h3">Sandbox</h3>
+                  <p className="st-text">
+                    Send <C>X-ASL-Sandbox: true</C> and the request goes through the real pipeline (authentication, validation, your preferences, the
+                    live ranking and fallback chain) but no provider is called. The answer is a deterministic mock in exactly the shape of a real one:
+                    the same headers, streaming chunks, tool calls with arguments that fit your schema, JSON that fits your <C>response_format</C>, and
+                    usage. It carries <C>X-AISM-Sandbox: true</C>, needs no provider key (routing runs as if you had one for every provider), and counts
+                    against no allowance or budget.
+                  </p>
+                  <CodeBlock samples={SANDBOX_SAMPLES} />
+                  <p className="st-text">
+                    <C>X-ASL-Sandbox-Simulate</C> makes a sandbox request fail the way a real one can, so your error handling can be tested:{' '}
+                    <C>rate_limited</C>, <C>allowance_exhausted</C>, <C>insufficient_quota</C>, <C>provider_key_rejected</C>, <C>model_unavailable</C>,{' '}
+                    <C>server_error</C>, or <C>fallback</C> (the first choice fails and the next model answers, as shown in <C>X-AISM-Reasoning</C>).
+                  </p>
+
+                  <h3 className="sd-h3"><Endpoint method="POST" path="/v1/route/preview" /></h3>
+                  <p className="st-text">
+                    Takes the same body as a chat request and returns the routing decision it would get (strategy, model, fallbacks, scores and the
+                    reasons) without sending it. Nothing is called or counted. With your real keys it shows what your request will do; with{' '}
+                    <C>X-ASL-Sandbox: true</C> it shows what a sandbox request would route to.
+                  </p>
+                  <CodeBlock samples={one('cURL', 'bash', PREVIEW_CURL)} />
+                  <CodeBlock samples={one('JSON', 'json', PREVIEW_RESPONSE)} />
+
+                  <h3 className="sd-h3"><Endpoint method="GET" path="/v1/usage" /></h3>
+                  <p className="st-text">
+                    This month&apos;s requests used and included in your plan, your prepaid credits, whether a request would be accepted now, and this
+                    key&apos;s monthly budget and spend. Free, and not counted.
+                  </p>
+                  <CodeBlock samples={one('cURL', 'bash', USAGE_CURL)} />
+                </div>
+              </Pane>
+
+              {/* ── Retries and idempotency ── */}
+              <Pane id="reliability" ruled title="Retries and idempotency">
+                <div className="sd-flow">
+                  <p className="st-text">
+                    Send <C>Idempotency-Key</C> (any unique string up to 255 characters) on <C>POST /v1/chat/completions</C> and you can safely retry a
+                    request whose response you never received. For 24 hours, the same key from the same account returns the stored response instead
+                    of routing again, marked <C>Idempotent-Replayed: true</C>, and is not counted again. The SDKs send one on every non-streaming request.
+                  </p>
+                  <CodeBlock samples={one('cURL', 'bash', IDEMPOTENCY_CURL)} />
+                  <div className="sd-notes">
+                    <p>
+                      <strong>Only final answers are kept.</strong> A 5xx or a 429 is not stored, so retrying after a failure or a rate limit is a real new
+                      attempt. Reusing a key with a different body gets <C>422 idempotency_key_reused</C>; a retry that arrives while the first attempt is
+                      still running gets <C>409 idempotency_in_progress</C> with <C>Retry-After</C>. Streams cannot be replayed, so streaming requests
+                      ignore the header.
+                    </p>
+                    <p>
+                      <strong><C>x-should-retry</C>.</strong> Error responses that retrying cannot fix (<C>allowance_exhausted</C>,{' '}
+                      <C>insufficient_quota</C>, <C>provider_quota_exceeded</C>) carry <C>x-should-retry: false</C>, which the official OpenAI SDKs and ours
+                      obey, so a client does not retry them in a loop.
+                    </p>
+                  </div>
                 </div>
               </Pane>
 
