@@ -1757,9 +1757,8 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
     if (typeof window !== 'undefined' && (window as any).gtag) {
       (window as any).gtag('consent', 'update', {
         'analytics_storage': accepted ? 'granted' : 'denied',
-        'ad_storage': accepted ? 'granted' : 'denied',
-        'functionality_storage': accepted ? 'granted' : 'denied',
-        'personalization_storage': accepted ? 'granted' : 'denied',
+        // No advertising on this site: an accept grants analytics only.
+        'ad_storage': 'denied',
       });
     }
   };

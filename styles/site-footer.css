@@ -12,3 +12,28 @@ body { display: flex; flex-direction: column; min-height: 100vh; min-height: 100
 .site-main { flex: 1 0 auto; }
 .site-footer { flex-shrink: 0; }
 
+
+/* Privacy, Terms and Cookie settings joined the footer's middle row (2026-10-19): let the row wrap
+   and the bar grow rather than overflow on mid-width screens. */
+.site-footer.v4-footer { height: auto; min-height: 32px; }
+.site-footer .v4-footer-center { flex-wrap: wrap; justify-content: center; row-gap: 2px; align-items: center; }
+
+/* Cookie settings: a text button styled like the footer's links, and the panel it opens. */
+.sf-cookie-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--accent, var(--phosphor-green)); cursor: pointer; }
+.sf-cookie-btn:hover { text-decoration: underline; }
+.sf-cookie {
+  position: fixed; z-index: 1000; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  max-width: 640px; margin: 0 auto; padding: 14px 16px; border-radius: 12px;
+  background: var(--terminal-dark, #fff); color: var(--phosphor-green, #202124);
+  border: 1px solid var(--metal-silver, #dadce0); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  font-size: 13px; line-height: 1.5; text-align: left;
+}
+.sf-cookie p { margin: 0 0 10px; }
+.sf-cookie a { color: var(--accent, #1a73e8); }
+.sf-cookie-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sf-cookie-b {
+  font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+  background: transparent; color: inherit; border: 1px solid var(--metal-silver, #dadce0);
+}
+.sf-cookie-b.is-primary { background: var(--accent, #1a73e8); border-color: var(--accent, #1a73e8); color: #fff; }
+.sf-cookie-x { margin-left: auto; background: none; border: 0; font-size: 20px; line-height: 1; cursor: pointer; color: inherit; }

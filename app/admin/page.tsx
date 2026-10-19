@@ -285,7 +285,7 @@ export default function AdminPage() {
                 <span className="terminal-text--green">TOTAL VISITS:</span> {visitorStats.totals.visits}
               </div>
               <div style={{ marginBottom: '12px' }}>
-                <span className="terminal-text--green">TOTAL UNIQUE:</span> {visitorStats.totals.unique}
+                <span className="terminal-text--green">UNIQUE (LAST 90 DAYS):</span> {visitorStats.totals.unique}
               </div>
               
               <div style={{ marginBottom: '12px' }}>

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import '../styles/site-footer.css';
 import { useVisitorStats } from '../lib/use-visitor-stats';
+import CookieSettings from './CookieSettings';
 
 /**
  * The one footer, on every public page, rendered once by the root layout after the page.
@@ -65,6 +66,9 @@ export default function SiteFooter() {
         <a href="https://www.producthunt.com/products/aistupidlevel?launch=aistupidlevel" target="_blank" rel="noopener noreferrer">Product Hunt</a>
         <Link href="/status">Provider status</Link>
         <Link href="/contact">Contact</Link>
+        <Link href="/privacy">Privacy</Link>
+        <Link href="/terms">Terms</Link>
+        <CookieSettings />
         {nextRun && <span>Next bench: <b style={{ color: 'var(--phosphor-green)' }}>{nextRun}</b></span>}
       </div>
       <div>

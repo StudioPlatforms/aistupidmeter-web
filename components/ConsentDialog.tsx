@@ -71,7 +71,8 @@ export default function ConsentDialog({ isOpen, onDecide }: ConsentDialogProps) 
 
           <p className="sb-fine">
             Decline and none of it is stored. The benchmark data is free either way, and you
-            can change your mind from the footer at any time.
+            can change your mind from Cookie settings in the footer at any time.{' '}
+            <a href="/privacy#cookies">Privacy policy</a>
           </p>
         </div>
 

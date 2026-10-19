@@ -266,14 +266,21 @@ export default function RootLayout({
                   window.dataLayer = window.dataLayer || [];
                   function gtag(){dataLayer.push(arguments);}
                   
+                  // No analytics cookies until the visitor accepts (ConsentDialog / ConsentBar
+                  // store the answer under 'gdpr-consent'; see /privacy#cookies).
                   gtag('consent', 'default', {
-                    'analytics_storage': 'granted',
+                    'analytics_storage': 'denied',
                     'ad_storage': 'denied',
                     'ad_user_data': 'denied',
                     'ad_personalization': 'denied',
                     'wait_for_update': 500
                   });
-                  
+                  try {
+                    if (localStorage.getItem('gdpr-consent') === 'accepted') {
+                      gtag('consent', 'update', { 'analytics_storage': 'granted' });
+                    }
+                  } catch (e) {}
+
                   gtag('js', new Date());
                   gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
                     anonymize_ip: true,

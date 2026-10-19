@@ -32,9 +32,8 @@ export default function ConsentBar() {
     if (typeof gtag === 'function') {
       gtag('consent', 'update', {
         analytics_storage: accepted ? 'granted' : 'denied',
-        ad_storage: accepted ? 'granted' : 'denied',
-        functionality_storage: accepted ? 'granted' : 'denied',
-        personalization_storage: accepted ? 'granted' : 'denied',
+        // No advertising on this site: an accept grants analytics only.
+        ad_storage: 'denied',
       });
     }
     setOpen(false);
@@ -43,7 +42,7 @@ export default function ConsentBar() {
   if (!open) return null;
   return (
     <div className="lp-consent" role="dialog" aria-label="Analytics consent">
-      <p><b>Analytics on this site.</b> We use Google Analytics to see which pages people use. Your IP is anonymised and advertising features are off.</p>
+      <p><b>Analytics on this site.</b> We use Google Analytics to see which pages people use. Your IP is anonymised and advertising features are off. <a href="/privacy#cookies">Details</a></p>
       <div>
         <button type="button" className="lp-btn lp-btn-ghost" onClick={() => decide(false)}>Decline</button>
         <button type="button" className="lp-btn lp-btn-primary" onClick={() => decide(true)}>Accept</button>
