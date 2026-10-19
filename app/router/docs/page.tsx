@@ -61,7 +61,7 @@ const PARAMS: Array<{ n: string; t: string; r: boolean; d: string }> = [
   { n: 'tools', t: 'array', r: false, d: 'Function tool definitions for tool calling.' },
   { n: 'tool_choice', t: 'string|object', r: false, d: '"auto", "none", "required", or {type:"function", function:{name}}.' },
   { n: 'response_format', t: 'object', r: false, d: '{ type: "json_object" } or { type: "json_schema", json_schema: {...} }.' },
-  { n: 'reasoning_effort', t: 'string', r: false, d: '"none"|"minimal"|"low"|"medium"|"high"|"xhigh" — for reasoning models.' },
+  { n: 'reasoning_effort', t: 'string', r: false, d: '"none"|"minimal"|"low"|"medium"|"high"|"xhigh"|"max". Any value works with any model: the router maps it to the nearest level the chosen model supports (a tie goes to the deeper level).' },
   { n: 'top_p', t: 'number', r: false, d: 'Nucleus sampling. Default: 1.' },
   { n: 'frequency_penalty', t: 'number', r: false, d: 'Frequency penalty (-2 to 2). Not supported by all providers.' },
   { n: 'presence_penalty', t: 'number', r: false, d: 'Presence penalty (-2 to 2). Not supported by all providers.' },
