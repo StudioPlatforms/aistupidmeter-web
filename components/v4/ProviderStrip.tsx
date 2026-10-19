@@ -62,8 +62,12 @@ export function useProviderHealth(): Record<string, Health> | null {
 
 /** OK / Slow / Down for one provider's probe, or null when there is nothing to say. `tone` is the
  *  status colour's name (styles/studio-boards.css .sl-status.is-good / is-warn / is-bad). */
-export function providerStatus(h: Health | undefined): { label: string; color: string; tone: 'good' | 'warn' | 'bad'; title: string } | null {
+export function providerStatus(h: Health | undefined): { label: string; color: string; tone: 'good' | 'warn' | 'bad' | 'none'; title: string } | null {
   if (!h || !h.status || h.status === 'unknown') return null;
+  // Our own failure (the API says "unmeasured"): not the provider's, and its detail is internal.
+  if (h.status === 'unmeasured') {
+    return { label: 'Checking', color: 'var(--lp-fg3)', tone: 'none', title: h.error || 'An issue on our side. We are working to resolve it.' };
+  }
   if (h.status === 'operational') {
     return {
       label: 'OK',

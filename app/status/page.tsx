@@ -207,9 +207,10 @@ function groupEpisodes(list: Episode[]): GroupedEpisodes[] {
 
 const CAUSE_TEXT: Record<Episode['cause'], string> = {
   provider: 'provider did not answer',
-  'our-account': 'our key or our bill',
-  probe: 'our probe was wrong for this model',
-  'our-server': 'our server or its connection',
+  // Discreet on purpose (owner, 2026-10-18): which of our own things failed is internal.
+  'our-account': 'an issue on our side',
+  probe: 'an issue on our side',
+  'our-server': 'an issue on our side',
   latency: 'slow response',
 };
 
@@ -402,7 +403,8 @@ export default async function StatusPage() {
                   </div>
                   {p.status !== 'operational' && p.error && (
                     <p className="ps-error">
-                      Last error: <span>{p.error}</span>
+                      {/* Our own failures arrive from the API as one neutral sentence (routes/health.ts). */}
+                      {p.status === 'unmeasured' ? <span>{p.error}</span> : <>Last error: <span>{p.error}</span></>}
                     </p>
                   )}
                 </article>
@@ -449,18 +451,15 @@ export default async function StatusPage() {
             <div>
               <h3>Checks we could not make</h3>
               <p className="ps-note">
-                These are our failures, not the providers&rsquo;. We publish them because leaving them out would
-                turn our own expired keys, unpaid invoices, broken probes and server trouble into somebody else&rsquo;s downtime —
-                and because a gap in the record is a fact about the record. Each line says how long it
+                These were issues on our side, not the providers&rsquo;. We list them so that a problem of ours never
+                shows up as somebody else&rsquo;s downtime, and because a gap in the record is a fact about the
+                record. Each line says how long it
                 lasted and when it last happened: anything not marked ongoing is over, and stays listed
                 only until it falls out of the {days}-day window.
                 {data.meta.ourFaultSince && (
                   <> This list starts from{' '}
                   {new Date(data.meta.ourFaultSince).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
-                  Before that the provider accounts were unfunded and every provider returned a billing
-                  error; those checks are still recorded and still count against our uptime, but
-                  republishing a resolved funding gap for a week alongside live figures said something
-                  about today that was not true.</>
+                  Earlier checks are still recorded and still count in the uptime figures.</>
                 )}
               </p>
             </div>
