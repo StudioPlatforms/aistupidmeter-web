@@ -22,11 +22,13 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'budgets', label: 'Budgets & alerts' },
 ];
 
-const CATEGORIES = ['coding', 'reasoning', 'creative', 'analysis', 'general'];
+// Logged by the router from the same rules its "auto-task" mode routes by (task-match.ts).
+const CATEGORIES = ['coding', 'reasoning', 'tool_use', 'analysis', 'creative', 'general'];
+const CATEGORY_LABEL: Record<string, string> = { tool_use: 'Tool use' };
 const PERIOD_LABEL: Record<'7d' | '30d' | '90d', string> = { '7d': '7 days', '30d': '30 days', '90d': '90 days' };
 const LEAD = 'Track each key’s usage, costs, prompts and budgets.';
 
-const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const cap = (s: string) => (s ? CATEGORY_LABEL[s] ?? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const num = (v: string | number | null | undefined): number => {
   const n = typeof v === 'number' ? v : parseFloat(String(v ?? ''));
   return Number.isFinite(n) ? n : 0;
