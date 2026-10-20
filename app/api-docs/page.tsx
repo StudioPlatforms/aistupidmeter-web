@@ -40,14 +40,14 @@ export const metadata: Metadata = {
 const ENDPOINTS: Array<{ path: string; desc: string; params?: string }> = [
   { path: 'GET /api/v1/models', desc: 'Current rankings with scores, trends and confidence intervals.', params: 'period, sortBy' },
   { path: 'GET /api/v1/models/:id', desc: 'Detail for one model, including per-axis breakdown.' },
-  { path: 'GET /api/v1/models/:id/history', desc: 'Score time-series for one model.', params: 'period' },
+  { path: 'GET /api/v1/models/:id/history', desc: 'Score time-series for one model, on the board you name.', params: 'period, sortBy' },
   { path: 'GET /api/v1/index', desc: 'Global intelligence index — the aggregate score across all tracked models, with history.' },
   { path: 'GET /api/v1/alerts', desc: 'Active performance alerts for models scoring below their baseline.' },
   { path: 'GET /api/v1/incidents', desc: 'Recorded degradation incidents.', params: 'period, limit' },
   { path: 'GET /api/v1/providers', desc: 'Provider-level availability and status.' },
   { path: 'GET /api/v1/analytics/degradations', desc: 'Models currently degrading, with magnitude and direction.', params: 'period' },
   { path: 'GET /api/v1/analytics/recommendations', desc: 'Which model to use right now, by task type.', params: 'period' },
-  { path: 'GET /api/v1/analytics/provider-reliability', desc: 'Reliability scoring per provider.', params: 'period' },
+  { path: 'GET /api/v1/analytics/provider-reliability', desc: 'Per provider: measured uptime, live status, recorded incidents and a trust score (uptime minus 5 points per incident).', params: 'period' },
   { path: 'GET /api/v1/analytics/transparency', desc: 'Full scoring transparency data.', params: 'period' },
   { path: 'GET /api/v1/drift/:id', desc: 'Drift signature for one model: Page-Hinkley statistic, regime and per-axis trends.' },
   { path: 'GET /api/v1/me', desc: 'Your key, its tier, and your current quota.' },
@@ -200,8 +200,9 @@ export default function ApiDocsPage() {
 
       <RdSection id="params" n={num('params')} title="Query parameters">
         <RdFacts rows={[
-          [<code key="p">period</code>, <>One of <code>latest</code>, <code>24h</code>, <code>7d</code>, <code>1m</code>. The latest run is part of the paid plans: a paid key defaults to <code>latest</code>, while a free key defaults to <code>24h</code> and gets a 403 with <code>latest_requires_plan</code> when it asks for <code>latest</code>. On a free key, <code>/models/:id</code> leaves out <code>latestScore</code>.</>],
-          [<code key="s">sortBy</code>, <>One of <code>combined</code>, <code>reasoning</code>, <code>speed</code>, <code>price</code>, <code>coding</code>, <code>7axis</code>, <code>tooling</code>. Defaults to <code>combined</code>.</>],
+          [<code key="p">period</code>, <>One of <code>latest</code>, <code>24h</code>, <code>7d</code>, <code>1m</code> (<code>30d</code> is accepted for <code>1m</code>). The latest run is part of the paid plans: a paid key defaults to <code>latest</code>, while a free key defaults to <code>24h</code> and gets a 403 with <code>latest_requires_plan</code> when it asks for <code>latest</code>. On a free key, <code>/models/:id</code> leaves out <code>latestScore</code>.</>],
+          [<code key="s">sortBy</code>, <>One of <code>combined</code>, <code>reasoning</code>, <code>speed</code>, <code>price</code>, <code>coding</code> (also called <code>7axis</code>), <code>tooling</code> (tool use). Defaults to <code>combined</code>. History takes <code>combined</code>, <code>coding</code>, <code>reasoning</code> or <code>tooling</code>.</>],
+          [<code key="e">Invalid values</code>, <>An unknown <code>period</code> or <code>sortBy</code> returns <code>400</code> with <code>invalid_period</code> or <code>invalid_sort</code> and the accepted values. It is never swapped for a default.</>],
         ]} />
       </RdSection>
 
@@ -237,6 +238,11 @@ export default function ApiDocsPage() {
             Every response carries <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code> and{' '}
             <code>X-RateLimit-Reset</code>. The daily quota resets at 00:00 UTC. Over quota returns{' '}
             <code>429</code> with a JSON body explaining which limit you hit.
+          </p>
+          <p>
+            Only answers count against the daily quota. A refusal or an error (an invalid parameter, a
+            paid-only view on a free key, an unknown model, or a 429 for being over quota) is not
+            counted.
           </p>
           <p>
             Scores update roughly hourly, so cache on your side rather than polling. One request an

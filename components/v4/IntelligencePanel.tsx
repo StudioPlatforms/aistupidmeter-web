@@ -140,11 +140,11 @@ export default function IntelligencePanel({
         <div className="sl-trust-grid">
           {providerData.map((prov: any, i: number) => {
             const name = prov.name || prov.provider || '';
-            const trust = Math.round(prov.score || prov.trustScore || 0);
+            const trust = trustOf(prov);
             return (
               <div key={i} className="sl-trust-card">
                 <span><Mark provider={prov.provider || prov.name} /><span>{PROVIDER_NAME[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1)}</span></span>
-                <b className={trust >= 75 ? '' : 'is-warn'}>{trust}</b>
+                <b className={trust === null || trust >= 75 ? '' : 'is-warn'} title={trust === null ? 'Not measured yet' : 'Measured uptime minus 5 points per recorded incident'}>{trust ?? '—'}</b>
               </div>
             );
           })}
@@ -203,26 +203,25 @@ export function formatTimeAgo(date: Date | string): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
+/**
+ * Providers named by the board, with no trust score. A provider's trust comes only from
+ * /analytics/provider-reliability (measured uptime and recorded incidents); this fallback used
+ * to show the provider's average benchmark score in its place, which is a different number.
+ */
 function buildProviderTrustFromScores(modelScores: any[]): any[] {
-  const providers = new Map<string, { total: number; count: number }>();
+  const names = new Set<string>();
   modelScores.forEach(m => {
-    // Exclude xAI/Grok models from the fallback builder as well
     const vendor = String(m.provider || '').toLowerCase();
-    if (vendor === 'xai' || vendor === 'x.ai' || vendor === 'grok') return;
-    if (typeof m.currentScore === 'number' && m.provider) {
-      const existing = providers.get(m.provider) || { total: 0, count: 0 };
-      existing.total += m.currentScore;
-      existing.count += 1;
-      providers.set(m.provider, existing);
-    }
+    if (!vendor || vendor === 'xai' || vendor === 'x.ai' || vendor === 'grok') return;
+    names.add(m.provider);
   });
-  return Array.from(providers.entries())
-    .map(([name, data]) => ({
-      name,
-      provider: name,
-      score: Math.round(data.total / data.count),
-    }))
-    .sort((a, b) => b.score - a.score);
+  return Array.from(names).sort().map(name => ({ name, provider: name, trustScore: null }));
+}
+
+/** A provider's trust score, or null when none was measured. */
+export function trustOf(prov: any): number | null {
+  const v = prov?.trustScore ?? prov?.score;
+  return typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : null;
 }
 
 // ─── Shared builders ──────────────────────────────────────────────────────────
@@ -405,5 +404,5 @@ export function providerTrustList(providerReliability: any[], modelScores: any[]
       const key = String(prov.provider || prov.name || '').toLowerCase();
       return key !== 'xai' && key !== 'x.ai' && key !== 'grok';
     })
-    .sort((a: any, b: any) => (b.score || b.trustScore || 0) - (a.score || a.trustScore || 0));
+    .sort((a: any, b: any) => (trustOf(b) ?? -1) - (trustOf(a) ?? -1));
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import ProviderLogo from '../ProviderLogo';
-import { buildActivityItems, buildRecoItems, providerTrustList, type RecoItem } from '../v4/IntelligencePanel';
+import { buildActivityItems, buildRecoItems, providerTrustList, trustOf, type RecoItem } from '../v4/IntelligencePanel';
 import { RadarChart, axesForSort, axisWeightLabel, getAveragedAxes, scoreBg, scoreColor } from '../v4/AnalyticsPanel';
 import { providerStatus, useProviderHealth } from '../v4/ProviderStrip';
 import { getModelPricing } from '../../lib/model-pricing';
@@ -272,18 +272,18 @@ export default function InsightsGrid({
         <div className="sl-three">
           <div className="sl-pane">
             <h3 className="sl-pane-t">Provider health</h3>
-            <p className="sl-pane-sub">Live status from a check every 10 minutes, and a trust score from incident history</p>
+            <p className="sl-pane-sub">Live status from a check every 10 minutes, and a trust score from measured uptime and recorded incidents</p>
             <div className="sl-prov">
               {providers.map((p: any) => {
                 const key = String(p.provider || p.name || '').toLowerCase();
-                const trust = Math.round(p.score || p.trustScore || 0);
+                const trust = trustOf(p);
                 const st = providerStatus(health?.[key]);
                 return (
                   <div key={key} className="sl-prov-row">
                     <span className="sl-prov-name"><Logo provider={key} size={13} box="sm" />{PROVIDER_NAME[key] || key}</span>
                     <span className={`sl-status is-${st ? st.tone : 'none'}`} title={st?.title}>{st ? st.label : '—'}</span>
-                    <span className="sl-trust" aria-hidden="true"><i className={trust >= 75 ? '' : 'is-warn'} style={{ width: `${Math.max(0, Math.min(100, trust))}%` }} /></span>
-                    <span className="sl-prov-score" title="Trust score from incident history">{trust}</span>
+                    <span className="sl-trust" aria-hidden="true"><i className={trust === null || trust >= 75 ? '' : 'is-warn'} style={{ width: `${trust === null ? 0 : Math.max(0, Math.min(100, trust))}%` }} /></span>
+                    <span className="sl-prov-score" title={trust === null ? 'Not measured yet' : 'Measured uptime minus 5 points per recorded incident'}>{trust ?? '—'}</span>
                   </div>
                 );
               })}

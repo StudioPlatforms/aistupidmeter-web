@@ -4314,11 +4314,11 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
                         provider.trustScore >= 80 ? 'terminal-text--green' : 
                         provider.trustScore >= 60 ? 'terminal-text--amber' : 'terminal-text--red'
                       } style={{ fontWeight: 'bold' }}>
-                        {provider.trustScore}/100
+                        {provider.trustScore ?? '—'}/100
                       </span>
                     </div>
                     <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
-                      {provider.avgRecoveryHours}h avg recovery • {provider.incidentsPerMonth} incidents/month
+                      {provider.avgRecoveryHours != null ? `${provider.avgRecoveryHours}h avg recovery • ` : ''}{provider.incidentsPerMonth} incidents/month
                     </div>
                   </div>
                 ))}
