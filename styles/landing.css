@@ -289,6 +289,27 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-logo-it { display: flex; align-items: center; gap: 12px; font-family: var(--lp-font-disp); font-weight: 600; font-size: clamp(16px, 1.3vw, 20px); letter-spacing: -.01em; color: var(--lp-fg); }
 .lp-logo-it .lp-lgc { width: 40px; height: 40px; border-radius: 10px; }
 .lp-logo-it .lp-lgc img { width: 24px; height: 24px; }
+
+/* "Works with" tape (2026-10-20): the integration logos scroll right to left; two copies of the list
+   make the loop seamless (the second copy is aria-hidden). Hover or focus pauses it; reduced motion
+   shows one static, wrapped list. */
+.lp-tape-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: clamp(24px, 4vw, 72px); row-gap: 14px; margin-top: clamp(32px, 3.5vw, 52px); }
+.lp-tape { min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+.lp-tape-track { --gap: 44px; display: flex; width: max-content; gap: var(--gap); margin: 0; padding: 6px 0; list-style: none; animation: lpTape 46s linear infinite; }
+.lp-tape-track > li { white-space: nowrap; }
+.lp-tape:hover .lp-tape-track, .lp-tape:focus-within .lp-tape-track { animation-play-state: paused; }
+.lp-tape-more { grid-column: 2; justify-self: start; }
+@keyframes lpTape { to { transform: translateX(calc(-50% - var(--gap) / 2)); } }
+@media (max-width: 760px) {
+  .lp-tape-row { grid-template-columns: minmax(0, 1fr); }
+  .lp-tape-track { --gap: 28px; animation-duration: 36s; }
+  .lp-tape-more { grid-column: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-tape { -webkit-mask-image: none; mask-image: none; }
+  .lp-tape-track { animation: none; width: auto; flex-wrap: wrap; row-gap: 16px; }
+  .lp-tape-track > li[aria-hidden] { display: none; }
+}
 .lp-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: clamp(36px, 4vw, 60px); border-top: 1px solid var(--lp-line); }
 .lp-stat { padding: 26px 22px 4px 0; }
 .lp-stat + .lp-stat { border-left: 1px solid var(--lp-line); padding-left: 26px; }

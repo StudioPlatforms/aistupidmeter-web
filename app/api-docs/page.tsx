@@ -176,6 +176,14 @@ export default function ApiDocsPage() {
         </RdProse>
         <RdCode title="Request" label="curl" code={CURL} />
         <RdCode title="Base URL" code="https://aistupidlevel.info/api/v1" />
+        <RdProse>
+          <h3>Without writing code</h3>
+          <p>
+            The same key works in the <b>n8n</b> node (<code>n8n-nodes-aistupidlevel</code>, Benchmark operations) and the{' '}
+            <b>MCP server</b> (<code>@aistupidlevel/mcp</code>) for Claude, Cursor and VS Code. Setup for both is in the{' '}
+            <Link href="/router/docs#integrations">router documentation</Link>.
+          </p>
+        </RdProse>
       </RdSection>
 
       <RdSection id="endpoints" n={num('endpoints')} title="Endpoints">

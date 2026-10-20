@@ -26,6 +26,25 @@ const SIGN_IN = '/auth/signin?callbackUrl=%2F';
 const SIGN_UP = '/auth/signup?callbackUrl=%2F';
 const SIGN_UP_ROUTER = '/auth/signup?callbackUrl=%2Frouter';
 const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
+/**
+ * Tools the Smart Router works with, shown as a moving tape under the provider row. Every one is
+ * either a published ASL integration (n8n node, MCP server, AI SDK provider, RAGFlow provider) or
+ * an integration contributed upstream; all of them already work through the OpenAI-compatible
+ * endpoint, and /router/docs#integrations shows how to connect each.
+ */
+const INTEGRATIONS: Array<{ name: string; logo: string }> = [
+  { name: 'n8n', logo: 'n8n.svg' },
+  { name: 'MCP', logo: 'mcp.svg' },
+  { name: 'LiteLLM', logo: 'litellm.svg' },
+  { name: 'Vercel AI SDK', logo: 'vercel.svg' },
+  { name: 'CrewAI', logo: 'crewai.svg' },
+  { name: 'Dify', logo: 'dify.svg' },
+  { name: 'RAGFlow', logo: 'ragflow.svg' },
+  { name: 'Cherry Studio', logo: 'cherrystudio.svg' },
+  { name: 'LibreChat', logo: 'librechat.svg' },
+  { name: 'promptfoo', logo: 'promptfoo.svg' },
+  { name: 'Crush', logo: 'crush.png' },
+];
 /** The first benchmark run, 8 August 2025. */
 const FIRST_RUN = Date.UTC(2025, 7, 8);
 
@@ -253,6 +272,19 @@ export default async function Landing() {
                 <li key={p} className="lp-logo-it"><span className="lp-lgc"><img src={`/logos/${p}.svg`} alt="" width={24} height={24} /></span>{PROVIDER_LABEL[p]}</li>
               ))}
             </ul>
+          </div>
+          <div className="lp-tape-row lp-up">
+            <p className="lp-proof-label">Works with the tools you build on</p>
+            <div className="lp-tape" role="region" aria-label="Tools the Smart Router works with">
+              <ul className="lp-tape-track">
+                {[...INTEGRATIONS, ...INTEGRATIONS].map((it, i) => (
+                  <li key={i} className="lp-logo-it" aria-hidden={i >= INTEGRATIONS.length || undefined}>
+                    <span className="lp-lgc"><img src={`/integrations/${it.logo}`} alt="" width={24} height={24} loading="lazy" /></span>{it.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Link className="lp-more lp-tape-more" href="/router/docs#integrations">How to connect each one</Link>
           </div>
           <div {...up('.1s')}>
             <div className="lp-stats">

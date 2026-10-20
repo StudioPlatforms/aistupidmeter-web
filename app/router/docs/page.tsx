@@ -31,7 +31,7 @@ const SECTIONS: Array<{ id: string; label: string; method?: Method }> = [
   { id: 'embeddings', label: 'Embeddings', method: 'POST' },
   { id: 'anthropic', label: 'Anthropic Messages', method: 'POST' },
   { id: 'errors', label: 'Error handling' },
-  { id: 'integrations', label: 'Integration examples' },
+  { id: 'integrations', label: 'Integrations' },
 ];
 const SECTION_IDS = SECTIONS.map(s => s.id);
 
@@ -330,6 +330,7 @@ const IDEMPOTENCY_CURL = `curl https://aistupidlevel.info/v1/chat/completions \\
   -H "Idempotency-Key: order-4821-summary" \\
   -d '{"model": "auto", "messages": [{"role": "user", "content": "Summarise order 4821"}]}'`;
 
+/** Integrations in code: SDKs and frameworks. */
 const INTEGRATIONS: CodeSample[] = [
   { label: 'OpenAI SDK', lang: 'python', code: `from openai import OpenAI
 
@@ -373,6 +374,88 @@ for await (const text of result.textStream) process.stdout.write(text);` },
       model: openai/auto-coding
       api_key: aism_your_key_here
       api_base: https://aistupidlevel.info/v1` },
+  { label: 'CrewAI', lang: 'python', code: `from crewai import Agent, LLM
+
+llm = LLM(
+    model="openai/auto-tooling",   # routing mode; agents that call tools do best on auto-tooling
+    base_url="https://aistupidlevel.info/v1",
+    api_key="aism_your_key_here",
+)
+agent = Agent(role="Researcher", goal="Answer with sources", backstory="...", llm=llm)` },
+  { label: 'promptfoo', lang: 'text', code: `# promptfooconfig.yaml — compare routing modes on the same prompts
+providers:
+  - id: openai:chat:auto-coding
+    config: &asl
+      apiBaseUrl: https://aistupidlevel.info/v1
+      apiKeyEnvar: ASL_ROUTER_KEY
+  - id: openai:chat:auto-value-coding
+    config: *asl` },
+];
+
+/** Integrations in apps and agents: no code, a few settings. */
+const APP_INTEGRATIONS: CodeSample[] = [
+  { label: 'n8n', lang: 'text', code: `Install (self-hosted n8n):
+  Settings → Community Nodes → Install → n8n-nodes-aistupidlevel
+
+Credentials:
+  AI Stupid Level Router API   router key (aism_…)      chat and routing
+  AI Stupid Level Data API     Data API key (asl_live_…) rankings, drift, incidents
+
+Nodes:
+  AI Stupid Level              Chat · Router (preview, usage) · Benchmark data
+  AI Stupid Level Chat Model   plug into an AI Agent or LLM chain; every call,
+                               tool turns included, goes through the router` },
+  { label: 'MCP (Claude, Cursor)', lang: 'text', code: `# Claude Code
+claude mcp add aistupidlevel -e ASL_DATA_KEY=asl_live_... -e ASL_ROUTER_KEY=aism_... -- npx -y @aistupidlevel/mcp
+
+# Claude Desktop (claude_desktop_config.json) and Cursor (~/.cursor/mcp.json)
+{
+  "mcpServers": {
+    "aistupidlevel": {
+      "command": "npx",
+      "args": ["-y", "@aistupidlevel/mcp"],
+      "env": { "ASL_DATA_KEY": "asl_live_...", "ASL_ROUTER_KEY": "aism_..." }
+    }
+  }
+}` },
+  { label: 'Dify', lang: 'text', code: `Settings → Model Provider → install "OpenAI-API-compatible", then Add Model:
+  Model Type:        LLM
+  Model Name:        auto-coding        (or any routing mode)
+  API Key:           aism_your_key_here
+  API endpoint URL:  https://aistupidlevel.info/v1
+  Function calling:  Tool Call` },
+  { label: 'RAGFlow', lang: 'text', code: `Model providers → AI Stupid Level → Add the model
+  API Key:  aism_your_key_here
+  Model:    auto-coding        (or any routing mode)
+
+On a RAGFlow version without the AI Stupid Level provider, choose
+OpenAI-API-Compatible with base URL https://aistupidlevel.info/v1` },
+  { label: 'Cherry Studio', lang: 'text', code: `Settings → Model Provider → + Add
+  Provider Type:  OpenAI
+  API Key:        aism_your_key_here
+  API Host:       https://aistupidlevel.info
+Models → Add:     auto-coding, auto-reasoning, auto-tooling, auto-best` },
+  { label: 'LibreChat', lang: 'text', code: `# librechat.yaml
+endpoints:
+  custom:
+    - name: "AI Stupid Level"
+      apiKey: "\${ASL_ROUTER_KEY}"
+      baseURL: "https://aistupidlevel.info/v1"
+      models:
+        default: ["auto-coding", "auto-reasoning", "auto-tooling", "auto-best", "auto-value"]
+        fetch: true
+      titleConvo: true
+      titleModel: "auto-fastest-quality"
+      modelDisplayLabel: "AI Stupid Level"` },
+  { label: 'Crush', lang: 'text', code: `# crushrc
+provider add aistupidlevel --type openai-compat \\
+  --base-url "https://aistupidlevel.info/v1" \\
+  --api-key "$ASL_ROUTER_KEY"
+
+model add aistupidlevel/auto-coding \\
+  --name "ASL auto-coding" \\
+  --context-window 262144 \\
+  --default-max-tokens 16000` },
   { label: 'Cline / Kilo Code / Roo', lang: 'text', code: `API Provider:  OpenAI Compatible
 Base URL:      https://aistupidlevel.info/v1
 API Key:       aism_your_key_here
@@ -588,7 +671,7 @@ export default function DocsPage() {
                 id="sdks"
                 ruled
                 title="SDKs"
-                sub={<>Official clients for TypeScript and Python, and a provider for the Vercel AI SDK. Any OpenAI client works too (see <a href="#integrations" onClick={e => jump(e, 'integrations')}>Integration examples</a>); the SDKs add what an OpenAI client cannot see.</>}
+                sub={<>Official clients for TypeScript and Python, and a provider for the Vercel AI SDK. Any OpenAI client works too (see <a href="#integrations" onClick={e => jump(e, 'integrations')}>Integrations</a>); the SDKs add what an OpenAI client cannot see.</>}
               >
                 <div className="sd-flow">
                   <dl className="st-kv sd-hdrs">
@@ -937,8 +1020,28 @@ export default function DocsPage() {
               </Pane>
 
               {/* ── Integrations ── */}
-              <Pane id="integrations" ruled title="Integration examples">
-                <CodeBlock samples={INTEGRATIONS} />
+              <Pane
+                id="integrations"
+                ruled
+                title="Integrations"
+                sub={<>The router is an OpenAI-compatible endpoint, so any tool that lets you set a base URL works with it. These are ready-made, or tested settings for the tools people use most.</>}
+              >
+                <div className="sd-flow">
+                  <h3 className="sd-h3">Built in</h3>
+                  <dl className="st-kv sd-hdrs">
+                    <div><dt><code>n8n-nodes-aistupidlevel</code></dt><dd><strong>n8n.</strong> A node for chat, routing and benchmark data, plus an AI Stupid Level Chat Model for the AI Agent. Install it from Settings → Community Nodes</dd></div>
+                    <div><dt><code>@aistupidlevel/mcp</code></dt><dd><strong>MCP server</strong>, listed in the official MCP Registry. Rankings, drift, incidents, route previews and router answers as tools in Claude, Cursor, VS Code and any MCP client</dd></div>
+                    <div><dt><code>@aistupidlevel/ai-sdk-provider</code></dt><dd><strong>Vercel AI SDK</strong> provider: <C>generateText</C>, <C>streamText</C> and tools</dd></div>
+                    <div><dt>AI Stupid Level</dt><dd><strong>RAGFlow</strong> model provider: pick it under Model providers and paste your router key</dd></div>
+                  </dl>
+                  <p className="st-text">Use your router key (<C>aism_…</C>) wherever a tool asks for an API key, and a routing mode such as <C>auto-coding</C> as the model (see <a href="#strategies" onClick={e => jump(e, 'strategies')}>Virtual models</a>). The MCP server and the n8n benchmark operations also take a Data API key (<C>asl_live_…</C>), from <Link href="/account/data-keys">Data API keys</Link>.</p>
+
+                  <h3 className="sd-h3">Apps and agents</h3>
+                  <CodeBlock samples={APP_INTEGRATIONS} />
+
+                  <h3 className="sd-h3">In code</h3>
+                  <CodeBlock samples={INTEGRATIONS} />
+                </div>
               </Pane>
 
               <p className="sd-end">Questions? Check the <Link href="/router/help">Help center</Link></p>
