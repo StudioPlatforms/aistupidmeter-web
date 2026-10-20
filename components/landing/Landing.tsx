@@ -35,7 +35,7 @@ const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
 const INTEGRATIONS: Array<{ name: string; logo: string }> = [
   { name: 'n8n', logo: 'n8n.svg' },
   { name: 'MCP', logo: 'mcp.svg' },
-  { name: 'LiteLLM', logo: 'litellm.svg' },
+  { name: 'LiteLLM', logo: 'litellm.svg?v=2' },
   { name: 'Vercel AI SDK', logo: 'vercel.svg' },
   { name: 'CrewAI', logo: 'crewai.svg' },
   { name: 'Dify', logo: 'dify.svg' },
