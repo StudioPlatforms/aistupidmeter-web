@@ -455,15 +455,15 @@ openclaw onboard --aistupidlevel-api-key aism_your_key_here
 
 # Use a routing mode as the model
 openclaw agent --model aistupidlevel/auto-tooling -m "..."` },
-  { label: 'Hermes Agent', lang: 'text', code: `# ~/.hermes/config.yaml
-model_aliases:
-  asl:
-    model: auto-tooling          # or auto-coding, auto-reasoning, auto-best
-    provider: custom
-    base_url: "https://aistupidlevel.info/v1"
-    key_env: ASL_ROUTER_KEY
+  { label: 'Hermes Agent', lang: 'text', code: `# Install the plugin from the Hermes plugin catalog
+hermes plugins install aistupidlevel
+hermes plugins enable aistupidlevel
 
-# then switch to it inside Hermes:  /model asl` },
+# Add your router key (or set ASL_ROUTER_KEY)
+hermes auth add aistupidlevel
+
+# Use a routing mode as the model
+hermes --provider aistupidlevel --model auto-tooling` },
   { label: 'Open Interpreter', lang: 'text', code: `# ~/.openinterpreter/config.toml
 model_provider = "aistupidlevel"
 model = "auto-coding"
@@ -473,12 +473,10 @@ name = "AI Stupid Level"
 base_url = "https://aistupidlevel.info/v1"
 env_key = "ASL_ROUTER_KEY"
 wire_api = "chat"` },
-  { label: 'Dify', lang: 'text', code: `Settings → Model Provider → install "OpenAI-API-compatible", then Add Model:
-  Model Type:        LLM
-  Model Name:        auto-coding        (or any routing mode)
-  API Key:           aism_your_key_here
-  API endpoint URL:  https://aistupidlevel.info/v1
-  Function calling:  Tool Call` },
+  { label: 'Dify', lang: 'text', code: `Plugins → Marketplace → search "AI Stupid Level" → Install
+Settings → Model Provider → AI Stupid Level → paste your router key (aism_…)
+
+The routing modes (auto-coding, auto-tooling, auto-best, …) then appear as models.` },
   { label: 'RAGFlow', lang: 'text', code: `Model providers → AI Stupid Level → Add the model
   API Key:  aism_your_key_here
   Model:    auto-coding        (or any routing mode)
@@ -1088,6 +1086,8 @@ export default function DocsPage() {
                     <div><dt><code>@aistupidlevel/mcp</code></dt><dd><strong>MCP server</strong>, listed in the official MCP Registry. Rankings, drift, incidents, route previews and router answers as tools in Claude, Cursor, VS Code and any MCP client</dd></div>
                     <div><dt><code>@aistupidlevel/ai-sdk-provider</code></dt><dd><strong>Vercel AI SDK</strong> provider: <C>generateText</C>, <C>streamText</C> and tools</dd></div>
                     <div><dt><code>@aistupidlevel/openclaw-provider</code></dt><dd><strong>OpenClaw</strong> provider plugin on ClawHub: the routing modes as OpenClaw models, with a live model list</dd></div>
+                    <div><dt><code>aistupidlevel</code></dt><dd><strong>Hermes Agent</strong> provider plugin in the official Hermes plugin catalog: <C>hermes plugins install aistupidlevel</C></dd></div>
+                    <div><dt>AI Stupid Level</dt><dd><strong>Dify</strong> model provider plugin on the Dify Marketplace, with the routing modes as models</dd></div>
                     <div><dt>AI Stupid Level</dt><dd><strong>RAGFlow</strong> model provider: pick it under Model providers and paste your router key</dd></div>
                   </dl>
                   <p className="st-text">Use your router key (<C>aism_…</C>) wherever a tool asks for an API key, and a routing mode such as <C>auto-coding</C> as the model (see <a href="#strategies" onClick={e => jump(e, 'strategies')}>Virtual models</a>). The MCP server and the n8n benchmark operations also take a Data API key (<C>asl_live_…</C>), from <Link href="/account/data-keys">Data API keys</Link>.</p>
