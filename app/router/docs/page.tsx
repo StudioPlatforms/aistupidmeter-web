@@ -464,6 +464,18 @@ hermes auth add aistupidlevel
 
 # Use a routing mode as the model
 hermes --provider aistupidlevel --model auto-tooling` },
+  { label: 'DeepSeek Harness', lang: 'text', code: `# Install the bundle into your profile (here: web)
+dsh plugin --profile web add @aistupidlevel/dsh-provider
+
+# Give it your router key
+export ASL_ROUTER_KEY=aism_your_key_here
+
+# Then pick AI Stupid Level and a routing mode on the Models page,
+# or make it the default in your profile's cordis.patch.yml:
+- id: agent-default-model
+  config:
+    provider: aistupidlevel
+    model: auto-coding` },
   { label: 'Open Interpreter', lang: 'text', code: `# ~/.openinterpreter/config.toml
 model_provider = "aistupidlevel"
 model = "auto-coding"
@@ -500,6 +512,12 @@ endpoints:
       titleConvo: true
       titleModel: "auto-fastest-quality"
       modelDisplayLabel: "AI Stupid Level"` },
+  { label: 'AnythingLLM', lang: 'text', code: `Settings → AI Providers → LLM → Generic OpenAI
+  Base URL:              https://aistupidlevel.info/v1
+  API Key:               aism_your_key_here
+  Chat Model Name:       auto-coding        (or any routing mode)
+  Token context window:  262144
+  Max Tokens:            64000` },
   { label: 'Crush', lang: 'text', code: `# crushrc
 provider add aistupidlevel --type openai-compat \\
   --base-url "https://aistupidlevel.info/v1" \\
@@ -1086,6 +1104,7 @@ export default function DocsPage() {
                     <div><dt><code>@aistupidlevel/mcp</code></dt><dd><strong>MCP server</strong>, listed in the official MCP Registry. Rankings, drift, incidents, route previews and router answers as tools in Claude, Cursor, VS Code and any MCP client</dd></div>
                     <div><dt><code>langchain-aistupidlevel</code></dt><dd><strong>LangChain</strong> chat model <C>ChatAISL</C>: tools, structured output and streaming, plus the model that answered and why</dd></div>
                     <div><dt><code>@aistupidlevel/ai-sdk-provider</code></dt><dd><strong>Vercel AI SDK</strong> provider: <C>generateText</C>, <C>streamText</C> and tools</dd></div>
+                    <div><dt><code>@aistupidlevel/dsh-provider</code></dt><dd><strong>DeepSeek Harness</strong> plugin bundle: adds AI Stupid Level as a provider route with the routing modes as models</dd></div>
                     <div><dt><code>@aistupidlevel/openclaw-provider</code></dt><dd><strong>OpenClaw</strong> provider plugin on ClawHub: the routing modes as OpenClaw models, with a live model list</dd></div>
                     <div><dt><code>aistupidlevel</code></dt><dd><strong>Hermes Agent</strong> provider plugin in the official Hermes plugin catalog: <C>hermes plugins install aistupidlevel</C></dd></div>
                     <div><dt>AI Stupid Level</dt><dd><strong>Dify</strong> model provider plugin on the Dify Marketplace, with the routing modes as models</dd></div>
