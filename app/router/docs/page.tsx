@@ -341,14 +341,14 @@ raw = client.chat.completions.with_raw_response.create(
 )
 print(raw.headers["x-aism-model"])   # the model that answered
 print(raw.parse().choices[0].message.content)` },
-  { label: 'LangChain', lang: 'python', code: `from langchain_openai import ChatOpenAI
+  { label: 'LangChain', lang: 'python', code: `# pip install langchain-aistupidlevel
+from langchain_aistupidlevel import ChatAISL
 
-llm = ChatOpenAI(
-    model="auto-coding",
-    api_key="aism_your_key_here",
-    base_url="https://aistupidlevel.info/v1",
-)
-print(llm.invoke("Write a Python function").content)` },
+llm = ChatAISL(model="auto-coding", api_key="aism_your_key_here")
+msg = llm.invoke("Write a Python function")
+print(msg.content)
+print(msg.response_metadata["routed_model"])    # the model that answered
+print(msg.response_metadata["routing_reason"])  # why it was chosen` },
   { label: 'LlamaIndex', lang: 'python', code: `# pip install llama-index-llms-openai-like
 from llama_index.llms.openai_like import OpenAILike
 
@@ -1084,6 +1084,7 @@ export default function DocsPage() {
                   <dl className="st-kv sd-hdrs">
                     <div><dt><code>n8n-nodes-aistupidlevel</code></dt><dd><strong>n8n.</strong> A node for chat, routing and benchmark data, plus an AI Stupid Level Chat Model for the AI Agent. Install it from Settings → Community Nodes</dd></div>
                     <div><dt><code>@aistupidlevel/mcp</code></dt><dd><strong>MCP server</strong>, listed in the official MCP Registry. Rankings, drift, incidents, route previews and router answers as tools in Claude, Cursor, VS Code and any MCP client</dd></div>
+                    <div><dt><code>langchain-aistupidlevel</code></dt><dd><strong>LangChain</strong> chat model <C>ChatAISL</C>: tools, structured output and streaming, plus the model that answered and why</dd></div>
                     <div><dt><code>@aistupidlevel/ai-sdk-provider</code></dt><dd><strong>Vercel AI SDK</strong> provider: <C>generateText</C>, <C>streamText</C> and tools</dd></div>
                     <div><dt><code>@aistupidlevel/openclaw-provider</code></dt><dd><strong>OpenClaw</strong> provider plugin on ClawHub: the routing modes as OpenClaw models, with a live model list</dd></div>
                     <div><dt><code>aistupidlevel</code></dt><dd><strong>Hermes Agent</strong> provider plugin in the official Hermes plugin catalog: <C>hermes plugins install aistupidlevel</C></dd></div>
