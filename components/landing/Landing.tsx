@@ -6,7 +6,7 @@ import { darkDefaultScript } from '@/lib/theme-config';
 import DarkDefault from '@/components/DarkDefault';
 import { priceIdFor, type SellablePlan } from '@/lib/stripe-plans';
 import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
-import { getCorpus, getLandingSnapshot, getModelRoster, getPriceSnapshot, getProviderHealth, getVisitTotal } from './data';
+import { getCorpus, getLandingSnapshot, getModelRoster, getPriceSnapshot, getProviderHealth, getTopFive, getVisitTotal } from './data';
 import { PROVIDER_LABEL, compactHealth, type PriceSnapshot } from './types';
 import { dayRange, duration, logoFor, pct, per1k, times } from './price-format';
 import LandingNav from './LandingNav';
@@ -20,6 +20,7 @@ import ConsentBar from './ConsentBar';
 import LandingEffects from './LandingEffects';
 import PriceFinding from './PriceFinding';
 import RealPrice from './RealPrice';
+import TopFive from './TopFive';
 
 const SITE = 'https://aistupidlevel.info';
 const SIGN_IN = '/auth/signin?callbackUrl=%2F';
@@ -161,6 +162,7 @@ export default async function Landing() {
   const [snapshot, health, roster, price, corpus, visits] = await Promise.all([
     getLandingSnapshot(), getProviderHealth(), getModelRoster(), getPriceSnapshot(), getCorpus(), getVisitTotal(),
   ]);
+  const topFive = await getTopFive(price);
   const buyable = (['pro', 'developer', 'teams'] as SellablePlan[]).filter(p => priceIdFor(p, 'monthly') || priceIdFor(p, 'annual'));
 
   const modelCount = snapshot?.modelCount || roster.length || 24;
@@ -233,7 +235,7 @@ export default async function Landing() {
                 </p>
                 <div className="lp-cta lp-intro" style={{ '--d': '.3s' } as CSSProperties}>
                   <Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGN_UP_ROUTER}>Get your router key <span className="lp-ar">→</span></Link>
-                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href={SIGN_UP}>See today’s leaderboard</Link>
+                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href={SIGN_IN}>Sign in for the full leaderboard</Link>
                 </div>
                 <p className="lp-fine lp-intro" style={{ '--d': '.36s' } as CSSProperties}>Free account: every ranking, a 3-model watchlist and 1,000 routed requests a month. No card.</p>
               </div>
@@ -309,6 +311,23 @@ export default async function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ── top five ── The full board is for accounts; this shows the leaders and says so. */}
+      {topFive && (
+        <section className="lp-sec lp-B" id="leaderboard" aria-labelledby="lp-top5-h">
+          <div className="lp-wrap">
+            <div className="lp-head lp-head-split lp-up">
+              <p className="lp-kicker">Leaderboard</p>
+              <h2 className="lp-h2" id="lp-top5-h">The five that lead each board.</h2>
+              <p className="lp-lead">
+                Every model gets the same tasks and the same scoring. A free account shows every model on every board over
+                24 hours, 7 days and 30 days; a paid plan adds the scores from the newest run.
+              </p>
+            </div>
+            <div className="lp-up"><TopFive data={topFive} signInHref={SIGN_IN} /></div>
+          </div>
+        </section>
+      )}
 
       {/* ── the real price of AI ── */}
       <section className="lp-sec lp-C" id="price" aria-labelledby="lp-price-h">

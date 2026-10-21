@@ -85,3 +85,44 @@ export async function getVisitTotal(): Promise<number | null> {
     return null;
   }
 }
+
+/** One board's top five, best first. `value` is a pass rate (0–1) for coding, a 0–100 score otherwise. */
+export interface TopBoard { key: 'coding' | 'reasoning' | 'tooling'; rows: Array<{ name: string; displayName: string; vendor: string; value: number }> }
+export interface TopFive { mode: 'live24h' | 'measured'; from?: string; to?: string; boards: TopBoard[] }
+
+/** Real test runs count as live when the newest one is this recent. */
+const LIVE_WINDOW_MS = 26 * 3600 * 1000;
+
+/**
+ * The landing's top five per board. It shows the 24-hour leaderboard only while real test runs are
+ * being recorded — the price snapshot holds test records only, so its newest coding run says so.
+ * Otherwise it shows the newest measured window, dated, from those same records: the homepage never
+ * presents scores as a 24-hour measurement unless runs measured them in the last day.
+ */
+export async function getTopFive(price: PriceSnapshot | null): Promise<TopFive | null> {
+  const newest = price?.coding?.to ? Date.parse(price.coding.to) : NaN;
+  if (Number.isFinite(newest) && Date.now() - newest < LIVE_WINDOW_MS) {
+    const sorts: Array<[TopBoard['key'], string]> = [['coding', '7axis'], ['reasoning', 'reasoning'], ['tooling', 'tooling']];
+    try {
+      const boards = await Promise.all(sorts.map(async ([key, sortBy]) => {
+        const res = await fetch(`${API}/dashboard/scores?period=24h&sortBy=${sortBy}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(6000) });
+        if (!res.ok) throw new Error(String(res.status));
+        const rows = ((await res.json())?.data ?? []) as Array<{ name: string; displayName?: string; vendor?: string; provider?: string; currentScore?: number; rankable?: boolean }>;
+        return {
+          key,
+          rows: rows.filter(r => r.rankable !== false && typeof r.currentScore === 'number').slice(0, 5)
+            .map(r => ({ name: r.name, displayName: r.displayName || r.name, vendor: r.vendor || r.provider || '', value: r.currentScore as number })),
+        };
+      }));
+      if (boards.every(b => b.rows.length)) return { mode: 'live24h', boards };
+    } catch { /* fall through to the measured window */ }
+  }
+  if (!price?.coding) return null;
+  const top = <T,>(rows: T[], v: (r: T) => number) => [...rows].sort((a, b) => v(b) - v(a)).slice(0, 5);
+  const boards: TopBoard[] = [
+    { key: 'coding', rows: top(price.coding.models, r => r.passRate).map(r => ({ name: r.name, displayName: r.displayName, vendor: r.vendor, value: r.passRate })) },
+    ...(price.reasoning?.models.length ? [{ key: 'reasoning' as const, rows: top(price.reasoning.models, r => r.score).map(r => ({ name: r.name, displayName: r.displayName, vendor: r.vendor, value: r.score })) }] : []),
+    ...(price.tooling?.models.length ? [{ key: 'tooling' as const, rows: top(price.tooling.models, r => r.score).map(r => ({ name: r.name, displayName: r.displayName, vendor: r.vendor, value: r.score })) }] : []),
+  ];
+  return { mode: 'measured', from: price.coding.from, to: price.coding.to, boards };
+}

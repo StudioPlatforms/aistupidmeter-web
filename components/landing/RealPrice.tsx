@@ -47,10 +47,14 @@ export default function RealPrice({ price }: { price: PriceSnapshot }) {
       (VENDOR_ORDER.indexOf(a.vendor) - VENDOR_ORDER.indexOf(b.vendor)) || a.displayName.localeCompare(b.displayName));
   }, [price]);
   const [sel, setSel] = useState<string>(price.finding?.a.name ?? rowsFor(price, tab)[0]?.name ?? '');
+  // Cheapest first is the point of this section, but it is not a quality ranking: the switch and the
+  // line above the list say which order is shown, so the first row is never read as "the best".
+  const [order, setOrder] = useState<'cost' | 'quality'>('cost');
 
   const def = TABS.find(t => t.key === tab)!;
   const suite = price[tab];
-  const rows = useMemo(() => rowsFor(price, tab).sort((a, b) => a.cost - b.cost), [price, tab]);
+  const rows = useMemo(() => rowsFor(price, tab).sort((a, b) =>
+    order === 'cost' ? a.cost - b.cost : (b.quality - a.quality) || (a.cost - b.cost)), [price, tab, order]);
   if (!suite || !rows.length) return null;
 
   const me = rows.find(r => r.name === sel) ?? null;
@@ -122,11 +126,18 @@ export default function RealPrice({ price }: { price: PriceSnapshot }) {
           )}
           <div className="lp-pr-go">
             {chosen && <a className="lp-more" href={`/models/${slugifyModelName(chosen.name)}`}>{chosen.displayName}’s full record</a>}
-            <a className="lp-more" href="#router">Let the router pick the best value</a>
+            <a className="lp-more" href="#router">How the router picks for value</a>
           </div>
         </div>
 
         <div className="lp-pr-list">
+          <div className="lp-pr-order">
+            <p>{order === 'cost' ? `Sorted by cost ${def.per}, not by quality.` : `Sorted by ${def.quality.toLowerCase()}, best first.`}</p>
+            <div className="lp-pr-sort" role="group" aria-label="Sort the list">
+              <button type="button" aria-pressed={order === 'cost'} onClick={() => setOrder('cost')}>Cheapest per result</button>
+              <button type="button" aria-pressed={order === 'quality'} onClick={() => setOrder('quality')}>{tab === 'coding' ? 'Most passed' : 'Highest score'}</button>
+            </div>
+          </div>
           <div className="lp-pr-cols" aria-hidden="true"><span>Model</span><span>Cost {def.per}</span><span>{def.quality}</span></div>
           <div className="lp-pr-rows" style={{ '--rows': rows.length } as CSSProperties}>
             {rows.map((r, i) => (
@@ -148,7 +159,8 @@ export default function RealPrice({ price }: { price: PriceSnapshot }) {
           </div>
           <p className="lp-pr-foot">
             The same tasks for every model, {dayRange(suite.from, suite.to)}. Every attempt is priced at the provider’s list price;
-            cheapest first, bars to scale.
+            bars to scale. The router’s value modes do not simply take the cheapest: they only consider models within
+            5 points of the best score, then pick the cheapest of those.
           </p>
         </div>
       </div>

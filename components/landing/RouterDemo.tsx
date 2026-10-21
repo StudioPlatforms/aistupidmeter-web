@@ -39,7 +39,7 @@ interface RouterDemoProps {
 export default function RouterDemo({
   scenarios, modelCount,
   title = 'Smart Router', titleSub = '· live routing decisions',
-  note = 'Picks and rankings come from the live router; the requests are examples',
+  note = 'Example requests · live router picks',
 }: RouterDemoProps) {
   const reduced = useReducedMotion();
   const [cards, setCards] = useState<Card[]>([{ key: 0, s: scenarios[0], done: true }]);

@@ -14,7 +14,7 @@ export default function DriftPanel() {
     <div className="lp-drift">
       <figure className="lp-chart lp-up">
         <div className="lp-chart-head">
-          <span><b>Illustration</b> · an example model’s reasoning score, daily median · last 30 days</span>
+          <span><b>Illustration, not real data</b> · how a reasoning score, its baseline and the detector look when a model drifts</span>
           <span className="lp-legend"><span><i />score</span><span className="lp-lb"><i />own baseline</span><span className="lp-lph"><i />Page-Hinkley</span></span>
         </div>
         <DriftChart onDrawn={onDrawn} />

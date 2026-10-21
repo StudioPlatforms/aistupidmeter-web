@@ -672,7 +672,9 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp-facts > div { grid-template-columns: minmax(4.4ch, auto) minmax(0, 1fr); border-bottom: 1px solid var(--lp-line); padding: 16px 0; align-items: center; }
   .lp-facts > div + div { border-left: 0; padding-left: 0; }
   .lp-rv { border-radius: 16px; }
-  .lp-rv-note { display: none; }
+  .lp-rv-head { flex-wrap: wrap; row-gap: 8px; }
+  .lp-rv-tools { width: 100%; justify-content: space-between; }
+  .lp-rv-note { white-space: normal; }
   .lp-rv-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; padding: 16px 14px 18px; row-gap: 18px; }
   .lp-rv-req, .lp-core, .lp-rv-models { grid-column: 1; grid-row: auto; }
   .lp-queue .lp-rq:nth-child(n+2) { display: none; }
@@ -820,6 +822,35 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp .lp-pr-row.is-alt { border-color: color-mix(in srgb, var(--lp-good) 45%, var(--lp-line)); }
 .lp-pr-row.is-alt .lp-pr-bar i { background: var(--lp-good); }
 .lp-pr-foot { margin-top: 14px; font-size: 13px; line-height: 1.5; color: var(--lp-fg3); }
+.lp-pr-order { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+.lp-pr-order p { font-size: 14px; font-weight: 600; color: var(--lp-fg); }
+.lp-pr-sort { display: inline-flex; padding: 3px; border: 1px solid var(--lp-line2); border-radius: 999px; }
+.lp-pr-sort button { height: 30px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--lp-fg2); font-size: 13px; font-weight: 600; cursor: pointer; }
+.lp-pr-sort button[aria-pressed='true'] { background: var(--lp-fg); color: var(--lp-bg); }
+.lp .lp-pr-q { font-size: 14px; font-weight: 700; color: var(--lp-fg); }
+
+/* top five per board */
+.lp-top5 { padding: clamp(18px, 2vw, 26px); border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); }
+.lp-top5-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 16px; }
+.lp-top5-when { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--lp-fg3); }
+.lp-top5-when b { color: var(--lp-fg); }
+.lp .lp-top5-tabs { margin-bottom: 0; }
+.lp-top5-rows { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lp-top5-row { display: grid; grid-template-columns: 22px 28px minmax(0, 1.1fr) minmax(0, 1.6fr) 104px; align-items: center; column-gap: 14px; min-height: 46px; padding: 0 12px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-raise); }
+.lp-top5-row .lp-lgc { width: 28px; height: 28px; }
+.lp-top5-n { font-family: var(--lp-font-disp); font-weight: 700; font-size: 15px; color: var(--lp-fg3); text-align: center; font-variant-numeric: tabular-nums; }
+.lp-top5-nm { min-width: 0; font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-top5-row:first-child .lp-pr-bar i { background: var(--lp-accent); }
+.lp-top5-v { font-size: 15px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lp-top5-v small { margin-right: 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--lp-fg3); }
+.lp-top5-note { margin-top: 14px; font-size: 13px; line-height: 1.5; color: var(--lp-fg3); }
+.lp-top5-go { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+@media (max-width: 760px) {
+  .lp-top5-row { grid-template-columns: 18px 28px minmax(0, 1fr) auto; grid-template-areas: 'n l m v' 'n l b b'; row-gap: 6px; padding: 9px 11px; }
+  .lp-top5-n { grid-area: n; } .lp-top5-row .lp-lgc { grid-area: l; } .lp-top5-nm { grid-area: m; } .lp-top5-v { grid-area: v; }
+  .lp-top5-row .lp-pr-bar { grid-area: b; height: 6px; }
+  .lp-top5-go .lp-btn { flex: 1 1 100%; justify-content: center; }
+}
 
 /* the drift record */
 .lp-log { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: clamp(40px, 4.4vw, 64px); border-top: 1px solid var(--lp-line); }
