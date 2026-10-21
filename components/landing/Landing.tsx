@@ -28,22 +28,27 @@ const SIGN_UP_ROUTER = '/auth/signup?callbackUrl=%2Frouter';
 const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
 /**
  * Tools the Smart Router works with, shown as a moving tape under the provider row. Every one is
- * either a published ASL integration (n8n node, MCP server, AI SDK provider, RAGFlow provider,
- * OpenClaw and Hermes Agent plugins) or an integration contributed upstream; all of them already
+ * either a published ASL integration (n8n node, MCP server, AI SDK provider, LangChain package,
+ * RAGFlow provider, OpenClaw, Hermes Agent and DeepSeek Harness plugins) or an integration
+ * contributed upstream; all of them already
  * work through the OpenAI-compatible endpoint, and /router/docs#integrations shows how to connect
  * each. Biggest projects first. Keep the tape's duration (styles/landing.css) about 4 s per logo.
  */
 const INTEGRATIONS: Array<{ name: string; logo: string }> = [
   { name: 'OpenClaw', logo: 'openclaw.svg' },
+  { name: 'DeepSeek Harness', logo: 'deepseek.svg' },
   { name: 'Hermes Agent', logo: 'hermes.svg' },
+  { name: 'LangChain', logo: 'langchain.svg' },
   { name: 'n8n', logo: 'n8n.svg' },
   { name: 'MCP', logo: 'mcp.svg' },
   { name: 'Dify', logo: 'dify.svg' },
+  { name: 'LobeHub', logo: 'lobehub.svg' },
   { name: 'browser-use', logo: 'browser-use.png' },
   { name: 'LiteLLM', logo: 'litellm.svg?v=2' },
   { name: 'Vercel AI SDK', logo: 'vercel.svg' },
   { name: 'CrewAI', logo: 'crewai.svg' },
   { name: 'RAGFlow', logo: 'ragflow.svg' },
+  { name: 'AnythingLLM', logo: 'anythingllm.png' },
   { name: 'Open Interpreter', logo: 'openinterpreter.svg' },
   { name: 'Cherry Studio', logo: 'cherrystudio.svg' },
   { name: 'LibreChat', logo: 'librechat.svg' },
