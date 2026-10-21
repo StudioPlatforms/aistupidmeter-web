@@ -61,6 +61,29 @@ export default function AdminPage() {
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null);
   const [recentVisitors, setRecentVisitors] = useState<RecentVisitor[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [unsubText, setUnsubText] = useState('');
+  const [unsubBusy, setUnsubBusy] = useState(false);
+  const [unsubError, setUnsubError] = useState('');
+  const [unsubResults, setUnsubResults] = useState<{ email: string; outcome: 'unsubscribed' | 'already' | 'no_account' }[]>([]);
+
+  // People who reply "unsubscribe" to product mail: same change as the one-click unsubscribe link.
+  const unsubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUnsubBusy(true); setUnsubError(''); setUnsubResults([]);
+    try {
+      const r = await fetch('/api/admin/unsubscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: unsubText }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setUnsubError(j.error || `Failed (${r.status}). Nothing was changed.`); return; }
+      setUnsubResults(j.results || []);
+      setUnsubText('');
+    } catch {
+      setUnsubError('Could not reach the server. Nothing was changed.');
+    } finally {
+      setUnsubBusy(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -224,6 +247,46 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Unsubscribe */}
+      <div className="crt-monitor">
+        <div className="terminal-text" style={{ marginBottom: '12px', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.2em', marginBottom: '8px' }}>✉️ UNSUBSCRIBE</div>
+          <div className="terminal-text--dim" style={{ fontSize: '0.9em' }}>
+            Paste the addresses of people who replied &quot;unsubscribe&quot;: one or several, or the whole reply.
+            Their weekly digest and alerts are switched off and product emails skip them. Sign-in and password emails still work.
+          </div>
+        </div>
+        <form onSubmit={unsubscribe} style={{ display: 'grid', gap: '10px' }}>
+          <label htmlFor="unsub-text" className="terminal-text--dim" style={{ fontSize: '0.85em' }}>Email addresses</label>
+          <textarea
+            id="unsub-text"
+            value={unsubText}
+            onChange={e => setUnsubText(e.target.value)}
+            rows={3}
+            placeholder="name@example.com"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '8px', font: 'inherit', borderRadius: '4px', border: '1px solid rgba(26, 115, 232, 0.4)' }}
+          />
+          <div>
+            <button type="submit" className="vintage-btn" disabled={unsubBusy || !unsubText.trim()}>
+              {unsubBusy ? 'UNSUBSCRIBING…' : 'UNSUBSCRIBE'}
+            </button>
+          </div>
+        </form>
+        {unsubError && <div className="terminal-text--amber" style={{ marginTop: '10px' }}>{unsubError}</div>}
+        {unsubResults.length > 0 && (
+          <div style={{ marginTop: '12px', display: 'grid', gap: '4px' }}>
+            {unsubResults.map(r => (
+              <div key={r.email} className="terminal-text" style={{ fontSize: '0.9em' }}>
+                <span className={r.outcome === 'no_account' ? 'terminal-text--amber' : 'terminal-text--green'}>
+                  {r.outcome === 'unsubscribed' ? 'Unsubscribed' : r.outcome === 'already' ? 'Already unsubscribed' : 'No account with this address'}
+                </span>
+                {' '}{r.email}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Statistics Overview */}
       {visitorStats && (
