@@ -190,6 +190,9 @@ export default function RouterKeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // A router key answers nothing until the account has a provider key: most new keys were created
+  // and never used because that second step was only on the router overview. null = not known yet.
+  const [providerCount, setProviderCount] = useState<number | null>(null);
   // The models a request can name right now, best first (the router's own ranking table).
   const [lineup, setLineup] = useState<Array<{ name: string; provider: string }>>([]);
   const nameField = useRef<HTMLInputElement>(null);
@@ -198,6 +201,7 @@ export default function RouterKeysPage() {
     if (status === 'authenticated' && session?.user?.id) {
       apiClient.setUserId(session.user.id);
       fetchKeys();
+      apiClient.getProviderKeys().then(r => setProviderCount((r.keys || []).length)).catch(() => setProviderCount(null));
       apiClient.getAvailableModels().then(r => setLineup((r.models || []).map(m => ({ name: m.name, provider: m.provider })))).catch(() => setLineup([]));
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
@@ -282,6 +286,18 @@ export default function RouterKeysPage() {
               {error}
               <div className="sk-note-act">
                 <button type="button" className="st-btn is-sm" onClick={fetchKeys}>Retry</button>
+              </div>
+            </Note>
+          )}
+
+          {providerCount === 0 && (
+            <Note tone="warn" title="Add a provider key before you use your router key">
+              The router calls models with your own OpenAI, Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key, so a router
+              key can&rsquo;t answer anything until you add at least one. Providers bill you directly, at their own list price.
+              Want to try it first? Requests with the <code className="st-ic">X-ASL-Sandbox: true</code> header route for real
+              and return a mock answer, no provider key needed.
+              <div className="sk-note-act">
+                <Link href="/router/providers" className="st-btn is-primary is-sm">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
               </div>
             </Note>
           )}
@@ -534,7 +550,14 @@ export default function RouterKeysPage() {
           sub={createdKey ? undefined : 'A key that routes through the provider keys you have connected.'}
           footer={
             createdKey ? (
-              <button type="button" className="st-btn is-primary" onClick={closeCreate}>Done</button>
+              providerCount === 0 ? (
+                <>
+                  <button type="button" className="st-btn" onClick={closeCreate}>Later</button>
+                  <Link href="/router/providers" className="st-btn is-primary">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
+                </>
+              ) : (
+                <button type="button" className="st-btn is-primary" onClick={closeCreate}>Done</button>
+              )
             ) : (
               <>
                 <button type="button" className="st-btn" onClick={closeCreate} disabled={creating}>Cancel</button>
@@ -573,6 +596,12 @@ export default function RouterKeysPage() {
                 </div>
               </div>
               <Note tone="warn" title="Important">Store this key securely. We cannot show it again after you close this dialog.</Note>
+              {providerCount === 0 && (
+                <Note title="Next: add a provider key">
+                  This key routes through your own provider keys, and you haven&rsquo;t added one yet. Add an OpenAI,
+                  Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key and your requests start routing; until then they are refused.
+                </Note>
+              )}
             </div>
           )}
         </Modal>
