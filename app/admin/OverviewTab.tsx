@@ -45,7 +45,7 @@ export default function OverviewTab({ data, visitors, go }: {
       <Pane
         title="Needs attention"
         sub={data.attention.length
-          ? 'Failed payments, double charges, unpaid access, trials ending and 12-month dates, worst first.'
+          ? 'Failed payments, double charges, unpaid access, trials ending and 12-month dates, worst first. The billing watch handles them every six hours.'
           : 'Failed payments, double charges, unpaid access, trials ending and 12-month dates.'}
         actions={data.attention.length > 5 && (
           <button type="button" className="st-btn is-sm" onClick={() => go('billing')}>All {data.attention.length} in Billing</button>

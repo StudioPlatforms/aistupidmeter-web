@@ -161,6 +161,8 @@ export interface AdminOverview {
     invoicesPaid30: number;
     discounted: number;
     subscriptions: AdminSubscription[];
+    /** What the billing watch (lib/billing-watch.ts) has done, newest first. */
+    notices: Array<{ createdAt: string; kind: string; userId: number | null; email: string | null; ref: string; detail: string | null }>;
     legacy: {
       live: number;
       /** Each legacy subscriber's 12-month mark, from their first $4.99 subscription. */

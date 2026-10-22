@@ -17,6 +17,7 @@ import { PLANS, ownPlanFor, planFor, isUnlimited, type Plan } from '@/lib/entitl
 import { withWorkspace } from '@/lib/workspace-plan';
 import type { SubscriptionStatus } from '@/lib/db-client';
 import { stripeSnapshot, type StripeSnapshot, type StripeSubscriptionRecord } from '@/lib/admin-stripe';
+import { recentNotices } from '@/lib/billing-watch';
 import type {
   AdminAccount, AdminOverview, AdminSubscription, AttentionItem, DataApiAccount, PlanRow, RouterUser,
 } from '@/lib/admin-types';
@@ -233,6 +234,12 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
     const payingCustomers = new Set(active.map(s => s._owner?.id ?? s.customerId)).size;
 
     // ── Needs attention ────────────────────────────────────────────────
+    // recentNotices() also creates billing_notices on first use, so the query below can run.
+    const notices = recentNotices();
+    const legacyEmailed = new Map(
+      (db.prepare(`SELECT user_id AS userId, created_at AS at FROM billing_notices WHERE kind = 'legacy_ended'`).all() as Array<{ userId: number; at: string }>)
+        .map(n => [n.userId, n.at]),
+    );
     const attention: AttentionItem[] = [];
     const who = (s: { email: string | null; userId: number | null }) => s.email ?? `customer without an account`;
 
@@ -245,7 +252,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
           `${money(inv?.amountDue ?? s.amount)} due`,
           inv ? `${inv.attempts} failed attempt${inv.attempts === 1 ? '' : 's'}` : null,
           inv?.nextAttemptAt ? `Stripe retries ${dateLabel(inv.nextAttemptAt)}` : 'no retry scheduled',
-          'access continues until Stripe gives up and cancels',
+          'the customer is emailed that it will be cancelled; if every retry fails, Stripe cancels it and the account moves to Free with an email',
         ].filter(Boolean).join(' · '),
         links: [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }],
       });
@@ -257,12 +264,17 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
       if (list.length < 2) return;
       const linked = list.find(s => s.linked);
       const extra = sumBy(list, s => s.monthly) - (linked?.monthly ?? Math.max(...list.map(s => s.monthly)));
+      // The billing watch keeps the dearer one (the one in use on a tie) and cancels the rest,
+      // but only when the one it keeps is the one in use (lib/billing-watch.ts).
+      const automatic = !!linked && list.every(s => s.monthly <= linked.monthly);
       attention.push({
         kind: 'duplicate', tone: 'bad', userId, email: list[0].email ?? undefined,
         title: `${who(list[0])} has ${list.length} live subscriptions`,
-        detail: `About ${money(extra)}/month charged twice. ` + (linked
-          ? `The account uses ${shortId(linked.id)}; cancel the other${list.length > 2 ? 's' : ''} and refund the duplicate charges. Cancelling ${shortId(linked.id)} instead would move the account to Free.`
-          : 'None of them is the one the account record points at; check the account before cancelling.'),
+        detail: `About ${money(extra)}/month charged twice. ` + (automatic
+          ? `The billing watch cancels the extra ${list.length > 2 ? 'ones' : 'one'} on its next run and keeps ${shortId(linked!.id)}, the one in use. Charges already taken are not refunded automatically.`
+          : linked
+            ? `The account uses ${shortId(linked.id)}, but another costs more, so the billing watch leaves this for you: cancel the cheaper one only after moving the account to the subscription it keeps.`
+            : 'None of them is the one the account record points at; check the account before cancelling.'),
         links: list.map(s => ({ label: `${shortId(s.id)}${s.linked ? ' (in use)' : ''}`, href: stripeLink('subscriptions', s.id) })),
       });
     });
@@ -277,7 +289,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
           kind: 'unpaid_access', tone: 'warn', userId: r.id, email: r.email,
           title: `${r.email} still has ${planName(ownPlanFor(r))}, unpaid`,
           detail: s
-            ? `Stripe ended the subscription on ${dateLabel(s.endedAt)}, but the cancellation never reached the site, so the plan has continued without payment. Moving the account to Free is your call.`
+            ? `Stripe ended the subscription on ${dateLabel(s.endedAt)}, but the cancellation never reached the site, so the plan has continued without payment. The billing watch moves the account to Free on its next run and, when the payments failed, emails the customer.`
             : 'The subscription this account points at is not in Stripe. Check it before changing anything.',
           links: [
             ...(s ? [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }] : []),
@@ -331,7 +343,11 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
       attention.push({
         kind: 'legacy_anniversary', tone: passed ? 'warn' : 'accent', userId: a.userId, email: a.email,
         title: `${a.email}: 12 months at $4.99 ${passed ? 'reached' : 'reached on'} ${dateLabel(a.anniversary)}`,
-        detail: `First subscribed ${dateLabel(a.firstStart)}. The $4.99 price carries on until you decide what happens next; nothing changes on its own.`,
+        detail: legacyEmailed.has(a.userId)
+          ? `First subscribed ${dateLabel(a.firstStart)}. Emailed on ${dateLabel(legacyEmailed.get(a.userId)!)} that the $4.99 term has ended; the subscription ends at the close of the period already paid for.`
+          : passed
+          ? `First subscribed ${dateLabel(a.firstStart)}. The billing watch ends the subscription at the close of the period already paid for and emails the customer that the $4.99 term has ended, with an invitation to the current plans.`
+          : `First subscribed ${dateLabel(a.firstStart)}. Three days before, the billing watch sets the subscription to end at the close of the paid period; on the date it emails the customer.`,
       });
     }
     const toneRank = { bad: 0, warn: 1, accent: 2 } as const;
@@ -540,6 +556,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
         invoicesPaid30: stripe?.invoicesPaid30 ?? 0,
         discounted: live.filter(s => s.discounted).length,
         subscriptions: [...live, ...recentlyEnded].map(strip),
+        notices: notices.map(n => ({ ...n, email: n.userId ? byId.get(n.userId)?.email ?? null : null })),
         legacy: {
           live: live.filter(s => s.plan === 'legacy_pro').length,
           anniversaries,

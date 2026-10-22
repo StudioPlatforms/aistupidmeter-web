@@ -4,7 +4,16 @@ import { useState } from 'react';
 import { Pane, Stats, Stat, Empty, Pill, Tag, Note } from '@/components/studio';
 import type { AdminOverview, AdminSubscription } from '@/lib/admin-types';
 import { AccountCell, AttentionList, EmptyRow, ExternalLink } from './bits';
-import { clock, day, money, num, planLabel, stripeStatus, stripeUrl } from './format';
+import { ago, clock, day, fullDate, money, num, planLabel, stripeStatus, stripeUrl } from './format';
+
+const NOTICE: Record<string, string> = {
+  duplicate_cancelled: 'Cancelled a duplicate',
+  payment_failed: 'Emailed: payment failed',
+  downgraded: 'Moved to Free',
+  cancelled_unpaid: 'Emailed: billing problem',
+  legacy_end_scheduled: 'Set $4.99 to end',
+  legacy_ended: 'Emailed: $4.99 ended',
+};
 
 const ENDED = new Set(['canceled', 'incomplete_expired']);
 const RANK: Record<string, number> = { past_due: 0, unpaid: 0, incomplete: 1, trialing: 2, active: 3 };
@@ -115,7 +124,7 @@ export default function BillingTab({ data }: { data: AdminOverview }) {
 
       <Pane
         title="Needs attention"
-        sub="Every billing problem and date that needs a decision. Nothing here is changed automatically."
+        sub="Billing problems and dates. The billing watch handles them every six hours; anything it cannot decide stays here for you."
         ruled flush
       >
         {data.attention.length
@@ -172,8 +181,31 @@ export default function BillingTab({ data }: { data: AdminOverview }) {
       </Pane>
 
       <Pane
+        title="Billing automation"
+        sub="What the billing watch has done: cancelled duplicates, moved unpaid accounts to Free, ended $4.99 subscriptions after 12 months, and every email it sent. It runs every six hours; Stripe events also trigger the emails as they happen."
+        ruled flush
+      >
+        <div className="st-table-wrap ad-scroll">
+          <table className="st-table">
+            <thead><tr><th className="is-num">When</th><th>Account</th><th>What</th><th className="ad-hide-md">Detail</th></tr></thead>
+            <tbody>
+              {b.notices.length === 0 && <EmptyRow cols={4}>Nothing yet.</EmptyRow>}
+              {b.notices.map(n => (
+                <tr key={`${n.kind}-${n.ref}`}>
+                  <td className="is-num" title={fullDate(n.createdAt)}>{ago(n.createdAt)}</td>
+                  <td><AccountCell email={n.email ?? 'No account'} sub={n.userId ? `#${n.userId}` : undefined} /></td>
+                  <td className="ad-nowrap">{NOTICE[n.kind] ?? n.kind}</td>
+                  <td className="is-dim ad-hide-md">{n.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Pane>
+
+      <Pane
         title="Legacy Pro at $4.99"
-        sub={`${b.legacy.live} live subscriptions on the original price. The agreement runs 12 months from each subscriber's first subscription; nothing ends it automatically.`}
+        sub={`${b.legacy.live} live subscriptions on the original price. Each runs 12 months from the subscriber's first subscription, then ends at the close of the period already paid for, and the subscriber is emailed an invitation to the current plans.`}
       >
         <div className="ad-two">
           <div>

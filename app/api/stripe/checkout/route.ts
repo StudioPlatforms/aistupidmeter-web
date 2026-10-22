@@ -5,6 +5,7 @@ import { redirectToPath } from '@/lib/safe-redirect';
 import { withReturn } from '@/lib/return-path';
 import { recordActivation } from '@/lib/activation';
 import { findUserById } from '@/lib/db-client';
+import { ownPlanFor } from '@/lib/entitlements';
 import {
   isSellablePlan, isInterval, priceIdFor,
   type SellablePlan, type Interval,
@@ -108,6 +109,17 @@ function isRouterFetch(request: NextRequest): boolean {
     || /prefetch/i.test(h.get('purpose') ?? h.get('sec-purpose') ?? '');
 }
 
+/**
+ * An account already paying for a live subscription changes plan on the billing page
+ * (/api/stripe/change-plan) instead. A second checkout would open a second subscription and
+ * bill it twice, which is how two legacy subscribers came to pay twice from April 2026. A
+ * cancelled subscription still running to its end does not count: that customer may buy again.
+ */
+function alreadySubscribed(user: ReturnType<typeof findUserById>): boolean {
+  if (!user?.stripe_subscription_id || ownPlanFor(user) === 'free') return false;
+  return ['active', 'trial', 'past_due'].includes(user.subscription_status);
+}
+
 /** GET — create a session and redirect straight to Stripe. */
 export async function GET(request: NextRequest) {
   if (isRouterFetch(request)) return new NextResponse(null, { status: 204 });
@@ -131,6 +143,7 @@ export async function GET(request: NextRequest) {
     }
 
     const buyer = findUserById(Number(session.user.id));
+    if (alreadySubscribed(buyer)) return redirectToPath(request, '/account/billing#change-plan');
     const checkoutSession = await buildSession(
       sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
       buyer?.stripe_customer_id, from
@@ -158,6 +171,9 @@ export async function POST(request: NextRequest) {
     if ('error' in sel) return NextResponse.json({ error: sel.error }, { status: 400 });
 
     const buyer = findUserById(Number(session.user.id));
+    if (alreadySubscribed(buyer)) {
+      return NextResponse.json({ error: 'already_subscribed', url: '/account/billing#change-plan' }, { status: 409 });
+    }
     const checkoutSession = await buildSession(
       sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
       buyer?.stripe_customer_id

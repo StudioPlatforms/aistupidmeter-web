@@ -7,7 +7,7 @@ import type { User } from '@/lib/db-client';
  *
  * What goes: the account and everything that is only about it — watchlists, alert
  * preferences and deliveries, activation events, UI preferences, workspace and project
- * memberships (project_members), router credits, SSO tickets (all ON DELETE CASCADE), the
+ * memberships (project_members), router credits, SSO tickets, billing notices (all ON DELETE CASCADE), the
  * forum profile and reactions, and workspaces the person owns alone. What stays, without a
  * link to the person: forum posts and topics (re-attributed to the "Deleted user" placeholder
  * so threads still read), contact messages, assessment requests, audit events and the team

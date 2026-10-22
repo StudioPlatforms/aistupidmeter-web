@@ -31,6 +31,8 @@ export interface StripeSubscriptionRecord {
   trialEnd: string | null;
   cancelAt: string | null;
   endedAt: string | null;
+  /** Why Stripe cancelled it: 'payment_failed', 'cancellation_requested', 'payment_disputed'. */
+  cancelReason: string | null;
   discounted: boolean;
   latestInvoiceId: string | null;
   invoice?: { attempts: number; nextAttemptAt: string | null; amountDue: number };
@@ -87,6 +89,7 @@ function record(s: Stripe.Subscription): StripeSubscriptionRecord {
     // The customer portal cancels by setting cancel_at; older cancellations set the flag.
     cancelAt: iso(raw.cancel_at) ?? (raw.cancel_at_period_end ? iso(item?.current_period_end) : null),
     endedAt: iso(raw.ended_at),
+    cancelReason: raw.cancellation_details?.reason ?? null,
     discounted: Array.isArray(raw.discounts) ? raw.discounts.length > 0 : !!raw.discount,
     latestInvoiceId: typeof s.latest_invoice === 'string' ? s.latest_invoice : s.latest_invoice?.id ?? null,
   };

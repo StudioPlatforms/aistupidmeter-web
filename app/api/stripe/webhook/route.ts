@@ -5,7 +5,8 @@ import { markAssessmentPaid } from '@/lib/assessment';
 import { applyCreditPurchase } from '@/lib/router-credits';
 import { recordActivation } from '@/lib/activation';
 import { sendPurchaseConfirmationEmail, sendTrialEndingEmail } from '@/lib/email-service';
-import { PLANS, isPlan } from '@/lib/entitlements';
+import { PLANS, isPlan, ownPlanFor } from '@/lib/entitlements';
+import { notifyCancelledUnpaid, notifyPaymentFailed } from '@/lib/billing-watch';
 import { 
   updateStripeCustomerId,
   startUserTrial,
@@ -241,6 +242,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Downgrade to free tier
+        const planBefore = ownPlanFor(user);
         downgradeToFree(user.id);
         // Data API keys carry their own tier column and would otherwise keep a
         // paid quota indefinitely — a cancelled Teams key stays at 100,000/day
@@ -248,6 +250,11 @@ export async function POST(request: NextRequest) {
         syncDataApiTier(user.id);
         recordActivation(user.id, 'subscription_cancelled', null, { subscriptionId: subscription.id });
         console.log(`User ${user.id} downgraded to free tier`);
+        // Ended because the payments failed: tell them there is a billing problem (once; the
+        // billing watch would otherwise send it on its next run).
+        if ((subscription as any).cancellation_details?.reason === 'payment_failed' && planBefore !== 'free') {
+          void notifyCancelledUnpaid(user, subscription.id, planBefore).catch(() => {});
+        }
         break;
       }
 
@@ -297,7 +304,18 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         console.error(`Payment failed for customer ${invoice.customer}`);
-        // Could send email notification here
+        // Tell the customer the subscription will be cancelled if this keeps failing: once per
+        // invoice, so Stripe's retries do not each send another (lib/billing-watch.ts).
+        const failedRef = (invoice as any).parent?.subscription_details?.subscription ?? (invoice as any).subscription;
+        const failedSub = typeof failedRef === 'string' ? failedRef : failedRef?.id;
+        const payer = findUserByStripeCustomerId(invoice.customer as string);
+        if (payer && failedSub && payer.stripe_subscription_id === failedSub && (invoice.amount_due ?? 0) > 0 && invoice.id) {
+          const next = (invoice as any).next_payment_attempt;
+          void notifyPaymentFailed(
+            { id: payer.id, email: payer.email, plan: ownPlanFor(payer) },
+            { id: invoice.id, amountDue: invoice.amount_due, nextAttemptAt: typeof next === 'number' && next > 0 ? new Date(next * 1000).toISOString() : null },
+          ).catch(() => {});
+        }
         break;
       }
 

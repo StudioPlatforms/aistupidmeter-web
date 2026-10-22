@@ -337,6 +337,96 @@ export async function sendTrialEndingEmail(
   );
 }
 
+/**
+ * A renewal charge failed. Sent once per unpaid invoice (lib/billing-watch.ts), on the first
+ * failure: Stripe keeps retrying, and cancels the subscription if every retry fails.
+ */
+export async function sendPaymentFailedEmail(
+  email: string,
+  opts: { planLabel: string; amount: string; nextAttempt: string | null },
+) {
+  const retry = opts.nextAttempt ? `We will try again on ${opts.nextAttempt}. ` : '';
+  return deliver(
+    email,
+    'Your AI Stupid Level payment did not go through',
+    renderEmail({
+      heading: 'Your payment did not go through',
+      preheader: 'Update your payment method to keep your subscription.',
+      intro:
+        `We could not collect the payment for your ${opts.planLabel} subscription. ${retry}` +
+        `If the payment keeps failing, your subscription will be cancelled and your account will move to the free plan. ` +
+        `To keep it, update your payment method.`,
+      rows: [
+        ['Plan', opts.planLabel],
+        ['Amount due', opts.amount],
+        ...(opts.nextAttempt ? [['Next attempt', opts.nextAttempt] as [string, string]] : []),
+      ],
+      ctaLabel: 'Update payment method',
+      ctaUrl: `${SITE}/account/billing`,
+      footnote: `If you meant to stop, you do not need to do anything. Questions: <a href="${SITE}/contact" style="color:#1a73e8;text-decoration:none;">contact us</a>.`,
+    }),
+    `We could not collect the payment for your ${opts.planLabel} subscription (${opts.amount}). ${retry}` +
+    `If the payment keeps failing, your subscription will be cancelled and your account will move to the free plan.\n\n` +
+    `Update your payment method: ${SITE}/account/billing\n`
+  );
+}
+
+/** The subscription was cancelled because its payments failed (lib/billing-watch.ts). */
+export async function sendSubscriptionCancelledUnpaidEmail(email: string, opts: { planLabel: string }) {
+  return deliver(
+    email,
+    'Your AI Stupid Level subscription has been cancelled',
+    renderEmail({
+      heading: 'There is a problem with your billing',
+      preheader: 'Your subscription has been cancelled.',
+      intro:
+        `We could not collect the payment for your ${opts.planLabel} subscription, so it has been cancelled ` +
+        `and your account is now on the free plan. Your account, watchlist and settings are unchanged, ` +
+        `and you can subscribe again at any time.`,
+      ctaLabel: 'See plans',
+      ctaUrl: `${SITE}/pricing`,
+      footnote: `If you think this is a mistake, <a href="${SITE}/contact" style="color:#1a73e8;text-decoration:none;">contact us</a>.`,
+    }),
+    `We could not collect the payment for your ${opts.planLabel} subscription, so it has been cancelled ` +
+    `and your account is now on the free plan. You can subscribe again at any time:\n${SITE}/pricing\n`
+  );
+}
+
+/**
+ * The original $4.99 Pro subscription has run its twelve months (lib/billing-watch.ts): it ends
+ * at the close of the period already paid for and is not renewed.
+ */
+export async function sendLegacyTermEndedEmail(
+  email: string,
+  opts: { started: string; ended: string; accessUntil: string },
+) {
+  return deliver(
+    email,
+    'Your $4.99 AI Stupid Level subscription has ended',
+    renderEmail({
+      heading: 'Your 12 months at $4.99 are complete',
+      preheader: 'Thank you for being one of our first subscribers.',
+      intro:
+        `Thank you for being one of our first subscribers. Your Pro subscription at the original price of ` +
+        `$4.99 a month included 12 months, which ended on ${opts.ended}. It will not renew, so you will not be ` +
+        `charged again, and you keep full access until ${opts.accessUntil}. ` +
+        `You are invited to subscribe again under our current plans.`,
+      rows: [
+        ['Subscribed', opts.started],
+        ['12 months ended', opts.ended],
+        ['Access until', opts.accessUntil],
+      ],
+      ctaLabel: 'See current plans',
+      ctaUrl: `${SITE}/pricing`,
+      signoff: true,
+    }),
+    `Thank you for being one of our first subscribers. Your Pro subscription at the original price of $4.99 a month ` +
+    `included 12 months, which ended on ${opts.ended}. It will not renew, so you will not be charged again, ` +
+    `and you keep full access until ${opts.accessUntil}.\n\n` +
+    `You are invited to subscribe again under our current plans: ${SITE}/pricing\n`
+  );
+}
+
 /** Confirm-your-address link, sent again on request (sign-in page, sign-up page, settings). */
 export async function sendVerificationEmail(email: string, verifyLink: string) {
   return deliver(
