@@ -57,17 +57,56 @@ function sourceOf(searchParams: URLSearchParams): string | null {
   return v && /^[a-z0-9-]{1,40}$/.test(v) ? v : null;
 }
 
+/** A promotion code named in the link (`offer=DEV30`), when it is well formed. */
+function offerOf(searchParams: URLSearchParams, body?: Record<string, unknown>): string | null {
+  const v = body?.offer ?? searchParams.get('offer');
+  return typeof v === 'string' && /^[A-Za-z0-9]{3,30}$/.test(v) ? v.toUpperCase() : null;
+}
+
+/**
+ * The promotion code to apply, when the offer named in the link is live and covers this plan.
+ * An offer link (an email campaign, 2026-10-22) applies its code without the buyer typing it;
+ * anything else — an expired code, a code for another plan — falls back to a normal checkout,
+ * where codes can still be entered by hand.
+ */
+async function liveOffer(code: string, priceId: string): Promise<string | null> {
+  try {
+    const found = await stripe.promotionCodes.list({ code, active: true, limit: 1 });
+    const promo = found.data[0];
+    if (!promo || (promo.expires_at && promo.expires_at * 1000 < Date.now())) return null;
+    const couponRef = promo.promotion?.coupon;
+    const couponId = typeof couponRef === 'string' ? couponRef : couponRef?.id;
+    if (!couponId) return null;
+    const [coupon, price] = await Promise.all([
+      stripe.coupons.retrieve(couponId, { expand: ['applies_to'] }),
+      stripe.prices.retrieve(priceId),
+    ]);
+    const product = typeof price.product === 'string' ? price.product : price.product.id;
+    const only = coupon.applies_to?.products;
+    if (!coupon.valid || (only?.length && !only.includes(product))) return null;
+    return promo.id;
+  } catch (err) {
+    console.error('[Stripe checkout] could not check offer', code, err);
+    return null;
+  }
+}
+
 async function buildSession(
   plan: SellablePlan, interval: Interval, userId: string, userEmail: string, cancelPath: string,
-  existingCustomerId?: string | null, from?: string | null,
+  existingCustomerId?: string | null, from?: string | null, offer?: string | null,
 ) {
   const priceId = priceIdFor(plan, interval);
   if (!priceId) {
     throw Object.assign(new Error(`No Stripe price configured for ${plan}/${interval}`), { code: 'unconfigured' });
   }
 
-  const trialDays = await trialDaysFor(priceId);
-  recordActivation(Number(userId), 'checkout_started', plan, { interval, trialDays, ...(from ? { from } : {}) });
+  const [trialDays, promotionCode] = await Promise.all([
+    trialDaysFor(priceId),
+    offer ? liveOffer(offer, priceId) : Promise.resolve(null),
+  ]);
+  recordActivation(Number(userId), 'checkout_started', plan, {
+    interval, trialDays, ...(from ? { from } : {}), ...(offer ? { offer, offerApplied: !!promotionCode } : {}),
+  });
 
   return stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -92,7 +131,8 @@ async function buildSession(
         },
       },
     },
-    allow_promotion_codes: true,
+    // A live offer is applied outright; otherwise the buyer may type a code. Stripe rejects both.
+    ...(promotionCode ? { discounts: [{ promotion_code: promotionCode }] } : { allow_promotion_codes: true }),
   });
 }
 
@@ -128,6 +168,7 @@ export async function GET(request: NextRequest) {
     const sel = resolveSelection(params);
     if ('error' in sel) return redirectToPath(request, '/pricing?error=unknown_plan');
     const from = sourceOf(params);
+    const offer = offerOf(params);
 
     const session = await auth();
     if (!session?.user?.id || !session?.user?.email) {
@@ -139,14 +180,17 @@ export async function GET(request: NextRequest) {
       // request.url carries the internal localhost origin behind nginx, so an absolute URL built
       // from it points nowhere the browser can reach — see lib/safe-redirect.ts. Stripe's
       // success/cancel URLs below must stay absolute; Stripe resolves those from outside.
-      return redirectToPath(request, withReturn('/auth/signup', `/api/stripe/checkout?plan=${sel.plan}&interval=${sel.interval}${from ? `&from=${from}` : ''}`));
+      // An email offer goes to people who already have an account: sign-in, not sign-up.
+      const authPage = from?.startsWith('email') ? '/auth/signin' : '/auth/signup';
+      return redirectToPath(request, withReturn(authPage,
+        `/api/stripe/checkout?plan=${sel.plan}&interval=${sel.interval}${from ? `&from=${from}` : ''}${offer ? `&offer=${offer}` : ''}`));
     }
 
     const buyer = findUserById(Number(session.user.id));
     if (alreadySubscribed(buyer)) return redirectToPath(request, '/account/billing#change-plan');
     const checkoutSession = await buildSession(
       sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
-      buyer?.stripe_customer_id, from
+      buyer?.stripe_customer_id, from, offer
     );
     return NextResponse.redirect(checkoutSession.url!);
   } catch (error: any) {
@@ -176,7 +220,7 @@ export async function POST(request: NextRequest) {
     }
     const checkoutSession = await buildSession(
       sel.plan, sel.interval, session.user.id, session.user.email, '/pricing',
-      buyer?.stripe_customer_id
+      buyer?.stripe_customer_id, null, offerOf(new URL(request.url).searchParams, body)
     );
     return NextResponse.json({ sessionId: checkoutSession.id, url: checkoutSession.url });
   } catch (error: any) {
