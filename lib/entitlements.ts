@@ -211,9 +211,9 @@ export function isPlan(value: unknown): value is Plan {
  * Shape of the account row this module needs. Deliberately minimal so both the
  * Drizzle row and the better-sqlite3 row satisfy it without adapting.
  *
- * `subscription_status` is NOT part of it. That column reads 'trial' for every
- * account including active payers — it has been dead for months and nothing
- * should start depending on it.
+ * `subscription_status` is NOT part of it. That column only labels the Stripe
+ * state for display (it read 'trial' for every account, payers included, until
+ * the webhook started writing it on 2026-10-22); access must never depend on it.
  */
 export interface EntitlementSubject {
   subscription_tier?: string | null;

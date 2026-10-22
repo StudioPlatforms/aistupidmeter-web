@@ -8,6 +8,16 @@ import { hasPaidAccess } from '@/lib/entitlements';
 import path from 'path';
 
 
+/**
+ * What `router_users.subscription_status` holds. The Stripe webhook keeps it in step
+ * with the subscription, for display and reporting only: access is decided by
+ * lib/entitlements.ts from the tier and dates, never from this column.
+ *
+ * Until 2026-10-22 nothing wrote it after sign-up, so every account read 'trial',
+ * paying customers included.
+ */
+export type SubscriptionStatus = 'free' | 'trial' | 'active' | 'past_due' | 'cancelled' | 'complimentary';
+
 export interface User {
   id: number;
   email: string;
@@ -106,7 +116,7 @@ export function createUserWithPassword(
         subscription_status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, 0, 1, 'trial', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, 0, 1, 'free', datetime('now'), datetime('now'))
     `).run(email, passwordHash, name || null);
 
     const user = db.prepare('SELECT * FROM router_users WHERE id = ?').get(result.lastInsertRowid) as User;
@@ -139,7 +149,7 @@ export function createUserWithOAuth(
         subscription_status,
         created_at,
         updated_at
-      ) VALUES (?, ?, ?, ?, ?, 1, 'trial', datetime('now'), datetime('now'))
+      ) VALUES (?, ?, ?, ?, ?, 1, 'free', datetime('now'), datetime('now'))
     `).run(email, provider, oauthId, name || null, avatarUrl || null);
 
     const user = db.prepare('SELECT * FROM router_users WHERE id = ?').get(result.lastInsertRowid) as User;
@@ -267,6 +277,7 @@ export function startUserTrial(
   stripeSubscriptionId: string,
   plan: string = 'pro',
   trialEndsAtIso?: string | null,
+  status: SubscriptionStatus = trialEndsAtIso ? 'trial' : 'active',
 ): void {
   const db = getDb();
   try {
@@ -279,11 +290,12 @@ export function startUserTrial(
         stripe_customer_id = ?,
         stripe_subscription_id = ?,
         subscription_tier = ?,
+        subscription_status = ?,
         trial_started_at = CASE WHEN ? IS NULL THEN trial_started_at ELSE (strftime('%Y-%m-%dT%H:%M:%fZ','now')) END,
         trial_ends_at = ?,
         updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
-    `).run(stripeCustomerId, stripeSubscriptionId, plan, trialEndsAtIso ?? null, trialEndsAtIso ?? null, userId);
+    `).run(stripeCustomerId, stripeSubscriptionId, plan, status, trialEndsAtIso ?? null, trialEndsAtIso ?? null, userId);
   } finally {
     db.close();
   }
@@ -304,17 +316,25 @@ export function activateSubscription(
     // someone Teams and granted them Pro.
     //
     // A legacy subscriber who simply renews must keep 'legacy_pro' — never let
-    // a renewal quietly move them onto the new, more expensive Pro plan.
+    // a renewal quietly move them onto the new, more expensive Pro plan. Their
+    // $4.99 Price maps to legacy_pro itself (planForPriceId); the guard covers
+    // the 'pro' fallback when it cannot be mapped. It must not cover a switch
+    // to Developer or Teams: that customer pays the new price and gets it.
+    //
+    // No last_payment_at here: Stripe reports a subscription active at each
+    // renewal (and at the end of a trial) before the charge is attempted, so
+    // stamping it here recorded failed renewals as payments. recordPayment does
+    // it from the paid invoice.
     db.prepare(`
       UPDATE router_users SET
         stripe_subscription_id = ?,
-        subscription_tier = CASE WHEN subscription_tier = 'legacy_pro' THEN 'legacy_pro' ELSE ? END,
-        last_payment_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        subscription_tier = CASE WHEN subscription_tier = 'legacy_pro' AND ? = 'pro' THEN 'legacy_pro' ELSE ? END,
+        subscription_status = 'active',
         subscription_canceled_at = NULL,
         subscription_ends_at = NULL,
         updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
-    `).run(stripeSubscriptionId, plan, userId);
+    `).run(stripeSubscriptionId, plan, plan, userId);
   } finally {
     db.close();
   }
@@ -323,11 +343,14 @@ export function activateSubscription(
 /**
  * Cancel user's subscription
  */
-export function cancelSubscription(userId: number, endsAt: string): void {
+export function cancelSubscription(userId: number, endsAt: string | null): void {
   const db = getDb();
   try {
+    // A null end keeps access (see ownPlanFor): it only happens when Stripe's
+    // data is incomplete, and the deletion event still downgrades on time.
     db.prepare(`
       UPDATE router_users SET
+        subscription_status = 'cancelled',
         subscription_canceled_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
         subscription_ends_at = ?,
         updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -344,13 +367,66 @@ export function cancelSubscription(userId: number, endsAt: string): void {
 export function downgradeToFree(userId: number): void {
   const db = getDb();
   try {
+    // A subscription deleted mid-trial ends the trial too: ownPlanFor grants Pro
+    // to a free account with an unexpired trial_ends_at, so leaving it in the
+    // future kept a cancelled trial on Pro until the old trial date.
     db.prepare(`
       UPDATE router_users SET
         subscription_tier = 'free',
+        subscription_status = 'free',
         stripe_subscription_id = NULL,
+        trial_ends_at = CASE WHEN trial_ends_at > strftime('%Y-%m-%dT%H:%M:%fZ','now')
+                             THEN strftime('%Y-%m-%dT%H:%M:%fZ','now') ELSE trial_ends_at END,
         updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
     `).run(userId);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * A paid invoice. The only writer of last_payment_at, so it means money received.
+ */
+export function recordPayment(userId: number, paidAtIso: string): void {
+  const db = getDb();
+  try {
+    db.prepare(`
+      UPDATE router_users SET
+        last_payment_at = ?,
+        subscription_status = CASE WHEN subscription_canceled_at IS NULL THEN 'active' ELSE subscription_status END,
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      WHERE id = ?
+    `).run(paidAtIso, userId);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * For Stripe states other than active: a renewal charge that failed (past_due),
+ * or a trial, perhaps resumed after being cancelled (clearCancellation) or moved
+ * to another plan (plan, from the Price, with the same legacy guard as
+ * activateSubscription).
+ */
+export function setSubscriptionStatus(
+  userId: number,
+  status: SubscriptionStatus,
+  opts: { clearCancellation?: boolean; plan?: string } = {},
+): void {
+  const db = getDb();
+  try {
+    const plan = opts.plan ?? null;
+    db.prepare(`
+      UPDATE router_users SET
+        subscription_status = ?,
+        subscription_tier = CASE WHEN ? IS NULL OR (subscription_tier = 'legacy_pro' AND ? = 'pro')
+                                 THEN subscription_tier ELSE ? END,
+        subscription_canceled_at = CASE WHEN ? THEN NULL ELSE subscription_canceled_at END,
+        subscription_ends_at = CASE WHEN ? THEN NULL ELSE subscription_ends_at END,
+        updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      WHERE id = ?
+    `).run(status, plan, plan, plan, opts.clearCancellation ? 1 : 0, opts.clearCancellation ? 1 : 0, userId);
   } finally {
     db.close();
   }
@@ -408,10 +484,12 @@ export function checkSubscription(email: string): {
   }
   
   const hasAccess = hasActiveSubscription(user);
-  
+
   return {
     hasAccess,
-    status: user.subscription_status,
+    // The stored status never outranks access: a lapsed comp or a missed
+    // deletion reads 'free' here, whatever the column says.
+    status: hasAccess ? user.subscription_status : 'free',
     tier: user.subscription_tier,
     trialEndsAt: user.trial_ends_at,
     subscriptionEndsAt: user.subscription_ends_at

@@ -12,7 +12,11 @@ import {
   activateSubscription,
   cancelSubscription,
   downgradeToFree,
-  findUserByStripeCustomerId
+  recordPayment,
+  setSubscriptionStatus,
+  findUserById,
+  findUserByStripeCustomerId,
+  type SubscriptionStatus,
 } from '@/lib/db-client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -46,6 +50,32 @@ function planFromSubscription(subscription: Stripe.Subscription): string {
 function trialEndIso(subscription: Stripe.Subscription): string | null {
   const t = (subscription as any).trial_end;
   return typeof t === 'number' && t > 0 ? new Date(t * 1000).toISOString() : null;
+}
+
+/**
+ * Null when the subscription is not cancelled; otherwise when it ends (null if
+ * Stripe gave no date). The customer portal cancels by setting `cancel_at`
+ * and leaves `cancel_at_period_end` false, so reading only the flag missed every
+ * portal cancellation. The period end has lived on the subscription item, not
+ * the subscription, since Stripe's 2025 API versions.
+ */
+function cancellation(subscription: Stripe.Subscription): { endsAt: string | null } | null {
+  const s = subscription as any;
+  if (!s.cancel_at && !s.cancel_at_period_end) return null;
+  const at = s.cancel_at || s.items?.data?.[0]?.current_period_end;
+  return { endsAt: typeof at === 'number' && at > 0 ? new Date(at * 1000).toISOString() : null };
+}
+
+/** The Stripe state as the label stored in subscription_status (display only). */
+function statusFor(subscription: Stripe.Subscription): SubscriptionStatus {
+  if (cancellation(subscription)) return 'cancelled';
+  switch (subscription.status) {
+    case 'active': return 'active';
+    case 'trialing': return 'trial';
+    case 'canceled':
+    case 'incomplete_expired': return 'free';
+    default: return 'past_due'; // past_due, unpaid, incomplete, paused: a payment is owed
+  }
 }
 
 
@@ -130,6 +160,7 @@ export async function POST(request: NextRequest) {
           subscription.id,
           createdPlan,
           trialEndIso(subscription),
+          statusFor(subscription),
         );
 
         recordActivation(parseInt(userId), 'subscription_started', createdPlan,
@@ -149,38 +180,39 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
-        const userId = subscription.metadata?.userId;
-        
-        if (!userId) {
-          // Try to find user by customer ID
-          const user = findUserByStripeCustomerId(subscription.customer as string);
-          if (!user) {
-            console.error('Could not find user for subscription update');
-            break;
-          }
-          
-          // Handle subscription status changes
-          if (subscription.status === 'active' && !(subscription as any).cancel_at_period_end) {
-            activateSubscription(user.id, subscription.id, planFromSubscription(subscription));
-            syncDataApiTier(user.id);
-            console.log(`Subscription activated for user ${user.id} on plan ${planFromSubscription(subscription)}`);
-          } else if ((subscription as any).cancel_at_period_end) {
-            const endsAt = new Date((subscription as any).current_period_end * 1000).toISOString();
-            cancelSubscription(user.id, endsAt);
-            console.log(`Subscription canceled for user ${user.id}, ends at ${endsAt}`);
-          }
-        } else {
-          const userIdInt = parseInt(userId);
-          
-          if (subscription.status === 'active' && !(subscription as any).cancel_at_period_end) {
-            activateSubscription(userIdInt, subscription.id, planFromSubscription(subscription));
-            syncDataApiTier(userIdInt);
-            console.log(`Subscription activated for user ${userIdInt} on plan ${planFromSubscription(subscription)}`);
-          } else if ((subscription as any).cancel_at_period_end) {
-            const endsAt = new Date((subscription as any).current_period_end * 1000).toISOString();
-            cancelSubscription(userIdInt, endsAt);
-            console.log(`Subscription canceled for user ${userIdInt}, ends at ${endsAt}`);
-          }
+        const metaUserId = subscription.metadata?.userId;
+        const user = metaUserId
+          ? findUserById(parseInt(metaUserId))
+          : findUserByStripeCustomerId(subscription.customer as string);
+        if (!user) {
+          console.error('Could not find user for subscription update');
+          break;
+        }
+
+        // As with deletion: a leftover subscription on the same customer must not
+        // cancel or relabel the one this account is paying for.
+        const current = !user.stripe_subscription_id || user.stripe_subscription_id === subscription.id;
+        const cancelled = cancellation(subscription);
+        if (cancelled) {
+          if (!current) break;
+          cancelSubscription(user.id, cancelled.endsAt);
+          console.log(`Subscription canceled for user ${user.id}, ends at ${cancelled.endsAt ?? 'unknown'}`);
+        } else if (subscription.status === 'active') {
+          const plan = planFromSubscription(subscription);
+          activateSubscription(user.id, subscription.id, plan);
+          syncDataApiTier(user.id);
+          console.log(`Subscription activated for user ${user.id} on plan ${plan}`);
+        } else if (current) {
+          // Trialing or a failed renewal: the label, no cancellation Stripe no
+          // longer has, and during a trial the plan, since a plan switch made
+          // mid-trial (change-plan or the portal) only ever arrives here.
+          const trialing = subscription.status === 'trialing';
+          setSubscriptionStatus(user.id, statusFor(subscription), {
+            clearCancellation: true,
+            ...(trialing ? { plan: planFromSubscription(subscription) } : {}),
+          });
+          if (trialing) syncDataApiTier(user.id);
+          console.log(`Subscription for user ${user.id} is ${subscription.status}`);
         }
         break;
       }
@@ -243,14 +275,21 @@ export async function POST(request: NextRequest) {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        
-        if ((invoice as any).subscription) {
-          // Find user by customer ID
-          const user = findUserByStripeCustomerId(invoice.customer as string);
-          if (user && (invoice as any).subscription) {
-            activateSubscription(user.id, (invoice as any).subscription as string);
-            console.log(`Payment succeeded for user ${user.id}`);
-          }
+        // Since Stripe's 2025 API versions the subscription is under
+        // parent.subscription_details; invoice.subscription no longer exists, so
+        // this case never ran. It records the payment only. The plan comes from
+        // the subscription events, which read the Price; this used to call
+        // activateSubscription with its default plan, which would have reset a
+        // Developer or Teams customer to Pro on every renewal.
+        const ref = (invoice as any).parent?.subscription_details?.subscription ?? (invoice as any).subscription;
+        const subscriptionId = typeof ref === 'string' ? ref : ref?.id;
+        // Every trial opens with a $0 invoice; only money received is a payment.
+        if (!subscriptionId || !(invoice.amount_paid > 0)) break;
+        const user = findUserByStripeCustomerId(invoice.customer as string);
+        if (user && user.stripe_subscription_id === subscriptionId) {
+          const paidAt = (invoice as any).status_transitions?.paid_at;
+          recordPayment(user.id, new Date(typeof paidAt === 'number' ? paidAt * 1000 : Date.now()).toISOString());
+          console.log(`Payment succeeded for user ${user.id}`);
         }
         break;
       }

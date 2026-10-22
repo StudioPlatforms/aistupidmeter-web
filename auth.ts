@@ -241,9 +241,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const entitlements = entitlementsFor(subject);
 
             // `subscriptionStatus` is kept for the call sites that still test
-            // for 'active' | 'trialing'. It is a derived flag, NOT the dead
-            // `subscription_status` column (which reads 'trial' for everyone,
-            // including active payers).
+            // for 'active' | 'trialing'. It is a derived access flag, NOT the
+            // `subscription_status` column, which only labels the Stripe state.
             const hasProAccess = hasActiveSubscription(subject);
             (session.user as any).subscriptionStatus = hasProAccess ? 'active' : 'inactive';
             (session.user as any).subscriptionId = user.stripe_subscription_id;
