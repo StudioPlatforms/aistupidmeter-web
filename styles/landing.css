@@ -832,8 +832,9 @@ html:has(.lp) { scroll-behavior: smooth; }
 /* top five per board */
 .lp-top5 { padding: clamp(18px, 2vw, 26px); border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); }
 .lp-top5-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 16px; }
-.lp-top5-when { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--lp-fg3); }
-.lp-top5-when b { color: var(--lp-fg); }
+.lp-top5-when, .lp-pr-when { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--lp-fg3); }
+.lp-top5-when b, .lp-pr-when b { color: var(--lp-fg); }
+.lp-pr-when { margin-bottom: 14px; }
 .lp .lp-top5-tabs { margin-bottom: 0; }
 .lp-top5-rows { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .lp-top5-row { display: grid; grid-template-columns: 22px 28px minmax(0, 1.1fr) minmax(0, 1.6fr) 104px; align-items: center; column-gap: 14px; min-height: 46px; padding: 0 12px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-raise); }

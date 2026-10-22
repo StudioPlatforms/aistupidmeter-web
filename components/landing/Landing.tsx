@@ -338,12 +338,12 @@ export default async function Landing() {
             <p className="lp-lead">
               Every model gets the same tasks, and every attempt is priced at the provider’s list price. Divide what the attempts
               cost by the ones that succeeded and you get what a correct result really costs
-              {spread ? <>: on our coding tasks, from <strong>{per1k(spread.lo)}</strong> to <strong>{per1k(spread.hi)}</strong> per 1,000 correct fixes</> : null}.
+              {spread ? <>: on our coding tasks, measured {dayRange(price!.coding!.from, price!.coding!.to)}, from <strong>{per1k(spread.lo)}</strong> to <strong>{per1k(spread.hi)}</strong> per 1,000 correct fixes</> : null}.
               Pick the model you use and see what does as well for less.
             </p>
           </div>
           {price
-            ? <div className="lp-up"><RealPrice price={price} /></div>
+            ? <div className="lp-up"><RealPrice price={price} roster={roster} /></div>
             : <p className="lp-lead">The cost comparison is refreshing. <Link className="lp-more" href="/compare">Compare the models</Link></p>}
         </div>
       </section>

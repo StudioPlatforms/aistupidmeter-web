@@ -2,19 +2,19 @@
 
 import { useMemo, useState, type CSSProperties } from 'react';
 import { slugifyModelName } from '@/lib/model-slug';
-import { PROVIDER_LABEL, type PriceModel, type PriceSnapshot } from './types';
+import { PROVIDER_LABEL, type PriceModel, type PriceSnapshot, type RosterModel } from './types';
 import { dayRange, duration, logoFor, pct, per1k, times } from './price-format';
 
 type TabKey = 'coding' | 'reasoning' | 'tooling';
 
 interface Row { name: string; displayName: string; vendor: string; quality: number; cost: number; ms: number | null }
 
-const TABS: Array<{ key: TabKey; label: string; quality: string; per: string; unit: string; about: (n: number) => string }> = [
-  { key: 'coding', label: 'Coding', quality: 'Passed', per: 'per 1,000 correct fixes', unit: 'attempt',
+const TABS: Array<{ key: TabKey; label: string; noun: string; quality: string; per: string; unit: string; about: (n: number) => string }> = [
+  { key: 'coding', label: 'Coding', noun: 'coding', quality: 'Passed', per: 'per 1,000 correct fixes', unit: 'attempt',
     about: n => `${n} bug fixes in real code repositories. A fix counts only when the hidden tests pass.` },
-  { key: 'reasoning', label: 'Reasoning', quality: 'Score', per: 'per 1,000 tasks', unit: 'task',
+  { key: 'reasoning', label: 'Reasoning', noun: 'reasoning', quality: 'Score', per: 'per 1,000 tasks', unit: 'task',
     about: n => `${n} long, multi-turn engineering sessions, each checked by code. Scored out of 100.` },
-  { key: 'tooling', label: 'Agents & tools', quality: 'Score', per: 'per 1,000 tasks', unit: 'task',
+  { key: 'tooling', label: 'Agents & tools', noun: 'tool-use', quality: 'Score', per: 'per 1,000 tasks', unit: 'task',
     about: n => `${n} agent tasks with real tools in a sandbox. Scored out of 100.` },
 ];
 
@@ -33,8 +33,12 @@ function rowsFor(price: PriceSnapshot, tab: TabKey): Row[] {
  * "Check your AI": pick a model and see what its results cost against every other model on the
  * same tasks, and which models did at least as well for less. Coding counts correct fixes; reasoning
  * and tool use, whose pass flags barely separate models, show the suite score beside the cost.
+ *
+ * Everything here is real test runs over the dated window, so the window is shown at the top, and
+ * the picker lists every tracked model: one without enough runs in the window says so instead of
+ * being left out (GPT-6.1 Sol had 4 real coding runs before the window closed on 14 Oct).
  */
-export default function RealPrice({ price }: { price: PriceSnapshot }) {
+export default function RealPrice({ price, roster = [] }: { price: PriceSnapshot; roster?: RosterModel[] }) {
   const tabs = TABS.filter(t => price[t.key]?.models.length);
   const [tab, setTab] = useState<TabKey>(tabs[0]?.key ?? 'coding');
   const everyone = useMemo(() => {
@@ -43,9 +47,10 @@ export default function RealPrice({ price }: { price: PriceSnapshot }) {
       const s = price[t.key];
       for (const r of [...(s?.models ?? []), ...(s?.declined ?? [])]) m.set(r.name, r);
     }
+    for (const r of roster) if (!m.has(r.name)) m.set(r.name, { id: 0, name: r.name, displayName: r.displayName, vendor: r.vendor });
     return Array.from(m.values()).sort((a, b) =>
       (VENDOR_ORDER.indexOf(a.vendor) - VENDOR_ORDER.indexOf(b.vendor)) || a.displayName.localeCompare(b.displayName));
-  }, [price]);
+  }, [price, roster]);
   const [sel, setSel] = useState<string>(price.finding?.a.name ?? rowsFor(price, tab)[0]?.name ?? '');
   // Cheapest first is the point of this section, but it is not a quality ranking: the switch and the
   // line above the list say which order is shown, so the first row is never read as "the best".
@@ -73,6 +78,7 @@ export default function RealPrice({ price }: { price: PriceSnapshot }) {
 
   return (
     <div className="lp-pr">
+      <p className="lp-pr-when"><b>Last measured</b> · real test runs, {dayRange(suite.from, suite.to)}</p>
       <div className="lp-pr-tabs" role="tablist" aria-label="Kind of work">
         {tabs.map(t => (
           <button key={t.key} type="button" role="tab" aria-selected={t.key === tab} aria-controls="lp-pr-panel" onClick={() => setTab(t.key)}>
@@ -121,7 +127,7 @@ export default function RealPrice({ price }: { price: PriceSnapshot }) {
             <p className="lp-pr-none">
               {declined
                 ? `${chosen?.displayName ?? sel} declined some of these tasks, so it isn’t compared here: a model is compared only on the same tasks as the rest.`
-                : `${chosen?.displayName ?? sel} doesn’t have enough recent runs here yet.`}
+                : `Not enough ${def.noun} test runs for ${chosen?.displayName ?? sel} between ${dayRange(suite.from, suite.to).replace(' – ', ' and ')} to compare it on the same tasks as the others.`}
             </p>
           )}
           <div className="lp-pr-go">

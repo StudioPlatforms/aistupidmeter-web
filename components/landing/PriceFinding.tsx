@@ -18,7 +18,7 @@ export default function PriceFinding({ price }: { price: PriceSnapshot }) {
   ];
   return (
     <figure className="lp-find" aria-label="What a correct fix costs">
-      <figcaption className="lp-find-head"><b>What a correct fix really costs</b><span><i />Coding · measured</span></figcaption>
+      <figcaption className="lp-find-head"><b>What a correct fix really costs</b><span><i />Coding · measured {dayRange(c.from, c.to)}</span></figcaption>
       <div className="lp-find-rows">
         {rows.map(({ m, cost, w, cls }, i) => (
           <div key={m.name} className={`lp-find-row ${cls}`} style={{ '--w': w, '--i': i } as CSSProperties}>
