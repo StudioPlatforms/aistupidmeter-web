@@ -23,6 +23,7 @@ export function scoreLabel(effectiveStrategy: string, kind: MetricKind): string 
     case 'best_reasoning': return 'Reasoning score';
     case 'best_tooling': return 'Tool-use score';
     case 'best_overall': return 'Combined score';
+    case 'best_agentic_coding': return 'Coding + tool-use score';
     default: return METRIC_LABEL[kind];
   }
 }

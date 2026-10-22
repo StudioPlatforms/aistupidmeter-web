@@ -48,7 +48,12 @@ export interface UserPreferences {
   fallbackOrder?: string[];
   /** custom_split: the caller's weighted traffic split. */
   trafficSplit?: Array<{ model: string; weight: number }>;
+  /** Which of several statistically tied leaders to use (default: the cheaper). */
+  tieBreak?: TieBreak;
 }
+
+/** How the router chooses among models the measurement cannot tell apart. */
+export type TieBreak = 'cheaper' | 'faster' | 'highest';
 
 /** One ranked model as the router sees it for this caller (POST /router/preferences/preview). */
 export interface PreviewCandidate {

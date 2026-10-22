@@ -104,6 +104,7 @@ export const RANKS_ON: Record<string, string> = {
   best_coding: 'Coding suite: real repository bug fixes, every 4 hours',
   best_reasoning: 'Reasoning suite: multi-turn sessions, daily',
   best_tooling: 'Tool-use suite: sandboxed agent tasks, daily',
+  best_agentic_coding: 'Coding and tool-use suites, 50/50: a coding agent at work',
   best_value: 'Combined score ÷ measured cost of a benchmark run',
   best_value_coding: 'Coding score ÷ measured cost of a coding run',
   best_value_reasoning: 'Reasoning score ÷ measured cost of a session',

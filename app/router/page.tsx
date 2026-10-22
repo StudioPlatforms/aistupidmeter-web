@@ -56,6 +56,7 @@ const EXAMPLE: Array<{ id: string; q: string; meta: string; key: string }> = [
 
 const STRATEGY_NAME: Record<string, string> = {
   best_overall: 'Best overall', best_coding: 'Best for coding', best_reasoning: 'Best for reasoning', best_tooling: 'Best for tool use',
+  best_agentic_coding: 'Best for agentic coding',
   best_value: 'Best value overall', best_value_coding: 'Best value for coding', best_value_reasoning: 'Best value for reasoning',
   best_value_tooling: 'Best value for tool use', fastest_quality: 'Fastest good model', best_consistent: 'Most consistent',
   fastest: 'Fastest response', cheapest: 'Lowest list price', match_task: 'Match each request', custom_split: 'Your traffic split',

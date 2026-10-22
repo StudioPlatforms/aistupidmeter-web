@@ -5,6 +5,8 @@ export interface Policy {
   maxCostPer1k: number | null; maxLatencyMs: number | null; requireToolCalling: boolean; fallbackEnabled: boolean;
   fallbackOrder: string[]; avoidDrifting: boolean; trafficSplit: Array<{ model: string; weight: number }>;
   maxOutputTokens: number | null; rpmLimit: number | null; promptLogging: 'key' | 'off' | 'on'; allowPersonalProviderKeys: boolean;
+  /** Which of several statistically tied leaders to use (router TieBreak); cheaper when unset. */
+  tieBreak?: 'cheaper' | 'faster' | 'highest';
 }
 
 export interface Budget {

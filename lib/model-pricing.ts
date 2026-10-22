@@ -100,7 +100,7 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
     if (name.includes('3.8-flash')) return { input: 1.50, output: 7.50 };
     if (name.includes('3.7-flash')) return { input: 1.50, output: 7.50 };
     if (name.includes('3.6-flash')) return { input: 1.50, output: 7.50 };
-    if (name.includes('3.5-flash-lite')) return { input: 0.25, output: 1.50 }; // verified 2026-09-15
+    if (name.includes('3.5-flash-lite')) return { input: 0.30, output: 2.50 }; // ai.google.dev pricing, 2026-10-22 (0.25/1.50 was 3.1 Flash-Lite's)
     if (name.includes('3.5-flash')) return { input: 1.50, output: 9 };
     if (name.includes('3.1-flash-lite')) return { input: 0.25, output: 1.50 };
     if (name.includes('3.1-flash')) return { input: 0.50, output: 3 };

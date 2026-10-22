@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { apiClient } from '@/lib/api-client';
-import type { UserPreferences, RoutingStrategyId, PreferencesPreview, PreviewCandidate } from '@/lib/api-client';
+import type { UserPreferences, RoutingStrategyId, PreferencesPreview, PreviewCandidate, TieBreak } from '@/lib/api-client';
 import { PageHead, Pane, Loader, Note, Tag, ProviderMark, RankList, previewToSnap, useModelNames } from '@/components/studio';
 import { scoreLabel } from '@/components/landing/util';
 import '@/styles/studio-router.css';
@@ -34,9 +34,9 @@ type Strategy = {
 const GROUPS: Array<{ title: string; note: string; items: Strategy[] }> = [
   {
     title: 'Best quality',
-    note: 'The highest-scoring model you can use, on the benchmark that matches the work.',
+    note: 'The best model you can use on the benchmark that matches the work. When several are statistically tied, your tie-break below picks among them.',
     items: [
-      { id: 'best_overall', name: 'Best overall', desc: 'Highest combined score across all three benchmarks.', basis: 'Combined score: coding 50%, reasoning 25%, tool use 25%', modelId: 'auto-best', recommended: true },
+      { id: 'best_overall', name: 'Best overall', desc: 'Best combined score across all three benchmarks.', basis: 'Combined score: coding 50%, reasoning 25%, tool use 25%', modelId: 'auto-best', recommended: true },
       { id: 'best_coding', name: 'Best for coding', desc: 'Best at finding and fixing bugs in real code.', basis: 'Coding benchmark (repository bug fixes, every 4 hours)', modelId: 'auto-coding' },
       { id: 'best_reasoning', name: 'Best for reasoning', desc: 'Best at long, multi-step work that keeps track of requirements.', basis: 'Reasoning benchmark (multi-turn sessions, daily)', modelId: 'auto-reasoning' },
       { id: 'best_tooling', name: 'Best for tool use', desc: 'Best at picking the right tool and arguments, and recovering from tool errors. For agents and coding assistants.', basis: 'Tool-use benchmark (daily)', modelId: 'auto-tooling' },
@@ -66,7 +66,7 @@ const GROUPS: Array<{ title: string; note: string; items: Strategy[] }> = [
     title: 'Your own rules',
     note: 'Decide per request, or split traffic yourself.',
     items: [
-      { id: 'match_task', name: 'Match each request', desc: 'Reads each request and picks the matching benchmark: tools → tool use, design or long sessions → reasoning, code → coding, anything else → overall. Simple requests use the Best value version of the same choice.', basis: 'Chosen per request; the routing reason names the rule', modelId: 'auto-task' },
+      { id: 'match_task', name: 'Match each request', desc: 'Reads each request and picks the matching benchmark: code worked on through tools → coding and tool use together, other tools → tool use, design or long sessions → reasoning, code → coding, anything else → overall. Simple requests use the Best value version of the same choice.', basis: 'Chosen per request; the routing reason names the rule', modelId: 'auto-task' },
       { id: 'custom_split', name: 'Your traffic split', desc: 'Send a share of requests to each model you choose, for example 80% to one model and 20% to another.', basis: 'Your weights; the rest of the split is the first fallback', modelId: 'auto-split' },
     ],
   },
@@ -78,8 +78,17 @@ const PROVIDER_LABEL: Record<string, string> = { openai: 'OpenAI', anthropic: 'A
 const DEFAULTS: UserPreferences = {
   routingStrategy: 'best_overall', fallbackEnabled: true, maxCostPer1kTokens: null, maxLatencyMs: null,
   requireToolCalling: false, requireStreaming: false, excludedProviders: [], excludedModels: [],
-  avoidDrifting: true, fallbackOrder: [], trafficSplit: [],
+  avoidDrifting: true, fallbackOrder: [], trafficSplit: [], tieBreak: 'cheaper',
 };
+
+/** The strategies whose pick a tie-break can settle (match_task resolves to them per request). */
+const TIE_STRATEGIES = new Set<RoutingStrategyId>(['best_overall', 'best_coding', 'best_reasoning', 'best_tooling', 'match_task']);
+
+const TIE_BREAKS: Array<{ id: TieBreak; label: string; desc: string }> = [
+  { id: 'cheaper', label: 'Cheaper', desc: 'The one that cost least per task in our measurements. The same quality as far as the tests can tell, for less.' },
+  { id: 'faster', label: 'Faster', desc: 'The one with the lowest measured latency on the same benchmark tasks.' },
+  { id: 'highest', label: 'Highest score', desc: 'The one with the highest average score, even when its lead is smaller than the measurement can confirm.' },
+];
 
 const STATUS_TEXT: Record<PreviewCandidate['status'], string> = {
   eligible: 'can be used', no_key: 'no provider key', excluded: 'excluded', over_cost: 'over your cost limit',
@@ -274,6 +283,8 @@ function Preferences() {
                 </div>
               ))}
             </Pane>
+
+            <TieBreakPane prefs={prefs} set={set} />
 
             {prefs.routingStrategy === 'custom_split' && (
               <SplitEditor prefs={prefs} set={set} modelNames={modelNames} candidates={candidates} nameOf={nameOf}
@@ -480,6 +491,25 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
   );
 }
 
+function TieBreakPane({ prefs, set }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void }) {
+  const current = TIE_BREAKS.find(t => t.id === (prefs.tieBreak ?? 'cheaper')) ?? TIE_BREAKS[0];
+  const applies = TIE_STRATEGIES.has(prefs.routingStrategy);
+  return (
+    <Pane title="When models are tied"
+      sub="Models rank on the average of their last five measured runs. Two models are tied when the gap between them is smaller than the measurement can confirm (95%), the same rule the leaderboard's “=” ranks use.">
+      <div className="sr-stack">
+        <div className="st-seg is-scroll" role="group" aria-label="When models are tied, use">
+          {TIE_BREAKS.map(t => (
+            <button type="button" key={t.id} aria-pressed={current.id === t.id} onClick={() => set({ tieBreak: t.id })}>{t.label}</button>
+          ))}
+        </div>
+        <p className="st-hint">{current.desc} A conversation stays on the model that answered it, and a model you were already routed to stays while it is still tied, so the pick does not change with every new run.</p>
+        {!applies && <p className="sr-note-line">Your current strategy orders models by something else, so this applies only to requests that ask for a Best quality strategy (auto-best, auto-coding, auto-reasoning, auto-tooling) or match it.</p>}
+      </div>
+    </Pane>
+  );
+}
+
 function LimitCost({ prefs, set, candidates }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; candidates: PreviewCandidate[] }) {
   // The API's limit is the average of input and output price per 1K tokens; prices are quoted
   // per million everywhere else, so the page shows and takes it per million.
@@ -527,7 +557,7 @@ function LimitLatency({ prefs, set, candidates }: { prefs: UserPreferences; set:
           onChange={e => set({ maxLatencyMs: e.target.checked ? Math.ceil(median / 1000) * 1000 : null })} />
         <span>
           <b>Maximum response time</b>
-          <span>Measured over the last 7 days of benchmark runs, blended with what the router observes. Reasoning models often take 10–60 s on hard tasks.</span>
+          <span>The median of the last 7 days of benchmark runs, blended with what the router observes. Reasoning models often take 10–60 s on hard tasks.</span>
         </span>
       </label>
       {on && (

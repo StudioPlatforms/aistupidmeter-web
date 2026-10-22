@@ -154,6 +154,7 @@ function summary(p: Policy): Array<[string, string]> {
   if (p.requireToolCalling) rows.push(['Tool calling', 'Only models that support it']);
   rows.push(['Fallback', p.fallbackEnabled ? (p.fallbackOrder.length ? `On, trying ${p.fallbackOrder.join(', ')} first` : 'On') : 'Off']);
   rows.push(['Drifting models', p.avoidDrifting ? 'Passed over while a drift alert is open' : 'Treated like any other']);
+  rows.push(['Tied leaders', p.tieBreak === 'faster' ? 'The faster one' : p.tieBreak === 'highest' ? 'The highest score' : 'The cheaper one']);
   if (p.strategy === 'custom_split') rows.push(['Traffic split', p.trafficSplit.map(x => `${x.model} ${x.weight}`).join(', ') || '—']);
   rows.push(['Output per request', p.maxOutputTokens ? `At most ${p.maxOutputTokens.toLocaleString()} tokens` : 'No project limit']);
   rows.push(['Rate limit', p.rpmLimit ? `${p.rpmLimit} requests per minute per key` : 'None']);
@@ -302,6 +303,12 @@ function PolicyEditor({ d, catalog, reload, flash }: { d: ProjectData; catalog: 
                 <span className="sw-toggle-text"><b>Only models that call tools</b><span>For agents.</span></span></label>
               <label className="st-toggle"><input type="checkbox" className="st-check" checked={p.allowPersonalProviderKeys} onChange={e => set('allowPersonalProviderKeys', e.target.checked)} />
                 <span className="sw-toggle-text"><b>Use people&rsquo;s own provider keys as a last resort</b><span>When neither the project nor the workspace has a key for a provider.</span></span></label>
+              <label className="st-field"><span className="st-field-label">When the best models are statistically tied</span>
+                <select className="st-select" value={p.tieBreak ?? 'cheaper'} onChange={e => set('tieBreak', e.target.value as NonNullable<Policy['tieBreak']>)}>
+                  <option value="cheaper">The cheaper one (measured cost per task)</option>
+                  <option value="faster">The faster one (measured latency)</option>
+                  <option value="highest">The highest score, even within the noise</option>
+                </select></label>
               <label className="st-field"><span className="st-field-label">Prompt logging</span>
                 <select className="st-select" value={p.promptLogging} onChange={e => set('promptLogging', e.target.value as Policy['promptLogging'])}>
                   <option value="key">Each key&rsquo;s own setting</option>

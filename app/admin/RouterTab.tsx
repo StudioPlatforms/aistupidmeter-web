@@ -13,6 +13,10 @@ const CAUSE: Record<string, string> = {
   no_provider_key: 'No provider key saved',
   client_auth: 'Provider rejected the key',
   client_request: 'Provider rejected the request',
+  client_quota: 'Provider account out of credit',
+  client_rate_limit: 'Provider rate-limited the key',
+  refusal: 'Model declined the request',
+  model: 'Model did not answer',
   unknown: 'Unknown provider error',
   unclassified: 'Unclassified',
 };

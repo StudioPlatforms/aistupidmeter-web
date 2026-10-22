@@ -10,13 +10,13 @@ const GROUPS = ['Best quality', 'Best value', 'Speed, cost, stability', 'Adaptiv
 interface Mode { id: string; key: string; group: number; name: string; desc: string; order: string }
 
 const MODES: Mode[] = [
-  { id: 'auto-best', key: 'best_overall', group: 0, name: 'Best overall', order: 'Quality (effective score)',
-    desc: 'The highest combined score among the models you have keys for.' },
-  { id: 'auto-coding', key: 'best_coding', group: 0, name: 'Best coding', order: 'Quality (effective score)',
+  { id: 'auto-best', key: 'best_overall', group: 0, name: 'Best overall', order: 'Quality, then the cheaper of tied leaders',
+    desc: 'The best combined score among the models you have keys for. When leaders are statistically tied, the one that costs less.' },
+  { id: 'auto-coding', key: 'best_coding', group: 0, name: 'Best coding', order: 'Quality, then the cheaper of tied leaders',
     desc: 'The current leader on real repository bug fixes, re-measured every 4 hours.' },
-  { id: 'auto-reasoning', key: 'best_reasoning', group: 0, name: 'Best reasoning', order: 'Quality (effective score)',
+  { id: 'auto-reasoning', key: 'best_reasoning', group: 0, name: 'Best reasoning', order: 'Quality, then the cheaper of tied leaders',
     desc: 'The leader on long, multi-turn engineering sessions whose requirements are checked by code.' },
-  { id: 'auto-tooling', key: 'best_tooling', group: 0, name: 'Best tool use', order: 'Quality (effective score)',
+  { id: 'auto-tooling', key: 'best_tooling', group: 0, name: 'Best tool use', order: 'Quality, then the cheaper of tied leaders',
     desc: 'The model that finishes sandboxed agent tasks with real tools most reliably.' },
   { id: 'auto-value', key: 'best_value', group: 1, name: 'Best value', order: 'Points per measured dollar, among contenders',
     desc: 'Among models within 5 points of the best, the most combined points per measured dollar.' },
@@ -35,7 +35,7 @@ const MODES: Mode[] = [
   { id: 'auto-consistent', key: 'best_consistent', group: 2, name: 'Most consistent', order: 'Smallest run-to-run spread, among contenders',
     desc: 'Among contenders, the model whose coding score moves least from run to run.' },
   { id: 'auto-task', key: 'match_task', group: 3, name: 'Match each request', order: 'As the matched strategy',
-    desc: 'Reads each request and picks the strategy for it: tools go to tool use, design questions to reasoning, large code to coding.' },
+    desc: 'Reads each request and picks the strategy for it: a coding agent’s tool calls go to coding and tool use together, other tools to tool use, design questions to reasoning, large code to coding.' },
   { id: 'auto-split', key: 'custom_split', group: 3, name: 'Your traffic split', order: 'Weighted draw per request',
     desc: 'Up to 10 models with your own weights. Each request draws its primary by weight; the rest of the split become its fallbacks.' },
   { id: 'auto', key: 'preference', group: 3, name: 'Your saved preference', order: 'As configured',
@@ -43,7 +43,8 @@ const MODES: Mode[] = [
 ];
 
 const RULES: Array<[string, string, RegExp]> = [
-  ['Offers tools', 'best_tooling', /offers tools/],
+  ['Works on code through tools', 'best_agentic_coding', /works on code through tools/],
+  ['Offers other tools', 'best_tooling', /offers tools/],
   ['Design or planning words, or 8+ turns', 'best_reasoning', /design|planning|long session/],
   ['Code, large or demanding', 'best_coding', /large or demanding/],
   ['Other code', 'best_value_coding', /^coding request/],
@@ -53,7 +54,7 @@ const RULES: Array<[string, string, RegExp]> = [
 
 /** Where most people start; the other modes are one click away. */
 const STARTERS: Array<[string, string, string]> = [
-  ['auto-best', 'Best performance', 'The highest combined score'],
+  ['auto-best', 'Best performance', 'The best combined score'],
   ['auto-value', 'Best value', 'Most quality per measured dollar'],
   ['auto-consistent', 'Most consistent', 'The steadiest results, run to run'],
 ];

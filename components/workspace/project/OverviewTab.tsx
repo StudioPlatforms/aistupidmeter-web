@@ -23,7 +23,8 @@ const SOURCE: Record<string, string> = {
 };
 const FAILURE: Record<string, string> = {
   model: 'Model did not answer', client_request: 'Request rejected as malformed', client_auth: 'Provider key missing or rejected',
-  client_quota: 'Provider account out of credit', transport: 'Network or timeout', unknown: 'Other',
+  client_quota: 'Provider account out of credit', client_rate_limit: 'Provider key rate-limited', refusal: 'Model declined the request',
+  transport: 'Network or timeout', unknown: 'Other',
 };
 
 function hourWords(h: number): string {

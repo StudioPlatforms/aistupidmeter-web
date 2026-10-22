@@ -87,7 +87,7 @@ const STRATEGIES: Array<{ id: string; cat: string; desc: string }> = [
   { id: 'auto-fastest', cat: 'Speed', desc: 'Lowest latency response time' },
   { id: 'auto-tooling', cat: 'Tool use', desc: 'Best at calling tools correctly — scored on our tool-calling suite' },
   { id: 'auto-agentic', cat: 'Tool use', desc: 'Alias for auto-tooling; "agentic" is what most tools call it' },
-  { id: 'auto-best', cat: 'Overall', desc: 'Highest combined score regardless of category' },
+  { id: 'auto-best', cat: 'Overall', desc: 'Best combined score regardless of category; among statistically tied leaders, your tie-break decides (the cheaper by default)' },
 ];
 
 const ERRORS: Array<{ http: number; type: string; code: string; desc: string }> = [
@@ -105,7 +105,8 @@ const ERRORS: Array<{ http: number; type: string; code: string; desc: string }> 
   { http: 429, type: 'rate_limit_error', code: 'budget_downgraded', desc: 'Project keys: the budget is spent and the project now routes only (cheapest models); naming a model is refused' },
   { http: 429, type: 'rate_limit_error', code: 'allowance_exhausted', desc: "This month's requests are used up and you have no prepaid credits" },
   { http: 429, type: 'rate_limit_error', code: 'insufficient_quota', desc: "This key's monthly hard budget would be exceeded" },
-  { http: 429, type: 'rate_limit_error', code: 'provider_quota_exceeded', desc: 'Your provider account refused for credit or rate limits' },
+  { http: 429, type: 'rate_limit_error', code: 'provider_quota_exceeded', desc: 'Your provider account refused for credit or quota' },
+  { http: 429, type: 'rate_limit_error', code: 'provider_rate_limited', desc: 'Your provider key is being rate-limited on every model tried (see Retry-After). Other models and providers are tried first' },
   { http: 400, type: 'invalid_request_error', code: 'invalid_idempotency_key', desc: 'Idempotency-Key must be 1–255 printable ASCII characters' },
   { http: 422, type: 'invalid_request_error', code: 'idempotency_key_reused', desc: 'The Idempotency-Key was already used with a different request body' },
   { http: 409, type: 'conflict_error', code: 'idempotency_in_progress', desc: 'A request with this Idempotency-Key is still running (see Retry-After)' },
@@ -868,6 +869,14 @@ export default function DocsPage() {
                       <C>GET /v1/models</C> lists them all) to bypass the strategy router and forward directly to that provider.
                     </p>
                     <p>
+                      <strong>How the best model is chosen:</strong> every model ranks on the average of its last five measured benchmark runs, never on
+                      a single run. When the leaders are closer than the measurement can confirm (a gap within 1.96 times their combined standard error, the
+                      same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among them: the one that
+                      cost least per task in our measurements (the default), the fastest, or the highest score. A model you were already routed to stays
+                      while it is still tied, and a conversation stays on the model that answered it, so the pick does not change with every new run.
+                      Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
+                    </p>
+                    <p>
                       <strong>Near-top strategies</strong> (<C>auto-value*</C>, <C>auto-consistent</C>, <C>auto-fastest-quality</C>) only choose among models
                       within 5 points of the best model <em>you</em> can use — after your keys, exclusions and limits — so a cheaper, steadier or faster pick
                       is never a much weaker one. Value is measured: the benchmark score divided by what one identical benchmark run actually cost that model,
@@ -903,7 +912,19 @@ export default function DocsPage() {
                       <strong>Tool calling works end to end.</strong> Send OpenAI-format <C>tools</C>; the response carries <C>tool_calls</C> with the
                       provider&apos;s own ids. Send the results back as <C>role: &quot;tool&quot;</C> messages with <C>tool_call_id</C>, exactly as with
                       OpenAI. The router remembers each model&apos;s own turn for 24 hours (Claude&apos;s thinking blocks, OpenAI reasoning items, Gemini
-                      thought signatures), so multi-step agent loops keep working, and a tool loop stays on the model that started it.
+                      thought signatures), so multi-step agent loops keep working, and a conversation stays on the model that started it.
+                    </p>
+                    <p>
+                      <strong>Prompt caching is on.</strong> Agent loops resend the whole conversation every turn, and every provider can serve the part
+                      it has seen from its prompt cache at a fraction of the input price. OpenAI, Gemini, DeepSeek, Kimi and GLM do it automatically; for
+                      Claude, which caches only when asked, the router asks for every conversation that continues (one with tools, or with an answer in it
+                      already). Cached tokens are reported in <C>usage.prompt_tokens_details.cached_tokens</C> and costed at the cache rate in Monitoring
+                      and budgets.
+                    </p>
+                    <p>
+                      <strong>Refusals:</strong> when a model declines a request, the answer comes back with <C>message.refusal</C> and{' '}
+                      <C>finish_reason: &quot;content_filter&quot;</C>, and it is not counted against your allowance. Claude Fable 5.1, Opus 5.5, Opus 5 and
+                      Sonnet 5.5 first retry on Anthropic&apos;s own fallback model in the same call. A refused request is not sent to other providers.
                     </p>
                     <p>
                       <strong><C>tool_choice</C>:</strong> <C>auto</C> and <C>none</C> work everywhere, and <C>required</C> or a named function works on
@@ -922,8 +943,8 @@ export default function DocsPage() {
                     <p>
                       <strong>Streaming</strong> (<C>stream: true</C>) is real: text arrives as the model writes it (<C>X-AISM-Streaming-Mode: native</C>).
                       Tool calls arrive in one chunk each once the model has finished them, then the finish reason, then usage if you set{' '}
-                      <C>stream_options.include_usage</C>. If the chosen model fails before sending anything, the next fallback is tried; after the first
-                      byte a failure ends the stream with an error event.
+                      <C>stream_options.include_usage</C>. If the chosen model fails before sending anything, or its provider sends nothing at all for 120
+                      seconds, the next fallback is tried; after the first byte a failure ends the stream with an error event.
                     </p>
                     <p>
                       <strong>Text only, by design.</strong> The router picks a model from our benchmark results for coding, reasoning and tool use; none of
