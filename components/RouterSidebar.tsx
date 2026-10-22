@@ -40,6 +40,7 @@ const SECTIONS: Array<[RegExp, string]> = [
   [/^\/router\/forum(\/|$)/, 'Community'],
   [/^\/router\/(help|docs)(\/|$)/, 'Support'],
   [/^\/router(\/|$)/, 'Smart Router'],
+  [/^\/admin(\/|$)/, 'Admin'],
 ];
 
 export function sectionFor(pathname: string | null): string | null {
@@ -122,6 +123,9 @@ export default function RouterSidebar() {
           { label: 'Forum', href: '/router/forum' },
           ...(isForumAdmin ? [{ label: 'Forum admin', href: '/router/forum/admin' }] : []),
         ] },
+        ...(isForumAdmin ? [{ label: 'Admin', items: [
+          { label: 'Admin dashboard', href: '/admin' },
+        ] }] : []),
         { label: 'Support', grow: true, items: [
           { label: 'Help', href: '/router/help' },
           { label: 'API docs', href: '/router/docs' },
