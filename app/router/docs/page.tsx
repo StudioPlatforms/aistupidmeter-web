@@ -553,6 +553,12 @@ pip install lfx-aistupidlevel
 #   (or set AISTUPIDLEVEL_API_KEY)
 # Pick auto-coding in the Language Model or Agent component,
 # or use the AI Stupid Level component to see which model answered.` },
+  { label: 'Open WebUI', lang: 'text', code: `# Install the AI Stupid Level Function:
+#   openwebui.com/posts/f838dc6c-247f-4b98-a61a-4b3e046b81ec → Get
+#   (or Admin Panel → Functions → Import from URL with the GitHub link)
+# Then: Admin Panel → Functions → AI Stupid Level → Valves
+#   API_KEY: aism_your_key_here   (each user can set their own API_KEY in User Valves)
+# Admin Panel → Settings → Models: make the AI Stupid Level models Public` },
   { label: 'Aider', lang: 'text', code: `# Aider works with any OpenAI-compatible API
 export OPENAI_API_BASE=https://aistupidlevel.info/v1
 export OPENAI_API_KEY=aism_your_key_here
@@ -1186,6 +1192,7 @@ export default function DocsPage() {
                     <div><dt>AI Stupid Level</dt><dd><strong>RAGFlow</strong> model provider: pick it under Model providers and paste your router key</dd></div>
                     <div><dt><code>@aistupidlevel/pi-provider</code></dt><dd><strong>Pi</strong> provider extension: the routing modes as Pi models, with the model that answered in the footer. <C>pi install npm:@aistupidlevel/pi-provider</C></dd></div>
                     <div><dt><code>lfx-aistupidlevel</code></dt><dd><strong>Langflow</strong> model provider and component: AI Stupid Level in the Language Model and Agent pickers. <C>pip install lfx-aistupidlevel</C>, then restart Langflow</dd></div>
+                    <div><dt>AI Stupid Level</dt><dd><strong>Open WebUI</strong> Function <a href="https://openwebui.com/posts/f838dc6c-247f-4b98-a61a-4b3e046b81ec" target="_blank" rel="noopener noreferrer">on openwebui.com</a>: every routing mode as a model, with the model that answered and why above each reply</dd></div>
                   </dl>
                   <p className="st-text">Use your router key (<C>aism_…</C>) wherever a tool asks for an API key, and a routing mode such as <C>auto-coding</C> as the model (see <a href="#strategies" onClick={e => jump(e, 'strategies')}>Virtual models</a>). The MCP server and the n8n benchmark operations also take a Data API key (<C>asl_live_…</C>), from <Link href="/account/data-keys">Data API keys</Link>.</p>
 
