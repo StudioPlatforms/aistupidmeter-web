@@ -540,6 +540,19 @@ models:
     apiBase: https://aistupidlevel.info/v1
     apiKey: aism_your_key_here
     roles: [chat, edit, apply]` },
+  { label: 'Pi', lang: 'text', code: `# Install the provider extension
+pi install npm:@aistupidlevel/pi-provider
+
+# Add your router key: /login → API key → AI Stupid Level
+# (or set AISTUPIDLEVEL_API_KEY), then pick a mode with /model
+pi --model aistupidlevel/auto-coding` },
+  { label: 'Langflow', lang: 'text', code: `# In the Python environment that runs Langflow 1.12+
+pip install lfx-aistupidlevel
+# Restart Langflow, then:
+#   Settings → Model Providers → AI Stupid Level → paste your router key
+#   (or set AISTUPIDLEVEL_API_KEY)
+# Pick auto-coding in the Language Model or Agent component,
+# or use the AI Stupid Level component to see which model answered.` },
   { label: 'Aider', lang: 'text', code: `# Aider works with any OpenAI-compatible API
 export OPENAI_API_BASE=https://aistupidlevel.info/v1
 export OPENAI_API_KEY=aism_your_key_here
@@ -1171,6 +1184,8 @@ export default function DocsPage() {
                     <div><dt><code>aistupidlevel</code></dt><dd><strong>Hermes Agent</strong> provider plugin in the official Hermes plugin catalog: <C>hermes plugins install aistupidlevel</C></dd></div>
                     <div><dt>AI Stupid Level</dt><dd><strong>Dify</strong> model provider plugin on the Dify Marketplace, with the routing modes as models</dd></div>
                     <div><dt>AI Stupid Level</dt><dd><strong>RAGFlow</strong> model provider: pick it under Model providers and paste your router key</dd></div>
+                    <div><dt><code>@aistupidlevel/pi-provider</code></dt><dd><strong>Pi</strong> provider extension: the routing modes as Pi models, with the model that answered in the footer. <C>pi install npm:@aistupidlevel/pi-provider</C></dd></div>
+                    <div><dt><code>lfx-aistupidlevel</code></dt><dd><strong>Langflow</strong> model provider and component: AI Stupid Level in the Language Model and Agent pickers. <C>pip install lfx-aistupidlevel</C>, then restart Langflow</dd></div>
                   </dl>
                   <p className="st-text">Use your router key (<C>aism_…</C>) wherever a tool asks for an API key, and a routing mode such as <C>auto-coding</C> as the model (see <a href="#strategies" onClick={e => jump(e, 'strategies')}>Virtual models</a>). The MCP server and the n8n benchmark operations also take a Data API key (<C>asl_live_…</C>), from <Link href="/account/data-keys">Data API keys</Link>.</p>
 
