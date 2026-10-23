@@ -56,6 +56,9 @@
 
 /* Explainers: a short heading per part, then the paragraph. */
 .st .sk-about { display: grid; gap: 16px; }
+.st .sk-ccswitch { display: grid; gap: 6px; }
+.st .sk-ccswitch .st-hint { margin: 0; }
+.st .sk-ccswitch-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .st .sk-about .st-text { max-width: none; }
 .st .sk-about .st-note { font-size: 13.5px; }
 

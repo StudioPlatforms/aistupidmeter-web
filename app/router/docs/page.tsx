@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 're
 import Link from 'next/link';
 import RouterLayout from '@/components/RouterLayout';
 import { PageHead, Pane, CodeBlock, CopyButton, Tag, type CodeSample } from '@/components/studio';
+import { CC_SWITCH_APPS, ccSwitchProviderLink } from '@/lib/cc-switch';
 import '@/styles/studio-docs.css';
 
 const BASE_URL = 'https://aistupidlevel.info/v1';
@@ -1195,6 +1196,18 @@ export default function DocsPage() {
                     <div><dt>AI Stupid Level</dt><dd><strong>Open WebUI</strong> Function <a href="https://openwebui.com/posts/f838dc6c-247f-4b98-a61a-4b3e046b81ec" target="_blank" rel="noopener noreferrer">on openwebui.com</a>: every routing mode as a model, with the model that answered and why above each reply</dd></div>
                   </dl>
                   <p className="st-text">Use your router key (<C>aism_…</C>) wherever a tool asks for an API key, and a routing mode such as <C>auto-coding</C> as the model (see <a href="#strategies" onClick={e => jump(e, 'strategies')}>Virtual models</a>). The MCP server and the n8n benchmark operations also take a Data API key (<C>asl_live_…</C>), from <Link href="/account/data-keys">Data API keys</Link>.</p>
+
+                  <h3 className="sd-h3">CC Switch</h3>
+                  <p className="st-text">
+                    If you use <a href="https://ccswitch.io" target="_blank" rel="noopener noreferrer">CC Switch</a>, one click adds AI Stupid Level to one of
+                    these apps with <C>auto-coding</C> as the model, and CC Switch asks for your router key. A key you create
+                    on the <Link href="/router/keys">Keys</Link> page comes with the same buttons, with the key already filled in.
+                  </p>
+                  <div className="sd-btnrow">
+                    {CC_SWITCH_APPS.map(({ app, label }) => (
+                      <a key={app} className="st-btn is-sm" href={ccSwitchProviderLink(app)}>{label}</a>
+                    ))}
+                  </div>
 
                   <h3 className="sd-h3">Apps and agents</h3>
                   <CodeBlock samples={APP_INTEGRATIONS} />

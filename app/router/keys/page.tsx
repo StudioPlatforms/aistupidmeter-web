@@ -7,6 +7,7 @@ import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { apiClient } from '@/lib/api-client';
 import type { UniversalKey } from '@/lib/api-client';
+import { CC_SWITCH_APPS, ccSwitchProviderLink } from '@/lib/cc-switch';
 import { PageHead, Pane, Stats, Stat, CountUp, CodeBlock, CopyButton, Modal, Loader, Empty, Note, Tag, Pill, ProviderMark } from '@/components/studio';
 import '@/styles/studio-keys.css';
 
@@ -593,6 +594,18 @@ export default function RouterKeysPage() {
                 <div className="st-secret" aria-labelledby="sk-new-key-label">
                   <code>{createdKey}</code>
                   <CopyButton text={createdKey} />
+                </div>
+              </div>
+              <div className="sk-ccswitch">
+                <span className="st-field-label">Add it to CC Switch</span>
+                <p className="st-hint">
+                  If you use <a href="https://ccswitch.io" target="_blank" rel="noopener noreferrer">CC Switch</a>, one click adds
+                  AI Stupid Level to an app with this key and <code className="st-ic">auto-coding</code>.
+                </p>
+                <div className="sk-ccswitch-row">
+                  {CC_SWITCH_APPS.map(({ app, label }) => (
+                    <a key={app} className="st-btn is-sm" href={ccSwitchProviderLink(app, createdKey)}>{label}</a>
+                  ))}
                 </div>
               </div>
               <Note tone="warn" title="Important">Store this key securely. We cannot show it again after you close this dialog.</Note>

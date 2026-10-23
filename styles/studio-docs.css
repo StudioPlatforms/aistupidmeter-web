@@ -17,6 +17,7 @@
 .st .sd-flow { display: flow-root; min-width: 0; }
 .st .sd-flow > * + * { margin-top: 12px; }
 .st .sd-flow > .sd-h3 { margin-top: 30px; }
+.st .sd-btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
 .st .sd-flow > .sd-h3:first-child { margin-top: 0; }
 .st .sd-flow > .sd-h3 + * { margin-top: 10px; }
 .st .sd-h3 { margin: 0; font-family: var(--lp-font-disp) !important; font-size: 16px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--lp-fg); }
