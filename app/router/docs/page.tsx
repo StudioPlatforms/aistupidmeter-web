@@ -540,6 +540,47 @@ models:
     apiBase: https://aistupidlevel.info/v1
     apiKey: aism_your_key_here
     roles: [chat, edit, apply]` },
+  { label: 'Aider', lang: 'text', code: `# Aider works with any OpenAI-compatible API
+export OPENAI_API_BASE=https://aistupidlevel.info/v1
+export OPENAI_API_KEY=aism_your_key_here
+aider --model openai/auto-coding
+
+# Optional: the router's limits, in .aider.model.metadata.json
+{
+  "openai/auto-coding": {
+    "max_input_tokens": 262144,
+    "max_output_tokens": 64000,
+    "litellm_provider": "openai",
+    "mode": "chat"
+  }
+}` },
+  { label: 'OpenHands', lang: 'text', code: `Settings → LLM → Advanced
+  Custom Model:  openai/auto-coding     (openai/ + any routing mode)
+  Base URL:      https://aistupidlevel.info/v1
+  API Key:       aism_your_key_here` },
+  { label: 'Zed', lang: 'text', code: `# Settings → AI → LLM Providers → Add Provider (OpenAI compatible):
+#   API URL https://aistupidlevel.info/v1, your router key, model auto-coding
+# The key is kept in the system keychain. The models can also go in settings.json:
+{
+  "language_models": {
+    "openai_compatible": {
+      "AI Stupid Level": {
+        "api_url": "https://aistupidlevel.info/v1",
+        "available_models": [
+          { "name": "auto-coding", "display_name": "ASL auto-coding", "max_tokens": 262144 },
+          { "name": "auto-tooling", "display_name": "ASL auto-tooling", "max_tokens": 262144 }
+        ]
+      }
+    }
+  }
+}` },
+  { label: 'Activepieces', lang: 'text', code: `Platform Admin → Catalogue → AI Center → Providers
+  Other (OpenAI Compatible) → Connect
+  Base URL:  https://aistupidlevel.info/v1
+  API key:   aism_your_key_here
+  Models:    auto-coding, auto-tooling   (the routing modes you want)
+
+Then pick the model in Activepieces' AI pieces.` },
 ];
 
 /** Inline code in running text. */
@@ -1116,7 +1157,7 @@ export default function DocsPage() {
                 id="integrations"
                 ruled
                 title="Integrations"
-                sub={<>The router is an OpenAI-compatible endpoint, so any tool that lets you set a base URL works with it. These are ready-made, or tested settings for the tools people use most.</>}
+                sub={<>The router is an OpenAI-compatible endpoint, so any tool that lets you set a base URL works with it. Below are the ready-made integrations, then the settings for the tools people use most.</>}
               >
                 <div className="sd-flow">
                   <h3 className="sd-h3">Built in</h3>
