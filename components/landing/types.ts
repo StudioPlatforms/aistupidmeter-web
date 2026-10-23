@@ -150,6 +150,9 @@ interface PriceSuite<R> { from: string; to: string; tasks: number; models: R[]; 
 
 export interface PriceSnapshot {
   generatedAt: string;
+  /** True when the window is a rolling last-N-days view (synthetic mode), not a frozen measured window. */
+  rolling?: boolean;
+  windowDays?: number;
   coding: (PriceSuite<PriceCodingRow> & { trials: number }) | null;
   reasoning: PriceSuite<PriceTaskRow> | null;
   tooling: PriceSuite<PriceTaskRow> | null;

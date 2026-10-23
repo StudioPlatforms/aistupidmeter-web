@@ -51,7 +51,9 @@ export async function getModelRoster(): Promise<RosterModel[]> {
 /** What a correct result costs per model, from the test records. null when the API cannot answer. */
 export async function getPriceSnapshot(): Promise<PriceSnapshot | null> {
   try {
-    const res = await fetch(`${API}/dashboard/price`, { next: { revalidate: 600 }, signal: AbortSignal.timeout(8000) });
+    // Short revalidate: the window is a rolling "now − 30 days", so it must roll to the current
+    // day and track the latest scores. The API memoises the build, so this stays cheap.
+    const res = await fetch(`${API}/dashboard/price`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     const json = await res.json();
     return json?.success ? (json as PriceSnapshot) : null;
@@ -86,36 +88,56 @@ export async function getVisitTotal(): Promise<number | null> {
   }
 }
 
-/** One board's top five, best first. `value` is a pass rate (0–1) for coding, a 0–100 score otherwise. */
+/** One board's top five, best first. `value` is a pass rate (0–1) for coding in measured mode, a 0–100 score otherwise. */
 export interface TopBoard { key: 'coding' | 'reasoning' | 'tooling'; rows: Array<{ name: string; displayName: string; vendor: string; value: number }> }
-export interface TopFive { mode: 'live24h' | 'measured'; from?: string; to?: string; boards: TopBoard[] }
+export interface TopFive { mode: 'live24h' | 'measured'; rolling?: boolean; windowDays?: number; from?: string; to?: string; boards: TopBoard[] }
 
 /** Real test runs count as live when the newest one is this recent. */
 const LIVE_WINDOW_MS = 26 * 3600 * 1000;
 
+/** Which leaderboard sort feeds each board's per-suite score. */
+const BOARD_SORTS: Array<[TopBoard['key'], string]> = [['coding', '7axis'], ['reasoning', 'reasoning'], ['tooling', 'tooling']];
+
 /**
- * The landing's top five per board. It shows the 24-hour leaderboard only while real test runs are
- * being recorded — the price snapshot holds test records only, so its newest coding run says so.
- * Otherwise it shows the newest measured window, dated, from those same records: the homepage never
- * presents scores as a 24-hour measurement unless runs measured them in the last day.
+ * The top five per board straight from the leaderboard for a given period, so the strip shows the
+ * SAME composite scores and order as the dashboard's board for that period. null if any board is empty.
+ */
+async function fetchLeaderboardBoards(period: string, revalidate: number): Promise<TopBoard[] | null> {
+  try {
+    const boards = await Promise.all(BOARD_SORTS.map(async ([key, sortBy]) => {
+      const res = await fetch(`${API}/dashboard/scores?period=${period}&sortBy=${sortBy}`, { next: { revalidate }, signal: AbortSignal.timeout(6000) });
+      if (!res.ok) throw new Error(String(res.status));
+      const rows = ((await res.json())?.data ?? []) as Array<{ name: string; displayName?: string; vendor?: string; provider?: string; currentScore?: number; rankable?: boolean }>;
+      return {
+        key,
+        rows: rows.filter(r => r.rankable !== false && typeof r.currentScore === 'number').slice(0, 5)
+          .map(r => ({ name: r.name, displayName: r.displayName || r.name, vendor: r.vendor || r.provider || '', value: r.currentScore as number })),
+      };
+    }));
+    return boards.every(b => b.rows.length) ? boards : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The landing's top five per board.
+ * - Rolling (synthetic) mode: the 30-day leaderboard boards — the exact composite scores and order
+ *   the dashboard's 1-month view shows, so the preview and the dashboard never disagree. (Pass rate
+ *   lives in the price panel below, which is a cost comparison, not a leaderboard.)
+ * - Real mode: the 24-hour leaderboard while fresh runs are being recorded; otherwise the newest
+ *   measured window from the price snapshot, dated (coding as pass rate).
  */
 export async function getTopFive(price: PriceSnapshot | null): Promise<TopFive | null> {
+  if (price?.rolling) {
+    const boards = await fetchLeaderboardBoards('1m', 60);
+    if (boards) return { mode: 'measured', rolling: true, windowDays: price.windowDays ?? 30, boards };
+    // fall through to the price-derived window if the leaderboard did not answer
+  }
   const newest = price?.coding?.to ? Date.parse(price.coding.to) : NaN;
-  if (Number.isFinite(newest) && Date.now() - newest < LIVE_WINDOW_MS) {
-    const sorts: Array<[TopBoard['key'], string]> = [['coding', '7axis'], ['reasoning', 'reasoning'], ['tooling', 'tooling']];
-    try {
-      const boards = await Promise.all(sorts.map(async ([key, sortBy]) => {
-        const res = await fetch(`${API}/dashboard/scores?period=24h&sortBy=${sortBy}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(6000) });
-        if (!res.ok) throw new Error(String(res.status));
-        const rows = ((await res.json())?.data ?? []) as Array<{ name: string; displayName?: string; vendor?: string; provider?: string; currentScore?: number; rankable?: boolean }>;
-        return {
-          key,
-          rows: rows.filter(r => r.rankable !== false && typeof r.currentScore === 'number').slice(0, 5)
-            .map(r => ({ name: r.name, displayName: r.displayName || r.name, vendor: r.vendor || r.provider || '', value: r.currentScore as number })),
-        };
-      }));
-      if (boards.every(b => b.rows.length)) return { mode: 'live24h', boards };
-    } catch { /* fall through to the measured window */ }
+  if (!price?.rolling && Number.isFinite(newest) && Date.now() - newest < LIVE_WINDOW_MS) {
+    const boards = await fetchLeaderboardBoards('24h', 300);
+    if (boards) return { mode: 'live24h', boards };
   }
   if (!price?.coding) return null;
   const top = <T,>(rows: T[], v: (r: T) => number) => [...rows].sort((a, b) => v(b) - v(a)).slice(0, 5);
@@ -124,5 +146,5 @@ export async function getTopFive(price: PriceSnapshot | null): Promise<TopFive |
     ...(price.reasoning?.models.length ? [{ key: 'reasoning' as const, rows: top(price.reasoning.models, r => r.score).map(r => ({ name: r.name, displayName: r.displayName, vendor: r.vendor, value: r.score })) }] : []),
     ...(price.tooling?.models.length ? [{ key: 'tooling' as const, rows: top(price.tooling.models, r => r.score).map(r => ({ name: r.name, displayName: r.displayName, vendor: r.vendor, value: r.score })) }] : []),
   ];
-  return { mode: 'measured', from: price.coding.from, to: price.coding.to, boards };
+  return { mode: 'measured', rolling: price.rolling, windowDays: price.windowDays, from: price.coding.from, to: price.coding.to, boards };
 }

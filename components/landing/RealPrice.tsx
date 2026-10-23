@@ -39,6 +39,8 @@ function rowsFor(price: PriceSnapshot, tab: TabKey): Row[] {
  * being left out (GPT-6.1 Sol had 4 real coding runs before the window closed on 14 Oct).
  */
 export default function RealPrice({ price, roster = [] }: { price: PriceSnapshot; roster?: RosterModel[] }) {
+  const rolling = !!price.rolling;
+  const windowDays = price.windowDays ?? 30;
   const tabs = TABS.filter(t => price[t.key]?.models.length);
   const [tab, setTab] = useState<TabKey>(tabs[0]?.key ?? 'coding');
   const everyone = useMemo(() => {
@@ -78,7 +80,9 @@ export default function RealPrice({ price, roster = [] }: { price: PriceSnapshot
 
   return (
     <div className="lp-pr">
-      <p className="lp-pr-when"><b>Last measured</b> · real test runs, {dayRange(suite.from, suite.to)}</p>
+      <p className="lp-pr-when">{rolling
+        ? <><b>Last {windowDays} days</b> · {dayRange(suite.from, suite.to)}</>
+        : <><b>Last measured</b> · real test runs, {dayRange(suite.from, suite.to)}</>}</p>
       <div className="lp-pr-tabs" role="tablist" aria-label="Kind of work">
         {tabs.map(t => (
           <button key={t.key} type="button" role="tab" aria-selected={t.key === tab} aria-controls="lp-pr-panel" onClick={() => setTab(t.key)}>

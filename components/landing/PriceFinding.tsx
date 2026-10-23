@@ -12,13 +12,14 @@ export default function PriceFinding({ price }: { price: PriceSnapshot }) {
   const f = price.finding;
   const c = price.coding;
   if (!f || !c || f.a.costPerSuccess == null || f.b.costPerSuccess == null) return null;
+  const whenLabel = price.rolling ? `last ${price.windowDays ?? 30} days` : `measured ${dayRange(c.from, c.to)}`;
   const rows = [
     { m: f.a, cost: f.a.costPerSuccess, w: 1, cls: 'is-a' },
     { m: f.b, cost: f.b.costPerSuccess, w: Math.max(f.b.costPerSuccess / f.a.costPerSuccess, 0.012), cls: 'is-b' },
   ];
   return (
     <figure className="lp-find" aria-label="What a correct fix costs">
-      <figcaption className="lp-find-head"><b>What a correct fix really costs</b><span><i />Coding · measured {dayRange(c.from, c.to)}</span></figcaption>
+      <figcaption className="lp-find-head"><b>What a correct fix really costs</b><span><i />Coding · {whenLabel}</span></figcaption>
       <div className="lp-find-rows">
         {rows.map(({ m, cost, w, cls }, i) => (
           <div key={m.name} className={`lp-find-row ${cls}`} style={{ '--w': w, '--i': i } as CSSProperties}>

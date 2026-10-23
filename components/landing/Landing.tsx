@@ -338,7 +338,7 @@ export default async function Landing() {
             <p className="lp-lead">
               Every model gets the same tasks, and every attempt is priced at the provider’s list price. Divide what the attempts
               cost by the ones that succeeded and you get what a correct result really costs
-              {spread ? <>: on our coding tasks, measured {dayRange(price!.coding!.from, price!.coding!.to)}, from <strong>{per1k(spread.lo)}</strong> to <strong>{per1k(spread.hi)}</strong> per 1,000 correct fixes</> : null}.
+              {spread ? <>: on our coding tasks{price!.rolling ? ` over the last ${price!.windowDays ?? 30} days` : <>, measured {dayRange(price!.coding!.from, price!.coding!.to)}</>}, from <strong>{per1k(spread.lo)}</strong> to <strong>{per1k(spread.hi)}</strong> per 1,000 correct fixes</> : null}.
               Pick the model you use and see what does as well for less.
             </p>
           </div>
