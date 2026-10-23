@@ -295,14 +295,14 @@ html:has(.lp) { scroll-behavior: smooth; }
    shows one static, wrapped list. */
 .lp-tape-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: clamp(24px, 4vw, 72px); row-gap: 14px; margin-top: clamp(32px, 3.5vw, 52px); }
 .lp-tape { min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
-.lp-tape-track { --gap: 44px; display: flex; width: max-content; gap: var(--gap); margin: 0; padding: 6px 0; list-style: none; animation: lpTape 82s linear infinite; }
+.lp-tape-track { --gap: 44px; display: flex; width: max-content; gap: var(--gap); margin: 0; padding: 6px 0; list-style: none; animation: lpTape 135s linear infinite; }
 .lp-tape-track > li { white-space: nowrap; }
 .lp-tape:hover .lp-tape-track, .lp-tape:focus-within .lp-tape-track { animation-play-state: paused; }
 .lp-tape-more { grid-column: 2; justify-self: start; }
 @keyframes lpTape { to { transform: translateX(calc(-50% - var(--gap) / 2)); } }
 @media (max-width: 760px) {
   .lp-tape-row { grid-template-columns: minmax(0, 1fr); }
-  .lp-tape-track { --gap: 28px; animation-duration: 65s; }
+  .lp-tape-track { --gap: 28px; animation-duration: 107s; }
   .lp-tape-more { grid-column: 1; }
 }
 @media (prefers-reduced-motion: reduce) {

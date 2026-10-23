@@ -30,8 +30,9 @@ const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
 /**
  * Tools the Smart Router works with, shown as a moving tape under the provider row. Every one is
  * either a published ASL integration (n8n node, MCP server, AI SDK provider, LangChain package,
- * RAGFlow provider, OpenClaw, Hermes Agent and DeepSeek Harness plugins) or an integration
- * contributed upstream; all of them already
+ * RAGFlow provider, OpenClaw, Hermes Agent, DeepSeek Harness and Pi plugins, the Langflow package,
+ * the Open WebUI Function) or an integration contributed upstream (Fabric's is merged; OpenCode,
+ * Cline, Kilo Code and Mastra list providers from models.dev); all of them already
  * work through the OpenAI-compatible endpoint, and /router/docs#integrations shows how to connect
  * each. Biggest projects first. Keep the tape's duration (styles/landing.css) about 4 s per logo.
  */
@@ -39,13 +40,22 @@ const INTEGRATIONS: Array<{ name: string; logo: string }> = [
   { name: 'OpenClaw', logo: 'openclaw.svg' },
   { name: 'DeepSeek Harness', logo: 'deepseek.svg' },
   { name: 'Hermes Agent', logo: 'hermes.svg' },
+  { name: 'OpenCode', logo: 'opencode.svg' },
+  { name: 'Open WebUI', logo: 'openwebui.svg' },
+  { name: 'Langflow', logo: 'langflow.svg' },
   { name: 'LangChain', logo: 'langchain.svg' },
   { name: 'n8n', logo: 'n8n.svg' },
   { name: 'MCP', logo: 'mcp.svg' },
   { name: 'Dify', logo: 'dify.svg' },
+  { name: 'Pi', logo: 'pi.svg?v=2' },
   { name: 'LobeHub', logo: 'lobehub.svg' },
   { name: 'browser-use', logo: 'browser-use.png' },
+  { name: 'Cline', logo: 'cline.svg' },
   { name: 'LiteLLM', logo: 'litellm.svg?v=2' },
+  { name: 'Fabric', logo: 'fabric.png' },
+  { name: 'oh-my-pi', logo: 'oh-my-pi.svg' },
+  { name: 'Mastra', logo: 'mastra.png' },
+  { name: 'Kilo Code', logo: 'kilocode.svg' },
   { name: 'Vercel AI SDK', logo: 'vercel.svg' },
   { name: 'CrewAI', logo: 'crewai.svg' },
   { name: 'RAGFlow', logo: 'ragflow.svg' },
@@ -53,9 +63,13 @@ const INTEGRATIONS: Array<{ name: string; logo: string }> = [
   { name: 'Open Interpreter', logo: 'openinterpreter.svg' },
   { name: 'Cherry Studio', logo: 'cherrystudio.svg' },
   { name: 'LibreChat', logo: 'librechat.svg' },
+  { name: 'Haystack', logo: 'haystack.svg' },
   { name: 'Agent Zero', logo: 'agent-zero.svg' },
   { name: 'promptfoo', logo: 'promptfoo.svg' },
   { name: 'Crush', logo: 'crush.png' },
+  { name: 'opencodex', logo: 'opencodex.png' },
+  { name: 'Hermes Desktop', logo: 'hermes-desktop.svg' },
+  { name: 'DeepChat', logo: 'deepchat.svg' },
 ];
 /** The first benchmark run, 8 August 2025. */
 const FIRST_RUN = Date.UTC(2025, 7, 8);
