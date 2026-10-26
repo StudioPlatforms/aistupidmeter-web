@@ -79,7 +79,7 @@ function Group({ title, note, right, children }: { title: string; note?: string;
 
 export default function InsightsGrid({
   recommendations, degradations, driftIncidents, providerReliability, modelScores, modelHistoryData,
-  transparencyMetrics, leaderboardSortBy, leaderboardPeriod, onSortChange, locked = false, onUnlock,
+  transparencyMetrics, leaderboardSortBy, leaderboardPeriod, onSortChange, locked = false, onUnlock, showRouterAd = true,
 }: {
   recommendations: any;
   degradations: any[];
@@ -93,6 +93,8 @@ export default function InsightsGrid({
   onSortChange: (s: Sort) => void;
   /** A free account (lib/capabilities 'board-insights'): the analysis panes become Pro cards. */
   locked?: boolean;
+  /** False for subscribers: the Smart Router plan card below the groups is not shown. */
+  showRouterAd?: boolean;
   onUnlock?: () => void;
 }) {
   const unlock = onUnlock ?? (() => {});
@@ -356,6 +358,7 @@ export default function InsightsGrid({
         </div>
       </Group>
 
+      {showRouterAd && (
       <Link href={session ? '/router' : '/pricing'} className="sl-router st-up">
         <span className="sl-router-streaks" aria-hidden="true"><i /><i /><i /></span>
         <span className="sl-router-text">
@@ -368,6 +371,7 @@ export default function InsightsGrid({
         </span>
         <span className="st-btn is-primary">See Smart Router <span className="st-ar" aria-hidden="true">→</span></span>
       </Link>
+      )}
 
       <p className="sl-period">Scores shown for: {leaderboardPeriod === 'latest' ? 'the latest runs' : `the last ${({ '24h': '24 hours', '7d': '7 days', '1m': '30 days' } as Record<string, string>)[leaderboardPeriod] || leaderboardPeriod}`}</p>
     </div>

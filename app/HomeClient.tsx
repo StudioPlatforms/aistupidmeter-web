@@ -161,7 +161,7 @@ function useStickyParam<T extends string>(
   return [value, setValue] as const;
 }
 
-export default function Dashboard({ initialLayout = null, suggestedLayout = null, latestAllowed = true, insightsAllowed = true }: {
+export default function Dashboard({ initialLayout = null, suggestedLayout = null, latestAllowed = true, insightsAllowed = true, subscribed = false }: {
   /** The layout saved to the account; null means it has never chosen one, so the chooser opens. */
   initialLayout?: BoardLayout | null;
   /** This browser's last layout (cookie): where the chooser starts when the account has none. */
@@ -174,6 +174,8 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
    * the server; free accounts see each of them as a Pro card instead.
    */
   insightsAllowed?: boolean;
+  /** On a paid plan: hide the Smart Router plan cards and the monitoring-plan popup (app/page.tsx). */
+  subscribed?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -1646,7 +1648,8 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
     } else {
       const hasSeenMonitoring = localStorage.getItem('stupidmeter-monitoring-announcement-seen');
       const hasSeenOnboarding = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      if (!hasSeenMonitoring && hasSeenOnboarding && readLayoutCookie()) {
+      // A plan advert, so never for someone who already pays.
+      if (!subscribed && !hasSeenMonitoring && hasSeenOnboarding && readLayoutCookie()) {
         setTimeout(() => setShowMonitoringAnnouncement(true), 2000);
       }
     }
@@ -3838,6 +3841,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
         <div className="lbx-page">
           <div className="lbx-fullwidth">{leaderboards}</div>
           <InsightsGrid
+            showRouterAd={!subscribed}
             locked={!insightsAllowed}
             onUnlock={showInsightsPro}
             recommendations={recommendations}
@@ -3857,6 +3861,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
       <div className="v4-grid3">
         {/* LEFT PANEL: Intelligence Center (desktop only) */}
         <IntelligencePanel
+          showRouterAd={!subscribed}
           locked={!insightsAllowed}
           onUnlock={showInsightsPro}
           recommendations={recommendations}
@@ -3951,6 +3956,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
           {/* MOBILE ANALYTICS: show right after leaderboard on mobile (hidden on desktop) */}
           <div className="v4-mobile-analytics">
             <AnalyticsPanel
+              showRouterAd={!subscribed}
               locked={!insightsAllowed}
               onUnlock={showInsightsPro}
               modelScores={modelScores}
@@ -3973,6 +3979,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
 
         {/* RIGHT PANEL: Analytics (desktop sidebar) */}
         <AnalyticsPanel
+          showRouterAd={!subscribed}
           locked={!insightsAllowed}
           onUnlock={showInsightsPro}
           modelScores={modelScores}

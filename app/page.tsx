@@ -106,6 +106,9 @@ export default async function HomePage() {
   // The analysis around the boards (drift monitor, quick answers, heatmap, radar, price-performance)
   // is Pro too ('board-insights'); decided here so a paying account never sees a lock flash first.
   const insightsAllowed = planMeets(plan, REQUIRED_PLAN['board-insights']);
+  // Any paid plan (legacy $4.99 included): the board stops advertising plans to someone who
+  // already pays. Decided here, like the two flags above, so a subscriber never sees the ad flash.
+  const subscribed = planMeets(plan, 'pro');
 
   const models = await fetchRankedModels(latestAllowed);
   // The visitor's leaderboard layout, so the first paint is already the one they chose
@@ -209,7 +212,7 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <HomeClient initialLayout={initialLayout} suggestedLayout={suggestedLayout} latestAllowed={latestAllowed} insightsAllowed={insightsAllowed} />
+      <HomeClient initialLayout={initialLayout} suggestedLayout={suggestedLayout} latestAllowed={latestAllowed} insightsAllowed={insightsAllowed} subscribed={subscribed} />
     </>
   );
 }

@@ -20,6 +20,8 @@ interface AnalyticsPanelProps {
   leaderboardPeriod: string;
   /** A free account (lib/capabilities 'board-insights'): radar, heatmap and prices become one Pro card. */
   locked?: boolean;
+  /** False for subscribers: the Smart Router plan card is not shown. */
+  showRouterAd?: boolean;
   onUnlock?: () => void;
 }
 
@@ -185,6 +187,7 @@ export default function AnalyticsPanel({
   leaderboardSortBy,
   leaderboardPeriod,
   locked = false,
+  showRouterAd = true,
   onUnlock,
 }: AnalyticsPanelProps) {
   const { data: session } = useSession();
@@ -416,6 +419,7 @@ export default function AnalyticsPanel({
       </>)}
 
       {/* Signed-out readers go to /pricing; /router is behind auth. */}
+      {showRouterAd && (
       <Link href={session ? '/router' : '/pricing'} className="sl-cta st-up">
         <span className="st-kicker">Smart Router</span>
         <span className="sl-cta-sub">
@@ -427,6 +431,7 @@ export default function AnalyticsPanel({
           <small>{routerPrice().plan} · {routerPrice().free}</small>
         </span>
       </Link>
+      )}
     </div>
   );
 }

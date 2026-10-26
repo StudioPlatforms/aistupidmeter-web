@@ -22,6 +22,8 @@ interface IntelligencePanelProps {
   driftIncidents: any[];
   /** A free account (lib/capabilities 'board-insights'): the recommendations become a Pro card. */
   locked?: boolean;
+  /** False for subscribers: the Smart Router plan card is not shown. */
+  showRouterAd?: boolean;
   onUnlock?: () => void;
 }
 
@@ -63,6 +65,7 @@ export default function IntelligencePanel({
   modelScores,
   driftIncidents,
   locked = false,
+  showRouterAd = true,
   onUnlock,
 }: IntelligencePanelProps) {
   const { data: session } = useSession();
@@ -156,6 +159,7 @@ export default function IntelligencePanel({
         auth, so an advert that landed there bounced the reader straight into a
         sign-in wall before they had been told what they would be buying.
       */}
+      {showRouterAd && (
       <Link href={session ? '/router' : '/pricing'} className="sl-cta st-up">
         <span className="st-kicker">Smart Router</span>
         <span className="sl-cta-sub">
@@ -167,6 +171,7 @@ export default function IntelligencePanel({
           <small>{routerPrice().plan} · {routerPrice().free}</small>
         </span>
       </Link>
+      )}
 
       {/* Activity Feed */}
       <section className="sl-pane st-up" aria-label="Live activity">
