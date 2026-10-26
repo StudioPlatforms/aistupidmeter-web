@@ -1,26 +1,11 @@
 import type { Metadata } from 'next';
 
+// An account screen: not indexed, like every other /account page. The public description of the
+// Data API lives on /api-docs, which is the page that ranks for it.
 export const metadata: Metadata = {
-  title: 'Data API Keys — Free Access to AI Benchmark Data',
-  description:
-    'Create a free API key for the AIStupidLevel Data API. Programmatic access to live model rankings, degradation alerts, drift signatures and provider reliability for GPT, Claude, Gemini and more.',
-  keywords: [
-    'AI benchmark API',
-    'LLM leaderboard API',
-    'model performance API',
-    'free AI data API key',
-    'AI model degradation API',
-    'LLM drift detection API',
-  ],
-  openGraph: {
-    title: 'Data API Keys — Free Access to AI Benchmark Data',
-    description:
-      'Free API key for live model rankings, degradation alerts and drift data from AIStupidLevel.',
-    url: 'https://aistupidlevel.info/account/data-keys',
-  },
-  alternates: {
-    canonical: '/account/data-keys',
-  },
+  title: 'Data API keys',
+  description: 'Create and manage keys for the AI Stupid Level Data API: free, read-only access to rankings, degradation alerts and drift data as JSON.',
+  robots: { index: false, follow: true },
 };
 
 export default function DataKeysLayout({ children }: { children: React.ReactNode }) {

@@ -45,6 +45,15 @@ const nextConfig = {
       { source: '/router/subscription', destination: '/account/billing', permanent: true },
       { source: '/router/profile', destination: '/account/settings', permanent: true },
       { source: '/router/data-keys', destination: '/account/data-keys', permanent: true },
+
+      // Retired models whose pages were indexed (in the sitemap, or still requested by
+      // Googlebot) go to their successor or their vendor's page instead of a 404, so the
+      // links they earned are kept. Add a line here whenever a ranked model is retired.
+      { source: '/models/kimi-k3', destination: '/models/kimi-k3-1-pro', permanent: true },
+      { source: '/models/kimi-k2-7-code', destination: '/models/kimi', permanent: true },
+      { source: '/models/claude-opus-4-5', destination: '/models/anthropic', permanent: true },
+      { source: '/models/gpt-5-3-codex', destination: '/models/openai', permanent: true },
+      { source: '/models/gpt-5-4', destination: '/models/openai', permanent: true },
     ];
   },
 

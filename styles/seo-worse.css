@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The "is X getting worse" pages (components/seo/worse/*) and the drift page's monitor block:
+   the live table's score and detector cells, the findings rows' vendor tag and the method note.
+   Layout, type and tokens come from landing.css (.lp), reading.css (.rd-*) and seo.css (.seo-*);
+   this file adds only what those lack. Every colour is a landing token. Scoped under .lp.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── the live table ── */
+.lp .wr-wrap { max-width: 1100px; }
+.lp .wr-table { font-size: 14.5px; }
+.lp .wr-table th, .lp .wr-table td { vertical-align: top; }
+.lp .wr-table td.seo-num small { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 400; color: var(--lp-fg3); white-space: nowrap; }
+.lp .wr-table td.wr-trend { white-space: nowrap; }
+.lp .wr-det { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: 13.5px; line-height: 1.45; white-space: nowrap; }
+.lp .wr-det li { padding: 0; }
+.lp .wr-det li::before { content: none; }
+.lp .wr-det li span { display: inline-block; min-width: 5.6em; color: var(--lp-fg3); }
+.lp .wr-det li.fired { color: var(--lp-bad); font-weight: 600; }
+.lp .wr-det li.fired span { color: var(--lp-bad); }
+.lp .wr-det li.cold, .lp .wr-det li.none { color: var(--lp-fg2); }
+.lp .wr-since { white-space: nowrap; }
+
+/* ── findings rows and the method note ── */
+.lp .rd-rows .wr-vendor { font-family: var(--lp-font); font-size: 13px; font-weight: 500; color: var(--lp-fg3); letter-spacing: 0; }
+.lp .wr-note { max-width: 80ch; font-size: 14px; line-height: 1.65; color: var(--lp-fg2); }
+.lp .wr-note a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── the monitor figures on the drift page ── */
+.lp .wr-monitor { display: grid; gap: 18px; }
+.lp .wr-monitor .lp-facts { margin-top: 0; }
+
+/* ── phones ── */
+@media (max-width: 760px) {
+  .lp .wr-table { font-size: 13.5px; }
+  .lp .wr-table th, .lp .wr-table td { padding: 10px 10px; }
+  .lp .wr-det { font-size: 12.5px; }
+  .lp .wr-det li span { min-width: 5.2em; }
+}

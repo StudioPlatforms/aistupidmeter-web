@@ -1,10 +1,20 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdStats, RdWeights, RdFinal, tocNumber } from '@/components/landing/Reading';
+import JsonLd from '@/components/seo/JsonLd';
+import { SignupCta } from '@/components/seo/Cta';
+import { breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
+import { slugifyModelName } from '@/lib/model-slug';
+import '@/styles/seo.css';
 
-export const metadata: Metadata = {
-  title: 'AI Benchmarking Methodology | How We Test AI Models',
-  description: 'How AI Stupid Level tests AI models: execution-based coding, reasoning and tool-use suites, the weights behind every score, statistical ties, Page-Hinkley drift detection and an hourly canary — every constant published.',
+const TITLE = 'How we test AI models and detect drift';
+const DESCRIPTION = 'How AI Stupid Level tests AI models: coding, reasoning and tool-use suites graded by execution, published weights, statistical ties and drift detection.';
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/methodology',
+  type: 'article',
   keywords: [
     'AI benchmarking methodology',
     'How to test AI models',
@@ -15,16 +25,9 @@ export const metadata: Metadata = {
     'Statistical AI testing',
     'Page-Hinkley drift detection',
     'Confidence intervals AI testing',
-    'Objective AI measurement'
+    'Objective AI measurement',
   ],
-  alternates: { canonical: '/methodology' },
-  openGraph: {
-    title: 'AI Benchmarking Methodology | How We Test AI Models',
-    description: 'Execution-based coding, reasoning and tool-use suites, published weights, statistical ties and drift detection with measured false-alarm rates.',
-    url: 'https://aistupidlevel.info/methodology',
-    type: 'article',
-  }
-};
+});
 
 /**
  * Live figures, read from the API at build/revalidate time.
@@ -181,11 +184,11 @@ export default async function MethodologyPage() {
       toc={TOC}
       actions={(
         <>
-          <a className="lp-btn lp-btn-primary lp-btn-lg" href="/asl-public-benchmark-methodology-2026.pdf" {...ext}
+          <SignupCta next="/router/test-keys" label="Run the tests with your own keys →" cta="methodology-hero-test-keys" />
+          <a className="lp-btn lp-btn-ghost lp-btn-lg" href="/asl-public-benchmark-methodology-2026.pdf" {...ext}
              aria-label="Download the AI Stupid Level public benchmark methodology paper, PDF, 14 pages">
             Methodology paper (PDF, 14 pages) <span className="lp-ar" aria-hidden="true">↓</span>
           </a>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/">View the leaderboards</Link>
         </>
       )}
       aside={(
@@ -227,7 +230,7 @@ export default async function MethodologyPage() {
           ['Connected (default)', 'Each board is a column and a line joins the same model across them, so where it is strong and where it slips reads at a glance. Click a model to follow it; the bar above shows its place on all four.'],
           ['Side by side', 'The four boards as four full lists. On a phone, swipe between them.'],
           ['Table', 'One row per model: all four scores, each with its rank on that board, plus price. Click a heading to rank by it.'],
-          ['Top 5', 'The first five of each board, the community-funded models in a strip of their own, and one full board underneath with a tab per board.'],
+          ['Simple', 'The first five of each board, the community-funded models in a strip of their own, and one full board underneath with a tab per board.'],
         ]} />
         <RdProse>
           <h3>Around the boards</h3>
@@ -396,7 +399,7 @@ export default async function MethodologyPage() {
       <RdSection id="context-rot" n={num('context-rot')} title="Context rot (pilot)"
         lead="Does a model get worse as its context gets longer? A weekly suite, separate from the leaderboard, measures it from 8K to 1M tokens.">
         <RdProse>
-          <p>Each week every pilot model reads the same kind of document — an archive of company records — at 8K, 32K, 128K, 256K, 512K and 1M tokens (as far as its context window allows), three times at each length, and answers sixteen questions graded exactly: finding a fact placed 10% to 90% of the way through, linking facts across the document, tracking a value that changes and is sometimes withdrawn, and counting across the whole archive. Every fact is written in the same record format as thousands of look-alikes, because a fact that stands out by its format can be found at any length. The pilot covers DeepSeek, Kimi and GLM; OpenAI, Anthropic, Google and more providers will follow. The results are on the <Link href="/context-rot">context rot page</Link> for Pro Intelligence and above.</p>
+          <p>Each week every pilot model reads the same kind of document — an archive of company records — at 8K, 32K, 128K, 256K, 512K and 1M tokens (as far as its context window allows), three times at each length, and answers sixteen questions graded exactly: finding a fact placed 10% to 90% of the way through, linking facts across the document, tracking a value that changes and is sometimes withdrawn, and counting across the whole archive. Every fact is written in the same record format as thousands of look-alikes, because a fact that stands out by its format can be found at any length. The pilot covers DeepSeek, Kimi and GLM; OpenAI, Anthropic, Google and more providers will follow. The results are on the <Link href="/context-rot">context rot page</Link> for Pro and above.</p>
         </RdProse>
       </RdSection>
 
@@ -412,9 +415,12 @@ export default async function MethodologyPage() {
         <div className="rd-models lp-up">
           <h3>Models tested ({models.length || '—'})</h3>
           {models.length
-            ? <ul className="rd-tags">{models.map((m) => <li key={m.name}><Link href={`/models/${m.name}`}>{m.displayName}</Link></li>)}</ul>
+            ? <ul className="rd-tags">{models.map((m) => <li key={m.name}><Link href={`/models/${slugifyModelName(m.name)}`}>{m.displayName}</Link></li>)}</ul>
             : <p className="rd-note">Unavailable right now.</p>}
         </div>
+        <RdProse>
+          <p>What this record has caught, and what it has not, is written up under <Link href="/research">Research</Link>. For the current answer by suite, <Link href="/best-ai-model">which AI model is best</Link> reads the same boards over the last 24 hours.</p>
+        </RdProse>
       </RdSection>
 
       <RdSection id="api" n={num('api')} title="Data API"
@@ -440,23 +446,21 @@ export default async function MethodologyPage() {
         ]} />
       </RdSection>
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'HowTo',
-            name: 'How AI Stupid Level Tests AI Models',
-            description: 'Methodology for benchmarking AI models with published weights, measured uncertainty and drift detection',
-            step: [
-              { '@type': 'HowToStep', name: 'Execute benchmark tasks', text: 'Run every coding task seven times every four hours, and the reasoning and tool-use suites daily; grade by executing what the model produces, including hidden tests' },
-              { '@type': 'HowToStep', name: 'Score with published weights', text: 'Combine the nine coding measures, five reasoning measures and seven tool-use measures by published weights; the combined score is coding 50%, reasoning 25%, tool use 25%' },
-              { '@type': 'HowToStep', name: 'Measure uncertainty', text: 'Measure each score\u2019s standard error from its run-to-run repeatability, publish a 95% interval, and give models a shared rank when the leader of their group is not measurably ahead' },
-              { '@type': 'HowToStep', name: 'Detect drift', text: 'Run a Page-Hinkley change-point detector on each suite\u2019s daily series and an hourly canary tested with Welch\u2019s t-test' },
-            ],
-          }),
-        }}
-      />
+      <JsonLd data={graphLd([
+        breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Methodology', path: '/methodology' }]),
+        webPageLd({ path: '/methodology', name: TITLE, description: DESCRIPTION, type: 'TechArticle' }),
+        {
+          '@type': 'HowTo',
+          name: 'How AI Stupid Level tests AI models',
+          description: 'Methodology for benchmarking AI models with published weights, measured uncertainty and drift detection',
+          step: [
+            { '@type': 'HowToStep', name: 'Execute benchmark tasks', text: 'Run every coding task seven times every four hours, and the reasoning and tool-use suites daily; grade by executing what the model produces, including hidden tests' },
+            { '@type': 'HowToStep', name: 'Score with published weights', text: 'Combine the nine coding measures, five reasoning measures and seven tool-use measures by published weights; the combined score is coding 50%, reasoning 25%, tool use 25%' },
+            { '@type': 'HowToStep', name: 'Measure uncertainty', text: 'Measure each score’s standard error from its run-to-run repeatability, publish a 95% interval, and give models a shared rank when the leader of their group is not measurably ahead' },
+            { '@type': 'HowToStep', name: 'Detect drift', text: 'Run a Page-Hinkley change-point detector on each suite’s daily series and an hourly canary tested with Welch’s t-test' },
+          ],
+        },
+      ])} />
     </ReadingPage>
   );
 }

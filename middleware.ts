@@ -45,6 +45,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // /router itself is the Smart Router's public landing page, and the per-tool
+  // guides under /router/integrations are pre-purchase reading like the docs.
+  // Redirecting a signed-out visitor here sent every crawler to sign-in, so the
+  // router's only marketing URL was never indexed. app/router/page.tsx decides
+  // what /router shows: the dashboard for a session, the landing without one.
+  // Only the exact path is open; every other /router/* page is still an
+  // account surface and keeps the redirect below.
+  if (pathname === '/router' || pathname.startsWith('/router/integrations')) {
+    return NextResponse.next();
+  }
+
   // Protect /router routes - require authentication.
   //
   // The previous spelling, `new URL('/auth/signin', request.url)`, resolved

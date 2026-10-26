@@ -2,23 +2,29 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdFinal, tocNumber } from '@/components/landing/Reading';
 import FaqSearch from '@/components/landing/FaqSearch';
+import JsonLd from '@/components/seo/JsonLd';
+import { LeaderboardCta } from '@/components/seo/Cta';
+import { breadcrumbLd, faqLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
+import { DATA_API_LIMITS } from '@/lib/entitlements';
+import '@/styles/seo.css';
 
-export const metadata: Metadata = {
-  title: 'FAQ | AI Benchmarking Questions Answered',
-  description: 'Frequently asked questions about AI model benchmarking, reading the leaderboards, performance testing, drift detection and our methodology. Learn how we measure AI stupid levels objectively.',
+const TITLE = 'AI benchmarking FAQ';
+const DESCRIPTION = 'Answers on reading the AI leaderboards, how models are tested and scored, statistical ties, drift detection, plans and the Data API, from AI Stupid Level.';
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/faq',
   keywords: [
     'AI benchmarking FAQ', 'How to measure AI performance', 'Are AI models getting worse',
+    'is ChatGPT getting worse', 'is Claude getting worse',
     'AI drift detection explained', 'LLM benchmarking questions', 'AI performance testing FAQ',
-    'How AI benchmarks work'
+    'How AI benchmarks work',
   ],
-  alternates: { canonical: '/faq' },
-  openGraph: {
-    title: 'Frequently Asked Questions | AI Benchmarking',
-    description: 'Common questions about AI model benchmarking, reading the leaderboards, performance testing and drift detection answered.',
-    url: 'https://aistupidlevel.info/faq',
-    type: 'website',
-  }
-};
+});
+
+/** Daily Data API quota of a tier, from the plan table rather than typed into an answer. */
+const apiLimit = (tier: keyof typeof DATA_API_LIMITS) => DATA_API_LIMITS[tier].daily.toLocaleString('en-US');
 
 /**
  * Answers are plain text with [label](/path) links, so one array feeds both the page and the
@@ -41,7 +47,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'layouts',
         q: 'Which layout should I choose, and can I change it?',
-        a: 'Connected (the default) joins the same model across the four boards with a line, so you can see where it is strong and where it slips. Side by side shows four full lists. Table puts one model per row with all four scores, ranks and price, and sorts by any column. Top 5 shows the first five of each board.\n\nChange it at any time with the Layout button above the boards. Without an account the choice is kept in a cookie in this browser. With an account it is saved to the account and can also be changed under [Settings](/account/settings).',
+        a: 'Connected (the default) joins the same model across the four boards with a line, so you can see where it is strong and where it slips. Side by side shows four full lists. Table puts one model per row with all four scores, ranks and price, and sorts by any column. Simple shows the first five of each board.\n\nChange it at any time with the Layout button above the boards. Without an account the choice is kept in a cookie in this browser. With an account it is saved to the account and can also be changed under [Settings](/account/settings).',
       },
       {
         id: 'tie',
@@ -66,12 +72,12 @@ const FAQ: FAQGroup[] = [
       {
         id: 'star',
         q: 'What do the stars do?',
-        a: 'Starring a model adds it to your watchlist. It needs a free account, which can watch three models; paid plans watch more. Watched models appear in a card above the leaderboards with their place on each board, and you can select one to follow it through the layout. Starring also switches on email for that model: a weekly summary of what changed, and an alert when its measured coding score is five or more points below its score a week earlier, or when a task-level regression is open. Paid plans can change the five-point threshold. Manage both on the [watchlist](/watchlist) page.',
+        a: 'Starring a model adds it to your watchlist. It needs a free account, which can watch three models; paid plans watch more. Watched models appear in a card above the leaderboards with their place on each board, and you can select one to follow it through the layout. Starring also switches on email for that model: a weekly summary of what changed, and an alert when its measured coding score is five or more points below its score a week earlier, or when a task-level regression is open. Paid plans can change the five-point threshold. Manage both on the [watchlist](/watchlist) page. No account yet? [Create a free account to start a watchlist](/auth/signup?callbackUrl=%2Fwatchlist).',
       },
       {
         id: 'period',
         q: 'What do Latest, 24H, 7D and 1M mean?',
-        a: 'Latest is each model\'s newest score. The others are the average of the real measurements in that window; modelled or placeholder values are never included. The last seven days are free. The one-month view is on paid plans.',
+        a: 'Latest is each model\'s newest score, as it lands, and is part of the paid plans. The others are the average of the real measurements in that window; modelled or placeholder values are never included. The 24-hour, 7-day and 1-month views are free with an account.',
       },
       {
         id: 'quick-answers',
@@ -92,7 +98,12 @@ const FAQ: FAQGroup[] = [
       {
         id: 'worse',
         q: 'Are AI models really getting worse over time?',
-        a: 'Sometimes, and we are careful about what we claim to have seen. Providers do change served models without announcement, through fine-tuning, safety updates, routing and quantisation, and scores on this site do move.\n\nIn September 2026 we audited our own alarm history and withdrew 492 incidents raised by earlier rules that had no significance test. The per-suite detectors that replaced them need ten daily results on the current version of the tests before they can fire. As of late September 2026 they are still collecting that history and switch on in early October. So no detection under the current design has yet been confirmed.\n\nThe platform now measures carefully enough to catch a sustained decline of a few points. When it catches one, the drift monitor and the model\'s page will show it, with the statistic behind it.',
+        a: 'Sometimes, and we are careful about what we claim to have seen. Providers do change served models without announcement, through fine-tuning, safety updates, routing and quantisation, and scores on this site do move.\n\nIn September 2026 we audited our own alarm history and withdrew 492 incidents raised by earlier rules that had no significance test. The per-suite detectors that replaced them need ten daily results on the current version of the tests before they can fire; they began collecting that history in late September 2026 and have been armed since early October.\n\nThe platform now measures carefully enough to catch a sustained decline of a few points. When it catches one, the drift monitor and the model\'s page will show it, with the statistic behind it. [Is AI getting worse?](/is-ai-getting-worse) gives the current answer across every provider we test.',
+      },
+      {
+        id: 'chatgpt-claude',
+        q: 'Is ChatGPT getting worse? Is Claude getting worse?',
+        a: 'Check the record rather than the rumour. [Is ChatGPT getting worse?](/is-chatgpt-getting-worse) reads the per-suite drift detectors and the 24-hour board for every OpenAI model we test, and [Is Claude getting worse?](/is-claude-getting-worse) does the same for Anthropic. Every model in both families is re-tested on coding every four hours and on reasoning and tool use daily, and a model is flagged only when a change holds up statistically, not after one bad run.\n\nOne distinction matters: we probe each provider\'s API, which is what applications and the Smart Router call. ChatGPT and the Claude app run their own system prompts, tools and routing on top of the same models, so a change you notice in the app is not always a change in the model, and the other way round.',
       },
       {
         id: 'different',
@@ -102,7 +113,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'free',
         q: 'Is AI Stupid Level free to use?',
-        a: 'Everything needed to judge the models is free. A free account opens all four leaderboards over the last 24 hours, 7 days and 30 days, and adds a watchlist of three models, with email alerts and a weekly summary. Model pages, the methodology and how fresh each measurement is need no account at all.\n\nPaid plans add the newest run the moment it lands (the Latest view), the drift monitor and the analysis under the boards (Quick answers, the heatmap, the radar and price-performance), full history, the drift curve and measure breakdown behind an alert, more watched models, exports, custom alert thresholds and team features. The [Data API](/api-docs) has a free tier too, with a key. Subscriptions and paid API tiers help pay for the benchmark runs. No AI vendor pays us anything.',
+        a: 'Everything needed to judge the models is free. A free account opens all four leaderboards over the last 24 hours, 7 days and 30 days, and adds a watchlist of three models, with email alerts and a weekly summary. Model pages, the methodology and how fresh each measurement is need no account at all.\n\nPaid plans add the newest run the moment it lands (the Latest view), the drift monitor and the analysis under the boards (Quick answers, the heatmap, the radar and price-performance), full history, the drift curve and measure breakdown behind an alert, more watched models, exports, custom alert thresholds and team features. The [Data API](/api-docs) has a free tier too, with a key. Subscriptions and paid API tiers help pay for the benchmark runs. No AI vendor pays us anything. [Create a free account](/auth/signup?callbackUrl=%2F): no card needed.',
       },
     ],
   },
@@ -138,7 +149,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'context-rot',
         q: 'Do you track “lost in the middle”, or context rot?',
-        a: 'Yes, as a pilot. Each week every pilot model reads the same kind of long document at 8K, 32K, 128K, 256K, 512K and 1M tokens and answers sixteen questions graded exactly: finding a fact placed anywhere from 10% to 90% of the way through, linking facts across the document, tracking a value that changes, and counting across the whole of it. That shows how much of an advertised context window a model can really use, and whether the middle is weaker than the ends. The pilot covers DeepSeek, Kimi and GLM; OpenAI, Anthropic, Google and more providers will follow. Results are on the [context rot page](/context-rot) for Pro Intelligence and above.',
+        a: 'Yes, as a pilot. Each week every pilot model reads the same kind of long document at 8K, 32K, 128K, 256K, 512K and 1M tokens and answers sixteen questions graded exactly: finding a fact placed anywhere from 10% to 90% of the way through, linking facts across the document, tracking a value that changes, and counting across the whole of it. That shows how much of an advertised context window a model can really use, and whether the middle is weaker than the ends. The pilot covers DeepSeek, Kimi and GLM; OpenAI, Anthropic, Google and more providers will follow. Results are on the [context rot page](/context-rot) for Pro and above.',
       },
       {
         id: 'median',
@@ -164,7 +175,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'api',
         q: 'Do you have an API?',
-        a: 'Yes. The Data API at /api/v1 returns current rankings with confidence intervals, history and the models currently degrading. It needs a free key from [Data API keys](/account/data-keys), sent as an Authorization header. Free keys get 10 requests a day, Pro 10,000, Developer 25,000 and Teams 100,000. Keys became necessary after the open version was used to republish our rankings elsewhere. The full reference is at [/api-docs](/api-docs).',
+        a: `Yes. The Data API at /api/v1 returns current rankings with confidence intervals, history and the models currently degrading. It needs a free key from [Data API keys](/account/data-keys), sent as an Authorization header. Free keys get ${apiLimit('free')} requests a day, Pro ${apiLimit('pro')}, Developer ${apiLimit('developer')} and Teams ${apiLimit('teams')}. Keys became necessary after the open version was used to republish our rankings elsewhere. The full reference is at [/api-docs](/api-docs).\n\n[Create a free account and a Data API key](/auth/signup?callbackUrl=%2Faccount%2Fdata-keys); the key takes about thirty seconds to create.`,
       },
       {
         id: 'intervals',
@@ -185,7 +196,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'best-coding',
         q: 'Which AI model is best for coding?',
-        a: 'It changes, which is the point of the site, so check the live Coding board rather than a name written into an FAQ. We track 22 models from six providers: OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM. The top few are often statistical ties, shown as "=1". The Best for code card under the boards names the leader among models measured on every task. What counts as best also depends on the work: compare the Coding, Reasoning and Tool use boards, and use the Table layout to see all of them with prices.',
+        a: 'It changes, which is the point of the site, so check the [live Coding board](/best-llm-for-coding) rather than a name written into an FAQ. Every model on the board is tested on the same tasks, from six providers: OpenAI, Anthropic, Google, DeepSeek, Moonshot AI (Kimi) and Z.ai (GLM). The top few are often statistical ties, shown as "=1". The Best for code card under the boards names the leader among models measured on every task. What counts as best also depends on the work: compare the Coding, Reasoning and Tool use boards, and use the Table layout to see all of them with prices.',
       },
       {
         id: 'gpt-claude',
@@ -216,7 +227,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'trust-method',
         q: 'How can I trust your methodology?',
-        a: 'Check it rather than trust it. The methodology is public, including every weight and every drift constant. [Test your keys](/router/test-keys) reproduces our scoring with your own API keys. The statistics are standard published methods: Page-Hinkley change detection, Welch\'s t-test and standard errors. The web application is open source.\n\nThe benchmark task bank is the one thing we do not publish. When it was public, providers optimised against the specific tasks, which ruins the measurement. Our methodology paper is currently under peer review, and a SOC 2 Type II audit is in progress.',
+        a: 'Check it rather than trust it. The methodology is public, including every weight and every drift constant. [Test your keys](/router/test-keys) reproduces our scoring with your own API keys. The statistics are standard published methods: Page-Hinkley change detection, Welch\'s t-test and standard errors. The web application is open source.\n\nThe benchmark task bank is the one thing we do not publish. When it was public, providers optimised against the specific tasks, which ruins the measurement.',
       },
     ],
   },
@@ -243,7 +254,7 @@ const FAQ: FAQGroup[] = [
       {
         id: 'limitations',
         q: 'What are the current limitations?',
-        a: 'Stated plainly:\n\n1. The coding suite is seven Python tasks per run. It measures debugging and coding, not general ability, and not other programming languages.\n2. Seven attempts capture ordinary variation, but not rare failures. A model that solves a task about half the time will move a few points between runs.\n3. Everything is in English.\n4. We measure the model as its public API serves it. A change to the provider\'s routing or quantisation looks the same to us as a change to the model, so we can say that performance moved, not always why.\n5. A model that declines tasks is measured on fewer, and on average easier, tasks. Its row says so.\n6. The drift detectors on the current tests are still collecting the ten days of history they need, and switch on in early October 2026.\n7. The adversarial-safety, bias and prompt-robustness suites are running, but their data is too new to draw conclusions from.',
+        a: 'Stated plainly:\n\n1. The coding suite is seven Python tasks per run. It measures debugging and coding, not general ability, and not other programming languages.\n2. Seven attempts capture ordinary variation, but not rare failures. A model that solves a task about half the time will move a few points between runs.\n3. Everything is in English.\n4. We measure the model as its public API serves it. A change to the provider\'s routing or quantisation looks the same to us as a change to the model, so we can say that performance moved, not always why.\n5. A model that declines tasks is measured on fewer, and on average easier, tasks. Its row says so.\n6. The drift detectors on the current tests needed ten days of history before they could fire; they have been armed since early October 2026, so their record is still short.\n7. The adversarial-safety, bias and prompt-robustness suites are running, but their data is too new to draw conclusions from.',
       },
       {
         id: 'next',
@@ -261,15 +272,17 @@ function stripLinks(text: string): string {
 }
 
 /** Render one answer: paragraphs on blank lines, numbered lists on "1." lines, [label](href) links. */
-function Answer({ text }: { text: string }) {
+function Answer({ text, id }: { text: string; id: string }) {
   const inline = (s: string, key: string) => {
     const out: React.ReactNode[] = [];
     let last = 0;
     for (const m of Array.from(s.matchAll(LINK))) {
       if (m.index! > last) out.push(s.slice(last, m.index));
       const [, label, href] = m;
+      // A sign-up link inside an answer is a call to action; VisitorTracker counts data-cta clicks.
+      const cta = href.startsWith('/auth/signup') ? `faq-${id}-signup` : undefined;
       out.push(href.startsWith('/')
-        ? <Link key={`${key}-${m.index}`} href={href}>{label}</Link>
+        ? <Link key={`${key}-${m.index}`} href={href} data-cta={cta}>{label}</Link>
         : <a key={`${key}-${m.index}`} href={href} target="_blank" rel="noopener noreferrer">{label}</a>);
       last = m.index! + m[0].length;
     }
@@ -310,7 +323,7 @@ export default function FAQPage() {
       actions={(
         <>
           <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/methodology">Full methodology <span className="lp-ar" aria-hidden="true">→</span></Link>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/">View the leaderboards</Link>
+          <LeaderboardCta cta="faq-hero-leaderboard" ghost />
           <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/contact">Ask a question</Link>
         </>
       )}
@@ -334,27 +347,18 @@ export default function FAQPage() {
             {g.items.map((item, i) => (
               <details key={item.id} id={item.id} className="rd-qa" open={gi === 0 && i === 0}>
                 <summary>{item.q}</summary>
-                <div className="rd-qa-a"><Answer text={item.a} /></div>
+                <div className="rd-qa-a"><Answer text={item.a} id={item.id} /></div>
               </details>
             ))}
           </div>
         </RdSection>
       ))}
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: FAQ.flatMap((g) => g.items).map((item) => ({
-              '@type': 'Question',
-              name: item.q,
-              acceptedAnswer: { '@type': 'Answer', text: stripLinks(item.a).replace(/\n+/g, ' ') },
-            })),
-          }),
-        }}
-      />
+      <JsonLd data={graphLd([
+        breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'FAQ', path: '/faq' }]),
+        webPageLd({ path: '/faq', name: TITLE, description: DESCRIPTION }),
+        faqLd(FAQ.flatMap((g) => g.items).map((item) => ({ q: item.q, a: item.a }))),
+      ])} />
     </ReadingPage>
   );
 }

@@ -12,6 +12,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 import RouterLayout from '@/components/RouterLayout';
+import JsonLd from '@/components/seo/JsonLd';
+import { PLANS, ROUTER_CREDITS } from '@/lib/entitlements';
+import { breadcrumbLd, graphLd, webPageLd } from '@/lib/seo';
 import { PageHead, Pane, CodeBlock, Note, Tag } from '@/components/studio';
 import '@/styles/studio-docs.css';
 
@@ -21,6 +24,20 @@ function C({ children }: { children: ReactNode }) {
 }
 
 const delay = (s: number) => ({ '--d': `${s}s` } as CSSProperties);
+const n = (x: number) => x.toLocaleString('en-US');
+/** "$5" per 10,000 requests, from the credit price ($1 buys requestsPerUsd). */
+const CREDITS_PER_10K = Math.round((10_000 / ROUTER_CREDITS.requestsPerUsd) * 100) / 100;
+/** The data-cta suffix for a link card: "/contact?topic=support" → "contact-topic-support". */
+const ctaSlug = (href: string): string => href.replace(/^\//, '').replace(/[\/?=&]/g, '-');
+
+/** The same strings as app/router/help/layout.tsx (pageMeta); the structured data names the page by them. */
+const HELP_PATH = '/router/help';
+const HELP_TITLE = 'Smart Router setup: Cursor, Cline, Aider';
+const HELP_DESCRIPTION = 'Set up the Smart Router in Cursor, Cline, Aider, Continue, Open WebUI, LibreChat, LiteLLM and more: base URL, key, routing modes and troubleshooting.';
+const HELP_LD = graphLd([
+  breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Smart Router', path: '/router' }, { name: 'Help center', path: HELP_PATH }]),
+  webPageLd({ path: HELP_PATH, name: HELP_TITLE, description: HELP_DESCRIPTION }),
+]);
 
 const QUICK_LINKS: Array<{ href: string; title: string; desc: ReactNode }> = [
   { href: '/router/keys', title: 'Create API key', desc: <>Your <C>aism_</C> key, for every tool you connect</> },
@@ -63,7 +80,7 @@ const STRATEGIES: Array<{ id: string; strategy: string; use: string }> = [
   { id: 'auto-consistent', strategy: 'Most consistent', use: 'Steadiest near-top model, answers vary least day to day' },
   { id: 'auto-fastest-quality', strategy: 'Fastest good model', use: 'Fastest model within 5 points of the best' },
   { id: 'auto-cheapest', strategy: 'Lowest price', use: 'Lowest list price per token, no quality bar' },
-  { id: 'auto-fastest', strategy: 'Lowest latency', use: 'Real-time apps, chatbots, quick queries' },
+  { id: 'auto-fastest', strategy: 'Lowest latency', use: 'Interactive apps, chatbots, quick queries' },
 ];
 
 const MONITORING: Array<{ label: string; desc: string }> = [
@@ -75,15 +92,15 @@ const MONITORING: Array<{ label: string; desc: string }> = [
 ];
 
 const FAQ: Array<{ q: string; a: ReactNode }> = [
-  { q: 'How much does it cost?', a: 'You pay the providers directly for tokens, with your own keys; we add nothing to token prices. Your plan includes routed requests each month (Free 1,000, Pro Intelligence 10,000, Developer 100,000, Teams 1,000,000), and prepaid credits cover any beyond that at $5 per 10,000. Only successful requests count.' },
+  { q: 'How much does it cost?', a: `You pay the providers directly for tokens, with your own keys; we add nothing to token prices. Your plan includes routed requests each month (${PLANS.free.label} ${n(PLANS.free.routerRequestsPerMonth)}, ${PLANS.pro.label} ${n(PLANS.pro.routerRequestsPerMonth)}, ${PLANS.developer.label} ${n(PLANS.developer.routerRequestsPerMonth)}, ${PLANS.teams.label} ${n(PLANS.teams.routerRequestsPerMonth)}), and prepaid credits cover any beyond that at $${CREDITS_PER_10K} per 10,000. Only successful requests count.` },
   { q: 'Is my data secure?', a: 'Provider keys are encrypted at rest (AES-256-GCM) and never shown again. Prompt logging is off unless you turn it on; when it is on, API keys, tokens, email addresses and phone numbers are removed before the prompt is encrypted and stored.' },
-  { q: 'What happens if a model fails?', a: 'Automatic fallback: if the chosen model fails before answering, the router tries the rest of your traffic split (if you use one), then your own fallback order (if you set one), then up to 2 automatic fallbacks from different providers. A model that is failing right now is skipped without waiting for a timeout. Configure it in Preferences.' },
+  { q: 'What happens if a model fails?', a: 'Automatic fallback: if the chosen model fails before answering, the router tries the rest of your traffic split (if you use one), then your own fallback order (if you set one), then up to 2 automatic fallbacks from different providers. A model that keeps failing is skipped without waiting for a timeout. Configure it in Preferences.' },
   { q: 'Does streaming work?', a: <>Yes — set <C>stream: true</C>. Text arrives as the model writes it, for every provider; tool calls arrive once each is complete, then usage if you ask for it with <C>stream_options.include_usage</C>.</> },
   { q: 'How often are benchmarks updated?', a: 'Coding runs every 4 hours, reasoning and tool use daily, and a small canary every hour. Rankings refresh after each run, and the router reads the same scores the leaderboard shows.' },
-  { q: 'Can I use a specific model directly?', a: <>Yes — send any real model ID (e.g. <C>claude-opus-5-5</C>, <C>gpt-6-sol</C>) instead of an <C>auto-*</C> strategy. The router forwards directly to that provider; your plan allowance and key budgets still apply.</> },
+  { q: 'Can I use a specific model directly?', a: <>Yes — send any real model ID (<C>GET /v1/models</C> lists them) instead of an <C>auto-*</C> strategy. The router forwards directly to that provider; your plan allowance and key budgets still apply.</> },
   { q: 'Does tool calling work with agents?', a: <>Yes. Send OpenAI-format tools and return results as role &quot;tool&quot; messages with <C>tool_call_id</C>. The router keeps each model&apos;s own turn (such as Claude&apos;s thinking) between requests, so multi-step agent loops work, and a loop stays on the model that started it. Forcing a call with <C>tool_choice</C> works on every model: where a provider cannot enforce it, the router asks the model in words and checks that the answer really is the tool call.</> },
   { q: 'Can I send images, audio or files?', a: 'No — the router routes text only, on purpose. It picks a model from our benchmark results for coding, reasoning and tool use, and none of those measure image, audio or file understanding, so we would be guessing. Such a request gets a clear 400. Call the provider directly for multimodal work.' },
-  { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like. xAI/Grok is not currently routable — none of its models are in the benchmark lineup.' },
+  { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like.' },
   { q: 'Does it work with embeddings?', a: <>Yes — <Link href="/router/docs#embeddings"><C>POST /v1/embeddings</C></Link> proxies to OpenAI embedding models. Required by Continue, LibreChat, and Open WebUI for RAG.</> },
 ];
 
@@ -105,11 +122,11 @@ const CONTACT: Array<{ href: string; title: string; desc: string }> = [
 ];
 
 /** A row of link cards with the landing's arrow. */
-function LinkCards({ items, min }: { items: Array<{ href: string; title: string; desc: ReactNode }>; min: string }) {
+function LinkCards({ items, min, cta }: { items: Array<{ href: string; title: string; desc: ReactNode }>; min: string; cta: string }) {
   return (
     <div className="st-cards" style={{ ['--min' as string]: min }}>
       {items.map((l, i) => (
-        <Link key={l.href} href={l.href} className="st-card st-up" style={delay(i * 0.04)}>
+        <Link key={l.href} href={l.href} className="st-card st-up" style={delay(i * 0.04)} data-cta={`${cta}-${ctaSlug(l.href)}`}>
           <span className="st-card-t">{l.title}<span className="st-ar sd-quick-arrow" aria-hidden="true">→</span></span>
           <span className="st-card-d">{l.desc}</span>
         </Link>
@@ -132,13 +149,14 @@ export default function HelpPage() {
   return (
     <RouterLayout>
       <div className="sd-page sd-help">
+        <JsonLd data={HELP_LD} />
         <PageHead
           kicker="Support"
           title="Help center"
           lead="Everything you need to know about the AI Smart Router."
           actions={<>
-            <Link href="/contact?topic=support" className="st-btn">Contact support</Link>
-            <Link href="/router/docs" className="st-btn is-primary">API documentation <span className="st-ar" aria-hidden="true">→</span></Link>
+            <Link href="/contact?topic=support" className="st-btn" data-cta="help-head-contact">Contact support</Link>
+            <Link href="/router/docs" className="st-btn is-primary" data-cta="help-head-docs">API documentation <span className="st-ar" aria-hidden="true">→</span></Link>
           </>}
         />
 
@@ -146,7 +164,7 @@ export default function HelpPage() {
           {/* ── Quick links ── */}
           <section aria-labelledby="sd-quick-h">
             <p className="st-label" id="sd-quick-h">Quick links</p>
-            <LinkCards items={QUICK_LINKS} min="290px" />
+            <LinkCards items={QUICK_LINKS} min="290px" cta="help-quick" />
           </section>
 
           {/* ── Getting started ── */}
@@ -235,9 +253,9 @@ export default function HelpPage() {
                       </div>
                     </div>
                     <p className="st-text">
-                      You can also pin specific models (e.g., <C>claude-opus-5-5</C>, <C>gpt-6-sol</C>, <C>gemini-3.8-flash</C>) to bypass routing entirely.
+                      You can also pin a specific model (any id <C>GET /v1/models</C> lists) to bypass routing entirely.
                     </p>
-                    <p><Link className="st-more" href="/router/docs#strategies">Every strategy in the API documentation</Link></p>
+                    <p><Link className="st-more" href="/router/docs#strategies" data-cta="help-strategies-docs">Every strategy in the API documentation</Link></p>
                   </div>
                 </Question>
 
@@ -287,10 +305,10 @@ export default function HelpPage() {
           {/* ── Contact ── */}
           <section aria-labelledby="sd-contact-h">
             <p className="st-label" id="sd-contact-h">Still need help?</p>
-            <LinkCards items={CONTACT} min="240px" />
+            <LinkCards items={CONTACT} min="240px" cta="help-contact" />
           </section>
 
-          <p className="sd-end">Need more detail? Check the <Link href="/router/docs">API documentation</Link></p>
+          <p className="sd-end">Need more detail? Check the <Link href="/router/docs" data-cta="help-end-docs">API documentation</Link></p>
         </div>
       </div>
     </RouterLayout>

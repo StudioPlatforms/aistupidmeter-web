@@ -1,37 +1,48 @@
 import type { Metadata } from 'next'
-import { ROUTER_PLAN, planName, priceNumber } from '@/lib/pricing-display';
 import Script from 'next/script'
 import { Providers } from '../components/Providers'
 import VisitorTracker from '../components/VisitorTracker'
 import SiteFooter from '../components/SiteFooter'
+import JsonLd from '../components/seo/JsonLd'
 import { themeBootScript } from '../lib/theme-config'
+import { OG_IMAGE, ORG_ID, SITE, SITE_NAME, TWITTER_SITE, WEBSITE_ID, graphLd } from '../lib/seo'
+import { planName, priceNumber } from '../lib/pricing-display'
 import '../styles/vintage.css'
 import '../styles/drift-cards.css'
 import '../styles/v4-layout.css'
 import '../styles/clean-theme.css'
 
+// The year is read, never typed, so the default title cannot go stale on 1 January.
+const YEAR = new Date().getUTCFullYear()
+
+/**
+ * Site-wide defaults. Every page sets its own title, description, canonical, openGraph and
+ * twitter through pageMeta() in lib/seo.ts (Next merges metadata shallowly per key, so a page that
+ * sets openGraph without images would lose og:image). Model names and versions never appear in
+ * static copy here: the roster changes with every release, and the per-model pages render their
+ * own names from the live /api/models response.
+ */
 export const metadata: Metadata = {
   title: {
-    default: 'AI Benchmarks & Drift Detection 2026 | Live AI Model Rankings & Degradation Tracking',
-    template: '%s | AI Stupid Level — Continuous LLM Evaluation'
+    default: `LLM Leaderboard & Drift Detection ${YEAR} | ${SITE_NAME}`,
+    template: `%s | ${SITE_NAME}`,
   },
-  // Leads with drift detection / degradation: it is the platform's actual
-  // differentiator and the query cluster the site was invisible for.
-  description: 'Independent AI benchmarking with continuous drift detection — find out when an AI model silently degrades. We track GPT-5, Claude Opus 5, Gemini 3, DeepSeek V4, Kimi and GLM with live performance scores, Page-Hinkley drift alerts and historical charts. Plus a smart API router that sends every request to the best-performing model, with usage monitoring and budget controls behind one API key.',
+  description: 'Independent LLM benchmarks since August 2025: GPT, Claude, Gemini, DeepSeek, Kimi and GLM re-tested on a fixed schedule, with drift alerts and a router.',
   keywords: [
-    // Core Benchmark Keywords
+    // Core benchmark keywords
     'AI benchmark',
     'AI benchmarking tool',
     'AI performance tests',
     'AI ranking',
     'AI score',
     'AI model leaderboard',
+    'LLM leaderboard',
     'Best AI models 2026',
     'Compare AI models',
     'AI test suite',
     'AI evaluation',
-    
-    // AI Smart Router Keywords
+
+    // Smart Router keywords
     'AI router',
     'AI smart router',
     'AI API router',
@@ -40,17 +51,15 @@ export const metadata: Metadata = {
     'OpenAI compatible router',
     'AI gateway',
     'LLM router',
-    'AI load balancer',
+    'benchmark-driven AI API gateway',
     'multi-model AI router',
     'one API key all AI models',
     'AI proxy server',
     'OpenAI API alternative',
     'unified AI API',
     'AI failover routing',
-    'cheapest AI router',
-    'best AI API gateway 2026',
 
-    // API Monitoring & Prompt Auditing Keywords
+    // API monitoring and prompt auditing keywords
     'AI API monitoring',
     'AI prompt auditing',
     'AI prompt logging',
@@ -63,12 +72,11 @@ export const metadata: Metadata = {
     'AI request logging',
     'API cost optimization AI',
     'AI token usage tracking',
-    
-    // AI Drift Detection & Model Degradation
-    // NOTE: Google has ignored the keywords meta tag since 2009 — these exist
-    // for the minor signal other engines still take, and as a checklist of the
-    // terms the page titles, H1/H2s and body copy are actually written around.
-    // The page that targets this cluster is /ai-drift-detection.
+
+    // Drift detection and model degradation.
+    // NOTE: Google has ignored the keywords meta tag since 2009; these exist for the minor signal
+    // other engines still take, and as a checklist of the terms the page titles, H1/H2s and body
+    // copy are written around. The page that targets this cluster is /ai-drift-detection.
     'AI drift detection',
     'AI model drift',
     'LLM drift detection',
@@ -92,24 +100,24 @@ export const metadata: Metadata = {
     'AI model consistency monitoring',
     'monitor AI model changes',
 
-    // Long-Tail Keywords
+    // Long-tail keywords
     'Which AI model is best for coding',
     'Claude vs GPT vs Gemini comparison 2026',
     'Best AI for software development',
     'AI quality drift detection',
     'Measure AI performance',
     'AI refusals and stability tests',
-    'Real-time AI scoring',
-    'Open source AI benchmark tool',
+    'continuous AI benchmarks',
+    'scheduled AI model tests',
+    'published AI benchmark methodology',
     'AI benchmark results dashboard',
     'how to route AI requests automatically',
     'AI model auto-selection',
-    'save money on AI API calls',
     'AI cost comparison tool',
     'monitor AI prompt safety',
     'track AI API spending per key',
-    
-    // Technical / Developer Keywords
+
+    // Technical and developer keywords
     'AI coding benchmark',
     'AI code generation test',
     'AI debugging benchmark',
@@ -126,18 +134,19 @@ export const metadata: Metadata = {
     'Aider AI router',
     'Continue.dev AI router',
     'AI Cline router',
-    
-    // Model-Specific Keywords
-    'GPT-5 benchmark',
-    'Claude Opus 4 benchmark',
-    'Kimi K3 benchmark',
-    'Gemini 3 benchmark',
-    'DeepSeek V4 benchmark',
-    'GPT-5 vs Claude Opus 4',
-    'Kimi K3 vs Gemini 3.1',
-    'O3 benchmark results',
-    
-    // Provider & Monitoring Keywords
+
+    // Family-level model keywords (versions are generated by the per-model pages)
+    'GPT benchmark',
+    'Claude benchmark',
+    'Gemini benchmark',
+    'DeepSeek benchmark',
+    'Kimi benchmark',
+    'GLM benchmark',
+    'GPT vs Claude',
+    'Claude vs Gemini',
+    'DeepSeek vs GPT',
+
+    // Provider and monitoring keywords
     'AI model monitoring',
     'AI performance tracking',
     'OpenAI monitoring',
@@ -147,13 +156,11 @@ export const metadata: Metadata = {
     'AI intelligence degradation',
     'AI model comparison',
     'GPT performance monitor',
-    'Claude benchmark',
     'AI model analytics',
     'AI API key budget limits',
     'AI prompt encryption',
-    'AI secret scrubbing'
   ],
-  authors: [{ name: 'The Architect', url: 'https://x.com/GOATGameDev' }],
+  authors: [{ name: 'Studio Platforms', url: 'https://studioplatforms.eu' }],
   creator: 'Studio Platforms',
   publisher: 'Studio Platforms',
   formatDetection: {
@@ -161,41 +168,29 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://aistupidlevel.info'),
-  alternates: {
-    canonical: '/',
-  },
+  metadataBase: new URL(SITE),
+  // No site-wide canonical: app/page.tsx declares "/" for itself. A canonical inherited by every
+  // page without one of its own told crawlers that the sign-in pages were copies of the home page.
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://aistupidlevel.info',
-    title: 'AI Benchmark & Smart Router 2026 | Compare GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3',
-    description: 'The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models, route requests through the smartest model, monitor API usage, audit prompts, and control budgets. One API key for all providers.',
-    siteName: 'AI Stupid Level — Continuous LLM Evaluation, Routing & Monitoring',
-    // One image, the dynamic one. There used to be a second entry pointing at
-    // /stupidmetermeta.png as a "fallback", but no crawler ever reached it:
-    // X reads twitter:image, and Telegram/Slack/LinkedIn/Discord/Facebook all
-    // take the FIRST og:image. It was also mis-declared — the tags said
-    // 1200x630 while the file on disk is 1536x1024 and 2.3MB, so anything that
-    // did fall back would have got a 3:2 image cropped into a 1.91:1 box.
-    // The real fallback lives inside /api/og, which always renders a valid
-    // branded card even when the API is unreachable.
-    images: [
-      {
-        url: 'https://aistupidlevel.info/api/og?type=rankings',
-        width: 1200,
-        height: 630,
-        alt: 'AI Model Rankings - Live Performance Scores & Smart Router'
-      }
-    ],
+    url: SITE,
+    title: `AI Benchmarks & Drift Detection | ${SITE_NAME}`,
+    description: 'Independent AI benchmarks since August 2025 with per-suite drift detection, and a Smart Router that sends each request to the model scoring best for it.',
+    siteName: SITE_NAME,
+    // One image, the dynamic one. X reads twitter:image, and Telegram/Slack/LinkedIn/Discord/
+    // Facebook all take the FIRST og:image, so a second "fallback" entry is never reached. The
+    // real fallback lives inside /api/og, which always renders a valid branded card even when the
+    // API is unreachable.
+    images: [OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Benchmark & Smart Router 2026 — GPT-5.6 vs Claude Opus 5 vs Gemini 3.1',
-    description: 'Compare 20+ AI models with live benchmarks. Smart AI Router routes to the best model automatically. Monitor API usage, audit prompts, control budgets. One API key for all providers.',
-    creator: '@AIStupidlevel',
-    site: '@AIStupidlevel',
-    images: ['https://aistupidlevel.info/api/og?type=rankings'],
+    title: `AI Benchmarks & Drift Detection | ${SITE_NAME}`,
+    description: 'Independent AI benchmarks since August 2025 with per-suite drift detection, and a Smart Router that sends each request to the model scoring best for it.',
+    creator: TWITTER_SITE,
+    site: TWITTER_SITE,
+    images: [OG_IMAGE.url],
   },
   robots: {
     index: true,
@@ -229,9 +224,128 @@ export const metadata: Metadata = {
       }
     : {}),
   category: 'technology',
-  classification: 'AI Tools',
   referrer: 'origin-when-cross-origin',
 }
+
+/** The 14 auto-* routing modes, as apps/api/src/router/proxy/index.ts AUTO_MODELS lists them. */
+const AUTO_MODES = [
+  'auto-best', 'auto-coding', 'auto-reasoning', 'auto-tooling', 'auto-cheapest', 'auto-fastest',
+  'auto-fastest-quality', 'auto-consistent', 'auto-value', 'auto-value-coding', 'auto-value-reasoning',
+  'auto-value-tooling', 'auto-task', 'auto-split',
+]
+
+/**
+ * The site-wide structured data: ONE Organization node (every page references it by @id, never
+ * redeclares it), the WebSite, the application and the dataset. No aggregateRating (a self-declared
+ * rating is the pattern Google's review-snippet policy acts on), no screenshot (the file did not
+ * exist), no model names (families only), no counts (every count on the site is rendered live).
+ */
+const SITE_LD = graphLd([
+  {
+    '@type': 'Organization',
+    '@id': ORG_ID,
+    name: SITE_NAME,
+    alternateName: ['ASL', 'AI Stupid Level — Continuous LLM Evaluation'],
+    url: SITE,
+    logo: { '@type': 'ImageObject', url: `${SITE}/asl-mark.png` },
+    sameAs: [
+      'https://x.com/AIStupidlevel',
+      'https://github.com/StudioPlatforms',
+      'https://www.linkedin.com/company/asl-aistupidlevel-info',
+      'https://huggingface.co/AIStupidLevel',
+      'https://www.reddit.com/r/aistupidlevel/',
+    ],
+  },
+  {
+    '@type': 'WebSite',
+    '@id': WEBSITE_ID,
+    name: SITE_NAME,
+    // The brand answers to several names: the domain says "Stupid Level", the logo and the short
+    // domain say "ASL". Listing them lets a search engine treat a query for any one as a query for
+    // this site.
+    alternateName: ['ASL', 'asl.info', 'aistupidlevel.info'],
+    url: SITE,
+    inLanguage: 'en',
+    publisher: { '@id': ORG_ID },
+  },
+  {
+    '@type': ['WebApplication', 'SoftwareApplication'],
+    '@id': `${SITE}/#app`,
+    name: SITE_NAME,
+    alternateName: ['ASL', 'AI Smart Router'],
+    applicationCategory: ['DeveloperApplication', 'BusinessApplication'],
+    operatingSystem: 'Web',
+    url: SITE,
+    description: 'Independent, continuous benchmarks of GPT, Claude, Gemini, DeepSeek, Kimi and GLM models — coding every four hours, reasoning and tool use daily, with an hourly canary probe — per-suite drift detection, and a Smart Router that routes each request to the model scoring best for it through one OpenAI-compatible endpoint on your own provider keys.',
+    author: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
+    datePublished: '2025-08-08',
+    isAccessibleForFree: true,
+    offers: [
+      {
+        '@type': 'Offer',
+        name: `${SITE_NAME} ${planName('free')}`,
+        price: priceNumber('free'),
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: `${SITE}/pricing`,
+        description: 'Every ranking over 24 hours, 7 days and 30 days, a watchlist with email alerts, routed requests and a Data API key. No card.',
+      },
+      {
+        '@type': 'Offer',
+        name: `${SITE_NAME} ${planName('pro')}`,
+        price: priceNumber('pro'),
+        priceCurrency: 'USD',
+        availability: 'https://schema.org/InStock',
+        url: `${SITE}/pricing`,
+        description: 'The newest run as it lands, full history, the drift monitor and the leaderboard analysis, exports and custom alerts. Provider inference is billed by your own providers.',
+      },
+    ],
+    featureList: [
+      'Benchmarks every model on the leaderboard on the same tests, through each provider’s public API',
+      'Scheduled performance monitoring: coding every four hours, reasoning and tool use daily, with an hourly canary probe',
+      'Compare GPT, Claude, Gemini, DeepSeek, Kimi and GLM models on coding, reasoning and tool use',
+      'Coding tasks graded by executing the project’s own tests, including hidden tests',
+      'Multi-turn reasoning sessions and tool-use tasks in real sandboxed machines',
+      'Every score carries a standard error; models whose lead is inside the noise share a place',
+      'Per-suite drift detection with Page-Hinkley (a CUSUM-family test) and published constants',
+      'Watchlist email alerts when a watched model’s coding score falls',
+      'Historical analysis over 24 hours, 7 days and 30 days; the newest run on paid plans',
+      'Smart Router: OpenAI-compatible /v1/chat/completions with streaming, tool calls and stream_options',
+      'Native Anthropic Messages API passthrough (/v1/messages) and an embeddings endpoint (/v1/embeddings)',
+      'One key for OpenAI, Anthropic, Google, DeepSeek, Moonshot AI (Kimi) and Z.ai (GLM): your own provider keys, stored encrypted, zero markup on tokens',
+      `14 auto-* routing modes: ${AUTO_MODES.join(', ')}`,
+      'Direct model pinning by name, and automatic failover when a model fails',
+      'API monitoring: per-key request logs, prompt auditing, budget limits and cost analytics',
+      'Public Data API with a free key',
+      'Provider status for six providers, checked every 10 minutes',
+      'Works with Cursor, Cline, Aider, Continue, Open WebUI, LibreChat, LiteLLM and other OpenAI-compatible tools',
+    ],
+    keywords: 'AI benchmark, LLM leaderboard, AI drift detection, is ChatGPT getting worse, is Claude getting worse, AI model nerfed, AI smart router, AI API gateway, compare AI models, Claude vs GPT vs Gemini, AI coding benchmark, AI prompt auditing, AI API monitoring, AI budget control, AI failover routing',
+  },
+  {
+    '@type': 'Dataset',
+    '@id': `${SITE}/#dataset`,
+    name: 'AI Stupid Level benchmark results',
+    description: 'Benchmark results for every model on the AI Stupid Level leaderboard: coding every four hours, reasoning and tool use daily, since 8 August 2025, with standard errors and per-suite drift state.',
+    url: `${SITE}/api-docs`,
+    keywords: 'AI benchmark results, LLM performance metrics, AI model drift data, AI coding test results, provider reliability',
+    license: `${SITE}/terms`,
+    isAccessibleForFree: true,
+    conditionsOfAccess: 'Free Data API key required; attribution required; no bulk republishing (see the terms).',
+    creator: { '@id': ORG_ID },
+    publisher: { '@id': ORG_ID },
+    temporalCoverage: '2025-08-08/..',
+    measurementTechnique: 'Coding tasks graded by executing the project’s own tests; multi-turn reasoning sessions; tool-use tasks in sandboxed machines; per-suite Page-Hinkley (CUSUM-family) drift detection',
+    distribution: [
+      {
+        '@type': 'DataDownload',
+        encodingFormat: 'application/json',
+        contentUrl: `${SITE}/api/v1/models`,
+      },
+    ],
+  },
+])
 
 export default function RootLayout({
   children,
@@ -248,19 +362,19 @@ export default function RootLayout({
         {/* Apply the visitor's saved theme before first paint (see lib/theme-config.ts). */}
         <script dangerouslySetInnerHTML={{ __html: themeBootScript() }} />
         <meta name="color-scheme" content="light" />
-        
-        
-        {/* Optimized Google Analytics with afterInteractive strategy */}
+
+        {/* Google Analytics, loaded after the page is idle: it is 194 KB and consent is denied by
+            default, so nothing is lost by taking it off the critical path. */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
             <Script
               id="gtag-base"
-              strategy="afterInteractive"
+              strategy="lazyOnload"
               src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
             />
             <Script
               id="gtag-init"
-              strategy="afterInteractive"
+              strategy="lazyOnload"
               dangerouslySetInnerHTML={{
                 __html: `
                   window.dataLayer = window.dataLayer || [];
@@ -293,152 +407,13 @@ export default function RootLayout({
             />
           </>
         )}
-        
-        {/* Enhanced Structured Data for AI/Search Engines */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@graph": [
-                {
-                  "@type": ["WebApplication", "SoftwareApplication"],
-                  "name": "AI Stupid Level — Continuous LLM Evaluation, Routing & Monitoring",
-                  "alternateName": ["ASL", "AI Stupid Level", "aistupidlevel.info", "asl.info", "AI Benchmarking Tool", "AI Smart Router", "AI API Gateway", "AI Performance Test", "AI Model Comparison Tool", "AI Prompt Monitor"],
-                  "applicationCategory": ["DeveloperApplication", "ProductivityApplication", "BusinessApplication"],
-                  "operatingSystem": "Web",
-                  "description": "AI benchmarking platform and intelligent API router. Compare 20+ AI models (GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3, DeepSeek V4, GLM 5.2), route requests through the smartest model automatically, monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider.",
-                  "url": "https://aistupidlevel.info",
-                  "sameAs": [
-                    "https://github.com/StudioPlatforms/aistupidmeter-web",
-                    "https://www.reddit.com/r/aistupidlevel/",
-                    "https://x.com/GOATGameDev"
-                  ],
-                  "author": {
-                    "@type": "Person",
-                    "name": "The Architect",
-                    "url": "https://x.com/GOATGameDev"
-                  },
-                  "publisher": {
-                    "@type": "Organization",
-                    "name": "Studio Platforms",
-                    "url": "https://aistupidlevel.info",
-                    "logo": {
-                      "@type": "ImageObject",
-                      "url": "https://aistupidlevel.info/smlogo.png"
-                    }
-                  },
-                  "softwareVersion": "4.0.0",
-                  "datePublished": "2025-01-06",
-                  "dateModified": new Date().toISOString().split('T')[0],
-                  "offers": {
-                    "@type": "Offer",
-                    "name": `ASL ${planName(ROUTER_PLAN)}`,
-                    "price": priceNumber(ROUTER_PLAN),
-                    "priceCurrency": "USD",
-                    "priceValidUntil": "2027-12-31",
-                    "availability": "https://schema.org/InStock",
-                    "description": "Intelligent API routing driven by live benchmark data, with per-request decision logs, budget controls, cost analytics and one universal key across supported providers. Provider inference is billed separately by your own providers."
-                  },
-                  "featureList": [
-                    "AI benchmark testing and evaluation across 20+ models",
-                    "Real-time AI model performance monitoring and degradation detection",
-                    "AI model leaderboard and rankings with 9-axis scoring",
-                    "Compare GPT-5.6 vs Claude Opus 5 vs Gemini 3.1 vs Kimi K3 performance",
-                    "AI coding benchmark tests with Python sandbox execution",
-                    "LLM performance evaluation with statistical confidence intervals",
-                    "AI Smart Router — automatic model selection based on live benchmarks",
-                    "One universal API key for OpenAI, Anthropic, Google, DeepSeek, GLM, Kimi",
-                    "OpenAI-compatible /v1/chat/completions endpoint",
-                    "Native Anthropic Messages API passthrough (/v1/messages)",
-                    "Embeddings API proxy (/v1/embeddings)",
-                    "Direct model pinning — route to specific models by name",
-                    "5 virtual routing strategies: auto-best, best-coding, best-reasoning, best-creative, cheapest",
-                    "API Monitoring dashboard — per-key request logging",
-                    "Prompt auditing with automatic secret scrubbing and AES-256 encryption",
-                    "Budget controls with hard/soft limits and threshold alerts",
-                    "Cost analytics with daily trends and model spend breakdown",
-                    "Key efficiency metrics and error rate tracking",
-                    "AI quality drift detection using the Page-Hinkley change detector",
-                    "Tool calling and function calling benchmark tests",
-                    "Historical AI performance analysis with 24h/7d/30d time periods",
-                    "Works with Cursor, Windsurf, Aider, Continue.dev, Cline, Open WebUI, and more",
-                    "OpenAI 2026 API spec compliant (system_fingerprint, service_tier, stream_options)",
-                    "Automatic failover when models degrade or fail"
-                  ],
-                  "keywords": "AI benchmark, AI smart router, AI API gateway, AI benchmarking tool, AI performance tests, AI ranking, AI model leaderboard, best AI models 2026, compare AI models, Claude vs GPT vs Gemini 2026, AI coding benchmark, LLM benchmark, AI prompt auditing, AI API monitoring, AI budget control, one API key all AI models, AI cost optimization, AI failover routing",
-                  "screenshot": "https://aistupidlevel.info/screenshot.png",
-                  "aggregateRating": {
-                    "@type": "AggregateRating",
-                    "ratingValue": "5.0",
-                    "ratingCount": "1",
-                    "bestRating": "5",
-                    "worstRating": "1"
-                  }
-                },
-                {
-                  "@type": "WebSite",
-                  "name": "AI Stupid Level",
-                  /* The brand answers to several names — the domain says "Stupid Level",
-                     the logo and the short domain say "ASL", the schema name says "Stupid
-                     Meter". Listing them as alternates is what lets a search engine treat
-                     a query for any one of them as a query for this site, which matters
-                     now that asl.info exists and people will type it. */
-                  "alternateName": ["ASL", "AI Stupid Level", "asl.info", "aistupidlevel.info"],
-                  "url": "https://aistupidlevel.info",
-                  "potentialAction": {
-                    "@type": "SearchAction",
-                    "target": "https://aistupidlevel.info/models/{search_term_string}",
-                    "query-input": "required name=search_term_string"
-                  }
-                },
-                {
-                  "@type": "Dataset",
-                  "name": "AI Model Performance Benchmark Results 2026",
-                  "description": "Comprehensive real-time benchmark results for 20+ leading AI models including GPT-5.6, Claude Opus 5, Gemini 3.1, Kimi K3, DeepSeek V4, and more. Updated every 4 hours with 9-axis scoring and statistical confidence intervals.",
-                  "keywords": "AI benchmark results, AI model comparison data, LLM performance metrics, AI coding test results, AI smart router data",
-                  "license": "https://creativecommons.org/licenses/by/4.0/",
-                  "creator": {
-                    "@type": "Organization",
-                    "name": "Studio Platforms"
-                  },
-                  "temporalCoverage": "2025-01-06/..",
-                  "measurementTechnique": "Automated code generation benchmarks with Python sandbox execution, tool calling tests, deep reasoning evaluation"
-                }
-                // NOTE: a site-wide FAQPage node used to sit here, so every page —
-                // /compare, /about, every /models/* page — claimed FAQ markup for
-                // Q&As that were not visible on it. Google requires FAQ structured
-                // data to match content actually shown on the page, and it also
-                // duplicated the FAQPage that /faq emits for itself. Pages that
-                // genuinely show FAQs (/faq, /ai-drift-detection) declare their own.
-              ]
-            })
-          }}
-        />
-        
-        {/* Enhanced SEO meta tags for target keywords */}
-        <meta name="ai-content-classification" content="ai-benchmarking-tool,ai-smart-router,ai-api-monitoring" />
-        <meta name="model-types" content="OpenAI,Anthropic,Google,DeepSeek,GLM,Kimi,GPT-5.6,GPT-5.3-Codex,Claude-Opus-5,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,DeepSeek-V4,Kimi-K3,GLM-5.3" />
-        <meta name="functionality" content="ai-benchmark,performance-testing,model-comparison,ai-evaluation,smart-routing,api-gateway,prompt-auditing,api-monitoring,budget-control,cost-analytics" />
-        <meta name="target-audience" content="developers,ai-researchers,software-engineers,data-scientists,devops,platform-engineers,ai-startups,enterprise-ai-teams" />
-        <meta name="use-cases" content="ai-model-selection,performance-comparison,coding-ai-evaluation,llm-benchmarking,api-cost-optimization,prompt-safety-auditing,multi-provider-routing,ai-failover" />
-        <meta name="benchmark-types" content="coding-benchmark,debugging-test,performance-evaluation,quality-assessment,tool-calling-test,reasoning-benchmark,deep-reasoning" />
-        <meta name="supported-models" content="GPT-5.6-Sol,GPT-5.6-Luna,GPT-5.6-Terra,GPT-5.5,GPT-5.4,GPT-5.3-Codex,Claude-Opus-5,Claude-Opus-4.8,Claude-Fable-5.1,Claude-Sonnet-5,Gemini-3.1-Pro,Gemini-3.1-Flash-Lite,DeepSeek-V4-Pro,DeepSeek-V4.1-Flash,Kimi-K3,GLM-5.3" />
-        <meta name="comparison-features" content="Claude-vs-GPT,GPT-vs-Gemini,Kimi-vs-Claude,DeepSeek-vs-GPT,AI-model-rankings,smart-routing-strategies,cost-per-token-comparison" />
-        <meta name="router-features" content="auto-best,best-coding,best-reasoning,best-creative,cheapest,direct-pin,openai-compatible,anthropic-passthrough,embeddings-proxy" />
-        <meta name="monitoring-features" content="per-key-tracking,prompt-auditing,secret-scrubbing,budget-alerts,cost-trends,efficiency-metrics,request-logging,aes256-encryption" />
-        <meta name="compatible-tools" content="Cursor,Windsurf,Aider,Continue.dev,Cline,Open-WebUI,LangChain,Vercel-AI-SDK,LiteLLM,LibreChat,BoltAI,TypingMind" />
-        
-        {/* Additional keyword-rich meta tags */}
-        <meta name="subject" content="AI Benchmark Tool, AI Smart Router, AI API Monitoring, LLM Performance Testing, Prompt Auditing" />
-        <meta name="abstract" content="The #1 AI benchmarking platform and intelligent API router for 2026. Compare 20+ AI models, route requests through the smartest model, monitor API usage with prompt auditing, budget controls, and cost analytics. One API key for every provider." />
-        <meta name="topic" content="AI Benchmarking, AI Smart Routing, AI API Monitoring, Machine Learning Evaluation, LLM Performance Analysis, Prompt Safety Auditing" />
-        <meta name="summary" content="Compare 20+ AI models with live benchmarks. Smart AI Router routes to the best model automatically. Monitor API usage, audit prompts, control budgets. One API key for all providers including OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM." />
-        <meta name="coverage" content="Worldwide" />
-        <meta name="distribution" content="Global" />
-        <meta name="rating" content="General" />
-        <meta name="revisit-after" content="1 day" />
-        
+
+        {/* Site-wide structured data. Pages add their own graph (BreadcrumbList, WebPage, FAQPage)
+            and reference the organisation by @id; a site-wide FAQPage used to sit here and claimed
+            FAQ markup for Q&As that were not visible on most pages, so pages that genuinely show
+            FAQs declare their own. */}
+        <JsonLd data={SITE_LD} />
+
         {/* Favicon and app icons */}
         {/* ?v= busts the year-long nginx cache on these files. Bump it whenever
             the icon artwork changes, or returning visitors keep the old one. */}
@@ -448,9 +423,6 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.png?v=2" />
         <meta name="msapplication-TileImage" content="/apple-touch-icon.png?v=2" />
         <meta name="msapplication-TileColor" content="#1a73e8" />
-        
-        {/* Preload critical resources */}
-        <link rel="preload" href="/styles/vintage.css" as="style" />
       </head>
       <body>
         <Providers>

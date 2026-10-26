@@ -1,0 +1,65 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The research pages (/research, /research/<slug>): the byline under the hero, the data tables'
+   numeric columns, the citation panel, the hub's article list and the before→after chart.
+   Layout, type and tokens come from landing.css (.lp) and reading.css (.rd-*); this adds only what
+   those lack. Every colour is a landing token, so the dark theme follows. Scoped under .lp .rs-*.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── byline: "AI Stupid Level research · published 23 Oct 2026 · data 8 Aug 2025 – 23 Sep 2026 · as of 23 Sep 2026" ── */
+.lp .rs-byline { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg3); }
+.lp .rs-byline b { font-weight: 600; color: var(--lp-fg2); }
+.lp .rs-byline i { font-style: normal; }
+
+/* ── data tables on reading.css's sheet: numbers right-aligned, the first column kept on one line ── */
+.lp .rs-table caption { caption-side: top; text-align: left; padding: 14px 18px 4px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.lp .rs-table th.num, .lp .rs-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lp .rs-table tbody th { white-space: nowrap; }
+.lp .rs-table td small { display: block; font-size: 12.5px; line-height: 1.4; color: var(--lp-fg3); }
+.lp .rs-table td.num small { text-align: right; }
+
+/* ── the citation: the one framed panel on a research page ── */
+.lp .rs-cite { display: grid; gap: 10px; max-width: 1000px; padding: 20px 24px; border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); }
+.lp .rs-cite p { margin: 0; font-size: 15.5px; line-height: 1.7; color: var(--lp-fg); overflow-wrap: anywhere; }
+.lp .rs-cite p a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .rs-cite small { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg3); }
+
+/* ── the hub's list of papers: ruled rows, not cards ── */
+.lp .rs-list { max-width: 1000px; border-top: 1px solid var(--lp-line); }
+.lp .rs-list > li { display: grid; gap: 8px; padding: 26px 0; border-bottom: 1px solid var(--lp-line); }
+.lp .rs-list .rs-kind { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--lp-fg3); }
+.lp .rs-list h3 { font-size: clamp(20px, 1.7vw, 26px); font-weight: 600; line-height: 1.25; letter-spacing: -.018em; }
+.lp .rs-list h3 a { color: var(--lp-fg); }
+.lp .rs-list h3 a:hover { color: var(--lp-accent); }
+.lp .rs-list p { max-width: 74ch; font-size: 15.5px; line-height: 1.7; color: var(--lp-fg2); }
+.lp .rs-list .lp-more { margin-top: 4px; }
+
+/* ── before→after chart: one row per event, the plot drawn in percentages so it fits any width ── */
+.lp .rs-fig { display: grid; gap: 14px; max-width: 1000px; margin: 0; }
+.lp .rs-fig figcaption { display: grid; gap: 4px; }
+.lp .rs-fig figcaption b { font-size: 16px; font-weight: 600; color: var(--lp-fg); }
+.lp .rs-fig figcaption span { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.lp .rs-db { border-top: 1px solid var(--lp-line); }
+.lp .rs-db-row, .lp .rs-db-axis { display: grid; grid-template-columns: minmax(150px, 30%) minmax(0, 1fr); column-gap: clamp(16px, 3vw, 40px); align-items: center; }
+.lp .rs-db-row { padding: 8px 0; border-bottom: 1px solid var(--lp-line); }
+.lp .rs-db-label { min-width: 0; font-size: 14px; line-height: 1.4; color: var(--lp-fg); }
+.lp .rs-db-label small { display: block; font-size: 12.5px; color: var(--lp-fg3); }
+.lp .rs-db-plot { display: block; width: 100%; height: 32px; overflow: visible; }
+.lp .rs-db-plot .grid { stroke: var(--lp-line); stroke-width: 1; }
+.lp .rs-db-plot .link { stroke: var(--lp-accent); stroke-width: 2; stroke-linecap: round; opacity: .4; }
+.lp .rs-db-plot .before { fill: var(--lp-card); stroke: var(--lp-accent); stroke-width: 2; }
+.lp .rs-db-plot .after { fill: var(--lp-accent); stroke: var(--lp-card); stroke-width: 2; }
+.lp .rs-db-plot .hit { fill: transparent; }
+.lp .rs-db-plot text { font-size: 12px; font-weight: 600; fill: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+.lp .rs-db-axis { padding-top: 6px; }
+.lp .rs-db-axis svg { display: block; width: 100%; height: 16px; overflow: visible; }
+.lp .rs-db-axis text { font-size: 11.5px; fill: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.lp .rs-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--lp-fg2); }
+.lp .rs-legend i { display: inline-block; box-sizing: border-box; width: 10px; height: 10px; margin-right: 7px; border: 2px solid var(--lp-accent); border-radius: 50%; vertical-align: -1px; }
+.lp .rs-legend .after i { background: var(--lp-accent); }
+
+@media (max-width: 760px) {
+  .lp .rs-db-row, .lp .rs-db-axis { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
+  .lp .rs-db-axis { padding-top: 2px; }
+  .lp .rs-cite { padding: 16px 18px; border-radius: 16px; }
+  .lp .rs-table caption { padding: 12px 14px 2px; }
+}

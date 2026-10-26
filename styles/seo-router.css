@@ -1,0 +1,25 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The Smart Router's public landing (components/seo/router/RouterLanding.tsx): the modes table
+   and the live block's spacing. Everything else is reading.css and seo.css. Scoped under
+   .lp .rtl-* (router landing); the signed-in dashboard's sr-* classes never share a page with it.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── the mode → rule table (on reading.css's .rd-table) ── */
+.lp .rtl-modes caption { caption-side: top; text-align: left; padding: 14px 18px 4px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.lp .rtl-modes th:first-child, .lp .rtl-modes td:first-child { white-space: nowrap; }
+.lp .rtl-modes td { vertical-align: top; }
+.lp .rtl-modes th code { font-size: 13px; font-weight: 500; color: var(--lp-accent); background: none; padding: 0; }
+.lp .rtl-board { white-space: nowrap; }
+.lp .rtl-board a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
+/* ── the live block: the demo, then its timestamp, then the explorer ── */
+.lp .rtl-live { margin-bottom: clamp(24px, 2.6vw, 40px); }
+.lp .rtl-live + .seo-asof { margin-top: -8px; }
+
+/* ── phones: a tighter table, and board links may wrap ── */
+@media (max-width: 760px) {
+  .lp .rtl-modes { font-size: 14px; }
+  .lp .rtl-modes th, .lp .rtl-modes td { padding: 11px 12px; }
+  .lp .rtl-modes caption { padding: 12px 12px 2px; }
+  .lp .rtl-board { white-space: normal; }
+}

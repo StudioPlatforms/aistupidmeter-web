@@ -1,24 +1,23 @@
 import type { Metadata } from 'next';
+import { breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
 import Link from 'next/link';
+import JsonLd from '@/components/seo/JsonLd';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdFinal, tocNumber } from '@/components/landing/Reading';
 import ContextRotResults from './ContextRotResults';
 import '@/styles/context-rot.css';
 import '@/styles/context-rot-page.css';
 
-export const metadata: Metadata = {
-  title: 'Context Rot Benchmark (Pilot) | Long-Context Accuracy by Length',
-  description:
-    'Does an AI model get worse as its context gets longer? A weekly benchmark from 8K to 1M tokens: finding a fact, linking facts, tracking a value that changes and counting across the document, graded exactly. Pilot with DeepSeek, Kimi and GLM.',
+const TITLE = 'Context rot benchmark (pilot): 8K to 1M';
+const DESCRIPTION = 'Does an AI model get worse as its context gets longer? Weekly tests from 8K to 1M tokens: finding, linking, tracking and counting facts, graded exactly.';
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/context-rot',
+  type: 'article',
   keywords: ['context rot', 'lost in the middle', 'long context benchmark', '1M context window', 'needle in a haystack',
     'effective context length', 'LLM long context accuracy'],
-  alternates: { canonical: '/context-rot' },
-  openGraph: {
-    title: 'Context Rot Benchmark (Pilot) | AI Stupid Level',
-    description: 'How much of a 1M-token context can a model actually use? Tracked weekly, from 8K to 1M tokens.',
-    url: 'https://aistupidlevel.info/context-rot',
-    type: 'article',
-  },
-};
+});
 
 const TOC = [
   { id: 'results', label: 'Results' },
@@ -40,11 +39,11 @@ export default function ContextRotPage() {
       toc={TOC}
       actions={(
         <>
-          <a className="lp-btn lp-btn-primary lp-btn-lg" href="#results">See the results <span className="lp-ar" aria-hidden="true">→</span></a>
-          <a className="lp-btn lp-btn-ghost lp-btn-lg" href="#how">How it works</a>
+          <a className="lp-btn lp-btn-primary lp-btn-lg" href="#results" data-cta="context-rot-hero-results">See the results <span className="lp-ar" aria-hidden="true">→</span></a>
+          <a className="lp-btn lp-btn-ghost lp-btn-lg" href="#how" data-cta="context-rot-hero-how">How it works</a>
         </>
       )}
-      note={<><span className="crt-pill">Pilot</span> DeepSeek, Kimi and GLM models for now. OpenAI, Anthropic, Google and more providers will follow soon.</>}
+      note={<><span className="crt-pill">Pilot</span> DeepSeek, Kimi and GLM models for now. OpenAI, Anthropic, Google and more providers will follow.</>}
       aside={(
         <dl className="lp-facts">
           <div><dt>6</dt><dd>lengths every week, from 8K to 1M tokens, as far as each model&apos;s window allows</dd></div>
@@ -58,8 +57,8 @@ export default function ContextRotPage() {
           lead="We are a small team and we answer our own email."
           actions={(
             <>
-              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/contact">Talk to us <span className="lp-ar" aria-hidden="true">→</span></Link>
-              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology#context-rot">Full methodology</Link>
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/contact" data-cta="context-rot-final-contact">Talk to us <span className="lp-ar" aria-hidden="true">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology#context-rot" data-cta="context-rot-final-methodology">Full methodology</Link>
             </>
           )}
         />
@@ -85,7 +84,7 @@ export default function ContextRotPage() {
       <RdSection id="how" n={num('how')} title="How it works">
         <RdFacts rows={[
           ['Lengths', '8K, 32K, 128K, 256K, 512K and 1M tokens — each model runs every length its context window can hold, with room left for its answer. The real token count is measured and shown.'],
-          ['Same test for every model', 'Within a week every model gets the same facts, the same questions and the same distractors. Tokenizers differ, so the amount of filler is sized from each model’s own measured characters per token.'],
+          ['Same test for every model', 'Within a week every model gets the same facts, the same questions and the same distractors. Tokenizers differ, so the amount of padding is sized from each model’s own measured characters per token.'],
           ['Trials', 'Three documents per length per model, each week: 48 graded answers per length. The position grid pools the last four weeks.'],
           ['Grading', 'Exact: the full name, the passphrase, the code or the number. No judge model. Only the visible answer counts, never the model’s reasoning. A reply with no answer counts as wrong in a model’s overall accuracy and in “holds up to”, and is marked where it happens; the per-skill figures and the position grid count only replies that answered, because an empty reply says nothing about which skill failed. A provider error is excluded, never scored as zero.'],
           ['Effective context', 'The longest length at which a model keeps at least 90% of its own 8K accuracy, counting up from 8K.'],
@@ -99,10 +98,10 @@ export default function ContextRotPage() {
       <RdSection id="pilot" n={num('pilot')} title="The pilot"
         lead="The pilot starts with DeepSeek, Kimi and GLM while the method settles. OpenAI, Anthropic, Google and more providers will follow.">
         <RdFacts rows={[
-          ['DeepSeek V4 Pro · V4.1 Flash', '1,048,576-token context window'],
-          ['Kimi K3', '1,048,576-token context window'],
-          ['Kimi K2.7 Code', '262,144-token context window — tested up to 256K'],
-          ['GLM-5.3', '1M-token context window'],
+          ['DeepSeek', 'Its current models, each with a 1,048,576-token context window, tested up to 1M'],
+          ['Moonshot AI (Kimi)', 'Its current model, with a 1,048,576-token context window, tested up to 1M'],
+          ['Z.ai (GLM)', 'Its current model, with a 1M-token context window'],
+          ['Which models', <>Named with their results on this page, and in the <Link key="m" href="/models">model index</Link>.</>],
           ['Coming next', 'OpenAI, Anthropic, Google and more providers.'],
         ]} />
       </RdSection>
@@ -116,6 +115,11 @@ export default function ContextRotPage() {
           </ul>
         </RdProse>
       </RdSection>
+
+      <JsonLd data={graphLd([
+        breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Context rot', path: '/context-rot' }]),
+        webPageLd({ path: '/context-rot', name: TITLE, description: DESCRIPTION, type: 'TechArticle' }),
+      ])} />
     </ReadingPage>
   );
 }

@@ -4,13 +4,27 @@ import Link from 'next/link';
 import SubpageLayout from '@/components/SubpageLayout';
 import StatusBoard from '@/components/landing/StatusBoard';
 import LandingEffects from '@/components/landing/LandingEffects';
-import type { HealthRow } from '@/components/landing/types';
+import { RdFacts } from '@/components/landing/Reading';
+import { CtaRow, LeaderboardCta, RouterCta, SignupCta } from '@/components/seo/Cta';
+import JsonLd from '@/components/seo/JsonLd';
+import { AsOf } from '@/components/seo/Verdict';
+import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
+import { DEFAULT_INTERVAL_MIN, HUB_KEYWORDS, PROVIDER_PAGES, apiNameOf, hubDescription, hubTitle } from '@/components/seo/status/status-meta';
+import {
+  CAUSE_TEXT, LABELS, STATE_TEXT, STATE_TONE, ago, boardRow, byOrder, duration, groupEpisodes, isOurSide,
+  labelOf, latestCheck, parseUtc, pct, secs,
+} from '@/components/seo/status/status-utils';
+import { PLANS } from '@/lib/entitlements';
 import { lpBody, lpDisplay } from '@/lib/fonts';
+import { breadcrumbLd, dayLabel, faqLd, graphLd, isoDay, itemListLd, pageMeta, utcStamp, webPageLd } from '@/lib/seo';
+import { VENDORS, getProviders, vendorByKey, type ProviderStatus } from '@/lib/seo-data';
 import '@/styles/landing.css';
+import '@/styles/reading.css';
+import '@/styles/seo.css';
 import '@/styles/status-page.css';
 
 /**
- * Public provider status.
+ * Public provider status: the hub of the six /status/<provider> pages.
  *
  * The health monitor has probed every provider every ten minutes for a year and the
  * result was rendered nowhere: the one component that read it (`StupidMeter`) is
@@ -30,213 +44,26 @@ import '@/styles/status-page.css';
  *
  * Everything here comes from GET /providers/status, which does that classification and
  * also turns each provider's JSON error body into a sentence (summariseProviderError),
- * so the page and the outage email show the same words.
+ * so the page and the outage email show the same words. The helpers that render it are
+ * shared with the per-provider pages (components/seo/status/status-utils.ts), so the two
+ * can never describe the same check differently.
  */
 
-export const metadata: Metadata = {
-  title: 'AI Provider Status | Live Uptime for OpenAI, Anthropic, Google and more',
-  description:
-    'Live availability for every AI provider we benchmark — OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM. Checked every 10 minutes, with the checks we could not make reported separately.',
-  alternates: { canonical: '/status' },
-  openGraph: {
-    title: 'AI Provider Status',
-    description: 'Live availability for every AI provider we benchmark, checked every 10 minutes.',
-    url: 'https://aistupidlevel.info/status',
-    type: 'website',
-  },
-};
-
-/** One minute: the check cadence is ten, so anything finer is just load. */
+/** One minute: the check cadence is ten, so anything finer is just load. No auth(), so the page stays ISR. */
 export const revalidate = 60;
 
-interface HourBucket { t: string; total: number; down: number; degraded: number; unmeasured: number }
-interface ProviderStatus {
-  provider: string;
-  status: 'operational' | 'degraded' | 'down' | 'unmeasured';
-  cause: 'provider' | 'our-account' | 'probe' | 'our-server' | null;
-  responseTime: number | null;
-  lastChecked: string;
-  error: string | null;
-  uptime24h: number | null;
-  uptime7d: number | null;
-  checks24h: number;
-  unmeasured24h: number;
-  checks7d: number;
-  unmeasured7d: number;
-  medianLatencyMs: number | null;
-  hours: HourBucket[];
-}
-interface Episode {
-  provider: string;
-  kind: 'down' | 'slow';
-  cause: 'provider' | 'our-account' | 'probe' | 'our-server' | 'latency';
-  startedAt: string;
-  endedAt: string;
-  checks: number;
-  minutes: number;
-  ongoing: boolean;
-  error: string | null;
-}
-interface StatusPayload {
-  generatedAt: string;
-  meta: { checkIntervalMinutes: number; retentionDays: number; degradedAboveMs: number; probe: string; ourFaultSince?: string | null };
-  providers: ProviderStatus[];
-  episodes: Episode[];
+export async function generateMetadata(): Promise<Metadata> {
+  const data = await getProviders();
+  const interval = data?.meta.checkIntervalMinutes ?? DEFAULT_INTERVAL_MIN;
+  return pageMeta({ title: hubTitle(interval), description: hubDescription(interval), path: '/status', keywords: HUB_KEYWORDS });
 }
 
-const LABEL: Record<string, string> = {
-  openai: 'OpenAI',
-  anthropic: 'Anthropic',
-  google: 'Google',
-  deepseek: 'DeepSeek',
-  kimi: 'Moonshot (Kimi)',
-  glm: 'Z.ai (GLM)',
-  xai: 'xAI',
-};
-
-async function getStatus(): Promise<StatusPayload | null> {
-  // Absolute URL: a relative path has no origin server-side. Straight to the API on
-  // loopback, so nginx is not in the way.
-  const base = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
-  try {
-    const res = await fetch(`${base}/providers/status`, {
-      next: { revalidate: 60 },
-      signal: AbortSignal.timeout(6000),
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json?.success ? (json as StatusPayload) : null;
-  } catch {
-    // A failed fetch must not break the page — it renders an honest "unavailable".
-    return null;
-  }
-}
-
-function ago(iso: string): string {
-  const ms = Date.now() - Date.parse(iso.replace(' ', 'T') + (iso.includes('Z') ? '' : 'Z'));
-  if (!Number.isFinite(ms)) return 'unknown';
-  const m = Math.round(ms / 60000);
-  if (m < 1) return 'just now';
-  if (m === 1) return '1 minute ago';
-  if (m < 60) return `${m} minutes ago`;
-  const h = Math.round(m / 60);
-  if (h === 1) return '1 hour ago';
-  if (h < 48) return `${h} hours ago`;
-  return `${Math.round(h / 24)} days ago`;
-}
-
-function duration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h < 24) return m ? `${h}h ${m}m` : `${h}h`;
-  const d = Math.floor(h / 24);
-  return `${d}d ${h % 24}h`;
-}
-
-const STATE_TEXT: Record<ProviderStatus['status'], string> = {
-  operational: 'Answering',
-  degraded: 'Slow',
-  down: 'Not answering',
-  unmeasured: 'Not measured',
-};
-
-/** Build a fixed 168-hour timeline so gaps in the data are visible as gaps. */
-function timeline(hours: HourBucket[]): Array<HourBucket & { known: boolean }> {
-  const byHour = new Map(hours.map(h => [h.t, h]));
-  const out: Array<HourBucket & { known: boolean }> = [];
-  const now = new Date();
-  now.setUTCMinutes(0, 0, 0);
-  for (let i = 167; i >= 0; i--) {
-    const t = new Date(now.getTime() - i * 3600_000).toISOString().replace('.000Z', 'Z');
-    const found = byHour.get(t);
-    out.push(found ? { ...found, known: true } : { t, total: 0, down: 0, degraded: 0, unmeasured: 0, known: false });
-  }
-  return out;
-}
-
-/** The board's cell code for one hour (components/landing/StatusBoard): an hour with no check stays empty. */
-function cell(h: HourBucket & { known: boolean }): string {
-  if (!h.known || h.total === 0) return 'e';
-  if (h.down > 0) return 'b';
-  if (h.unmeasured >= h.total) return 'o';
-  if (h.degraded > 0) return 'w';
-  return '.';
-}
-
-/** A provider as the board draws it, on the fixed 168-hour timeline, so gaps stay gaps. */
-function boardRow(p: ProviderStatus): HealthRow {
-  const hours = timeline(p.hours);
-  return {
-    provider: p.provider,
-    status: p.status,
-    uptime7d: p.uptime7d,
-    latencyMs: p.medianLatencyMs ?? p.responseTime,
-    lastChecked: p.lastChecked,
-    lastHour: hours[hours.length - 1].t,
-    cells: hours.map(cell).join(''),
-  };
-}
-
-/** One line per provider+cause, rather than one line per episode. */
-interface GroupedEpisodes { provider: string; cause: Episode['cause']; episodes: number; minutes: number; error: string | null; lastEndedAt: string | null; ongoing: boolean }
-/**
- * Grouping used to drop the timestamps, so this list showed a duration and nothing else.
- * "DeepSeek 7h 20m — our key or our bill" reads as happening now; it was seven days old and
- * long resolved. The outage list above has always shown when an episode started, and the
- * omission here is the whole reason a settled record looked like a live incident. Keep the
- * most recent end so the line can say when it was, and whether it is still going.
- */
-function groupEpisodes(list: Episode[]): GroupedEpisodes[] {
-  const by = new Map<string, GroupedEpisodes>();
-  for (const e of list) {
-    const key = `${e.provider}:${e.cause}`;
-    const g = by.get(key);
-    const end = e.endedAt ?? e.startedAt ?? null;
-    if (g) {
-      g.episodes++; g.minutes += e.minutes;
-      if (!g.error) g.error = e.error;
-      if (end && (!g.lastEndedAt || end > g.lastEndedAt)) g.lastEndedAt = end;
-      g.ongoing = g.ongoing || !!e.ongoing;
-    } else {
-      by.set(key, { provider: e.provider, cause: e.cause, episodes: 1, minutes: e.minutes, error: e.error, lastEndedAt: end, ongoing: !!e.ongoing });
-    }
-  }
-  return Array.from(by.values()).sort((a, b) => (b.lastEndedAt ?? '').localeCompare(a.lastEndedAt ?? ''));
-}
-
-const CAUSE_TEXT: Record<Episode['cause'], string> = {
-  provider: 'provider did not answer',
-  // Discreet on purpose (owner, 2026-10-18): which of our own things failed is internal.
-  'our-account': 'an issue on our side',
-  probe: 'an issue on our side',
-  'our-server': 'an issue on our side',
-  latency: 'slow response',
-};
-
-/** The board's order (components/landing/StatusBoard), so the cards below read in the same order. */
-const ORDER = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
-const byOrder = (a: ProviderStatus, b: ProviderStatus) =>
-  (ORDER.indexOf(a.provider) + 1 || 99) - (ORDER.indexOf(b.provider) + 1 || 99);
-
-/** An hour's tooltip, in UTC: the server does not know the visitor's time zone. */
-function hourTitle(h: HourBucket & { known: boolean }): string {
-  const when = h.t.replace('T', ' ').replace(':00:00Z', ':00 UTC');
-  if (!h.known || h.total === 0) return `${when} — no checks`;
-  const parts = [`${h.total} check${h.total === 1 ? '' : 's'}`];
-  if (h.down) parts.push(`${h.down} not answering`);
-  if (h.degraded) parts.push(`${h.degraded} slow`);
-  if (h.unmeasured) parts.push(`${h.unmeasured} not measured`);
-  return `${when} — ${parts.join(', ')}`;
-}
-
-const STATE_TONE: Record<ProviderStatus['status'], string> = {
-  operational: 'ok', degraded: 'warn', down: 'bad', unmeasured: 'na',
-};
-
-const up = (d?: string, cls = ''): { className: string; style?: CSSProperties } =>
-  ({ className: `${cls} lp-up`.trim(), ...(d ? { style: { '--d': d } as CSSProperties } : {}) });
+const FREE = PLANS.free;
+const n = (x: number) => x.toLocaleString('en-US');
 const intro = (d: string): CSSProperties => ({ '--d': d } as CSSProperties);
+
+/** "OpenAI, Anthropic and Google". */
+const andList = (xs: string[]): string => xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
 
 function Logo({ provider }: { provider: string }) {
   return (
@@ -260,8 +87,12 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
+const statusPathOf = (provider: string): string => vendorByKey(provider)?.statusPath ?? '/status';
+
 export default async function StatusPage() {
-  const data = await getStatus();
+  const data = await getProviders();
+  const now = new Date();
+  const nowMs = now.getTime();
 
   if (!data) {
     return (
@@ -270,36 +101,122 @@ export default async function StatusPage() {
           <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
           <div className="lp-wrap">
             <p className="lp-kicker lp-intro" style={intro('.04s')}>Provider status</p>
-            <h1 className="lp-h1 lp-intro" style={intro('.1s')}>Provider status</h1>
+            <h1 className="lp-h1 lp-intro" style={intro('.1s')}>Is your AI provider down <span className="lp-b">right now?</span></h1>
             <p className="lp-lead lp-intro" style={intro('.18s')}>
-              The status feed is not responding right now. That says nothing about the providers —
+              The status feed is not responding at the moment. That says nothing about the providers,
               only about this page.
             </p>
+            <ul className="rd-tags ps-provnav lp-intro" style={intro('.26s')} aria-label="Provider status pages">
+              {VENDORS.map((v) => <li key={v.key}><Link href={v.statusPath}><Logo provider={v.key} />{apiNameOf(v)} API status</Link></li>)}
+            </ul>
           </div>
         </header>
       </Shell>
     );
   }
 
-  const answering = data.providers.filter(p => p.status === 'operational').length;
-  const notAnswering = data.providers.filter(p => p.status === 'down');
-  const unmeasured = data.providers.filter(p => p.status === 'unmeasured');
+  const interval = data.meta.checkIntervalMinutes;
+  const days = data.meta.retentionDays;
+  const total = data.providers.length;
+  // Defensive: the feed already publishes our-side failures as "unmeasured", never "down".
+  const ours = (p: ProviderStatus) => p.status === 'unmeasured' || isOurSide(p.cause);
+  const notAnswering = data.providers.filter((p) => p.status === 'down' && !ours(p));
+  const unmeasured = data.providers.filter(ours);
+  // A slow provider answered: it counts as answering everywhere on the page and is named as slow in the banner.
+  const slowNow = data.providers.filter((p) => p.status === 'degraded' && !ours(p));
+  const answering = total - notAnswering.length - unmeasured.length;
+  const latest = latestCheck(data.providers) ?? data.generatedAt;
+  const names = (ps: ProviderStatus[]): string => andList(ps.map((p) => labelOf(p.provider)));
 
-  const outages = data.episodes.filter(e => e.kind === 'down' && e.cause === 'provider');
-  const notMeasured = data.episodes.filter(e => e.cause === 'our-account' || e.cause === 'probe' || e.cause === 'our-server');
-  const slow = data.episodes.filter(e => e.cause === 'latency');
+  const outages = data.episodes.filter((e) => e.kind === 'down' && e.cause === 'provider');
+  const notMeasured = data.episodes.filter((e) => isOurSide(e.cause));
+  const slow = data.episodes.filter((e) => e.cause === 'latency');
+  // The our-side list is only worth dating while its start is inside the window the page shows.
+  const ourFaultSince = data.meta.ourFaultSince && parseUtc(data.meta.ourFaultSince) > nowMs - days * 86_400_000
+    ? data.meta.ourFaultSince : null;
 
+  const slowClause = slowNow.length ? `; ${names(slowNow)} answered slowly` : '';
   const headline =
     notAnswering.length > 0
-      ? `${notAnswering.map(p => LABEL[p.provider] ?? p.provider).join(', ')} did not answer our last check`
+      ? `${names(notAnswering)} did not answer our last check${slowClause}`
       : unmeasured.length > 0
-        ? `${answering} of ${data.providers.length} providers answered the last check; ${unmeasured.length} could not be measured`
-        : `All ${data.providers.length} providers answered the last check`;
-  const tone = notAnswering.length ? 'is-bad' : unmeasured.length ? 'is-na' : 'is-ok';
-  const days = data.meta.retentionDays;
+        ? `${answering} of ${total} providers answered the last check; ${unmeasured.length} could not be measured${slowClause}`
+        : `All ${total} providers answered the last check${slowClause}`;
+  const tone = notAnswering.length ? 'is-bad' : unmeasured.length ? 'is-na' : slowNow.length ? 'is-warn' : 'is-ok';
+  const anyDown = notAnswering.length > 0;
+
+  /* ── the provider table: board order; a figure we do not have is a blank cell plus a note, never a dash ── */
+  const rows = [...data.providers].sort(byOrder);
+  const notes: ReactNode[] = [];
+  for (const p of rows) {
+    const total24 = p.checks24h + p.unmeasured24h;
+    const name = labelOf(p.provider);
+    if (total24 === 0) notes.push(<><b>{name}</b>: no checks in the last 24 hours.</>);
+    else if (p.unmeasured24h > 0) {
+      notes.push(<><b>{name}</b>: {n(p.unmeasured24h)} of the {n(total24)} checks in the last 24 hours failed on our side and count as neither uptime nor downtime.</>);
+    }
+    // Our own failures arrive from the API as one neutral sentence (routes/health.ts); a provider's words are quoted as its last error.
+    if (p.status !== 'operational' && p.error) {
+      notes.push(ours(p)
+        ? <><b>{name}</b>: <span className="ps-note-err">{p.error}</span></>
+        : <><b>{name}</b>, last error: <span className="ps-note-err">{p.error}</span></>);
+    }
+  }
+
+  /* ── method, in rows ── */
+  const methodFacts: [ReactNode, ReactNode][] = [
+    ['The check', `${data.meta.probe} It is the same call for every provider, so the numbers are comparable.`],
+    ['What “answered” means', <>The provider returned usable content. It does not mean the model was correct, fast or good; that is what the <Link href="/">benchmarks</Link> are for.</>],
+    ['When a check fails', 'We ask again fifteen seconds later and record the second answer, so one dropped connection is not published as ten minutes of outage. If the provider still cannot be reached, we test our own side before blaming theirs: whether our server stalled while the check was in flight, whether other providers failed to connect at the same moment, and whether two independent control endpoints answer. Any of those means the failure was ours: it is listed under checks we could not make and counts as neither uptime nor downtime.'],
+    ['What we do not claim', `One probe, every ${interval} minutes, from one machine in Germany, on one account. A provider can be down for us and up for you, or the reverse. If your own traffic disagrees with this page, trust your own traffic.`],
+    ['When a provider is down', 'We stop benchmarking it rather than publishing a number we did not measure, and run the missed models as soon as it answers again. An outage leaves a gap in the charts, and that gap is deliberate.'],
+    ['The same data by API', <>GET <code>/api/v1/providers</code> and GET <code>/api/v1/analytics/provider-reliability</code> return these figures with a free Data API key; both are on the <Link href="/api-docs">API reference</Link>.</>],
+  ];
+
+  /* ── FAQ: one array feeds the visible rows and the FAQPage structured data ── */
+  const officialPages = VENDORS.filter((v) => v.officialStatusUrl);
+  const faq: FaqItem[] = [
+    {
+      q: 'Is OpenAI, Anthropic or Google down right now?',
+      a: `As of ${utcStamp(latest)}, ${answering} of ${total} providers answered our last check` +
+        (slowNow.length ? ` (${names(slowNow)} slowly)` : '') +
+        (notAnswering.length ? `; ${names(notAnswering)} did not answer` : '') +
+        (unmeasured.length ? `; ${names(unmeasured)} could not be measured from our side, which says nothing about ${unmeasured.length === 1 ? 'that provider' : 'those providers'}` : '') +
+        `. Each provider has its own page with the last 24 hours and ${days} days: ` +
+        VENDORS.map((v) => `[${apiNameOf(v)}](${v.statusPath})`).join(', ') + '.',
+    },
+    {
+      q: 'How do you check whether an AI provider is down?',
+      a: `${data.meta.probe} Every ${interval} minutes we send the same short request to every provider's API on our own account and record whether usable content came back and how long it took; a provider that has not answered within 60 seconds is recorded as not answering. A failed check is tried again fifteen seconds later and only the second answer is recorded, so one dropped connection is never published as ten minutes of outage. "Slow" means the reply took longer than ${Math.round(data.meta.degradedAboveMs / 1000)} seconds from our machine, so the median sits next to it. The record is kept for ${days} days.`,
+    },
+    {
+      q: 'Why does a provider say "not measured"?',
+      a: 'Because the check failed on our side, not the provider\'s: an issue with our own account, our own request or our own server (its event loop frozen while the check was in flight, several providers failing to connect at the same moment, or two independent control endpoints not answering either). We publish those checks as not measured rather than hiding them, and they count as neither uptime nor downtime, so a problem of ours never shows up as somebody else\'s downtime and the uptime figures only ever divide real observations.',
+    },
+    {
+      q: 'Is this the same as the providers\' official status pages?',
+      a: 'No. An official status page is the provider\'s own report of its own services. This page is an independent measurement: one real completion to each API on our own account, every ' +
+        `${interval} minutes, with every check we could make counted and every check we could not make listed separately. The two can disagree; when they do, the one that matches your own traffic is the one to trust. ` +
+        (officialPages.length ? `The official pages we know of: ${officialPages.map((v) => `[${v.officialStatusUrl!.replace(/^https?:\/\//, '')}](${v.officialStatusUrl})`).join(', ')}. ` : '') +
+        'The same figures are on the Data API as GET /api/v1/providers and GET /api/v1/analytics/provider-reliability, documented on the [API reference](/api-docs).',
+    },
+    {
+      q: 'Can I get an email when a provider goes down?',
+      a: `Yes, on any plan. A free account can turn on provider outage emails in [account settings](/account/settings#email): when a provider you track or have connected keys for stops answering our checks for 20 minutes or more you get an email, and another when it answers again. ` +
+        `The [Smart Router](/router) handles the outage itself: it skips a provider that is not answering and routes the request to the next best model, on your own provider keys, with ${n(FREE.routerRequestsPerMonth)} routed requests a month free.`,
+    },
+  ];
+
+  const ld = graphLd([
+    breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Provider status', path: '/status' }]),
+    webPageLd({ path: '/status', name: 'Is your AI provider down right now?', description: hubDescription(interval), type: 'CollectionPage', dateModified: isoDay(latest) }),
+    itemListLd({ name: 'AI provider status pages', items: PROVIDER_PAGES.map((p) => ({ name: p.name, url: p.path })) }),
+    faqLd(faq),
+  ]);
 
   return (
     <Shell>
+      <JsonLd data={ld} />
       <header className="lp-hero lp-textured">
         <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
         <div className="lp-wrap">
@@ -307,21 +224,56 @@ export default async function StatusPage() {
             <div>
               <p className="lp-kicker lp-intro" style={intro('.04s')}>Provider status</p>
               <h1 className="lp-h1 lp-intro" style={intro('.1s')}>
-                Provider status <span className="lp-b">checked every {data.meta.checkIntervalMinutes} minutes</span>
+                Is your AI provider down <span className="lp-b">right now?</span>
               </h1>
-              <p className="lp-lead lp-intro" style={intro('.18s')}>
-                We ask every provider one small question every {data.meta.checkIntervalMinutes} minutes and record what
-                comes back. This is that record, kept for {days} days.
+              <p className="lp-lead lp-intro ps-lead-count" style={intro('.18s')}>
+                <b>{answering} of {total} providers answering</b>. We ask every provider one small question every{' '}
+                {interval} minutes and record what comes back. This is that record, kept for {days} days, with a page
+                for each provider.
               </p>
               <p className={`ps-banner ${tone} lp-intro`} style={intro('.26s')} role="status">
                 <span className="ps-dot" aria-hidden="true" />
                 <b>{headline}</b>
-                <span className="ps-when">checked {ago(data.providers[0]?.lastChecked ?? data.generatedAt)}</span>
+                <span className="ps-when">checked {ago(latest, nowMs)}</span>
               </p>
+              <AsOf className="lp-intro ps-asof">
+                As of {utcStamp(latest)} · one real completion to each provider&rsquo;s API every {interval} minutes, on our own account
+              </AsOf>
+              <div className="ps-hero-ctas lp-intro" style={intro('.3s')}>
+                {anyDown ? (
+                  <>
+                    <CtaRow>
+                      <RouterCta
+                        cta="status-hero-router"
+                        label="Route around it with the Smart Router →"
+                        sub={`Skips a provider that is not answering and routes to the next best model · your own keys · ${n(FREE.routerRequestsPerMonth)} requests a month free`}
+                      />
+                      <SignupCta
+                        cta="status-hero-alerts"
+                        ghost
+                        next="/account/settings#email"
+                        label="Email me when it stops answering →"
+                        sub="Free account · provider alerts on any plan"
+                      />
+                    </CtaRow>
+                    <p className="lp-fine"><Link href="/router/docs" data-cta="status-hero-router-docs">How fallbacks work in the Smart Router</Link></p>
+                  </>
+                ) : (
+                  <CtaRow>
+                    <SignupCta
+                      cta="status-hero-alerts"
+                      next="/account/settings#email"
+                      label="Email me when a provider stops answering →"
+                      sub="Free account · provider alerts on any plan · an email after 20 minutes without an answer, and again when it comes back"
+                    />
+                    <LeaderboardCta cta="status-hero-leaderboard" ghost />
+                  </CtaRow>
+                )}
+              </div>
             </div>
             <dl className="lp-facts lp-intro" style={intro('.34s')}>
-              <div><dt>{answering}/{data.providers.length}</dt><dd>providers answered the last check</dd></div>
-              <div><dt>{data.meta.checkIntervalMinutes} min</dt><dd>between checks, the same call for every provider</dd></div>
+              <div><dt>{answering}/{total}</dt><dd>providers answered the last check</dd></div>
+              <div><dt>{interval} min</dt><dd>between checks, the same call for every provider</dd></div>
               <div><dt>{days} d</dt><dd>of record kept, with the checks we could not make listed separately</dd></div>
             </dl>
           </div>
@@ -332,85 +284,75 @@ export default async function StatusPage() {
       <section className="lp-sec lp-A">
         <div className="lp-wrap">
           <div className="lp-head lp-head-split lp-up">
-            <p className="lp-kicker">Last 7 days</p>
-            <h2 className="lp-h2">Every provider, hour by hour</h2>
+            <p className="lp-kicker">Last {days} days</p>
+            <h2 className="lp-h2">Which AI providers are up? The last {days} days, hour by hour</h2>
             <p className="lp-lead">
               Each bar is one hour of checks. A check that failed on our side is hatched and counts as neither uptime
               nor downtime, and an hour with no check at all stays empty, so a gap in the record shows as a gap.
             </p>
           </div>
-          <StatusBoard providers={data.providers.map(boardRow)} wording="status" labels={LABEL} />
+          <StatusBoard providers={data.providers.map((p) => boardRow(p, now))} wording="status" labels={LABELS} />
         </div>
       </section>
 
       {/* ── Providers ─────────────────────────────────────────────────── */}
-      <section className="lp-sec lp-B">
+      <section className="lp-sec lp-B" aria-labelledby="ps-by-provider">
         <div className="lp-wrap">
           <div className="lp-head lp-head-split lp-up">
             <p className="lp-kicker">By provider</p>
-            <h2 className="lp-h2">The last 24 hours and 7 days</h2>
+            <h2 className="lp-h2" id="ps-by-provider">Which AI provider is down? The last 24 hours and 7 days</h2>
             <p className="lp-lead">
-              &ldquo;Answered&rdquo; counts only the checks we could make. The median reply is our round trip, from a
-              machine that is often running a benchmark sweep at the same time.
+              &ldquo;Answered&rdquo; counts only the checks we could make; the last column is the denominator. The median
+              reply is our round trip, from a machine that is often running a benchmark sweep at the same time. Each
+              name opens the provider&rsquo;s own page.
             </p>
           </div>
-          <div className="ps-grid">
-            {[...data.providers].sort(byOrder).map((p, i) => {
-              const total24 = p.checks24h + p.unmeasured24h;
-              const day = timeline(p.hours).slice(-24);
-              return (
-                <article key={p.provider} {...up(`${(i % 3) * 0.06}s`, 'ps-card')}>
-                  <header className="ps-card-head">
-                    <Logo provider={p.provider} />
-                    <h3>{LABEL[p.provider] ?? p.provider}</h3>
-                    <span className={`lp-pill ${STATE_TONE[p.status]}`}>{STATE_TEXT[p.status]}</span>
-                  </header>
-
-                  <div className="ps-figs">
-                    <div>
-                      <div className="ps-fig">{p.uptime24h === null ? '—' : `${p.uptime24h}%`}</div>
-                      <div className="ps-fig-l">answered, 24h</div>
-                    </div>
-                    <div>
-                      <div className="ps-fig">{p.uptime7d === null ? '—' : `${p.uptime7d}%`}</div>
-                      <div className="ps-fig-l">answered, 7d</div>
-                    </div>
-                    <div>
-                      <div className="ps-fig">
-                        {p.medianLatencyMs === null ? '—' : `${(p.medianLatencyMs / 1000).toFixed(1)}s`}
-                      </div>
-                      <div className="ps-fig-l">median reply</div>
-                    </div>
-                  </div>
-
-                  <div className="ps-measured">
-                    {/* The last 24 hours, one cell an hour: where in the day the 24h figure above came from. */}
-                    <div className="ps-day" aria-hidden="true">
-                      {day.map((h, k) => (
-                        <i key={h.t} className={cell(h)} title={hourTitle(h)} style={{ '--d': `${(k * 0.025).toFixed(3)}s` } as CSSProperties} />
-                      ))}
-                    </div>
-                    <div className="ps-day-axis" aria-hidden="true"><span>24 hours ago</span><span>now</span></div>
-                    <p>
-                      {p.checks24h} of {total24} checks measured in the last 24h
-                      {p.unmeasured24h > 0 && (
-                        <>
-                          {' '}— the other {p.unmeasured24h} failed on our side, so they count as neither uptime nor
-                          downtime.
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  {p.status !== 'operational' && p.error && (
-                    <p className="ps-error">
-                      {/* Our own failures arrive from the API as one neutral sentence (routes/health.ts). */}
-                      {p.status === 'unmeasured' ? <span>{p.error}</span> : <>Last error: <span>{p.error}</span></>}
-                    </p>
-                  )}
-                </article>
-              );
-            })}
+          <div className="rd-table-wrap is-narrow lp-up">
+            <table className="rd-table ps-prov-table">
+              <caption>
+                Every provider&rsquo;s last check, share of checks answered over 24 hours and {days} days, and median reply,
+                as of {utcStamp(latest)}. A figure we do not have is left blank; the notes under the table say why.
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Provider</th>
+                  <th scope="col">Last check</th>
+                  <th scope="col" className="num">Answered, 24h</th>
+                  <th scope="col" className="num">Answered, {days}d</th>
+                  <th scope="col" className="num">Median reply, 24h</th>
+                  <th scope="col" className="num">Checks measured, 24h</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((p) => {
+                  const total24 = p.checks24h + p.unmeasured24h;
+                  const median = secs(p.medianLatencyMs);
+                  return (
+                    <tr key={p.provider}>
+                      <th scope="row">
+                        <Link href={statusPathOf(p.provider)} data-cta={`status-table-${p.provider}`}>
+                          <Logo provider={p.provider} />{labelOf(p.provider)}
+                        </Link>
+                      </th>
+                      <td>
+                        <span className={`lp-pill ${STATE_TONE[p.status]}`}>{STATE_TEXT[p.status]}</span>
+                        <span className="ps-cell-when">{ago(p.lastChecked, nowMs)}</span>
+                      </td>
+                      <td className="num">{p.uptime24h !== null ? pct(p.uptime24h) : ''}</td>
+                      <td className="num">{p.uptime7d !== null ? pct(p.uptime7d) : ''}</td>
+                      <td className="num">{median ?? ''}</td>
+                      <td className="num">{total24 > 0 ? `${n(p.checks24h)} of ${n(total24)}` : ''}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+          {notes.length > 0 && (
+            <ul className="ps-table-notes lp-up">
+              {notes.map((t, i) => <li key={i}>{t}</li>)}
+            </ul>
+          )}
         </div>
       </section>
 
@@ -419,7 +361,7 @@ export default async function StatusPage() {
         <div className="lp-wrap">
           <div className="lp-head lp-up">
             <p className="lp-kicker">The record</p>
-            <h2 className="lp-h2">What we recorded</h2>
+            <h2 className="lp-h2">Which AI provider outages did we record in the last {days} days?</h2>
           </div>
 
           <div className="ps-block lp-up">
@@ -435,10 +377,10 @@ export default async function StatusPage() {
               <ul className="ps-log is-bad">
                 {outages.map((e, i) => (
                   <li key={i}>
-                    <span className="ps-log-p"><Logo provider={e.provider} />{LABEL[e.provider] ?? e.provider}</span>
+                    <span className="ps-log-p"><Logo provider={e.provider} /><Link href={statusPathOf(e.provider)}>{labelOf(e.provider)}</Link></span>
                     <span className="ps-log-dur">lasted {duration(e.minutes)}</span>
                     <span className="ps-log-when">
-                      {e.startedAt.replace(' ', ' · ')} UTC{e.ongoing ? ' — ongoing' : ''}
+                      {utcStamp(e.startedAt)}{e.ongoing ? ' — ongoing' : ''}
                     </span>
                     {e.error && <span className="ps-log-err">{e.error}</span>}
                   </li>
@@ -456,10 +398,9 @@ export default async function StatusPage() {
                 record. Each line says how long it
                 lasted and when it last happened: anything not marked ongoing is over, and stays listed
                 only until it falls out of the {days}-day window.
-                {data.meta.ourFaultSince && (
-                  <> This list starts from{' '}
-                  {new Date(data.meta.ourFaultSince).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}.
-                  Earlier checks are still recorded and still count in the uptime figures.</>
+                {ourFaultSince && (
+                  <> This list starts from {dayLabel(ourFaultSince)}; earlier checks are still recorded and still
+                  count in the uptime figures.</>
                 )}
               </p>
             </div>
@@ -472,14 +413,14 @@ export default async function StatusPage() {
               <ul className="ps-log is-ours">
                 {groupEpisodes(notMeasured).map((g, i) => (
                   <li key={i}>
-                    <span className="ps-log-p"><Logo provider={g.provider} />{LABEL[g.provider] ?? g.provider}</span>
+                    <span className="ps-log-p"><Logo provider={g.provider} />{labelOf(g.provider)}</span>
                     <span className="ps-log-dur">lasted {duration(g.minutes)}</span>
                     <span className="ps-log-when">
                       {CAUSE_TEXT[g.cause]} · {g.episodes} episode{g.episodes === 1 ? '' : 's'}
                       {g.ongoing
                         ? ' — ongoing'
                         : g.lastEndedAt
-                          ? ` · last seen ${ago(g.lastEndedAt)}, since resolved`
+                          ? ` · last seen ${ago(g.lastEndedAt, nowMs)}, since resolved`
                           : ''}
                     </span>
                     {g.error && <span className="ps-log-err">{g.error}</span>}
@@ -502,7 +443,7 @@ export default async function StatusPage() {
               <ul className="ps-log is-warn">
                 {groupEpisodes(slow).map((g, i) => (
                   <li key={i}>
-                    <span className="ps-log-p"><Logo provider={g.provider} />{LABEL[g.provider] ?? g.provider}</span>
+                    <span className="ps-log-p"><Logo provider={g.provider} />{labelOf(g.provider)}</span>
                     <span className="ps-log-dur">lasted {duration(g.minutes)}</span>
                     <span className="ps-log-when">
                       {g.episodes} episode{g.episodes === 1 ? '' : 's'} in the last {days} days
@@ -520,53 +461,41 @@ export default async function StatusPage() {
         <div className="lp-wrap lp-faq">
           <div className="lp-head lp-up">
             <p className="lp-kicker">Method</p>
-            <h2 className="lp-h2" id="ps-method">How this is measured</h2>
+            <h2 className="lp-h2" id="ps-method">How is AI provider status measured here?</h2>
           </div>
-          <div className="lp-up">
-            <dl className="ps-method">
-              <div>
-                <dt>The check</dt>
-                <dd>{data.meta.probe} It is the same call for every provider, so the numbers are comparable.</dd>
-              </div>
-              <div>
-                <dt>What &ldquo;answered&rdquo; means</dt>
-                <dd>
-                  The provider returned usable content. It does not mean the model was correct, fast, or good —
-                  that is what the <Link href="/">benchmarks</Link> are for.
-                </dd>
-              </div>
-              <div>
-                <dt>When a check fails</dt>
-                <dd>
-                  We ask again fifteen seconds later and record the second answer, so one dropped connection is not
-                  published as ten minutes of outage. If the provider still cannot be reached, we test our own side
-                  before blaming theirs: whether our server stalled while the check was in flight, whether other
-                  providers failed to connect at the same moment, and whether two independent control endpoints
-                  answer. Any of those means the failure was ours — it is listed under checks we could not make
-                  and counts as neither uptime nor downtime.
-                </dd>
-              </div>
-              <div>
-                <dt>What we do not claim</dt>
-                <dd>
-                  One probe, every {data.meta.checkIntervalMinutes} minutes, from one machine in Germany, on one
-                  account. A provider can be down for us and up for you, or the reverse. If your own traffic
-                  disagrees with this page, trust your own traffic.
-                </dd>
-              </div>
-              <div>
-                <dt>When a provider is down</dt>
-                <dd>
-                  We stop benchmarking it rather than publishing a number we did not measure, and run the missed
-                  models as soon as it answers again. An outage leaves a gap in the charts — that gap is deliberate.
-                </dd>
-              </div>
-            </dl>
-            <p className="ps-gen">
-              Generated {new Date(data.generatedAt).toISOString().replace('T', ' ').slice(0, 16)} UTC · refreshed
-              every minute
-            </p>
+          <RdFacts rows={methodFacts} />
+          <p className="ps-gen lp-up">
+            Figures generated {utcStamp(data.generatedAt)}; this page is rebuilt from the feed about once a minute.
+          </p>
+        </div>
+      </section>
+
+      {/* ── FAQ ───────────────────────────────────────────────────────── */}
+      <section className="lp-sec lp-B" aria-labelledby="ps-faq">
+        <div className="lp-wrap lp-faq">
+          <div className="lp-head lp-up">
+            <p className="lp-kicker">FAQ</p>
+            <h2 className="lp-h2" id="ps-faq">Questions about AI provider status</h2>
+            <p className="lp-fine">Answers computed from the feed as of {utcStamp(latest)}.</p>
           </div>
+          <Faq items={faq} />
+        </div>
+      </section>
+
+      {/* ── Every provider ────────────────────────────────────────────── */}
+      <section className="lp-sec lp-A" aria-labelledby="ps-pages">
+        <div className="lp-wrap">
+          <div className="lp-head lp-up">
+            <p className="lp-kicker">By provider</p>
+            <h2 className="lp-h3 ps-h-small" id="ps-pages">One page per provider, checked every {interval} minutes</h2>
+          </div>
+          <ul className="rd-tags ps-provnav lp-up" aria-label="Provider status pages">
+            {VENDORS.map((v) => (
+              <li key={v.key}>
+                <Link href={v.statusPath} data-cta={`status-pages-${v.key}`}><Logo provider={v.key} />{apiNameOf(v)} API status</Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </Shell>

@@ -1,0 +1,56 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The pair pages (/compare/<a>-vs-<b>) and the compare hub's pair index — sp-*
+   Layout, type and tokens come from landing.css (.lp); the sections, tables and
+   disclosure rows from reading.css (.rd-*); the verdict, "as of" line and CTA
+   blocks from seo.css. This adds only the pair hero, the two-model table, the
+   "choose A / choose B" columns and the pair index. Scoped under .lp.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── hero: breadcrumb, H1, verdict, CTAs, timestamp ── */
+.lp .sp-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 22px; font-size: 13px; font-weight: 500; letter-spacing: .02em; color: var(--lp-fg3); }
+.lp .sp-crumbs a { color: var(--lp-fg2); }
+.lp .sp-crumbs a:hover { color: var(--lp-accent); }
+.lp .sp-crumbs i { font-style: normal; color: var(--lp-fg3); }
+.lp .sp-hero .seo-verdict { margin-top: 24px; }
+.lp .sp-hero .seo-cta-row { margin-top: 30px; }
+.lp .sp-hero .seo-asof { margin-top: 18px; }
+.lp .sp-hero .lp-facts dd b { font-weight: 600; color: var(--lp-fg); }
+
+/* ── the at-a-glance table: a measure per row, a model per column ── */
+.lp .sp-glance-wrap { max-width: 1000px; }
+.lp .sp-glance thead th { white-space: normal; }
+.lp .sp-glance tbody th { width: 30%; }
+.lp .sp-glance tbody th small { display: block; margin-top: 2px; font-size: 12px; font-weight: 400 !important; color: var(--lp-fg3); }
+.lp .sp-glance td b { display: block; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lp .sp-glance td small { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.45; color: var(--lp-fg3); }
+
+/* ── choose A when / choose B when ── */
+.lp .sp-choose { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(28px, 4vw, 64px); row-gap: 28px; max-width: 1000px; border-top: 1px solid var(--lp-line); }
+.lp .sp-choose > div { padding-top: 22px; min-width: 0; }
+.lp .sp-choose h3 { font-family: var(--lp-font-disp); font-size: clamp(18px, 1.4vw, 21px); font-weight: 600; letter-spacing: -.015em; line-height: 1.3; color: var(--lp-fg); }
+.lp .sp-choose ul { display: grid; gap: 10px; margin-top: 14px; }
+.lp .sp-choose li { position: relative; padding-left: 26px; font-size: 15.5px; line-height: 1.7; color: var(--lp-fg2); }
+.lp .sp-choose li::before { content: ''; position: absolute; left: 2px; top: .78em; width: 12px; height: 3px; border-radius: 2px; background: var(--lp-accent); transform: skewX(-16deg); }
+.lp .sp-choose li b { font-weight: 600; color: var(--lp-fg); }
+
+/* ── related comparisons and the hub's pair index: chips under small headings ── */
+.lp .sp-index { display: grid; gap: 28px; }
+.lp .sp-index > h3 { font-family: var(--lp-font-disp); font-size: clamp(20px, 1.6vw, 25px); font-weight: 600; letter-spacing: -.016em; line-height: 1.25; }
+.lp .sp-index > h3:not(:first-child) { margin-top: 20px; }
+.lp .sp-index-group { display: grid; gap: 12px; padding-top: 18px; border-top: 1px solid var(--lp-line); }
+.lp .sp-index-group h4 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--lp-fg3); }
+.lp .sp-index .rd-tags a, .lp .sp-related .rd-tags a { height: auto; min-height: 36px; padding: 6px 13px; white-space: normal; text-align: left; line-height: 1.3; }
+.lp .cp-fam dd a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── phones: one column, a tighter table that wraps instead of scrolling ── */
+@media (max-width: 760px) {
+  .lp .sp-choose { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+  .lp .sp-choose > div + div { border-top: 1px solid var(--lp-line); margin-top: 22px; }
+  .lp .sp-glance { font-size: 13.5px; }
+  .lp .sp-glance th, .lp .sp-glance td { padding: 10px 10px; overflow-wrap: anywhere; }
+  .lp .sp-glance tbody th { width: 32%; }
+  .lp .sp-glance thead th { font-size: 11px; }
+}
+
+/* the hub's pair index: the timestamp sits between the heading and the lists */
+.lp .sp-index-asof { margin: -20px 0 28px; }

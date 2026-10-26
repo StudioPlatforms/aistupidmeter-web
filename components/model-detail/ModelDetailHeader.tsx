@@ -42,8 +42,9 @@ const delay = (d: string) => ({ '--d': d } as CSSProperties);
 /**
  * The model page's hero, in the studio header's look (tinted band, dot grid, slanted streaks):
  * a way back, the provider as the kicker, the model's name in the display face, a meta line and
- * the actions. The visible name is not an <h1>: the page already carries one (page.tsx, for
- * search engines), and two would muddle the outline.
+ * the actions. The visible name is the page's one <h1> (it used to be a <p> beside a visually
+ * hidden h1 in page.tsx); `.st .st-title` out-ranks the global h1 font rule in clean-theme.css,
+ * so the look is unchanged.
  */
 export function ModelHero({ provider, title, meta, actions }: {
   provider: string; title: ReactNode; meta?: ReactNode; actions?: ReactNode;
@@ -58,7 +59,7 @@ export function ModelHero({ provider, title, meta, actions }: {
             <ProviderMark provider={provider} size="sm" />
             {getProviderName(provider)}
           </p>
-          <p className="st-title sm-title st-intro" style={delay('.05s')}>{title}</p>
+          <h1 className="st-title sm-title st-intro" style={delay('.05s')}>{title}</h1>
           {meta && <div className="sm-meta st-intro" style={delay('.1s')}>{meta}</div>}
         </div>
         {actions && <div className="st-head-act sm-hero-act st-intro" style={delay('.15s')}>{actions}</div>}

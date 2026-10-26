@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/page-dates.js",
     "build": "next build",
     "start": "next start"
   },

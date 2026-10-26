@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 const SITE = 'https://aistupidlevel.info';
 const API_INTERNAL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
-const YEAR = 2026;
+const YEAR = new Date().getUTCFullYear();
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
@@ -144,23 +144,12 @@ export default async function HomePage() {
     })),
   };
 
-  const organization = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    name: 'AI Stupid Level',
-    url: SITE,
-    logo: `${SITE}/stupidmetermeta.png`,
-    description:
-      'Independent AI model benchmarking platform tracking large language model performance and quality drift in real time.',
-    sameAs: ['https://x.com/GOATGameDev', 'https://github.com/aistupidlevel'],
-  };
-
-  // Note: the root layout already emits a WebSite node (with SearchAction).
-  // Here we add the Organization and the live ItemList, which the layout lacks.
+  // The Organization node lives once in app/layout.tsx (with its @id); this page only adds
+  // the live ItemList. A second Organization here used to carry a personal X handle, a GitHub
+  // URL that 404s and a 2.3 MB logo.
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }} />
 
       {/* Server-rendered SEO scaffold: gives crawlers a real heading, an intro,
@@ -170,9 +159,9 @@ export default async function HomePage() {
       <div style={srOnly}>
         <h1>AI Model Benchmarks {YEAR} — Live Rankings for GPT, Claude, Gemini, Kimi &amp; More</h1>
         <p>
-          AI Stupid Level is an independent, real-time benchmarking platform that scores large
-          language models on coding, reasoning, tool-calling and speed, and detects performance
-          drift over time. Below is the live model index.
+          AI Stupid Level is an independent benchmarking platform that re-tests large language
+          models on the same coding, reasoning and tool-use tasks on a fixed schedule, scores them,
+          and detects performance drift over time. Below is the live model index.
         </p>
 
         <h2>Live AI model leaderboard</h2>

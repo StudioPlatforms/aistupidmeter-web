@@ -20,17 +20,26 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { withReturn } from '../lib/return-path';
 
 interface Props {
   modelId: number | string;
   modelName?: string;
+  /**
+   * The model page's canonical slug. A signed-out click goes to sign-up with
+   * callbackUrl=/models/<slug>?track=1, and ModelDetailClient completes the intent on return;
+   * without it the numeric id is used (it 308s to the slug).
+   */
+  slug?: string;
+  /** Set by the page once it has added the model itself (the ?track=1 round trip), so the button shows "Tracking" at once. */
+  knownTracked?: boolean;
   /** Compact form for dense layouts. */
   small?: boolean;
 }
 
 type State = 'loading' | 'untracked' | 'tracked' | 'signed-out';
 
-export default function TrackModelButton({ modelId, modelName, small = false }: Props) {
+export default function TrackModelButton({ modelId, modelName, slug, knownTracked = false, small = false }: Props) {
   const { status } = useSession();
   const router = useRouter();
   const [state, setState] = useState<State>('loading');
@@ -55,10 +64,17 @@ export default function TrackModelButton({ modelId, modelName, small = false }: 
     return () => { cancelled = true; };
   }, [status, modelId]);
 
+  // The page completed a ?track=1 intent on the visitor's behalf: reflect it without waiting for
+  // the next reconcile (the watchlist GET above may have answered before that POST landed).
+  useEffect(() => {
+    if (knownTracked) setState('tracked');
+  }, [knownTracked]);
+
   const toggle = async () => {
     if (state === 'signed-out') {
-      // Preserve the intent through sign-up so the visitor lands back here.
-      router.push(`/auth/signup?next=${encodeURIComponent(`/models/${modelId}`)}`);
+      // Preserve the intent through sign-up: the visitor lands back on this page with ?track=1
+      // and ModelDetailClient adds the model, so the click is not lost in the round trip.
+      router.push(withReturn('/auth/signup', `/models/${slug ?? modelId}?track=1`));
       return;
     }
     setBusy(true);
@@ -109,6 +125,7 @@ export default function TrackModelButton({ modelId, modelName, small = false }: 
             : `Get notified when ${modelName ?? 'this model'} changes`
         }
         className={`st-btn${tracked ? '' : ' is-primary'}${small ? ' is-sm' : ''}`}
+        data-cta={state === 'signed-out' ? 'model-hero-track-signup' : tracked ? 'model-hero-untrack' : 'model-hero-track'}
       >
         {tracked && <span className="sm-track-dot" aria-hidden="true" />}
         {busy ? (tracked ? 'Updating…' : 'Adding…') : tracked ? 'Tracking' : 'Track this model'}

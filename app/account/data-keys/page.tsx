@@ -8,19 +8,29 @@
  * because the site advertised them as free, so the migration path has to be
  * something they can complete in thirty seconds without reaching for a card.
  *
+ * Signed out, the page is a guest view: what the key is for, the free tier's limits from the
+ * plan table, the quick start, and sign-up / sign-in that come back here. It used to show an
+ * "Error … Retry" note, which read as an outage.
+ *
  * Look: the studio shell (styles/studio.css, components/studio) plus styles/studio-team.css.
  */
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import { apiClient } from '@/lib/api-client';
 import type { DataApiKey, DataApiTier } from '@/lib/api-client';
+import { DATA_API_LIMITS } from '@/lib/entitlements';
 import EnterpriseContact from '@/components/EnterpriseContact';
 import { PageHead, Pane, Stats, Stat, CountUp, CodeBlock, CopyButton, Loader, Empty, Note, Tag } from '@/components/studio';
 import '@/styles/studio-team.css';
 
 const ar = <span className="st-ar" aria-hidden="true">→</span>;
+
+const HERE = '/account/data-keys';
+const SIGNUP = `/auth/signup?callbackUrl=${encodeURIComponent(HERE)}`;
+const SIGNIN = `/auth/signin?callbackUrl=${encodeURIComponent(HERE)}`;
 
 const SAMPLES = [
   {
@@ -46,6 +56,7 @@ const TERMS = [
 
 export default function DataKeysPage() {
   const { data: session, status } = useSession();
+  const guest = status === 'unauthenticated';
   const [keys, setKeys] = useState<DataApiKey[]>([]);
   const [tiers, setTiers] = useState<Record<string, DataApiTier>>({});
   const [loading, setLoading] = useState(true);
@@ -61,7 +72,9 @@ export default function DataKeysPage() {
       apiClient.setUserId(session.user.id);
       fetchKeys();
     } else if (status === 'unauthenticated') {
-      setError('Sign in to create a Data API key.');
+      // Signed out: the tiers come from the plan table (the API's copy needs a session).
+      setTiers(DATA_API_LIMITS);
+      setError(null);
       setLoading(false);
     }
   }, [status, session]);
@@ -107,8 +120,9 @@ export default function DataKeysPage() {
   const closeModal = () => { setShowCreateModal(false); setCreatedKey(null); setNewKeyName(''); setNewKeyUrl(''); };
 
   const usedToday = keys.reduce((sum, k) => sum + (k.usedToday || 0), 0);
-  const dailyLimit = keys.length > 0 ? Math.max(...keys.map(k => k.dailyLimit || 0)) : (tiers.free?.daily ?? 1000);
+  const dailyLimit = keys.length > 0 ? Math.max(...keys.map(k => k.dailyLimit || 0)) : (tiers.free?.daily ?? DATA_API_LIMITS.free.daily);
   const currentTier = keys[0]?.tier || 'free';
+  const free = DATA_API_LIMITS.free;
 
   return (
     <RouterLayout>
@@ -116,10 +130,17 @@ export default function DataKeysPage() {
         kicker="Data API"
         title="Data API keys"
         lead="Free programmatic access to live benchmark data."
-        actions={<>
-          <a href="/api-docs" className="st-btn">API docs {ar}</a>
-          <button type="button" onClick={() => setShowCreateModal(true)} className="st-btn is-primary">Create key</button>
-        </>}
+        actions={guest ? (
+          <>
+            <a href="/api-docs" className="st-btn">API docs {ar}</a>
+            <Link href={SIGNUP} className="st-btn is-primary" data-cta="data-keys-head-signup">Create a free account</Link>
+          </>
+        ) : (
+          <>
+            <a href="/api-docs" className="st-btn">API docs {ar}</a>
+            <button type="button" onClick={() => setShowCreateModal(true)} className="st-btn is-primary">Create key</button>
+          </>
+        )}
       />
 
       <div className="st-body sw-body">
@@ -142,68 +163,88 @@ export default function DataKeysPage() {
           your provider accounts.
         </Note>
 
-        <Stats columns={4}>
-          <Stat value={loading ? '…' : <CountUp value={keys.length} />} label="Active keys" />
-          <Stat value={loading ? '…' : <CountUp value={usedToday} />} label="Requests today" sub="Resets 00:00 UTC" />
-          <Stat value={loading ? '…' : <CountUp value={dailyLimit} />} label="Daily limit" />
-          <Stat value={loading ? '…' : (tiers[currentTier]?.label || 'Free')} label="Tier" tone="accent" />
-        </Stats>
-
-        {/* Keys list */}
-        <Pane
-          title="Your data keys"
-          sub={loading ? 'Loading…' : `${keys.length} active`}
-          ruled
-          flush
-        >
-          {/* flush stays fixed: a Pane whose class changes after it has faded in loses its reveal. */}
-          {loading ? (
-            <Loader label="Loading keys" />
-          ) : keys.length === 0 ? (
+        {guest ? (
+          /* Signed out: the way in, with the free tier's limits from the plan table. */
+          <Pane title="Get a key" sub="Free account, no card" ruled flush>
             <div className="sw-pad">
               <Empty
-                title="No Data API keys yet"
-                actions={<button type="button" onClick={() => setShowCreateModal(true)} className="st-btn is-primary">Create your first key {ar}</button>}
+                title="Sign in to create a Data API key"
+                actions={<>
+                  <Link href={SIGNUP} className="st-btn is-primary" data-cta="data-keys-guest-signup">Create a free account {ar}</Link>
+                  <Link href={SIGNIN} className="st-btn" data-cta="data-keys-guest-signin">Sign in</Link>
+                </>}
               >
-                Create one to read benchmark data from your own app, dashboard or status bar.
+                A free account comes with a read-only key: {free.daily.toLocaleString('en-US')} requests a day
+                ({free.perMinute.toLocaleString('en-US')} a minute). Sign-up brings you straight back here.
               </Empty>
             </div>
-          ) : (
-            <div className="sw-keys">
-              {keys.map((key) => {
-                const pct = key.dailyLimit > 0 ? Math.min(100, (key.usedToday / key.dailyLimit) * 100) : 0;
-                return (
-                  <div key={key.id} className="sw-key">
-                    <div className="sw-key-main">
-                      <div className="sw-key-line">
-                        <span className="sw-t">{key.name}</span>
-                        <Tag tone="accent">{tiers[key.tier]?.label || key.tier}</Tag>
-                        {key.appUrl && <span className="sw-s sw-key-app">→ {key.appUrl}</span>}
-                      </div>
-                      <div className="sw-key-meta">
-                        <code className="st-ic">{key.keyPrefix}…</code>
-                        {key.createdAt && <span>Created {new Date(key.createdAt).toLocaleDateString()}</span>}
-                        <span>{(key.totalRequests || 0).toLocaleString()} requests in total</span>
-                      </div>
-                      {/* Daily quota */}
-                      <div className="sw-key-quota">
-                        <div className={`st-meter${pct > 90 ? ' is-bad' : pct > 70 ? ' is-warn' : ''}`} role="meter" aria-valuemin={0} aria-valuemax={key.dailyLimit} aria-valuenow={key.usedToday} aria-label="Requests today">
-                          <i style={{ width: `${pct}%` }} />
+          </Pane>
+        ) : (
+          <>
+            <Stats columns={4}>
+              <Stat value={loading ? '…' : <CountUp value={keys.length} />} label="Active keys" />
+              <Stat value={loading ? '…' : <CountUp value={usedToday} />} label="Requests today" sub="Resets 00:00 UTC" />
+              <Stat value={loading ? '…' : <CountUp value={dailyLimit} />} label="Daily limit" />
+              <Stat value={loading ? '…' : (tiers[currentTier]?.label || 'Free')} label="Tier" tone="accent" />
+            </Stats>
+
+            {/* Keys list */}
+            <Pane
+              title="Your data keys"
+              sub={loading ? 'Loading…' : `${keys.length} active`}
+              ruled
+              flush
+            >
+              {/* flush stays fixed: a Pane whose class changes after it has faded in loses its reveal. */}
+              {loading ? (
+                <Loader label="Loading keys" />
+              ) : keys.length === 0 ? (
+                <div className="sw-pad">
+                  <Empty
+                    title="No Data API keys yet"
+                    actions={<button type="button" onClick={() => setShowCreateModal(true)} className="st-btn is-primary">Create your first key {ar}</button>}
+                  >
+                    Create one to read benchmark data from your own app, dashboard or status bar.
+                  </Empty>
+                </div>
+              ) : (
+                <div className="sw-keys">
+                  {keys.map((key) => {
+                    const pct = key.dailyLimit > 0 ? Math.min(100, (key.usedToday / key.dailyLimit) * 100) : 0;
+                    return (
+                      <div key={key.id} className="sw-key">
+                        <div className="sw-key-main">
+                          <div className="sw-key-line">
+                            <span className="sw-t">{key.name}</span>
+                            <Tag tone="accent">{tiers[key.tier]?.label || key.tier}</Tag>
+                            {key.appUrl && <span className="sw-s sw-key-app">→ {key.appUrl}</span>}
+                          </div>
+                          <div className="sw-key-meta">
+                            <code className="st-ic">{key.keyPrefix}…</code>
+                            {key.createdAt && <span>Created {new Date(key.createdAt).toLocaleDateString()}</span>}
+                            <span>{(key.totalRequests || 0).toLocaleString()} requests in total</span>
+                          </div>
+                          {/* Daily quota */}
+                          <div className="sw-key-quota">
+                            <div className={`st-meter${pct > 90 ? ' is-bad' : pct > 70 ? ' is-warn' : ''}`} role="meter" aria-valuemin={0} aria-valuemax={key.dailyLimit} aria-valuenow={key.usedToday} aria-label="Requests today">
+                              <i style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="sw-s">
+                              <b className="sw-key-used">{key.usedToday.toLocaleString()}</b> / {key.dailyLimit.toLocaleString()} requests today · resets 00:00 UTC
+                            </span>
+                          </div>
                         </div>
-                        <span className="sw-s">
-                          <b className="sw-key-used">{key.usedToday.toLocaleString()}</b> / {key.dailyLimit.toLocaleString()} requests today · resets 00:00 UTC
-                        </span>
+                        <div className="sw-key-end">
+                          <button type="button" onClick={() => handleRevoke(key.id)} className="st-btn is-sm is-quiet sw-bad-text">Revoke</button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="sw-key-end">
-                      <button type="button" onClick={() => handleRevoke(key.id)} className="st-btn is-sm is-quiet sw-bad-text">Revoke</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Pane>
+                    );
+                  })}
+                </div>
+              )}
+            </Pane>
+          </>
+        )}
 
         {/* Quick start */}
         <Pane
@@ -228,10 +269,10 @@ export default function DataKeysPage() {
           >
             <div className="st-cards sw-tiers">
               {Object.entries(tiers).map(([id, t]) => (
-                <div key={id} className={`st-card sw-tier${id === currentTier ? ' is-on' : ''}`}>
+                <div key={id} className={`st-card sw-tier${!guest && id === currentTier ? ' is-on' : ''}`}>
                   <span className="st-card-t">
                     {t.label}
-                    {id === currentTier && <Tag tone="solid">Current</Tag>}
+                    {!guest && id === currentTier && <Tag tone="solid">Current</Tag>}
                   </span>
                   <span className="sw-tier-n"><b>{t.daily.toLocaleString()}</b> requests / day</span>
                   <span className="st-card-d">{t.perMinute.toLocaleString()} requests / minute</span>
@@ -255,7 +296,7 @@ export default function DataKeysPage() {
 
       {/* Create dialog. Own markup rather than <Modal>: once a key is shown, only Done or × may
           close it — a stray click on the backdrop must not throw the key away. */}
-      {showCreateModal && (
+      {showCreateModal && !guest && (
         <div className="st-modal-back" onClick={() => { if (!createdKey) setShowCreateModal(false); }}>
           <div className="st-modal is-narrow" role="dialog" aria-modal="true" aria-labelledby="dk-dialog-title" onClick={(e) => e.stopPropagation()}>
             <div className="st-modal-head">

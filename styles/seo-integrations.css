@@ -1,0 +1,51 @@
+/* ═══════════════════════════════════════════════════════════════════
+   /router/integrations and /router/integrations/<tool> (components/seo/integrations/*): the hero's
+   settings card, the numbered setup steps, the live line under a routing mode, and the hub's
+   category groups. Everything else is reading.css (rows, tags, FAQ) and landing.css (code card,
+   buttons). Colours are landing tokens, so the dark theme follows. Scoped under .lp .in-*.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── the settings card in the hero (the landing's code card, no reveal) ── */
+.lp .in-settings { margin-top: 0; }
+.lp .in-settings .lp-code { max-height: 320px; }
+
+/* ── setup steps: a number, a heading, the body, an optional button and code card ── */
+.lp .in-steps { max-width: 1000px; list-style: none; padding: 0; border-top: 1px solid var(--lp-line); }
+.lp .in-step { display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: clamp(16px, 2.4vw, 32px); padding: 26px 0; border-bottom: 1px solid var(--lp-line); }
+.lp .in-step-n { margin: 0; font-family: var(--lp-font-disp); font-weight: 700; font-size: 15px; letter-spacing: .04em; line-height: 1.7; color: var(--lp-accent); font-variant-numeric: tabular-nums; }
+.lp .in-step-body { display: grid; gap: 14px; min-width: 0; }
+.lp .in-step-body h3 { margin: 0; font-family: var(--lp-font-disp); font-size: clamp(18px, 1.4vw, 21px); font-weight: 600; line-height: 1.3; letter-spacing: -.015em; color: var(--lp-fg); }
+.lp .in-step-body > p { margin: 0; max-width: 72ch; font-size: 15.5px; line-height: 1.75; color: var(--lp-fg2); }
+.lp .in-step-body > p a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lp .in-step-body > p code,
+.lp .in-live code,
+.lp .in-hub-blurb code,
+.lp.rd-in .rd-ticks code,
+.lp.rd-in .lp-lead code,
+.lp.rd-in .seo-verdict code {
+  font-size: .86em; padding: 1px 6px; border-radius: 5px; overflow-wrap: anywhere;
+  background: color-mix(in srgb, var(--lp-fg) 7%, transparent); color: var(--lp-fg);
+}
+.lp .in-step-link { justify-self: start; min-height: 44px; }
+.lp .in-step-body .lp-codecard { margin-top: 2px; }
+
+/* ── the live top-of-board line under a routing mode's definition ── */
+.lp .in-live { display: block; margin-top: 8px; color: var(--lp-fg); font-variant-numeric: tabular-nums; }
+.lp .in-live a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── the other tools, grouped ── */
+.lp .in-others { display: grid; gap: 24px; max-width: 1000px; }
+.lp .in-group h3 { margin: 0 0 10px; font-family: var(--lp-font-disp); font-size: 15.5px; font-weight: 600; letter-spacing: -.005em; color: var(--lp-fg); }
+
+/* ── the hub's category groups: a heading, one line, then ruled rows ── */
+.lp .in-hub-group + .in-hub-group { margin-top: 40px; }
+.lp .in-hub-h3 { margin: 0 0 6px; font-family: var(--lp-font-disp); font-size: clamp(19px, 1.5vw, 23px); font-weight: 600; line-height: 1.25; letter-spacing: -.016em; color: var(--lp-fg); }
+.lp .in-hub-blurb { margin: 0 0 14px; max-width: 72ch; font-size: 15.5px; line-height: 1.7; color: var(--lp-fg2); }
+.lp .in-hub-group .rd-facts dt a { color: var(--lp-fg); text-decoration: none; }
+.lp .in-hub-group .rd-facts dt a:hover { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── phones: the number sits above the step; the hero card scrolls sideways inside itself ── */
+@media (max-width: 760px) {
+  .lp .in-step { grid-template-columns: minmax(0, 1fr); row-gap: 6px; padding: 22px 0; }
+  .lp .in-step-link { width: 100%; justify-content: center; }
+}

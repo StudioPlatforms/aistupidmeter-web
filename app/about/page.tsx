@@ -1,23 +1,19 @@
 import type { Metadata } from 'next';
+import { ORG_ID, breadcrumbLd, graphLd, pageMeta, utcStamp, webPageLd } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdRows, RdStats, RdFinal, tocNumber } from '@/components/landing/Reading';
 
-export const metadata: Metadata = {
-  title: 'Independent AI Benchmarking',
-  description: 'Learn about our mission to provide transparent, independent AI model benchmarking. Meet our team, explore enterprise data licensing, and see how we keep the measurement honest.',
+export const metadata: Metadata = pageMeta({
+  title: 'About ASL: independent, $0 from providers',
+  description: 'An independent LLM benchmark since August 2025: $0 from model providers, no affiliate links, a public methodology and private test tasks. Meet the team.',
+  path: '/about',
   keywords: [
     'About AI benchmarking platform', 'Independent AI testing', 'AI model drift dataset',
     'AI performance history data', 'Enterprise AI benchmarking', 'AI model monitoring team',
     'Transparent AI evaluation', 'AI performance monitoring company', 'LLM regression detection',
   ],
-  alternates: { canonical: '/about' },
-  openGraph: {
-    title: 'About AI Stupid Level | Independent AI Benchmarking',
-    description: 'Independent watchdog platform for AI model performance. Published methodology, no vendor affiliations, no paid placement.',
-    url: 'https://aistupidlevel.info/about',
-    type: 'website',
-  }
-};
+});
 
 // The counts below are read from the database, never typed in (they had drifted thousands of
 // rows out of date while hand-written). Regenerated hourly.
@@ -25,7 +21,7 @@ export const revalidate = 3600;
 
 interface SuiteStat { total: number; enabled: boolean }
 interface Corpus { runs: number; toolSessions: number; deepSessions: number; incidents: number }
-interface Status { adversarial?: SuiteStat; robustness?: SuiteStat; bias?: SuiteStat; corpus?: Corpus; rankedModels?: { name: string }[] }
+interface Status { adversarial?: SuiteStat; robustness?: SuiteStat; bias?: SuiteStat; corpus?: Corpus; rankedModels?: { name: string }[]; generatedAt?: string }
 
 async function getStatus(): Promise<Status | null> {
   const base = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
@@ -44,10 +40,16 @@ function floorTo(v: number | undefined, step: number): number | undefined {
   return Math.floor(v / step) * step;
 }
 
-/** "188,000+", or "—" when the figure is unavailable. */
-function atLeast(v: number | undefined, step: number): string {
+/** "188,000+", or null when the figure is unavailable (the copy then omits the number). */
+function atLeast(v: number | undefined, step: number): string | null {
   const f = floorTo(v, step);
-  return f === undefined ? '—' : `${f.toLocaleString('en-US')}+`;
+  return f === undefined ? null : `${f.toLocaleString('en-US')}+`;
+}
+
+/** A stat tile for a figure, or nothing when it is unavailable: never a placeholder. */
+function stat(v: number | undefined, step: number, label: string): { value: string; count?: number; suffix?: string; label: string }[] {
+  const f = floorTo(v, step);
+  return f === undefined ? [] : [{ value: `${f.toLocaleString('en-US')}+`, count: f, suffix: '+', label }];
 }
 
 const TEAM = [
@@ -101,6 +103,12 @@ export default async function AboutPage() {
   const extraRunning = [status?.adversarial, status?.robustness, status?.bias].some((s) => (s?.total ?? 0) > 0);
   const runs = floorTo(c?.runs, 1000);
   const modelsNow = status?.rankedModels?.length;
+  const runsAtLeast = atLeast(c?.runs, 1000);
+  const incidentsAtLeast = atLeast(c?.incidents, 100);
+  const toolAtLeast = atLeast(c?.toolSessions, 1000);
+  const deepAtLeast = atLeast(c?.deepSessions, 100);
+  // The counts were read from the database at this moment (the page is regenerated hourly).
+  const countedAt = status?.generatedAt ? new Date(status.generatedAt) : new Date();
 
   return (
     <ReadingPage
@@ -111,9 +119,9 @@ export default async function AboutPage() {
       lead="We measure AI models on a fixed schedule and compare each one with its own past, so that a silent change to a model you depend on is visible. We are independent of every vendor we measure."
       actions={(
         <>
-          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/">View the leaderboards <span className="lp-ar" aria-hidden="true">→</span></Link>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology">Methodology</Link>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/router/test-keys">Test your keys</Link>
+          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/" data-cta="about-hero-leaderboard">View the leaderboards <span className="lp-ar" aria-hidden="true">→</span></Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology" data-cta="about-hero-methodology">Methodology</Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/router/test-keys" data-cta="about-hero-test-keys">Test your keys</Link>
         </>
       )}
       aside={(
@@ -133,8 +141,8 @@ export default async function AboutPage() {
           lead="We are a small team and we answer our own email."
           actions={(
             <>
-              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/contact">Contact the team <span className="lp-ar" aria-hidden="true">→</span></Link>
-              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/faq">Read the FAQ</Link>
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/contact" data-cta="about-final-contact">Contact the team <span className="lp-ar" aria-hidden="true">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/faq" data-cta="about-final-faq">Read the FAQ</Link>
             </>
           )}
           explore={(
@@ -194,27 +202,29 @@ export default async function AboutPage() {
           ['The method is published.', <>Every weight, statistical test and drift constant is on the <Link key="m" href="/methodology">methodology page</Link> and in the <a key="p" href="/asl-public-benchmark-methodology-2026.pdf" {...ext}>Public Benchmark Methodology (2026, PDF)</a>. If you think a weight is wrong, you can quote it back to us.</>],
           ['The tasks are not.', <>When the task bank was public, providers optimised against it, and a test that can be studied in advance — or scraped into training data — stops measuring anything. The backend that holds the tasks, runners and scoring code stays private; the <a key="g" href="https://github.com/StudioPlatforms/aistupidmeter-web" {...ext}>web application is open source</a>, so the site you are reading can be checked line by line.</>],
           ['Every score is versioned.', 'Each one records the exact version of the tests it ran under, so a change we make is never mistaken for a change the model made.'],
-          ['Corrections stay on the record.', 'When we find a fault in our own measurement we say so and retract what it produced — 492 drift incidents in September 2026 — rather than quietly deleting it.'],
+          ['Corrections stay on the record.', <>When we find a fault in our own measurement we say so and retract what it produced — 492 drift incidents in September 2026 — rather than quietly deleting it. What the record has caught, and what it has not, is written up under <Link key="r" href="/research">Research</Link>.</>],
           ['You can check it yourself.', <><Link key="t" href="/router/test-keys">Test your keys</Link> runs the same tasks with your own API keys, scored by the same code as our published runs, and the <Link key="a" href="/api-docs">Data API</Link> serves the same data as JSON with a free key.</>],
         ]} />
       </RdSection>
 
       <RdSection id="data" n={n('data')} title="Data and licensing"
-        lead="Counted from the database when this page was last generated, since the first benchmark on 8 August 2025.">
+        lead={c
+          ? `As of ${utcStamp(countedAt)}: counted from the database, since our first run on 8 August 2025.`
+          : 'Counted from the database when this page is generated, since our first run on 8 August 2025.'}>
         <RdStats items={[
-          { value: atLeast(c?.runs, 1000), count: floorTo(c?.runs, 1000), suffix: '+', label: 'benchmark runs (individual task attempts)' },
-          { value: atLeast(c?.toolSessions, 1000), count: floorTo(c?.toolSessions, 1000), suffix: '+', label: 'tool-use sessions in real sandboxes' },
-          { value: atLeast(c?.deepSessions, 100), count: floorTo(c?.deepSessions, 100), suffix: '+', label: 'multi-turn reasoning sessions' },
-          { value: String(modelsNow ?? '—'), count: modelsNow, label: 'models tested now' },
+          ...stat(c?.runs, 1000, 'benchmark runs (individual task attempts)'),
+          ...stat(c?.toolSessions, 1000, 'tool-use sessions in real sandboxes'),
+          ...stat(c?.deepSessions, 100, 'multi-turn reasoning sessions'),
+          ...(modelsNow ? [{ value: String(modelsNow), count: modelsNow, label: 'models tested now' }] : []),
         ]} />
         <RdProse>
           <p>Beyond the free site and the Data API, we license the underlying data in bulk to teams that need more, and only to organisations that are not model vendors. Everything listed is data we hold today; we do not sell datasets we have not collected.</p>
         </RdProse>
         <RdFacts rows={[
-          ['Performance time series', `Every score, per model, per measure and per suite, with the test version each run used — ${atLeast(c?.runs, 1000)} runs, with intervals and per-attempt variation.`],
-          ['Drift and change points', `${atLeast(c?.incidents, 100)} change points and incidents with the detector state behind each. The 492 retracted incidents are kept and flagged, and change points before 13 September 2026, which came from a mixed-suite series, are identifiable by date.`],
-          ['Tool-use sessions', `${atLeast(c?.toolSessions, 1000)} full agent transcripts from sandboxed runs: which tools were called, with what parameters, and what happened.`],
-          ['Reasoning sessions', `${atLeast(c?.deepSessions, 100)} multi-turn sessions, scored turn by turn, with raw outputs where retention policy allows.`],
+          ['Performance time series', `Every score, per model, per measure and per suite, with the test version each run used${runsAtLeast ? ` — ${runsAtLeast} runs` : ''}, with intervals and per-attempt variation.`],
+          ['Drift and change points', `${incidentsAtLeast ? `${incidentsAtLeast} change points and incidents` : 'Every change point and incident'} with the detector state behind each. The 492 retracted incidents are kept and flagged, and change points before 13 September 2026, which came from a mixed-suite series, are identifiable by date.`],
+          ['Tool-use sessions', `${toolAtLeast ? `${toolAtLeast} full agent transcripts` : 'Full agent transcripts'} from sandboxed runs: which tools were called, with what parameters, and what happened.`],
+          ['Reasoning sessions', `${deepAtLeast ? `${deepAtLeast} multi-turn sessions` : 'Multi-turn sessions'}, scored turn by turn, with raw outputs where retention policy allows.`],
           ['Not yet offered', extraRunning
             ? 'Adversarial safety, bias and prompt robustness: the suites started recently and their datasets are still too young.'
             : 'Adversarial safety, bias and prompt robustness: built, not yet collecting.'],
@@ -235,20 +245,16 @@ export default async function AboutPage() {
         </div>
       </RdSection>
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: 'AI Stupid Level',
-            url: 'https://aistupidlevel.info',
-            description: 'Independent AI benchmarking platform',
-            foundingDate: '2025',
-            sameAs: ['https://x.com/AIStupidlevel', 'https://www.linkedin.com/company/asl-aistupidlevel-info', 'https://github.com/StudioPlatforms', 'https://www.reddit.com/r/aistupidlevel/'],
-          }),
-        }}
-      />
+      {/* The organisation node (name, logo, sameAs) is declared once, in app/layout.tsx; this page refers to it by id. */}
+      <JsonLd data={graphLd([
+        breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'About', path: '/about' }]),
+        webPageLd({
+          path: '/about',
+          name: 'About AI Stupid Level',
+          description: 'Who runs AI Stupid Level, how it is funded, how the measurement is kept honest, and how the underlying data is licensed.',
+          about: { '@id': ORG_ID },
+        }),
+      ])} />
     </ReadingPage>
   );
 }

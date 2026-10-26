@@ -19,7 +19,7 @@ import CookieSettings from './CookieSettings';
  * share-image renderer. The router's docs, help and forum are public pages and keep it.
  */
 
-const HIDDEN = [/^\/router(\/|$)(?!forum|docs|help)/, /^\/admin(\/|$)/, /^\/share(\/|$)/, /^\/drift-test(\/|$)/];
+const HIDDEN = [/^\/router(\/|$)(?!forum|docs|help|integrations)/, /^\/admin(\/|$)/, /^\/share(\/|$)/];
 
 function useNextCodingRun(): string {
   const [text, setText] = useState('');
@@ -45,12 +45,14 @@ function useNextCodingRun(): string {
   return text;
 }
 
-export default function SiteFooter() {
+export default function SiteFooter({ force = false }: { force?: boolean } = {}) {
   const pathname = usePathname() || '/';
   const nextRun = useNextCodingRun();
   const visits = useVisitorStats().total;
 
-  if (HIDDEN.some((re) => re.test(pathname))) return null;
+  // `force`: the public /router landing (signed-out) renders the footer itself, because the
+  // /router prefix is hidden here for the signed-in dashboard that shares the URL.
+  if (!force && HIDDEN.some((re) => re.test(pathname))) return null;
 
   // The original slim bar (styles/v4-layout.css .v4-footer, 32px, 10px type) — kept as it was;
   // only where it is rendered changed.

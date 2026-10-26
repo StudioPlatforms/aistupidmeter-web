@@ -218,7 +218,7 @@ const scoreOf = (m: ModelRow) =>
 function formatUpdated(rows: ModelRow[]): string {
   const stamp = (rows as any[]).map((m) => m?.lastUpdated).find(Boolean);
   const d = stamp ? new Date(stamp) : new Date();
-  if (Number.isNaN(d.getTime())) return 'updated hourly';
+  if (Number.isNaN(d.getTime())) return 'updated after every run';
   const day = d.getUTCDate();
   const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()];
   const hh = String(d.getUTCHours()).padStart(2, '0');
@@ -489,7 +489,7 @@ function fallbackCard() {
             Live AI model benchmarks
           </div>
           <div style={{ display: 'flex', marginTop: 14, fontSize: 22, color: INK_DIM }}>
-            Independent hourly scoring across 20+ models
+            Independent benchmarks, coding re-tested every four hours
           </div>
           <div
             style={{
@@ -561,7 +561,7 @@ function winnerCard(models: ModelRow[]) {
                 letterSpacing: 0.6,
               }}
             >
-              #1 RIGHT NOW
+              #1 · LAST 24 HOURS
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', marginTop: 22 }}>
@@ -598,7 +598,7 @@ function winnerCard(models: ModelRow[]) {
               maxWidth: 860,
             }}
           >
-            {`Ranked first of ${models.length} models on the combined benchmark — coding, reasoning and tool use, re-scored every hour.`}
+            {`Ranked first of ${models.length} models on the combined board over the last 24 hours — coding, reasoning and tool use.`}
           </div>
           {/* Explicit spacer rather than `marginTop: 'auto'` — satori's margin
               handling does not take 'auto', and it takes the whole render down. */}

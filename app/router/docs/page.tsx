@@ -12,11 +12,22 @@
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import RouterLayout from '@/components/RouterLayout';
+import JsonLd from '@/components/seo/JsonLd';
+import { breadcrumbLd, graphLd, webPageLd } from '@/lib/seo';
 import { PageHead, Pane, CodeBlock, CopyButton, Tag, type CodeSample } from '@/components/studio';
 import { CC_SWITCH_APPS, ccSwitchProviderLink } from '@/lib/cc-switch';
 import '@/styles/studio-docs.css';
 
 const BASE_URL = 'https://aistupidlevel.info/v1';
+
+/** The same strings as app/router/docs/layout.tsx (pageMeta); the structured data names the page by them. */
+const DOCS_PATH = '/router/docs';
+const DOCS_TITLE = 'Smart Router API documentation';
+const DOCS_DESCRIPTION = 'Smart Router API reference: OpenAI-compatible /v1/chat/completions, Anthropic /v1/messages passthrough, /v1/embeddings, 14 auto-* routing modes and SDKs.';
+const DOCS_LD = graphLd([
+  breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Smart Router', path: '/router' }, { name: 'API documentation', path: DOCS_PATH }]),
+  webPageLd({ path: DOCS_PATH, name: DOCS_TITLE, description: DOCS_DESCRIPTION, type: 'TechArticle' }),
+]);
 
 type Method = 'GET' | 'POST';
 
@@ -52,11 +63,11 @@ const ENDPOINTS: Array<{ method: Method; path: string; desc: ReactNode; to?: str
 ];
 
 const PARAMS: Array<{ n: string; t: string; r: boolean; d: string }> = [
-  { n: 'model', t: 'string', r: true, d: '"auto-coding", "auto-reasoning", or a real model ID like "claude-opus-5-5"' },
+  { n: 'model', t: 'string', r: true, d: '"auto-coding", "auto-reasoning", or any real model ID that GET /v1/models lists' },
   { n: 'messages', t: 'array', r: true, d: 'Array of {role, content} message objects' },
   { n: 'temperature', t: 'number', r: false, d: 'Sampling temperature (0-2). Default varies by provider.' },
   { n: 'max_tokens', t: 'number', r: false, d: 'Max tokens to generate. For reasoning models use max_completion_tokens.' },
-  { n: 'max_completion_tokens', t: 'number', r: false, d: 'Max output tokens including reasoning tokens (GPT-5.x, o-series).' },
+  { n: 'max_completion_tokens', t: 'number', r: false, d: 'Max output tokens including reasoning tokens (OpenAI reasoning models).' },
   { n: 'stream', t: 'boolean', r: false, d: 'Enable SSE streaming. Default: false.' },
   { n: 'stream_options', t: 'object', r: false, d: '{ include_usage: true } — emit final usage chunk in SSE.' },
   { n: 'tools', t: 'array', r: false, d: 'Function tool definitions for tool calling.' },
@@ -73,7 +84,7 @@ const PARAMS: Array<{ n: string; t: string; r: boolean; d: string }> = [
 const STRATEGIES: Array<{ id: string; cat: string; desc: string }> = [
   { id: 'auto', cat: 'Default', desc: 'Uses your saved routing strategy from Preferences' },
   { id: 'auto-task', cat: 'Per request', desc: 'Reads each request and picks the matching benchmark: tools → tool use, design or long sessions → reasoning, code → coding, else overall; simple requests use the Best value version. The routing reason names the rule' },
-  { id: 'auto-split', cat: 'Your split', desc: 'Your own weighted traffic split across models you choose (set it in Preferences); the rest of the split is the first fallback' },
+  { id: 'auto-split', cat: 'Your split', desc: 'Your own weighted traffic split across models you choose (set it in Preferences); the rest of the split goes ahead of your fallback order' },
   { id: 'auto-coding', cat: 'Coding', desc: 'Best for code generation, debugging, refactoring' },
   { id: 'auto-reasoning', cat: 'Reasoning', desc: 'Best for complex analysis, math, logic' },
   { id: 'auto-consistent', cat: 'Consistency', desc: 'Among models within 5 points of the best one you can use, the one whose score swings least from run to run' },
@@ -111,7 +122,7 @@ const ERRORS: Array<{ http: number; type: string; code: string; desc: string }> 
   { http: 400, type: 'invalid_request_error', code: 'invalid_idempotency_key', desc: 'Idempotency-Key must be 1–255 printable ASCII characters' },
   { http: 422, type: 'invalid_request_error', code: 'idempotency_key_reused', desc: 'The Idempotency-Key was already used with a different request body' },
   { http: 409, type: 'conflict_error', code: 'idempotency_in_progress', desc: 'A request with this Idempotency-Key is still running (see Retry-After)' },
-  { http: 413, type: '—', code: '—', desc: 'The request body is over 32 MB' },
+  { http: 413, type: 'none', code: 'none', desc: 'The request body is over 32 MB; the response is a plain message with no error object' },
   { http: 502, type: 'api_error', code: 'model_unavailable', desc: 'Every model tried failed on the provider side' },
   { http: 502, type: 'api_error', code: 'tool_choice_not_honoured', desc: 'You forced a tool call and the model answered without one, twice (only models that cannot be forced natively; see Tools above)' },
   { http: 500, type: 'server_error', code: 'internal_error', desc: 'Internal server error' },
@@ -166,8 +177,8 @@ const CHAT_RESPONSE = `{
   "id": "chatcmpl-1748250000000",
   "object": "chat.completion",
   "created": 1748250000,
-  "model": "claude-opus-5-5",
-  "system_fingerprint": "aism_v1_anthropic",
+  "model": "<the model that answered>",
+  "system_fingerprint": "aism_v1_<provider>",
   "service_tier": "default",
   "choices": [{
     "index": 0,
@@ -210,7 +221,7 @@ const ANTHROPIC_CURL = `curl -X POST https://aistupidlevel.info/v1/messages \\
   -H "x-api-key: aism_your_key_here" \\
   -H "anthropic-version: 2023-06-01" \\
   -d '{
-    "model": "claude-sonnet-5-5",
+    "model": "<a Claude model id>",
     "max_tokens": 1024,
     "messages": [{"role": "user", "content": "Hello!"}]
   }'`;
@@ -311,14 +322,14 @@ const PREVIEW_RESPONSE = `{
   "strategy": "best_coding",
   "sandbox": false,
   "primary": {
-    "model": "claude-opus-5-5",
-    "provider": "anthropic",
+    "model": "<model id>",
+    "provider": "<provider>",
     "score": 99,
-    "reasoning": "Selected claude-opus-5-5 from anthropic for best coding performance ...",
+    "reasoning": "Selected <model id> from <provider> for best coding performance ...",
     "estimated_cost_usd": 0.012
   },
   "fallbacks": [
-    { "model": "gpt-5.6-sol", "provider": "openai", "score": 96, "reasoning": "Fallback: ...", "estimated_cost_usd": 0.012 }
+    { "model": "<model id>", "provider": "<another provider>", "score": 96, "reasoning": "Fallback: ...", "estimated_cost_usd": 0.012 }
   ],
   "fallback_enabled": true
 }`;
@@ -720,13 +731,14 @@ export default function DocsPage() {
   return (
     <RouterLayout>
       <div className="sd-page sd-docs">
+        <JsonLd data={DOCS_LD} />
         <PageHead
           kicker="Support"
           title="API documentation"
           lead={<>Complete developer reference for the AI Smart Router. Requests go to <code>{BASE_URL}</code> with your <code>aism_</code> key as a Bearer token.</>}
           actions={<>
-            <Link href="/router/help" className="st-btn">Help center</Link>
-            <Link href="/router/keys" className="st-btn is-primary">Create an API key <span className="st-ar" aria-hidden="true">→</span></Link>
+            <Link href="/router/help" className="st-btn" data-cta="docs-head-help">Help center</Link>
+            <Link href="/router/keys" className="st-btn is-primary" data-cta="docs-head-key">Create an API key <span className="st-ar" aria-hidden="true">→</span></Link>
           </>}
         >
           <dl className="sd-ref">
@@ -755,7 +767,7 @@ export default function DocsPage() {
                   <h3 className="sd-h3">Introduction</h3>
                   <p className="st-text">
                     The AI Smart Router provides an OpenAI-compatible API that intelligently routes your requests to the best AI model
-                    based on real-time benchmarks. Use a single <C>aism_</C> key &mdash; your <strong>SR (Smart Router) key</strong> &mdash;
+                    for the job, based on benchmarks that re-run on a fixed schedule (coding every four hours, reasoning and tool use daily). Use a single <C>aism_</C> key &mdash; your <strong>SR (Smart Router) key</strong> &mdash;
                     to access models from 6 providers: OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI).
                   </p>
 
@@ -818,7 +830,7 @@ export default function DocsPage() {
                   <div className="sd-notes">
                     <p>
                       <strong>Routing on every answer.</strong> <C>routing</C> carries the provider and model that answered, why they were chosen, the
-                      latency, the request id, and whether a fallback answered (<C>routing.fallback</C>). For a stream it is known before the first chunk.
+                      latency, the request id, and whether a fallback answered (<C>routing.fallback</C>). For a stream it is known before any chunk arrives.
                     </p>
                     <p>
                       <strong>Safe retries.</strong> Connection failures, timeouts, 408, 409, 429 and 5xx are retried twice by default with backoff,
@@ -926,21 +938,21 @@ export default function DocsPage() {
 
                   <div className="sd-notes">
                     <p>
-                      <strong>Direct pin routing:</strong> Send any real model ID (e.g., <C>claude-opus-5-5</C>, <C>gpt-6-sol</C>, <C>gemini-3.8-flash</C>;{' '}
-                      <C>GET /v1/models</C> lists them all) to bypass the strategy router and forward directly to that provider.
+                      <strong>Direct pin routing:</strong> Send any real model ID (<C>GET /v1/models</C> lists them all) to bypass the strategy
+                      router and forward directly to that provider.
                     </p>
                     <p>
-                      <strong>How the best model is chosen:</strong> every model ranks on the average of its last five measured benchmark runs, never on
-                      a single run. When the leaders are closer than the measurement can confirm (a gap within 1.96 times their combined standard error, the
+                      <strong>How the best model is chosen:</strong> every model ranks on the average of its last five scored benchmark runs, never on
+                      a single run. When the leaders are closer than the test can tell apart (within 1.96 times their combined standard error, the
                       same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among them: the one that
-                      cost least per task in our measurements (the default), the fastest, or the highest score. A model you were already routed to stays
+                      cost least per task in our runs (the default), the fastest, or the highest score. A model you were already routed to stays
                       while it is still tied, and a conversation stays on the model that answered it, so the pick does not change with every new run.
                       Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
                     </p>
                     <p>
                       <strong>Near-top strategies</strong> (<C>auto-value*</C>, <C>auto-consistent</C>, <C>auto-fastest-quality</C>) only choose among models
                       within 5 points of the best model <em>you</em> can use — after your keys, exclusions and limits — so a cheaper, steadier or faster pick
-                      is never a much weaker one. Value is measured: the benchmark score divided by what one identical benchmark run actually cost that model,
+                      is never a much weaker one. Value is per run: the benchmark score divided by what one identical benchmark run cost that model,
                       not its list price per token.
                     </p>
                     <p>
@@ -984,15 +996,15 @@ export default function DocsPage() {
                     </p>
                     <p>
                       <strong>Refusals:</strong> when a model declines a request, the answer comes back with <C>message.refusal</C> and{' '}
-                      <C>finish_reason: &quot;content_filter&quot;</C>, and it is not counted against your allowance. Claude Fable 5.1, Opus 5.5, Opus 5 and
-                      Sonnet 5.5 first retry on Anthropic&apos;s own fallback model in the same call. A refused request is not sent to other providers.
+                      <C>finish_reason: &quot;content_filter&quot;</C>, and it is not counted against your allowance. The Claude models that support it first retry on
+                      Anthropic&apos;s own fallback model in the same call. A refused request is not sent to other providers.
                     </p>
                     <p>
                       <strong><C>tool_choice</C>:</strong> <C>auto</C> and <C>none</C> work everywhere, and <C>required</C> or a named function works on
-                      every model. OpenAI, Gemini, DeepSeek V4 (thinking is switched off for that one request), Kimi K3, and Claude other than Fable 5.1 and
-                      Sonnet 5.5 enforce it natively, and routed requests that force a tool go to those first. The rest (Kimi K2.7 Code, GLM-5.3, Claude
-                      Fable 5.1 and Sonnet 5.5) cannot be forced by their APIs — GLM-5.3 even accepts the setting and ignores it — so the router asks in words
-                      (an instruction for that turn), checks that the answer really is the tool call, retries once, and otherwise falls back or answers{' '}
+                      every model. OpenAI, Gemini and most DeepSeek, Kimi and Claude models enforce it natively (DeepSeek switches thinking off for that
+                      one request), and routed requests that force a tool go to those first. Models whose APIs cannot be forced (GLM, and some Kimi and
+                      Claude models; GLM even accepts the setting and ignores it) get an instruction for that turn instead: the router checks that the
+                      answer really is the tool call, retries once, and otherwise falls back or answers{' '}
                       <C>502 tool_choice_not_honoured</C>. It never hands you prose when you forced a tool. Streamed forced calls arrive in one piece
                       (<C>X-AISM-Streaming-Mode: buffered</C>), because the answer is checked before anything is sent.
                     </p>
@@ -1005,7 +1017,7 @@ export default function DocsPage() {
                       <strong>Streaming</strong> (<C>stream: true</C>) is real: text arrives as the model writes it (<C>X-AISM-Streaming-Mode: native</C>).
                       Tool calls arrive in one chunk each once the model has finished them, then the finish reason, then usage if you set{' '}
                       <C>stream_options.include_usage</C>. If the chosen model fails before sending anything, or its provider sends nothing at all for 120
-                      seconds, the next fallback is tried; after the first byte a failure ends the stream with an error event.
+                      seconds, the next fallback is tried; once bytes have been sent, a failure ends the stream with an error event.
                     </p>
                     <p>
                       <strong>Text only, by design.</strong> The router picks a model from our benchmark results for coding, reasoning and tool use; none of
@@ -1044,7 +1056,7 @@ export default function DocsPage() {
                   <p className="st-text">
                     <C>X-ASL-Sandbox-Simulate</C> makes a sandbox request fail the way a real one can, so your error handling can be tested:{' '}
                     <C>rate_limited</C>, <C>allowance_exhausted</C>, <C>insufficient_quota</C>, <C>provider_key_rejected</C>, <C>model_unavailable</C>,{' '}
-                    <C>server_error</C>, or <C>fallback</C> (the first choice fails and the next model answers, as shown in <C>X-AISM-Reasoning</C>).
+                    <C>server_error</C>, or <C>fallback</C> (the primary fails and the next model answers, as shown in <C>X-AISM-Reasoning</C>).
                   </p>
 
                   <h3 className="sd-h3"><Endpoint method="POST" path="/v1/route/preview" /></h3>
@@ -1077,7 +1089,7 @@ export default function DocsPage() {
                   <div className="sd-notes">
                     <p>
                       <strong>Only final answers are kept.</strong> A 5xx or a 429 is not stored, so retrying after a failure or a rate limit is a real new
-                      attempt. Reusing a key with a different body gets <C>422 idempotency_key_reused</C>; a retry that arrives while the first attempt is
+                      attempt. Reusing a key with a different body gets <C>422 idempotency_key_reused</C>; a retry that arrives while the original attempt is
                       still running gets <C>409 idempotency_in_progress</C> with <C>Retry-After</C>. Streams cannot be replayed, so streaming requests
                       ignore the header.
                     </p>
@@ -1145,11 +1157,11 @@ export default function DocsPage() {
                             <tr key={i}>
                               <td data-label="HTTP code"><Tag tone={er.http >= 500 ? 'bad' : 'warn'}>{er.http}</Tag></td>
                               <td className="is-head" data-label="error.type">
-                                {er.type === '—' ? <span className="sd-faint">—</span> : <code className="sd-name">{er.type}</code>}
+                                {er.type === 'none' ? <span className="sd-faint">none</span> : <code className="sd-name">{er.type}</code>}
                               </td>
                               <td className="sd-codes-cell" data-label="error.code">
-                                {er.code === '—'
-                                  ? <span className="sd-faint">—</span>
+                                {er.code === 'none'
+                                  ? <span className="sd-faint">none</span>
                                   : (
                                     <span className="sd-codes">
                                       {er.code.split(' / ').map((c, k) => (
@@ -1217,7 +1229,7 @@ export default function DocsPage() {
                 </div>
               </Pane>
 
-              <p className="sd-end">Questions? Check the <Link href="/router/help">Help center</Link></p>
+              <p className="sd-end">Questions? Check the <Link href="/router/help" data-cta="docs-end-help">Help center</Link></p>
             </div>
 
             <aside className="sd-rail">
@@ -1235,8 +1247,8 @@ export default function DocsPage() {
                 </ol>
               </nav>
               <div className="sd-rail-foot">
-                <Link href="/router/help">Help center</Link>
-                <Link href="/router/keys">Create an API key</Link>
+                <Link href="/router/help" data-cta="docs-rail-help">Help center</Link>
+                <Link href="/router/keys" data-cta="docs-rail-key">Create an API key</Link>
               </div>
             </aside>
           </div>

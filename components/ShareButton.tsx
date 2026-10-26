@@ -78,7 +78,7 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
           drop ? ` is down ${drop}% from its baseline` : ' has degraded'
         }${s !== null ? `, now scoring ${s}/100` : ''}.`,
         '',
-        'Independent AI model benchmarks, re-scored every hour.',
+        'Independent AI model benchmarks: coding re-tested every four hours, reasoning and tool use daily.',
         stamp,
       ].join('\n');
     }
@@ -86,11 +86,11 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
     if (type === 'winner' && data?.topModel) {
       const s = scoreOf(data.topModel);
       return [
-        `${data.topModel.name} is the top-scoring AI model right now${
+        `${data.topModel.name} leads the AI model leaderboard${
           s !== null ? ` — ${s}/100` : ''
         }.`,
         '',
-        'Independent AI model benchmarks, re-scored every hour.',
+        'Independent AI model benchmarks: coding re-tested every four hours, reasoning and tool use daily.',
         stamp,
       ].join('\n');
     }
@@ -101,7 +101,7 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
       return [
         `Global AI performance index: ${score}/100 — the fleet is ${status}.`,
         '',
-        'Independent AI model benchmarks, re-scored every hour.',
+        'Independent AI model benchmarks: coding re-tested every four hours, reasoning and tool use daily.',
         stamp,
       ].join('\n');
     }
@@ -113,13 +113,13 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
           return `${i + 1}. ${m.name}${s !== null ? ` — ${s}` : ''}`;
         })
         .join('\n');
-      return [`AI model leaderboard — live benchmark scores:`, '', rows, '', `Independently re-scored every hour.`, stamp].join(
+      return [`AI model leaderboard — live benchmark scores:`, '', rows, '', `Independently re-tested: coding every four hours, reasoning and tool use daily.`, stamp].join(
         '\n'
       );
     }
 
     return [
-      'Live AI model benchmarks — compare GPT, Claude, Gemini, Grok and more on independently measured scores.',
+      'Live AI model benchmarks — compare GPT, Claude, Gemini, DeepSeek, Kimi and GLM on independently measured scores.',
       stamp,
     ].join('\n');
   };
@@ -136,7 +136,7 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
     }
     if (type === 'winner' && data?.topModel) {
       const s = scoreOf(data.topModel);
-      return `${data.topModel.name} is currently the top-scoring AI model${s !== null ? ` at ${s}/100` : ''}`;
+      return `${data.topModel.name} leads the AI model leaderboard${s !== null ? ` at ${s}/100` : ''}`;
     }
     if (top3.length >= 3) {
       const s0 = scoreOf(top3[0]);
@@ -149,7 +149,7 @@ export default function ShareButton({ type = 'rankings', data }: ShareButtonProp
         .join(' and ');
       return `AI model leaderboard: ${top3[0].name} leads${s0 !== null ? ` at ${s0}` : ''}, ahead of ${rest}`;
     }
-    return 'Live AI model benchmarks — independently scored every hour';
+    return 'Live AI model benchmarks — coding re-tested every four hours, reasoning and tool use daily';
   };
 
   /**

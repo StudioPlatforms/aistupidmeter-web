@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { pageMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
 
@@ -7,12 +8,11 @@ import { ReadingPage, RdSection, RdProse, RdRows, RdFinal, tocNumber } from '@/c
  * app/pricing/PricingClient.tsx) as of 2026-10-19; keep them in step.
  */
 
-export const metadata: Metadata = {
-  title: 'Terms of Service',
-  description: 'The terms for using AI Stupid Level: accounts, the Smart Router with your own provider keys, plans and payments, acceptable use, the benchmark data and liability.',
-  alternates: { canonical: '/terms' },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMeta({
+  title: 'Terms of service',
+  description: 'Terms for using AI Stupid Level: accounts, the Smart Router with your own provider keys, plans and payments, acceptable use, benchmark data and liability.',
+  path: '/terms',
+});
 
 const UPDATED = '19 October 2026';
 const EMAIL = 'hello@aistupidlevel.info';

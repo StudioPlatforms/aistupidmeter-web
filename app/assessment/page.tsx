@@ -1,21 +1,49 @@
 import type { Metadata } from 'next';
+import { ORG_ID, SITE, breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
+import JsonLd from '@/components/seo/JsonLd';
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import SubpageLayout from '@/components/SubpageLayout';
 import LandingEffects from '@/components/landing/LandingEffects';
 import { lpBody, lpDisplay } from '@/lib/fonts';
-import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
+import { ASSESSMENT_PRICE_LABEL, ASSESSMENT_PRICE_USD } from '@/lib/assessment-price';
 import AssessmentClient from './AssessmentClient';
 import '@/styles/landing.css';
 import '@/styles/landing-forms.css';
 import '@/styles/assessment.css';
 
-export const metadata: Metadata = {
-  title: 'Workload assessment',
-  description:
-    'One workload, up to 20 of your own tasks, three candidate models, a decision report in seven business days. $1,290, fully refunded if we cannot measure your workload, and credited against an annual plan.',
-  alternates: { canonical: '/assessment' },
-};
+const TITLE = 'Workload assessment: your tasks, 3 models';
+// The price is read from lib/assessment-price.ts, never typed here.
+const DESCRIPTION = `Up to 20 of your own tasks on three candidate models, a decision report in seven business days. ${ASSESSMENT_PRICE_LABEL}, refunded if we cannot measure your workload.`;
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/assessment',
+});
+
+/** The page, its breadcrumb and the assessment as a Service with its one fixed price. */
+const ASSESSMENT_LD = graphLd([
+  breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Workload assessment', path: '/assessment' }]),
+  webPageLd({ path: '/assessment', name: TITLE, description: DESCRIPTION }),
+  {
+    '@type': 'Service',
+    '@id': `${SITE}/assessment#service`,
+    name: 'Workload assessment',
+    serviceType: 'AI model evaluation on a customer’s own tasks',
+    description: DESCRIPTION,
+    url: `${SITE}/assessment`,
+    provider: { '@id': ORG_ID },
+    offers: {
+      '@type': 'Offer',
+      price: String(ASSESSMENT_PRICE_USD),
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      url: `${SITE}/assessment`,
+      seller: { '@id': ORG_ID },
+    },
+  },
+]);
 
 const intro = (d: string): CSSProperties => ({ '--d': d } as CSSProperties);
 
@@ -40,6 +68,7 @@ const Shield = () => (
 export default function AssessmentPage({ searchParams }: { searchParams?: { cancelled?: string } }) {
   return (
     <SubpageLayout>
+      <JsonLd data={ASSESSMENT_LD} />
       <div className={`lp lp-sub lp-asmt ${lpBody.variable} ${lpDisplay.variable}`}>
         {/* Reveal-on-scroll hides blocks only once scripts run; the failsafe shows everything if they never do. */}
         <script dangerouslySetInnerHTML={{ __html: "(function(){var d=document.documentElement;d.classList.add('lp-js');setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();" }} />
@@ -64,8 +93,8 @@ export default function AssessmentPage({ searchParams }: { searchParams?: { canc
                   <span>one-off, fixed scope · USD, excluding any applicable tax</span>
                 </p>
                 <div className="lp-cta lp-intro" style={intro('.3s')}>
-                  <a className="lp-btn lp-btn-primary lp-btn-lg" href="#book">Book your assessment <span className="lp-ar" aria-hidden="true">→</span></a>
-                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/contact?topic=sales">Questions first? Talk to us</Link>
+                  <a className="lp-btn lp-btn-primary lp-btn-lg" href="#book" data-cta="assessment-hero-book">Book your assessment <span className="lp-ar" aria-hidden="true">→</span></a>
+                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/contact?topic=sales" data-cta="assessment-hero-contact">Questions first? Talk to us</Link>
                 </div>
               </div>
               <dl className="lp-facts lp-intro" style={intro('.38s')}>

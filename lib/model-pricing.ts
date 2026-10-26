@@ -17,8 +17,9 @@
  *   Where one is live it is noted in a comment.
  * - Long-context surcharge tiers are not modelled; the base tier is quoted.
  *
- * Verified 2026-07-31. Most recent change: GPT-6.1 Sol added 2026-10-13 ($2/$10,
- * released 2026-09-29). Before that, GPT-6 Astra on 2026-09-05 ($10/$50, GA
+ * Verified 2026-07-31. Most recent change: Kimi K3.1 Pro ($2/$10) and Gemini 4 Argon
+ * ($4/$20) added 2026-10-26. Before that, GPT-6.1 Sol on 2026-10-13 ($2/$10,
+ * released 2026-09-29), and GPT-6 Astra on 2026-09-05 ($10/$50, GA
  * 2026-09-04), and OpenAI cut GPT-5.6 Terra 20% and Luna 80% on 2026-07-30.
  */
 
@@ -89,6 +90,9 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
   }
 
   if (prov === 'google') {
+    // Gemini 4 Argon (GA 2026-10-13): STANDARD rate from 2026-12-01. The $2/$10 introductory
+    // price through 2026-11-30 is not quoted, per the convention. Verified 2026-10-26.
+    if (name.includes('gemini-4-argon')) return { input: 4, output: 20 };
     // 3.1 Pro is the base (<=200K ctx) tier; above that it rises to $4/$18.
     // Flash 3.5 -> 3.8 must come BEFORE the generic gemini-3 + flash rule below, or they
     // all collapse into $0.50/$3 (the same ordering bug that made every gpt-5.x show
@@ -133,6 +137,9 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
   }
 
   if (prov === 'kimi') {
+    // K3.1 Pro (2026-10-23) is cheaper than K3, so it needs its own branch before the k3 rule.
+    if (name.includes('k3.1') && name.includes('highspeed')) return { input: 4, output: 20 };
+    if (name.includes('k3.1')) return { input: 2, output: 10 };
     if (name.includes('k3')) return { input: 3, output: 15 };
     if (name.includes('k2.7-code-highspeed')) return { input: 1.90, output: 8 };
     if (name.includes('k2.7')) return { input: 0.95, output: 4 };

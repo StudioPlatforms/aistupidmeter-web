@@ -1,0 +1,60 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The SEO pages' shared pieces (components/seo/*): the verdict line, the "as of" line, the
+   score table, the CTA blocks and the 168-hour status bars. Layout, type and tokens come from
+   landing.css (.lp) and reading.css (.rd-table); this file adds only what those lack. Every
+   colour is a landing token, so the dark theme follows for free. Scoped under .lp.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── the answer under the H1, and the timestamp line ── */
+.lp .seo-verdict { max-width: 72ch; font-size: clamp(17px, 1.35vw, 20px); line-height: 1.55; font-weight: 500; color: var(--lp-fg); }
+.lp .seo-verdict b, .lp .seo-verdict strong { font-weight: 600; }
+.lp .seo-verdict a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .seo-asof { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+
+/* ── the score table (on reading.css's .rd-table) ── */
+.lp .seo-table-wrap { max-width: 1000px; }
+.lp .seo-table { font-size: 15px; }
+.lp .seo-table caption { caption-side: top; text-align: left; padding: 14px 18px 4px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.lp .seo-table th.seo-num, .lp .seo-table td.seo-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lp .seo-table .seo-place { width: 1%; }
+.lp .seo-table .seo-joint { margin-right: 1px; color: var(--lp-fg3); font-weight: 500; }
+.lp .seo-table .seo-unranked { font-size: 13px; font-weight: 400; color: var(--lp-fg3); white-space: nowrap; }
+.lp .seo-table .seo-se { color: var(--lp-fg3); font-weight: 400; font-size: 13.5px; }
+.lp .seo-table tbody th a { color: var(--lp-fg); text-decoration: none; }
+.lp .seo-table tbody th a:hover { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── CTA blocks ── */
+.lp .seo-cta-row { display: flex; flex-wrap: wrap; gap: 24px 40px; align-items: flex-start; }
+/* A primary with a caption next to a plain button left a gap the width of the caption: stack them. */
+.lp .seo-cta-row.is-stack { flex-direction: column; gap: 18px; }
+.lp .seo-cta { display: grid; gap: 10px; justify-items: start; min-width: 0; }
+.lp .seo-cta .lp-btn { min-height: 44px; }
+.lp .seo-cta-sub { margin: 0; max-width: 46ch; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg3); }
+.lp .seo-cta-sub a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── 168 hourly cells, oldest first: '' answered, w slow, b did not answer, o our side, e no check
+      (lib/seo-data hourCells). Server-rendered, no reveal animation. ── */
+.lp .seo-bars { display: grid; grid-template-columns: repeat(var(--n, 168), minmax(0, 1fr)); gap: 1px; height: 28px; align-items: end; }
+.lp .seo-bars i { display: block; height: 100%; border-radius: 1px; background: var(--lp-good); opacity: .82; }
+.lp .seo-bars i.w { background: var(--lp-warn); opacity: 1; }
+.lp .seo-bars i.b { background: var(--lp-bad); opacity: 1; }
+.lp .seo-bars i.o { background: repeating-linear-gradient(135deg, var(--lp-fg3) 0 2px, transparent 2px 4px); opacity: .9; }
+.lp .seo-bars i.e { background: color-mix(in srgb, var(--lp-fg) 10%, transparent); opacity: 1; }
+.lp .seo-bars-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--lp-fg3); }
+.lp .seo-bars-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; font-size: 12.5px; color: var(--lp-fg2); }
+.lp .seo-bars-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; background: var(--lp-good); }
+.lp .seo-bars-legend .w i { background: var(--lp-warn); }
+.lp .seo-bars-legend .b i { background: var(--lp-bad); }
+.lp .seo-bars-legend .o i { background: repeating-linear-gradient(135deg, var(--lp-fg3) 0 2px, transparent 2px 4px); }
+.lp .seo-bars-legend .e i { background: color-mix(in srgb, var(--lp-fg) 10%, transparent); }
+
+/* ── phones: full-width buttons, a tighter table, and the newest 48 hours of the bars ── */
+@media (max-width: 760px) {
+  .lp .seo-cta { justify-items: stretch; }
+  .lp .seo-cta .lp-btn { width: 100%; }
+  .lp .seo-table { font-size: 14px; }
+  .lp .seo-table th, .lp .seo-table td { padding: 11px 12px; }
+  .lp .seo-table caption { padding: 12px 12px 2px; }
+  .lp .seo-bars { grid-template-columns: repeat(48, minmax(0, 1fr)); }
+  .lp .seo-bars i:nth-child(-n+120) { display: none; }
+}

@@ -4,33 +4,39 @@ import Link from 'next/link';
 import SubpageLayout from '@/components/SubpageLayout';
 import LandingEffects from '@/components/landing/LandingEffects';
 import { RdWeights, RdFinal } from '@/components/landing/Reading';
-import { getModelRoster } from '@/components/landing/data';
-import type { RosterModel } from '@/components/landing/types';
+import { CtaRow, LeaderboardCta, RouterCta } from '@/components/seo/Cta';
+import JsonLd from '@/components/seo/JsonLd';
+import { AsOf } from '@/components/seo/Verdict';
+import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
+import { PLANS } from '@/lib/entitlements';
 import { lpBody, lpDisplay } from '@/lib/fonts';
+import { breadcrumbLd, faqLd, graphLd, isoDay, pageMeta, utcStamp, webPageLd } from '@/lib/seo';
+import { word } from '@/components/seo/pair/pair-data';
+import { VENDORS, byDisplayName, curatedPairs, getBoards24h, getPrice, getRoster, modelsOfVendor, pairSlug, vendorMention, type PriceSnapshot, type SeoModel } from '@/lib/seo-data';
 import '@/styles/landing.css';
 import '@/styles/reading.css';
+import '@/styles/seo.css';
 import '@/styles/compare.css';
+import '@/styles/seo-pair.css';
 
-export const metadata: Metadata = {
-  title: 'Claude vs GPT vs Gemini Comparison 2026 | AI Model Performance Test Results',
-  description: 'Compare Claude vs GPT vs Gemini AI models with real-time benchmark results. See which AI model is best for coding, debugging, and software development in 2026.',
+const TITLE = 'Claude vs GPT vs Gemini on the same tests';
+const DESCRIPTION = 'Claude, GPT, Gemini, DeepSeek, Kimi and GLM on the same coding, reasoning and tool-use tests, re-run on a fixed schedule, with a page for every pair.';
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/compare',
   keywords: [
-    'Claude vs GPT vs Gemini', 'Claude vs GPT comparison', 'GPT vs Gemini comparison',
-    'Claude vs Gemini comparison', 'AI model comparison 2026', 'best AI model for coding',
-    'Claude Opus 5 vs GPT-5.6', 'Gemini 3.1 vs Claude', 'AI performance comparison',
-    'LLM comparison chart', 'AI benchmark comparison', 'which AI is better', 'AI model rankings 2026'
+    'Claude vs GPT vs Gemini', 'Claude vs GPT comparison', 'GPT vs Gemini comparison', 'Claude vs Gemini comparison',
+    'Claude vs ChatGPT comparison', 'Gemini vs DeepSeek comparison', 'DeepSeek vs GPT', 'AI model comparison 2026', 'best AI model for coding',
+    'AI performance comparison', 'LLM comparison chart', 'AI benchmark comparison', 'which AI is better', 'AI model rankings 2026',
   ],
-  openGraph: {
-    title: 'Claude vs GPT vs Gemini - AI Model Comparison 2026',
-    description: 'Real-time performance comparison of Claude, GPT, and Gemini AI models.',
-    url: 'https://aistupidlevel.info/compare',
-  },
-  alternates: { canonical: '/compare' },
-};
+});
 
-// The model lists come from the live roster, so a model that joins or leaves the board shows here
-// within the hour. No ranking is printed on this page: the order changes with every run.
-export const revalidate = 3600;
+// The model lists and the pair index come from the live roster and the 24-hour boards, so a model
+// that joins or leaves the board shows here within the quarter hour. No ranking is printed on this
+// page: the order changes with every run.
+export const revalidate = 900;
 
 const intro = (d: string): CSSProperties => ({ '--d': d } as CSSProperties);
 const up = (d?: string, cls = ''): { className: string; style?: CSSProperties } =>
@@ -39,48 +45,26 @@ const up = (d?: string, cls = ''): { className: string; style?: CSSProperties } 
 // Reveal-on-scroll hides blocks only once scripts run; the failsafe shows everything if they never do.
 const FAILSAFE = "(function(){var d=document.documentElement;d.classList.add('lp-js');setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();";
 
-/** Each category and where its live answer is. Definitions as on the methodology page. */
-const LEADERS = [
-  { label: 'Best for coding', detail: 'The Coding board: repository debugging tasks graded by running the project’s own tests, including hidden tests the model never sees.', how: '/methodology#coding' },
-  { label: 'Best for reasoning', detail: 'The Reasoning board: four long, multi-turn working sessions every day.', how: '/methodology#reasoning' },
-  { label: 'Fastest response', detail: 'A Quick answer under the boards: the lowest median response time over the last 48 hours, among the models within five points of the top.', how: '/methodology#quick' },
-  { label: 'Best value', detail: 'A Quick answer under the boards: the most points per measured dollar of one identical coding run, every attempt billed.', how: '/methodology#quick' },
-  { label: 'Best at tool calling', detail: 'The Tool use board: nine tasks, each in a real sandboxed machine — either the job is done at the end or it is not.', how: '/methodology#tooling' },
-];
+const CADENCE = 'coding every four hours, reasoning and tool use daily, with an hourly canary probe';
+const OPENNESS = 'The methodology is public — every weight, statistical test and drift constant. The test tasks are private, so no lab can train on them.';
 
-type Line = { model: string; desc: string } | { label: string; value: string };
-const FAMILIES: { vendor: string; name: string; items: Line[] }[] = [
-  { vendor: 'anthropic', name: 'Anthropic Claude', items: [
-    { model: 'Opus', desc: 'The heavyweight line — strongest on complex reasoning and code architecture' },
-    { model: 'Sonnet / Fable', desc: 'Faster, cheaper lines that stay close to Opus on ordinary coding work' },
-    { label: 'Typically strong at', value: 'Code quality, debugging, tool calling' },
-  ] },
-  { vendor: 'openai', name: 'OpenAI GPT', items: [
-    { model: 'GPT-5.x and GPT-6.x', desc: 'The flagship lines, several variants tuned differently' },
-    { label: 'Typically strong at', value: 'Correctness and reasoning consistency' },
-  ] },
-  { vendor: 'google', name: 'Google Gemini', items: [
-    { model: 'Gemini Pro', desc: 'High-performance line with multimodal capabilities' },
-    { model: 'Gemini Flash / Flash-Lite', desc: 'Speed-optimised variants for high-throughput work' },
-    { label: 'Typically strong at', value: 'Latency and price-per-token' },
-    { label: 'Best for', value: 'High-throughput and cost-sensitive workloads' },
-  ] },
-  { vendor: 'deepseek', name: 'DeepSeek', items: [
-    { model: 'V4 Pro / V4.1 Flash', desc: 'Open-weight-derived line that scores competitively on reasoning' },
-    { label: 'Typically strong at', value: 'Reasoning score relative to cost' },
-    { label: 'Best for', value: 'Analysis and reasoning work on a budget' },
-  ] },
-  { vendor: 'kimi', name: 'Moonshot Kimi', items: [
-    { model: 'K3 / K2.x Code', desc: 'Long-context line with a coding-specialised variant' },
-    { label: 'Typically strong at', value: 'Long-context retention and coding tasks' },
-    { label: 'Best for', value: 'Large-codebase and long-document work' },
-  ] },
-  { vendor: 'glm', name: 'Zhipu GLM', items: [
-    { model: 'GLM 5.x', desc: 'Competitively priced general-purpose line' },
-    { label: 'Typically strong at', value: 'Cost efficiency' },
-    { label: 'Best for', value: 'Volume workloads where price dominates' },
-  ] },
-];
+/**
+ * Each category, its page built from the live board, and where its definition is. Definitions as
+ * on the methodology page and the best-for pages; the suite sizes come from the price snapshot.
+ */
+function jobsOf(price: PriceSnapshot | null) {
+  const sessions = price?.reasoning?.tasks ?? 4;
+  const toolTasks = price?.tooling?.tasks ?? 9;
+  const days = price?.windowDays ?? 30;
+  return [
+    { label: 'Best AI model overall', href: '/best-ai-model', detail: 'The Combined board: coding 50%, reasoning 25%, tool use 25%, ranked with statistical ties.', how: '/methodology#ranks' },
+    { label: 'Best LLM for coding', href: '/best-llm-for-coding', detail: 'The Coding board: repository debugging tasks graded by running the project’s own tests, including hidden tests the model never sees.', how: '/methodology#coding' },
+    { label: 'Best LLM for reasoning', href: '/best-llm-for-reasoning', detail: `The Reasoning board: ${word(sessions)} long, multi-turn working sessions every day.`, how: '/methodology#reasoning' },
+    { label: 'Best AI model for agents', href: '/best-ai-model-for-agents', detail: `The Tool use board: ${word(toolTasks)} tasks, each in a real sandboxed machine — either the job is done at the end or it is not.`, how: '/methodology#tooling' },
+    { label: 'Best value AI model', href: '/best-value-ai-model', detail: `The lowest cost per correct coding answer over the last ${days} days, every attempt billed, among the models within five points of the best on the Coding board.`, how: '/methodology#quick' },
+    { label: 'Fastest AI model', href: '/fastest-ai-model', detail: `The lowest median response time over the last ${days} days, among the same models within five points of the best on the Coding board.`, how: '/methodology#quick' },
+  ];
+}
 
 const STEPS = [
   { title: 'Check the confidence intervals first', detail: 'The top few models are usually separated by less than their error bars, which means the ranking order between them is not statistically meaningful.' },
@@ -88,9 +72,9 @@ const STEPS = [
   { title: 'Watch the drift alerts, not just the score', detail: 'A model that is quietly degrading is a worse bet than one scoring slightly lower but holding steady.' },
 ];
 
-const MEASURES: [string, number, string][] = [
+const measuresOf = (trials: number): [string, number, string][] => [
   ['Correctness', 60, 'Code is executed against the task’s tests — including, on repo tasks, tests the model never sees'],
-  ['Stability', 10, 'Consistency across the 7 trials of each task'],
+  ['Stability', 10, `Consistency across the ${trials} trials of each task`],
   ['Edge cases', 10, 'Hidden tests the model never saw'],
   ['Debugging', 10, 'Whether it found the real defect rather than silencing the symptom'],
   ['Code quality', 5, 'Clean, maintainable code'],
@@ -106,18 +90,80 @@ const FAIRNESS = [
   'Independent verification by running the same suites with your own API keys',
 ];
 
-/** Display names in a natural order ("GPT-6" before "GPT-6.1"). */
-const byName = (a: RosterModel, b: RosterModel) => a.displayName.localeCompare(b.displayName, 'en', { numeric: true });
+const freeRequests = PLANS.free.routerRequestsPerMonth.toLocaleString('en-US');
+
+/** The hub's questions; the same strings feed the visible rows and the FAQPage structured data. */
+const FAQ: FaqItem[] = [
+  {
+    q: 'Which AI model is best for coding?',
+    a: 'The model at the top of the Coding board over the window you choose — 24 hours, 7 days or 30 days. The board changes with every run, so this page never names one. It ranks with statistical ties: two models closer together than their standard errors share a place. The current board is on [best LLM for coding](/best-llm-for-coding).',
+  },
+  {
+    q: 'Is Claude better than GPT for coding?',
+    a: 'Open any Claude-vs-GPT head-to-head page below. It shows both models’ Coding scores with their standard errors and claims a lead only when the gap is beyond the measurement noise. Every such page is built from the same tasks: repository debugging graded by running the project’s own tests, including hidden tests the model never sees.',
+  },
+  {
+    q: 'How often are the comparisons updated?',
+    a: `Every model on the board runs the same tasks on the same schedule: ${CADENCE}. The comparison pages read the 24-hour board and refresh every fifteen minutes.`,
+  },
+  {
+    q: 'Are the scores vendor-reported?',
+    a: `No. Scores come from our own runs through each provider’s public API. Every model gets the same prompts and output budget, and the same sampling settings wherever a provider accepts them, and is graded by executing what it produces. ${OPENNESS}`,
+  },
+  {
+    q: 'What does a statistical tie mean?',
+    a: 'Every score carries a standard error from its own run-to-run repeatability. Walking down a board, a model joins the group above it unless that group’s leader is ahead by more than 1.96 times their combined standard error, so places such as 1, 1, 1, 4 are normal and a shared place is written joint. The rule is on the [methodology page](/methodology#ranks).',
+  },
+  {
+    q: 'Can I route between models automatically?',
+    a: `Yes. The Smart Router is one OpenAI-compatible endpoint with 14 auto-* routing modes: quality modes send each request to the model placing highest on the relevant board, value modes pick within 5 points of the best and then the cheapest measured cost per run, and routing is drift-aware by default. Your own provider keys, zero markup on tokens, and Free includes ${freeRequests} routed requests a month. The modes are described in the [router documentation](/router/docs#strategies).`,
+  },
+];
+
+type Pair = [SeoModel, SeoModel];
+const pairLabel = ([a, b]: Pair): string => `${a.displayName} vs ${b.displayName}`;
+const byLabel = (x: Pair, y: Pair): number => pairLabel(x).localeCompare(pairLabel(y), 'en', { numeric: true });
+
+function PairList({ pairs }: { pairs: Pair[] }) {
+  return (
+    <ul className="rd-tags">
+      {pairs.map((p) => <li key={pairSlug(p[0], p[1])}><Link href={`/compare/${pairSlug(p[0], p[1])}`}>{pairLabel(p)}</Link></li>)}
+    </ul>
+  );
+}
 
 export default async function ComparePage() {
-  const roster = await getModelRoster();
-  const of = (vendor: string) => roster.filter((m) => m.vendor === vendor).sort(byName);
+  const [roster, boards, price] = await Promise.all([getRoster(), getBoards24h(), getPrice()]);
+  const of = (vendor: string) => modelsOfVendor(roster, vendor).sort(byDisplayName);
+  const jobs = jobsOf(price);
+  const measures = measuresOf(price?.coding?.trials ?? 7);
+
+  const pairs = curatedPairs(roster, boards);
+  const sameGroups = VENDORS
+    .map((v) => ({ key: v.key, title: vendorMention(v), pairs: pairs.filter(([a, b]) => a.vendor === v.key && b.vendor === v.key).sort(byLabel) }))
+    .filter((g) => g.pairs.length > 0);
+  const crossGroups: { key: string; title: string; pairs: Pair[] }[] = [];
+  for (let i = 0; i < VENDORS.length; i++) {
+    for (let j = i + 1; j < VENDORS.length; j++) {
+      const vi = VENDORS[i];
+      const vj = VENDORS[j];
+      const ps = pairs.filter(([a, b]) => (a.vendor === vi.key && b.vendor === vj.key) || (a.vendor === vj.key && b.vendor === vi.key)).sort(byLabel);
+      if (ps.length) crossGroups.push({ key: `${vi.key}-${vj.key}`, title: `${vi.family} vs ${vj.family}`, pairs: ps });
+    }
+  }
+
+  const ld = graphLd([
+    breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Compare', path: '/compare' }]),
+    webPageLd({ path: '/compare', name: TITLE, description: DESCRIPTION, type: 'CollectionPage', ...(boards ? { dateModified: isoDay(boards.generatedAt) } : {}) }),
+    faqLd(FAQ),
+  ]);
 
   return (
     <SubpageLayout>
       <div className={`lp lp-sub cp-page ${lpBody.variable} ${lpDisplay.variable}`}>
         <script dangerouslySetInnerHTML={{ __html: FAILSAFE }} />
         <LandingEffects />
+        <JsonLd data={ld} />
 
         <header className="lp-hero lp-textured">
           <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
@@ -129,21 +175,21 @@ export default async function ComparePage() {
             <div className="lp-hero-row">
               <div>
                 <p className="lp-lead lp-intro" style={intro('.18s')}>
-                  Real-time AI model comparison with comprehensive benchmark results. Every model gets the same
-                  coding, reasoning and tool-use tasks on the same schedule, graded by running what it produces.
+                  Every model gets the same coding, reasoning and tool-use tasks on the same schedule, graded by running
+                  what it produces. Pick a category below, or any two models for a head-to-head page.
                 </p>
-                <div className="lp-cta lp-intro" style={intro('.26s')}>
-                  <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/">View live results <span className="lp-ar" aria-hidden="true">→</span></Link>
-                  <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology">How we test</Link>
-                </div>
+                <CtaRow className="lp-intro">
+                  <LeaderboardCta cta="compare-hero-leaderboard" />
+                  <RouterCta ghost cta="compare-hero-router" label="Let the router pick for you →" />
+                </CtaRow>
               </div>
               <ul className="cp-provs lp-intro" style={intro('.34s')} aria-label="Families we track">
-                {FAMILIES.map((f) => {
-                  const count = of(f.vendor).length;
+                {VENDORS.map((v) => {
+                  const count = of(v.key).length;
                   return (
-                    <li key={f.vendor}>
-                      <span className="lp-lgc"><img src={`/logos/${f.vendor}.svg`} alt="" width={22} height={22} /></span>
-                      <span><b>{f.name}</b>{count > 0 && <small>{count} {count === 1 ? 'model' : 'models'} tracked</small>}</span>
+                    <li key={v.key}>
+                      <span className="lp-lgc"><img src={`/logos/${v.key}.svg`} alt="" width={22} height={22} /></span>
+                      <span><b>{vendorMention(v)}</b>{count > 0 && <small>{count} {count === 1 ? 'model' : 'models'} tracked</small>}</span>
                     </li>
                   );
                 })}
@@ -152,19 +198,19 @@ export default async function ComparePage() {
           </div>
         </header>
 
-        <section className="lp-sec lp-A" aria-labelledby="cp-leaders">
+        <section className="lp-sec lp-A" aria-labelledby="cp-jobs">
           <div className="lp-wrap">
             <div className="lp-head lp-head-split lp-up">
-              <p className="lp-kicker">Leaders</p>
-              <h2 className="lp-h2" id="cp-leaders">Current performance leaders</h2>
+              <p className="lp-kicker">Best for</p>
+              <h2 className="lp-h2" id="cp-jobs">Best for each job</h2>
               <p className="lp-lead">
-                Benchmarks re-run every 4 hours and the order genuinely changes, so we do not freeze a winner into
-                this page — a hardcoded list here would be wrong within weeks. Each category below links to the live
-                board, which is the authoritative answer.
+                The coding benchmark re-runs every four hours and the others daily, and the order genuinely changes,
+                so we do not freeze a winner into this page — a hardcoded list here would be wrong within weeks. Each category has its own page built
+                from the live board, ranked with statistical ties, which is the authoritative answer.
               </p>
             </div>
             <ol className="cp-leaders">
-              {LEADERS.map((l, i) => (
+              {jobs.map((l, i) => (
                 <li key={l.label} {...up(`${i * 0.05}s`)}>
                   <span className="cp-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
                   <div>
@@ -172,7 +218,7 @@ export default async function ComparePage() {
                     <p>{l.detail}</p>
                   </div>
                   <span className="cp-go">
-                    <Link className="lp-more" href="/">See it live</Link>
+                    <Link className="lp-more" href={l.href}>See the board</Link>
                     <Link className="cp-how" href={l.how}>How it is measured</Link>
                   </span>
                 </li>
@@ -185,25 +231,26 @@ export default async function ComparePage() {
           <div className="lp-wrap">
             <div className="lp-head lp-head-split lp-up">
               <p className="lp-kicker">Families</p>
-              <h2 className="lp-h2" id="cp-matrix">Detailed comparison matrix</h2>
+              <h2 className="lp-h2" id="cp-matrix">The families we track</h2>
               <p className="lp-lead">
-                Our 9-axis scoring methodology provides comprehensive insights into each model&apos;s strengths. The
-                models listed under each family are the ones on the board today, each with its own page.
+                The models listed under each family are the ones on the board today, each with its own page. The
+                family page shows where all of them place on Coding, Reasoning and Tool use.
               </p>
             </div>
             <div className="cp-fams">
-              {FAMILIES.map((f, i) => {
-                const models = of(f.vendor);
+              {VENDORS.map((v, i) => {
+                const models = of(v.key);
                 return (
-                  <article key={f.vendor} {...up(`${(i % 3) * 0.06}s`, 'cp-fam')}>
+                  <article key={v.key} {...up(`${(i % 3) * 0.06}s`, 'cp-fam')}>
                     <header>
-                      <span className="lp-lgc"><img src={`/logos/${f.vendor}.svg`} alt="" width={22} height={22} loading="lazy" /></span>
-                      <h3>{f.name}</h3>
+                      <span className="lp-lgc"><img src={`/logos/${v.key}.svg`} alt="" width={22} height={22} loading="lazy" /></span>
+                      <h3>{vendorMention(v)}</h3>
                     </header>
                     <dl>
-                      {f.items.map((it, j) => 'model' in it
-                        ? <div key={j}><dt>{it.model}</dt><dd>{it.desc}</dd></div>
-                        : <div key={j} className="is-note"><dt>{it.label}</dt><dd>{it.value}</dd></div>)}
+                      <div className="is-note">
+                        <dt>Where they place</dt>
+                        <dd><Link href={v.modelsPath}>See where its models place on Coding, Reasoning and Tool use</Link></dd>
+                      </div>
                     </dl>
                     {models.length > 0 && (
                       <div className="cp-tracked">
@@ -220,7 +267,41 @@ export default async function ComparePage() {
           </div>
         </section>
 
-        <section className="lp-sec lp-A" aria-labelledby="cp-coding">
+        <section className="lp-sec lp-A" aria-labelledby="cp-pairs">
+          <div className="lp-wrap">
+            <div className="lp-head lp-head-split lp-up">
+              <p className="lp-kicker">Head-to-head</p>
+              <h2 className="lp-h2" id="cp-pairs">Head-to-head comparisons</h2>
+              <p className="lp-lead">
+                Two models side by side on the same boards: scores with statistical ties, list price per 1M tokens,
+                response time, cost per correct answer and drift status, with a verdict computed from the data.
+              </p>
+            </div>
+            {boards && <AsOf className="lp-up sp-index-asof">Pairs chosen from the roster and the 24-hour boards · as of {utcStamp(boards.generatedAt)}</AsOf>}
+            {pairs.length > 0 ? (
+              <div className="sp-index lp-up">
+                {sameGroups.length > 0 && <h3>Same family, different versions</h3>}
+                {sameGroups.map((g) => (
+                  <div key={g.key} className="sp-index-group">
+                    <h4>{g.title}</h4>
+                    <PairList pairs={g.pairs} />
+                  </div>
+                ))}
+                {crossGroups.length > 0 && <h3>Across vendors</h3>}
+                {crossGroups.map((g) => (
+                  <div key={g.key} className="sp-index-group">
+                    <h4>{g.title}</h4>
+                    <PairList pairs={g.pairs} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="lp-lead lp-up">Open any model page for its head-to-head links.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="lp-sec lp-B" aria-labelledby="cp-coding">
           <div className="lp-wrap">
             <div className="lp-head lp-head-split lp-up">
               <p className="lp-kicker">Choosing</p>
@@ -242,17 +323,16 @@ export default async function ComparePage() {
           </div>
         </section>
 
-        <section className="lp-sec lp-B" aria-labelledby="cp-results">
+        <section className="lp-sec lp-A" aria-labelledby="cp-results">
           <div className="lp-wrap">
             <div className="lp-head lp-head-split lp-up">
               <p className="lp-kicker">Scoring</p>
-              <h2 className="lp-h2" id="cp-results">Real-time benchmark results</h2>
+              <h2 className="lp-h2" id="cp-results">Benchmark results on a fixed schedule</h2>
               <p className="lp-lead">
-                Every model runs on the same schedule: coding every four hours, reasoning and tool use daily, and an
-                hourly canary. Key metrics of the coding score, by weight:
+                Every model runs on the same schedule: {CADENCE}. Key metrics of the coding score, by weight:
               </p>
             </div>
-            <RdWeights rows={MEASURES} label="Metric" />
+            <RdWeights rows={measures} label="Metric" />
           </div>
         </section>
 
@@ -274,14 +354,26 @@ export default async function ComparePage() {
           </div>
         </section>
 
+        <section className="lp-sec lp-B" aria-labelledby="cp-faq">
+          <div className="lp-wrap lp-faq">
+            <div className="lp-head lp-up">
+              <p className="lp-kicker">FAQ</p>
+              <h2 className="lp-h2" id="cp-faq">Questions about comparing AI models</h2>
+            </div>
+            <Faq items={FAQ} />
+          </div>
+        </section>
+
         <RdFinal
-          title="See live results"
-          lead="View real-time Claude vs GPT vs Gemini performance data with our interactive AI benchmark dashboard."
+          title="Stop choosing by hand"
+          lead="A free account shows all four boards over 24 hours, 7 days and 30 days; the Smart Router sends each request to the model the boards favour for it, with your own provider keys."
           actions={(
-            <>
-              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/">View live results <span className="lp-ar" aria-hidden="true">→</span></Link>
-              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/about">About us</Link>
-            </>
+            <CtaRow className="is-stack">
+              <LeaderboardCta cta="compare-final-leaderboard" />
+              <div className="seo-cta">
+                <Link className="lp-btn lp-btn-ghost" href="/router/docs#strategies" data-cta="compare-final-router-docs">How the router decides</Link>
+              </div>
+            </CtaRow>
           )}
         />
       </div>

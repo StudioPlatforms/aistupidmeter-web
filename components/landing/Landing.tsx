@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import '@/styles/landing.css';
 import { lpBody, lpDisplay } from '@/lib/fonts';
 import { darkDefaultScript } from '@/lib/theme-config';
@@ -9,6 +9,8 @@ import { ASSESSMENT_PRICE_LABEL } from '@/lib/assessment-price';
 import { getCorpus, getLandingSnapshot, getModelRoster, getPriceSnapshot, getProviderHealth, getTopFive, getVisitTotal } from './data';
 import { PROVIDER_LABEL, compactHealth, type PriceSnapshot } from './types';
 import { dayRange, duration, logoFor, pct, per1k, times } from './price-format';
+import { ORG_ID, ldText, webPageLd } from '@/lib/seo';
+import { VENDORS, vendorMention } from '@/lib/seo-data';
 import LandingNav from './LandingNav';
 import RouterDemo, { type DemoScenario } from './RouterDemo';
 import RouterExplorer from './RouterExplorer';
@@ -74,6 +76,27 @@ const INTEGRATIONS: Array<{ name: string; logo: string }> = [
 /** The first benchmark run, 8 August 2025. */
 const FIRST_RUN = Date.UTC(2025, 7, 8);
 
+/**
+ * Whether the robustness, bias and adversarial sweeps have all run in the last 48 hours, from the
+ * same feed /about reads. The schedule row says "Daily" only while the record shows it; otherwise
+ * the row stays, without a cadence.
+ */
+async function extraSuitesFresh(): Promise<boolean> {
+  const api = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
+  try {
+    const res = await fetch(`${api}/dashboard/enhanced-suites`, { next: { revalidate: 3600 }, signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return false;
+    const d = (await res.json())?.data;
+    const cutoff = Date.now() - 48 * 3600 * 1000;
+    return ['robustness', 'bias', 'adversarial'].every((k) => {
+      const t = Date.parse(String(d?.[k]?.lastRun ?? ''));
+      return Number.isFinite(t) && t >= cutoff;
+    });
+  } catch {
+    return false;
+  }
+}
+
 /** The demo's requests are examples; each one's ranking and pick come from the live router. */
 const DEMO: Array<{ id: string; q: string; meta: string; key: string }> = [
   { id: 'auto-coding', q: 'Fix the race condition in checkout.ts', meta: 'stream', key: 'best_coding' },
@@ -99,17 +122,17 @@ const CHANGES: Array<{ when: string; model: string; big: string; cap: string; te
 
 const FAQ: Array<[string, string]> = [
   ['Are AI models really getting worse over time?',
-    'Sometimes — and usually without notice. Providers change weights, safety layers and serving infrastructure behind the same model name. AI Stupid Level re-runs the same tasks on every model on a fixed schedule and compares each one with its own history, so a drop shows up as data instead of a hunch.'],
+    'Sometimes — and usually without notice. Providers change weights, safety layers and serving infrastructure behind the same model name. AI Stupid Level re-runs the same tasks on every model on a fixed schedule and compares each one with its own history, so a drop shows up as data instead of a hunch. [Is your AI getting worse?](/is-ai-getting-worse) gives the answer by provider.'],
   ['Is ChatGPT getting worse? Is Claude getting worse?',
-    'Check the live scores. Every OpenAI and Anthropic model we track is re-tested on coding every 4 hours and on reasoning and tool use every day, and a model is flagged only when a change holds up statistically — not after one bad run.'],
+    'Check the record: [is ChatGPT getting worse](/is-chatgpt-getting-worse) and [is Claude getting worse](/is-claude-getting-worse) each read the drift detectors and the 24-hour board for that family. Every OpenAI and Anthropic model we track is re-tested on coding every 4 hours and on reasoning and tool use every day, and a model is flagged only when a change holds up statistically — not after one bad run.'],
   ['What does “cost per correct fix” mean?',
     'What we paid the provider, at its list price, for every attempt at a task, divided by the attempts that passed the hidden tests. A model that is cheap per token but fails often can cost more per correct result than a pricier one that gets it right, so this is the number that tells you what the work really costs.'],
   ['Which AI model is best for coding right now?',
-    'It changes, which is the point. The leaderboard ranks every model we track on real repository bug fixes every 4 hours, and the router’s auto-coding mode sends your request to the current leader among the models you have keys for.'],
+    'It changes, which is the point. The leaderboard ranks every model we track on real repository bug fixes every 4 hours — [which model is best for coding](/best-llm-for-coding) shows the 24-hour board — and the router’s auto-coding mode sends your request to the current leader among the models you have keys for.'],
   ['How is the Smart Router different from other LLM routers?',
     'It routes on measured quality, not just price and uptime. Rankings come from our own continuous benchmarks, drift-flagged models drop behind healthy ones, and every response explains its pick in an X-AISM-Reasoning header. You keep your own provider keys and pay providers directly.'],
   ['Can you test the models on our own tasks?',
-    'Yes. A workload assessment runs up to 20 of your real tasks on three models in our harness, with a report in 7 days. Our team can also build a custom benchmark around your workflow, run it continuously alongside our public suites, and connect it to your Smart Router, so your requests keep going to the model that is best on your work.'],
+    'Yes. A workload assessment runs up to 20 of your real tasks on three models in our harness, with a report in 7 business days. Our team can also build a custom benchmark around your workflow, run it continuously alongside our public suites, and connect it to your Smart Router, so your requests keep going to the model that is best on your work.'],
   ['Do you mark up tokens or resell inference?',
     'No. Requests are sent with your own provider keys and billed to you by the provider at their list price. Plans include a monthly number of routed requests; past that you can top up credits or move up a plan.'],
   ['Which providers and models do you cover?',
@@ -117,6 +140,21 @@ const FAQ: Array<[string, string]> = [
   ['Why do I need an account to see the leaderboard?',
     'A free account costs nothing and includes every category ranking over the last 24 hours, 7 days and 30 days, a three-model watchlist with email alerts, 1,000 routed requests a month and a Data API key. The newest run, as it lands, is part of the paid plans. Model pages, the methodology and the status page stay open to everyone.'],
 ];
+
+const MD_LINK = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+/** An answer's "[label](/path)" links as <Link>s; the structured data gets the plain text (ldText). */
+function withLinks(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of Array.from(text.matchAll(MD_LINK))) {
+    if (m.index! > last) out.push(text.slice(last, m.index));
+    out.push(<Link key={m.index} href={m[2]}>{m[1]}</Link>);
+    last = m.index! + m[0].length;
+  }
+  out.push(text.slice(last));
+  return out;
+}
 
 /** Reveal-on-scroll props: the given classes plus lp-up, with an optional stagger delay. */
 const up = (d?: string, cls = ''): { className: string; style?: CSSProperties } =>
@@ -127,7 +165,7 @@ function RouterFacts({ className = '', style }: { className?: string; style?: CS
   return (
     <dl className={`lp-facts ${className}`.trim()} style={style}>
       <div><dt>0%</dt><dd>markup on tokens. Providers bill you directly, at their own list price.</dd></div>
-      <div><dt>15</dt><dd>auto routing modes, from <code>auto-coding</code> to <code>auto-cheapest</code>.</dd></div>
+      <div><dt>14</dt><dd>auto-* routing modes, from <code>auto-coding</code> to <code>auto-cheapest</code>.</dd></div>
       <div><dt>10&nbsp;min</dt><dd>between health checks on every provider the router can pick.</dd></div>
     </dl>
   );
@@ -173,8 +211,8 @@ function SampleReport({ price }: { price: PriceSnapshot }) {
 }
 
 export default async function Landing() {
-  const [snapshot, health, roster, price, corpus, visits] = await Promise.all([
-    getLandingSnapshot(), getProviderHealth(), getModelRoster(), getPriceSnapshot(), getCorpus(), getVisitTotal(),
+  const [snapshot, health, roster, price, corpus, visits, extraFresh] = await Promise.all([
+    getLandingSnapshot(), getProviderHealth(), getModelRoster(), getPriceSnapshot(), getCorpus(), getVisitTotal(), extraSuitesFresh(),
   ]);
   const topFive = await getTopFive(price);
   const buyable = (['pro', 'developer', 'teams'] as SellablePlan[]).filter(p => priceIdFor(p, 'monthly') || priceIdFor(p, 'annual'));
@@ -205,14 +243,18 @@ export default async function Landing() {
   ];
 
   const jsonLd = [
+    // The organisation is declared once, in app/layout.tsx; this page only refers to it by id.
     {
-      '@context': 'https://schema.org', '@type': 'Organization', name: 'AI Stupid Level', alternateName: ['ASL', 'asl.info'],
-      url: SITE, logo: `${SITE}/asl-mark.png`,
-      description: 'Independent, continuous benchmarks of large language models, drift detection, and a Smart Router that sends every request to the model measured best for it.',
+      '@context': 'https://schema.org',
+      ...webPageLd({
+        path: '/',
+        name: 'AI Stupid Level: independent LLM benchmarks, drift detection and a Smart Router',
+        description: 'Independent, continuous benchmarks of large language models, drift detection, and a Smart Router that sends every request to the model measured best for it.',
+      }),
     },
     {
-      '@context': 'https://schema.org', '@type': 'FAQPage',
-      mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+      '@context': 'https://schema.org', '@type': 'FAQPage', publisher: { '@id': ORG_ID },
+      mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: ldText(a) } })),
     },
     ...(models.length ? [{
       '@context': 'https://schema.org', '@type': 'ItemList', name: 'AI models benchmarked by AI Stupid Level',
@@ -238,7 +280,7 @@ export default async function Landing() {
         <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
         <div className="lp-wrap lp-hero-m">
           <div className="lp-hero-top">
-            <p className="lp-live lp-intro" style={{ '--d': '.05s' } as CSSProperties}><i /><span><b>Live</b> · {modelCount} models re-ranked after every run</span></p>
+            <p className="lp-live lp-intro" style={{ '--d': '.05s' } as CSSProperties}><i /><span><b>Live</b> · {modelCount} models · real API tests since August 2025</span></p>
             <h1 className="lp-h1 lp-intro" style={{ '--d': '.12s' } as CSSProperties}>Models change overnight. <span className="lp-b">Your router should know.</span></h1>
             <div className="lp-hero-row">
               <div>
@@ -386,7 +428,10 @@ export default async function Landing() {
             <div><b>An hourly canary</b><p>Fixed probes run every hour; a sustained shift has to pass Welch’s t-test before it opens an incident.</p></div>
             <div><b>Evidence, not vibes</b><p>Every flag points to the runs behind it. Full history and the diagnosis behind each change come with Pro.</p></div>
           </div>
-          <p {...up()}><Link className="lp-more" href="/ai-drift-detection" style={{ marginTop: 32 }}>AI drift detection: is your model getting worse?</Link></p>
+          <p {...up()} style={{ marginTop: 32, display: 'flex', flexWrap: 'wrap', gap: '12px 36px' }}>
+            <Link className="lp-more" href="/is-ai-getting-worse">Is your AI getting worse?</Link>
+            <Link className="lp-more" href="/ai-drift-detection">How AI drift detection works</Link>
+          </p>
         </div>
       </section>
 
@@ -401,7 +446,7 @@ export default async function Landing() {
           <ol className="lp-steps">
             <li {...up('', 'lp-step')}><p className="lp-step-n">01</p><h3 className="lp-h3">Send up to 20 real tasks</h3><p>Prompts, files and the answers you would accept. We confirm the scope within 2 business days.</p></li>
             <li {...up('.08s', 'lp-step')}><p className="lp-step-n">02</p><h3 className="lp-h3">We run 3 models of your choice</h3><p>In the same sandbox as the public leaderboard, with repeated trials so a lucky run can’t decide the result.</p></li>
-            <li {...up('.16s', 'lp-step')}><p className="lp-step-n">03</p><h3 className="lp-h3">Report in 7 days</h3><p>Per-task results, cost and latency for each model, and our recommendation.</p></li>
+            <li {...up('.16s', 'lp-step')}><p className="lp-step-n">03</p><h3 className="lp-h3">Report in 7 business days</h3><p>Per-task results, cost and latency for each model, and our recommendation.</p></li>
           </ol>
           <div className="lp-asm">
             {price && <SampleReport price={price} />}
@@ -433,8 +478,8 @@ export default async function Landing() {
           <div className="lp-head lp-head-split lp-up">
             <p className="lp-kicker">Smart Router</p>
             {/* Phones show the hero's own "Models change overnight" headline, so this one differs there. */}
-            <h2 className="lp-h2"><span className="lp-wide-only">Models change overnight. Your router should know.</span><span className="lp-phone-only">One endpoint. Fifteen ways to decide.</span></h2>
-            <p className="lp-lead">Point any OpenAI-compatible client at ASL and every request goes to the model that is measurably best right now — for code, reasoning, tool use, speed or cost — ranked on the same results as this page. One endpoint, your own provider keys, zero markup on tokens.</p>
+            <h2 className="lp-h2"><span className="lp-wide-only">Models change overnight. Your router should know.</span><span className="lp-phone-only">One endpoint. Fourteen ways to decide.</span></h2>
+            <p className="lp-lead">Point any OpenAI-compatible client at ASL’s <Link href="/router">Smart Router</Link> and every request goes to the model that is measurably best right now — for code, reasoning, tool use, speed or cost — ranked on the same results as this page. One endpoint, your own provider keys, zero markup on tokens. <Link href="/router/docs">How it decides</Link>.</p>
           </div>
           {/* On phones the hero already shows these two (.lp-hero-m), so they are hidden there. */}
           {finding && <RouterFacts {...up('', 'is-row lp-wide-only')} />}
@@ -490,7 +535,7 @@ export default async function Landing() {
                 <div className="lp-sch"><i className="lp-key cd" /><div><b>Coding</b><span>Real repository bug fixes plus one hard function — 7 tasks, 7 attempts each.</span></div><em>Every 4 hours<small>6 a day</small></em></div>
                 <div className="lp-sch"><i className="lp-key cal" /><div><b>Calibration</b><span>Known unknowns: does a model say so when it can’t know the answer?</span></div><em>Every 6 hours<small>4 a day</small></em></div>
                 <div className="lp-sch"><i className="lp-key d" /><div><b>Reasoning · tool use</b><span>Multi-turn engineering sessions checked by code, and sandboxed agent tasks with real tools.</span></div><em>Daily<small>night run</small></em></div>
-                <div className="lp-sch"><i className="lp-key d" /><div><b>Robustness · bias</b><span>Prompt-variation and demographic sweeps, run outside the score.</span></div><em>Daily<small>night run</small></em></div>
+                <div className="lp-sch"><i className="lp-key d" /><div><b>Robustness · bias · adversarial</b><span>Prompt-variation, demographic and adversarial sweeps, run outside the score.</span></div>{extraFresh ? <em>Daily<small>night run</small></em> : <em>Unscored<small>separate sweeps</small></em>}</div>
                 <div className="lp-sch"><i className="lp-key p" /><div><b>Context rot</b><span>Long-context accuracy from 8K to 1M tokens, by length and position. Pilot.</span></div><em>Weekly<small>Pro and up</small></em></div>
               </div>
               <div className="lp-bench-foot"><Link className="lp-more" href="/methodology">How every score is computed</Link><p>Methodology public. Test tasks private, so no lab can train on them.</p></div>
@@ -518,6 +563,11 @@ export default async function Landing() {
                 </li>
               ))}
             </ul>
+            <p className="lp-lead lp-up" style={{ marginTop: 28 }}>
+              By provider: {VENDORS.map((v, i) => (
+                <span key={v.key}>{i > 0 && (i === VENDORS.length - 1 ? ' and ' : ', ')}<Link href={v.modelsPath}>{vendorMention(v)}</Link></span>
+              ))}. Or start with <Link href="/best-ai-model">which AI model is best</Link> on each board over the last 24 hours.
+            </p>
           </div>
         </section>
       )}
@@ -528,7 +578,7 @@ export default async function Landing() {
           <div className="lp-head lp-head-split lp-up">
             <p className="lp-kicker">Provider status</p>
             <h2 className="lp-h2">Every provider, checked every 10 minutes.</h2>
-            <p className="lp-lead">A short completion goes to each provider with our own key, day and night. Failures are re-checked 15 seconds later and attributed, so the router only avoids real outages — and the status page never blames a vendor for our problem.</p>
+            <p className="lp-lead">A short completion goes to each provider with our own key, day and night. Failures are re-checked 15 seconds later and attributed, so the router only avoids real outages — and the <Link href="/status">status page</Link> never blames a vendor for our problem.</p>
           </div>
           {health && health.length
             ? <StatusBoard providers={health.filter(p => PROVIDERS.includes(p.provider)).map(compactHealth)} />
@@ -588,7 +638,7 @@ export default async function Landing() {
           </div>
           <div {...up('.08s')}>
             {FAQ.map(([q, a], i) => (
-              <details key={q} open={i === 0}><summary>{q}</summary><p>{a}</p></details>
+              <details key={q} open={i === 0}><summary>{q}</summary><p className="lp-body">{withLinks(a)}</p></details>
             ))}
           </div>
         </div>

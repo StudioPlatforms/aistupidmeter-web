@@ -1,13 +1,17 @@
 import type { Metadata } from 'next';
+import { breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
 import Link from 'next/link';
+import JsonLd from '@/components/seo/JsonLd';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdCode, RdFinal, tocNumber } from '@/components/landing/Reading';
 
-export const metadata: Metadata = {
-  title: 'Workspaces, projects, single sign-on and SCIM | Setup guide',
-  description:
-    'How team workspaces work on AI Stupid Level: a shared team watchlist with alerts, projects with their own Smart Router keys, routing rules, provider keys, budgets and spend reports, roles, webhooks, single sign-on with DNS domain verification, SCIM and the audit trail.',
-  alternates: { canonical: '/docs/teams' },
-};
+const TITLE = 'Team workspaces, SSO and SCIM';
+const DESCRIPTION = 'Team workspaces on AI Stupid Level: a shared watchlist with alerts, projects with their own router keys and budgets, roles, webhooks, SSO and SCIM.';
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/docs/teams',
+});
 
 /**
  * The setup guide the Team, project and Security pages link to ("How workspaces work", "How
@@ -65,9 +69,9 @@ export default function TeamsGuidePage() {
       toc={TOC}
       actions={(
         <>
-          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/team">Open your workspace <span className="lp-ar" aria-hidden="true">→</span></Link>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/account/security">Security settings</Link>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/pricing">Compare plans</Link>
+          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/team" data-cta="teams-hero-workspace">Open your workspace <span className="lp-ar" aria-hidden="true">→</span></Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/account/security" data-cta="teams-hero-security">Security settings</Link>
+          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/pricing" data-cta="teams-hero-pricing">Compare plans</Link>
         </>
       )}
       aside={(
@@ -83,8 +87,8 @@ export default function TeamsGuidePage() {
           lead="Developer includes one project. Teams adds webhooks, single sign-on, directory sync and the audit trail."
           actions={(
             <>
-              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/team">Open your workspace <span className="lp-ar" aria-hidden="true">→</span></Link>
-              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/pricing">Compare plans</Link>
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/team" data-cta="teams-final-workspace">Open your workspace <span className="lp-ar" aria-hidden="true">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/pricing" data-cta="teams-final-pricing">Compare plans</Link>
             </>
           )}
         />
@@ -123,7 +127,7 @@ export default function TeamsGuidePage() {
               <tr><th scope="row">Projects</th><td>1</td><td className="is-featured">3</td><td>Unlimited</td></tr>
               <tr><th scope="row">Models on the team watchlist, and on each project&apos;s</th><td>20</td><td className="is-featured">Unlimited</td><td>Unlimited</td></tr>
               <tr><th scope="row">Project keys, routing rules, budgets, reports</th><td>Yes</td><td className="is-featured">Yes</td><td>Yes</td></tr>
-              <tr><th scope="row">Webhooks, single sign-on, SCIM, audit trail</th><td className="muted">—</td><td className="is-featured">Yes</td><td>Yes</td></tr>
+              <tr><th scope="row">Webhooks, single sign-on, SCIM, audit trail</th><td className="muted">No</td><td className="is-featured">Yes</td><td>Yes</td></tr>
             </tbody>
           </table>
         </div>
@@ -174,7 +178,7 @@ export default function TeamsGuidePage() {
         <RdProse>
           <p>
             The models the whole team depends on, on the workspace page&apos;s <b>Team watchlist</b> tab. Everyone in
-            the workspace sees each model&apos;s latest real score, its change over seven days, any open drift alert
+            the workspace sees each model&apos;s newest score, its change over seven days, any open drift alert
             or task-level regression, and a note on why it is watched. Editors and the owner add, annotate and
             remove models; viewers read.
           </p>
@@ -232,7 +236,7 @@ export default function TeamsGuidePage() {
           ['Prompt logging', 'Each key’s own setting, off for every key, or on for every key (encrypted, with secrets scrubbed first).'],
         ]} />
         <RdProse>
-          <p>The <b>Preview</b> button shows where “auto” would go right now under unsaved rules, without sending anything.</p>
+          <p>The <b>Preview</b> button shows where “auto” would go under unsaved rules, without sending anything.</p>
           <h3>Who pays the providers</h3>
           <p>
             A provider bills whoever&apos;s key is used. For each provider a project request uses, in order: the
@@ -277,7 +281,7 @@ export default function TeamsGuidePage() {
             Comparing spend per request would punish whoever does the long tasks. So each person gets a <b>cost
             index</b>: their spend divided by what the same input and output tokens would have cost at the
             project&apos;s average price per input token and per output token. 1.00× is the project average; 0.60× means
-            40% cheaper model choices for the same amount of work. It needs 20 answered requests, and the
+            their choices cost 60% of the project average for the same amount of work. It needs 20 answered requests, and the
             “most efficient” highlight needs two people who have them.
           </p>
           <h3>Activity</h3>
@@ -435,6 +439,11 @@ export default function TeamsGuidePage() {
           </ul>
         </RdProse>
       </RdSection>
+
+      <JsonLd data={graphLd([
+        breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Team workspaces', path: '/docs/teams' }]),
+        webPageLd({ path: '/docs/teams', name: TITLE, description: DESCRIPTION }),
+      ])} />
     </ReadingPage>
   );
 }

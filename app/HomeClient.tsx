@@ -2769,7 +2769,6 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
               }}
             >
               <option value="openai">OPENAI</option>
-              <option value="xai">X.AI (GROK)</option>
               <option value="anthropic">ANTHROPIC (CLAUDE)</option>
               <option value="google">GOOGLE (GEMINI)</option>
             </select>
@@ -4573,7 +4572,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
               </div>
               <div className="terminal-text--dim">
                 Monitor your favorite AI models including <span className="terminal-text--green">OpenAI GPT-5.6</span>, 
-                <span className="terminal-text--green"> Claude Opus 5</span>, <span className="terminal-text--green">Kimi K3</span>, 
+                <span className="terminal-text--green"> Claude Opus 5</span>, <span className="terminal-text--green">Kimi K3.1 Pro</span>,
                 and <span className="terminal-text--green">Gemini 3.1 Pro</span>. Get instant alerts when performance 
                 drops and track historical trends with our continuous benchmarking system.
               </div>
@@ -4722,7 +4721,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
           </a>
         </div>
         <div className="terminal-text--dim" style={{ fontSize: '0.8em', marginTop: '8px' }}>
-          Now Open Source! {' '}
+          Web app source on GitHub: {' '}
           <a 
             href="https://github.com/StudioPlatforms/aistupidmeter-web" 
             target="_blank" 

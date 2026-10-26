@@ -1,11 +1,20 @@
 import type { Metadata } from 'next';
+import { PLANS } from '@/lib/entitlements';
+import { OG_IMAGE, SITE, SITE_NAME, TWITTER_SITE } from '@/lib/seo';
 
+const n = (x: number) => x.toLocaleString('en-US');
+
+/**
+ * Defaults for /router/*. The canonical names the /router index; /router/docs, /router/help and
+ * /router/forum set their own through pageMeta() in their layouts, which replaces it. Model names
+ * never appear here: families only, the roster changes with every release.
+ */
 export const metadata: Metadata = {
   title: {
-    default: 'AI Smart Router — Intelligent API Gateway for All AI Models',
-    template: '%s | Smart Router — AI Stupid Level',
+    default: `Smart Router: benchmark-driven AI gateway | ${SITE_NAME}`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: 'AI Smart Router: one universal API key for OpenAI, Anthropic, Google, DeepSeek, Kimi and GLM. Automatic model selection based on live benchmarks, prompt auditing, budget controls, cost analytics. Works with Cursor, Windsurf, Aider, Continue.dev, Cline, and more.',
+  description: `One OpenAI-compatible endpoint, your own provider keys, zero token markup, 14 auto-* routing modes driven by our benchmarks. Free: ${n(PLANS.free.routerRequestsPerMonth)} requests a month.`,
   keywords: [
     'AI smart router',
     'AI API gateway',
@@ -26,19 +35,24 @@ export const metadata: Metadata = {
     'multi-model AI API',
     'AI request logging',
     'AI token usage tracking',
-    'cheapest AI router',
+    'benchmark-driven AI router',
   ],
   openGraph: {
     type: 'website',
-    title: 'AI Smart Router — One API Key for All AI Models',
-    description: 'Intelligent AI API gateway with automatic model selection, prompt auditing, budget controls, and cost analytics. Works with Cursor, Windsurf, Aider, and 10+ tools.',
-    url: 'https://aistupidlevel.info/router',
-    siteName: 'AI Stupid Level — Smart Router',
+    locale: 'en_US',
+    url: `${SITE}/router`,
+    title: 'Smart Router: benchmark-driven AI gateway',
+    description: `One OpenAI-compatible endpoint for GPT, Claude, Gemini, DeepSeek, Kimi and GLM on your own provider keys, zero token markup, 14 auto-* routing modes driven by our benchmarks. Free: ${n(PLANS.free.routerRequestsPerMonth)} requests a month.`,
+    siteName: SITE_NAME,
+    images: [OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Smart Router — Route to the Best AI Model Automatically',
-    description: 'One API key for GPT-5, Claude, Gemini, DeepSeek and more. Smart routing, prompt auditing, budget controls and per-request decision logs. Free tier included.',
+    site: TWITTER_SITE,
+    creator: TWITTER_SITE,
+    title: 'Smart Router: benchmark-driven AI gateway',
+    description: 'One API key for GPT, Claude, Gemini, DeepSeek, Kimi and GLM. Routing modes driven by our benchmarks, prompt auditing, budget controls and per-request decision logs. Free tier included.',
+    images: [OG_IMAGE.url],
   },
   alternates: {
     canonical: '/router',

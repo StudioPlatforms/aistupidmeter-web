@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { trackEvent } from '@/lib/track';
 
 export default function VisitorTracker() {
   const pathname = usePathname();
+  const firstPath = useRef(true);
 
   useEffect(() => {
     const trackVisit = async () => {
@@ -31,6 +33,33 @@ export default function VisitorTracker() {
 
     return () => clearTimeout(timer);
   }, [pathname]);
+
+  // Analytics page views for client-side navigations. The first path is the full page load,
+  // which the gtag config in app/layout.tsx already reports; counting it here would double it.
+  useEffect(() => {
+    if (firstPath.current) { firstPath.current = false; return; }
+    trackEvent('page_view', { page_path: pathname ?? '' });
+  }, [pathname]);
+
+  // One delegated listener for every call to action: any anchor or button with data-cta
+  // (components/seo/Cta.tsx) reports which one was taken, where it led and from which page.
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      try {
+        const target = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-cta]') : null;
+        if (!target) return;
+        trackEvent('cta_click', {
+          label: target.dataset.cta ?? '',
+          target: target.getAttribute('href') ?? '',
+          page: window.location.pathname,
+        });
+      } catch {
+        // never interfere with the click
+      }
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, []);
 
   // This component doesn't render anything
   return null;

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
 import Link from 'next/link';
+import JsonLd from '@/components/seo/JsonLd';
 import EnterpriseContact from '@/components/EnterpriseContact';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdCode, RdFinal, highlightCode, tocNumber } from '@/components/landing/Reading';
 import { DATA_API_LIMITS } from '@/lib/entitlements';
@@ -14,10 +16,13 @@ const HOW_TO_GET: Record<'free' | 'pro' | 'developer' | 'teams' | 'enterprise', 
   enterprise: 'By arrangement — see below',
 };
 
-export const metadata: Metadata = {
-  title: 'Public Data API | Live AI Model Benchmark Data',
-  description:
-    'Free, keyed REST API for live AI model benchmark data: rankings, global intelligence index, degradation alerts, drift signatures and provider reliability for GPT, Claude, Gemini, DeepSeek, Kimi and GLM.',
+const TITLE = 'Public Data API: live AI benchmark data';
+const DESCRIPTION = 'A keyed REST API for AI benchmark data: rankings, degradation alerts, drift signatures and provider reliability as JSON. Free keys, no card needed.';
+
+export const metadata: Metadata = pageMeta({
+  title: TITLE,
+  description: DESCRIPTION,
+  path: '/api-docs',
   keywords: [
     'AI benchmark API',
     'LLM leaderboard API',
@@ -27,15 +32,7 @@ export const metadata: Metadata = {
     'model drift API',
     'GPT Claude Gemini benchmark data',
   ],
-  alternates: { canonical: '/api-docs' },
-  openGraph: {
-    title: 'Public Data API | Live AI Model Benchmark Data',
-    description:
-      'Free REST API for live AI model rankings, degradation alerts and drift data. Create a key in seconds.',
-    url: 'https://aistupidlevel.info/api-docs',
-    type: 'article',
-  },
-};
+});
 
 const ENDPOINTS: Array<{ path: string; desc: string; params?: string }> = [
   { path: 'GET /api/v1/models', desc: 'Current rankings with scores, trends and confidence intervals.', params: 'period, sortBy' },
@@ -46,7 +43,7 @@ const ENDPOINTS: Array<{ path: string; desc: string; params?: string }> = [
   { path: 'GET /api/v1/incidents', desc: 'Recorded degradation incidents.', params: 'period, limit' },
   { path: 'GET /api/v1/providers', desc: 'Provider-level availability and status.' },
   { path: 'GET /api/v1/analytics/degradations', desc: 'Models currently degrading, with magnitude and direction.', params: 'period' },
-  { path: 'GET /api/v1/analytics/recommendations', desc: 'Which model to use right now, by task type.', params: 'period' },
+  { path: 'GET /api/v1/analytics/recommendations', desc: 'Which model to use for each task type, over the period you ask for.', params: 'period' },
   { path: 'GET /api/v1/analytics/provider-reliability', desc: 'Per provider: measured uptime, live status, recorded incidents and a trust score (uptime minus 5 points per incident).', params: 'period' },
   { path: 'GET /api/v1/analytics/transparency', desc: 'Full scoring transparency data.', params: 'period' },
   { path: 'GET /api/v1/drift/:id', desc: 'Drift signature for one model: Page-Hinkley statistic, regime and per-axis trends.' },
@@ -71,13 +68,13 @@ const RESPONSE = `{
   "license": "Attribution required — cite aistupidlevel.info as the source.",
   "period": "24h",
   "sort_by": "combined",
-  "count": 152,
+  "count": 24,
   "data": [
     {
-      "id": "275",
-      "name": "gpt-5.6-sol",
+      "id": "123",
+      "name": "example-model",
       "provider": "openai",
-      "currentScore": 75,
+      "currentScore": 80.4,
       "trend": "up",
       "status": "good",
       "confidenceLower": 76.2,
@@ -115,8 +112,8 @@ export default function ApiDocsPage() {
       lead="Live AI model benchmark data as JSON: rankings, the global intelligence index, degradation alerts, drift signatures and provider reliability."
       actions={(
         <>
-          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/data-keys">Get a free API key <span className="lp-ar" aria-hidden="true">→</span></Link>
-          <a className="lp-btn lp-btn-ghost lp-btn-lg" href="#endpoints">See the endpoints</a>
+          <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/data-keys" data-cta="api-docs-hero-key">Get a free API key <span className="lp-ar" aria-hidden="true">→</span></Link>
+          <a className="lp-btn lp-btn-ghost lp-btn-lg" href="#endpoints" data-cta="api-docs-hero-endpoints">See the endpoints</a>
         </>
       )}
       aside={(
@@ -129,7 +126,7 @@ export default function ApiDocsPage() {
   "period": "24h",
   "sort_by": "combined",
   "data": [
-    { "name": "gpt-5.6-sol", "currentScore": 75,
+    { "name": "example-model", "currentScore": 80.4,
       "confidenceLower": 76.2, "confidenceUpper": 84.6, … }
   ]
 }`)}</pre>
@@ -142,8 +139,8 @@ export default function ApiDocsPage() {
           lead="It costs nothing and takes about thirty seconds. Then add one header."
           actions={(
             <>
-              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/data-keys">Create your free key <span className="lp-ar" aria-hidden="true">→</span></Link>
-              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology">How the scores are produced</Link>
+              <Link className="lp-btn lp-btn-primary lp-btn-lg" href="/account/data-keys" data-cta="api-docs-final-key">Create your free key <span className="lp-ar" aria-hidden="true">→</span></Link>
+              <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/methodology" data-cta="api-docs-final-methodology">How the scores are produced</Link>
             </>
           )}
         />
@@ -198,7 +195,7 @@ export default function ApiDocsPage() {
                 <span className="da-q">
                   {e.params
                     ? e.params.split(', ').map((p) => <code key={p}>{p}</code>)
-                    : <span className="da-none" aria-label="No query parameters">—</span>}
+                    : <span className="da-none">none</span>}
                 </span>
               </li>
             );
@@ -253,8 +250,9 @@ export default function ApiDocsPage() {
             counted.
           </p>
           <p>
-            Scores update roughly hourly, so cache on your side rather than polling. One request an
-            hour is plenty to stay current, and it keeps a Pro key nowhere near its ceiling.
+            Coding scores change at most every four hours and reasoning and tool-use scores once a day,
+            so cache on your side rather than polling. A request every few hours keeps you current, and
+            it keeps a Pro key nowhere near its ceiling.
           </p>
         </RdProse>
       </RdSection>
@@ -306,6 +304,11 @@ export default function ApiDocsPage() {
           </p>
         </RdProse>
       </RdSection>
+
+      <JsonLd data={graphLd([
+        breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Data API', path: '/api-docs' }]),
+        webPageLd({ path: '/api-docs', name: TITLE, description: DESCRIPTION }),
+      ])} />
     </ReadingPage>
   );
 }

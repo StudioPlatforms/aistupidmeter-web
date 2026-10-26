@@ -2,7 +2,7 @@
    /status in the landing page's look (app/status/page.tsx).
    Layout, type and tokens come from landing.css (.lp, .lp-sub); this file adds
    only what a status page has and the landing does not: the headline banner,
-   the provider cards and the incident record. Everything is scoped under .lp.
+   the provider table and the incident record. Everything is scoped under .lp.
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── headline, in the hero ── */
@@ -18,40 +18,22 @@
 }
 .lp .ps-banner.is-bad { --ps-tone: var(--lp-bad); }
 .lp .ps-banner.is-na { --ps-tone: var(--lp-warn); }
+.lp .ps-banner.is-warn { --ps-tone: var(--lp-warn); }
 .lp .ps-banner b { font-weight: 600; color: var(--lp-fg); }
 .lp .ps-when { color: var(--lp-fg2); font-size: 13.5px; font-variant-numeric: tabular-nums; }
 .lp .ps-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ps-tone);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--ps-tone) 18%, transparent); }
 
-/* ── provider cards ── */
-.lp .ps-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-.lp .ps-card {
-  display: grid; gap: 18px; align-content: start; min-width: 0;
-  padding: 22px 24px 20px;
-  border: 1px solid var(--lp-line); border-radius: 18px;
-  background: var(--lp-card); box-shadow: var(--lp-shadow-1);
-}
-.lp .ps-card-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.lp .ps-card-head h3 { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; letter-spacing: -.01em; line-height: 1.25; }
-.lp .ps-card-head .lp-pill { justify-self: auto; }
-.lp .ps-figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--lp-line); }
-.lp .ps-figs > div { padding: 16px 12px 0 0; min-width: 0; }
-.lp .ps-figs > div + div { border-left: 1px solid var(--lp-line); padding-left: 14px; }
-.lp .ps-fig { font-family: var(--lp-font-disp); font-weight: 700; font-size: clamp(24px, 2vw, 31px); letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.lp .ps-fig-l { margin-top: 7px; font-size: 12.5px; line-height: 1.35; color: var(--lp-fg2); }
-.lp .ps-measured { display: grid; gap: 10px; }
-.lp .ps-measured p { font-size: 13.5px; line-height: 1.55; color: var(--lp-fg2); }
-/* The last 24 hours, one cell an hour, in the board's colours; the cells rise as the card arrives. */
-.lp .ps-day { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; height: 30px; align-items: end; }
-.lp .ps-day i { height: 100%; border-radius: 3px; background: var(--lp-good); opacity: .85; transform-origin: 50% 100%; transition: transform .55s var(--lp-ease); transition-delay: var(--d, 0s); }
-.lp .ps-day i.w { background: var(--lp-warn); opacity: 1; }
-.lp .ps-day i.b { background: var(--lp-bad); opacity: 1; }
-.lp .ps-day i.o { background: repeating-linear-gradient(135deg, var(--lp-fg3) 0 2px, transparent 2px 4px); opacity: .9; }
-.lp .ps-day i.e { background: color-mix(in srgb, var(--lp-fg) 10%, transparent); opacity: 1; }
-.lp-js .ps-card:not(.is-in) .ps-day i { transform: scaleY(.1); }
-.lp .ps-day-axis { display: flex; justify-content: space-between; margin-top: -4px; font-size: 11.5px; color: var(--lp-fg3); }
-.lp .ps-error { padding: 10px 12px; border-radius: 10px; background: var(--lp-bad-bg); font-size: 13px; line-height: 1.5; color: var(--lp-fg2); }
-.lp .ps-error span { color: var(--lp-fg); font-family: var(--font-code); font-size: 12.5px; overflow-wrap: anywhere; }
+/* ── hub: the provider table (reading.css draws the table; this adds the name cell and the notes) ── */
+.lp .ps-prov-table caption, .lp .ps-outage-table caption { caption-side: top; text-align: left; padding: 14px 18px 4px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.lp .ps-prov-table th[scope='row'] a { display: inline-flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; white-space: nowrap; }
+.lp .ps-prov-table th[scope='row'] a:hover { color: var(--lp-accent); }
+.lp .ps-prov-table .lp-lgc { width: 26px; height: 26px; border-radius: 7px; }
+.lp .ps-prov-table .lp-lgc img { width: 15px; height: 15px; }
+.lp .ps-cell-when { display: block; margin-top: 6px; font-size: 12.5px; color: var(--lp-fg3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lp .ps-table-notes { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; max-width: 70ch; list-style: none; font-size: 13.5px; line-height: 1.55; color: var(--lp-fg2); }
+.lp .ps-table-notes b { font-weight: 600; color: var(--lp-fg); }
+.lp .ps-note-err { font-family: var(--font-code); font-size: 12.5px; color: var(--lp-fg); overflow-wrap: anywhere; }
 
 /* ── the record ── */
 .lp .ps-block {
@@ -89,29 +71,85 @@
 .lp .ps-empty-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--lp-good); }
 
 /* ── method ── */
-.lp .ps-method { display: grid; border-top: 1px solid var(--lp-line); }
-.lp .ps-method > div { display: grid; grid-template-columns: minmax(0, .5fr) minmax(0, 1fr); column-gap: 32px; row-gap: 8px; padding: 22px 0; border-bottom: 1px solid var(--lp-line); }
-.lp .ps-method dt { font-weight: 600; font-size: 15.5px; line-height: 1.45; }
-.lp .ps-method dd { font-size: 15px; line-height: 1.7; color: var(--lp-fg2); }
-.lp .ps-method dd a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
 .lp .ps-gen { margin-top: 26px; font-size: 13px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
 
 /* ── responsive ── */
-@media (max-width: 1180px) {
-  .lp .ps-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 @media (max-width: 980px) {
   .lp .ps-block { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
-  .lp .ps-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .lp .ps-card { padding: 18px 18px 16px; border-radius: 16px; }
   .lp .ps-banner { margin-top: 24px; }
   .lp .ps-block { padding-block: 28px; }
   .lp .ps-log li { padding: 12px 14px 12px 16px; }
-  .lp .ps-method > div { grid-template-columns: minmax(0, 1fr); }
+  .lp .ps-prov-table caption, .lp .ps-outage-table caption { padding: 12px 12px 2px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .lp .ps-day i { transition: none; }
-  .lp-js .ps-card:not(.is-in) .ps-day i { transform: none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   The hub's cross-links and the per-provider pages (app/status/[provider]/page.tsx,
+   components/seo/status/*). Same tokens, same cell colours as the board above.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── hub: the count line, the hero CTAs, names in the record that open the provider page ── */
+.lp .ps-lead-count b { color: var(--lp-fg); font-weight: 600; }
+.lp .ps-hero-ctas { margin-top: 26px; }
+.lp .ps-hero-ctas .lp-fine { margin-top: 12px; }
+.lp .ps-hero-ctas .lp-fine a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .ps-log-p a { color: inherit; text-decoration: none; }
+.lp .ps-log-p a:hover { color: var(--lp-accent); }
+.lp .ps-h-small { font-size: clamp(22px, 2vw, 30px); }
+
+/* ── provider pages: hero ── */
+.lp .ps-crumb { color: inherit; text-decoration: none; }
+.lp .ps-crumb:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lp .ps-provider .ps-banner { max-width: 72ch; align-items: flex-start; }
+.lp .ps-provider .ps-banner .ps-dot { margin-top: 6px; }
+.lp .ps-banner .ps-verdict { flex: 1; min-width: 0; }
+.lp .ps-asof { margin-top: 12px; }
+.lp .ps-lead { margin-top: 22px; }
+.lp .ps-provider .seo-cta-row { margin-top: 28px; }
+
+/* ── provider pages: the week, one row per UTC day, one cell per hour ── */
+.lp .ps-week-block { margin-top: clamp(36px, 4vw, 56px); max-width: 1000px; }
+.lp .ps-week-block .lp-h3 { margin-bottom: 8px; }
+.lp .ps-week-block .lp-fine { margin: 0 0 18px; max-width: 70ch; }
+.lp .ps-week { display: grid; gap: 4px; }
+.lp .ps-week-cols, .lp .ps-week-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 12px; align-items: center; }
+.lp .ps-week-cols { margin-bottom: 2px; }
+.lp .ps-week-cols > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); font-size: 11px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.lp .ps-week-day { font-size: 12.5px; color: var(--lp-fg2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.lp .ps-week-cells { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 3px; height: 22px; }
+.lp .ps-week-cells i { display: block; height: 100%; border-radius: 3px; background: var(--lp-good); opacity: .85; }
+.lp .ps-week-cells i.w { background: var(--lp-warn); opacity: 1; }
+.lp .ps-week-cells i.b { background: var(--lp-bad); opacity: 1; }
+.lp .ps-week-cells i.o { background: repeating-linear-gradient(135deg, var(--lp-fg3) 0 2px, transparent 2px 4px); opacity: .9; }
+.lp .ps-week-cells i.e { background: color-mix(in srgb, var(--lp-fg) 10%, transparent); opacity: 1; }
+.lp .ps-week-cells i.x { background: transparent; opacity: 1; }
+.lp .ps-week .seo-bars-legend { margin-top: 12px; }
+.lp .ps-week-utc { margin-left: auto; color: var(--lp-fg3); }
+
+/* ── provider pages: the record, the reference, the links ── */
+.lp .ps-outage-table th[scope='row'], .lp .ps-outage-table td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.lp .ps-outage-table td { font-variant-numeric: tabular-nums; }
+.lp .ps-codes-table th[scope='row'] { white-space: nowrap; }
+.lp .ps-ours { margin-top: 22px; max-width: 70ch; }
+.lp .ps-ours a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .ps-slow { margin-top: clamp(32px, 3.6vw, 48px); display: grid; gap: 14px; max-width: 1000px; }
+.lp .ps-slow .ps-note { margin-top: 0; }
+.lp .ps-slow .ps-log-p { font-variant-numeric: tabular-nums; }
+.lp .ps-ctas { margin-top: clamp(32px, 3.6vw, 48px); display: grid; gap: 14px; }
+.lp .ps-ctas .lp-fine { margin-top: 0; }
+.lp .ps-ctas .lp-fine a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .ps-links { display: flex; flex-wrap: wrap; gap: 12px 32px; margin-top: 28px; }
+.lp .ps-provnav a { gap: 8px; height: 40px; }
+.lp .ps-provnav .lp-lgc { width: 22px; height: 22px; border-radius: 6px; }
+.lp .ps-provnav .lp-lgc img { width: 14px; height: 14px; }
+.lp .ps-provider .lp-steps { max-width: 1000px; }
+
+@media (max-width: 760px) {
+  .lp .ps-provider .ps-banner { padding: 12px 14px; font-size: 14.5px; }
+  .lp .ps-week-cols, .lp .ps-week-row { grid-template-columns: 42px minmax(0, 1fr); column-gap: 8px; }
+  .lp .ps-week-cells { gap: 2px; height: 18px; }
+  .lp .ps-week-cells i { border-radius: 2px; }
+  .lp .ps-week-day { font-size: 11.5px; }
+  .lp .ps-links { gap: 10px 20px; }
 }

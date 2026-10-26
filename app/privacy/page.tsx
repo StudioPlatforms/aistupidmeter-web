@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { pageMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
 
@@ -11,12 +12,11 @@ import { ReadingPage, RdSection, RdProse, RdFacts, RdRows, RdFinal, tocNumber } 
  * this page together.
  */
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy',
-  description: 'What AI Stupid Level collects, why, who it is shared with, how long it is kept, and your rights under the GDPR.',
-  alternates: { canonical: '/privacy' },
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = pageMeta({
+  title: 'Privacy policy',
+  description: 'What AI Stupid Level collects, why, who it is shared with, how long it is kept, which cookies are set only after consent, and your rights under the GDPR.',
+  path: '/privacy',
+});
 
 const UPDATED = '19 October 2026';
 const EMAIL = 'hello@aistupidlevel.info';

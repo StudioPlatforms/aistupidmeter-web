@@ -55,8 +55,9 @@ export default function SharePage() {
           alt="ASL — AI Stupid Level"
           style={{ display: 'inline-block', marginBottom: 16 }}
         />
-        <div
+        <h1
           style={{
+            margin: 0,
             fontSize: 17,
             fontWeight: 500,
             color: 'var(--phosphor-green, #202124)',
@@ -64,7 +65,7 @@ export default function SharePage() {
           }}
         >
           Taking you to the live leaderboard
-        </div>
+        </h1>
         <div
           style={{
             marginTop: 6,
@@ -73,7 +74,7 @@ export default function SharePage() {
             color: 'var(--phosphor-dim, #5f6368)',
           }}
         >
-          Independent AI model benchmarks, re-scored every hour.
+          Independent AI model benchmarks, re-tested on a fixed schedule.
         </div>
         <a
           href="/"

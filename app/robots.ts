@@ -13,13 +13,16 @@ export default function robots(): MetadataRoute.Robots {
         // ShareButton links to, so it has to be crawlable for the same reason.
         // Longer, more specific paths win over shorter ones, so these two
         // survive the broader rules below.
+        //
+        // /auth/ is deliberately NOT disallowed: the sign-in pages carry a noindex
+        // (app/auth/layout.tsx), which a crawler can only read if it may fetch them.
+        // Blocking them while every page links to them produced "indexed, blocked"
+        // entries with no content.
         allow: ['/', '/api/og', '/share/'],
         disallow: [
           '/api/',
-          '/auth/',
           '/admin/',
           '/internal/',
-          '/drift-test/',
         ],
       },
       {

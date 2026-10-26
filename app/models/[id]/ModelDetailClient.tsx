@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
 // Styles
@@ -23,7 +23,8 @@ import MobileNav from '../../../components/v4/MobileNav';
 import ModelDetailHeader, { ModelHero } from '../../../components/model-detail/ModelDetailHeader';
 import ModelDetailStatBar from '../../../components/model-detail/ModelDetailStatBar';
 import ModelDetailSuiteTasks from '../../../components/model-detail/ModelDetailSuiteTasks';
-import { isPlan, type Plan } from '../../../lib/entitlements';
+import { isPlan, planMeets, type Plan } from '../../../lib/entitlements';
+import { REQUIRED_PLAN } from '../../../lib/capabilities';
 import ModelDetailControls from '../../../components/model-detail/ModelDetailControls';
 import TrackModelButton from '../../../components/TrackModelButton';
 import ModelDetailChart from '../../../components/model-detail/ModelDetailChart';
@@ -178,8 +179,6 @@ interface ModelDetailClientProps {
   initialName: string;
   initialDisplayName?: string | null;
   initialVendor: string;
-  /** Whether this visitor may see the newest run (the "Latest" period). Decided on the server. */
-  latestAllowed?: boolean;
 }
 
 export default function ModelDetailClient({
@@ -188,7 +187,6 @@ export default function ModelDetailClient({
   initialName,
   initialDisplayName,
   initialVendor,
-  latestAllowed = true,
 }: ModelDetailClientProps) {
   const router = useRouter();
 
@@ -204,8 +202,12 @@ export default function ModelDetailClient({
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   // UI states
-  // Visitors and free accounts open on 24 hours: the newest run is a paid view (lib/capabilities).
-  const [selectedPeriod, setSelectedPeriod] = useState<HistoricalPeriod>(latestAllowed ? 'latest' : '24h');
+  // Everyone opens on 24 hours. A plan that may see the newest run (lib/capabilities
+  // 'latest-scores') is switched to "Latest" once the session is known (the fetch effect below),
+  // unless the visitor has already picked a period; the API gates the newest run as well.
+  const [selectedPeriod, setSelectedPeriod] = useState<HistoricalPeriod>('24h');
+  const periodChosen = useRef(false);
+  const choosePeriod = (p: HistoricalPeriod) => { periodChosen.current = true; setSelectedPeriod(p); };
   const [selectedScoringMode, setSelectedScoringMode] = useState<ScoringMode>('combined');
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -220,12 +222,53 @@ export default function ModelDetailClient({
   const [todayVisits, setTodayVisits] = useState<number | null>(null);
 
   // Session
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const hasProAccess = (session?.user as any)?.subscriptionStatus === 'active'
     || (session?.user as any)?.subscriptionStatus === 'trialing';
   // The plan ladder (free / pro / developer / teams / enterprise) decides what the suite panels
   // unlock beyond the Pro boolean — exports, for one.
   const plan: Plan = isPlan((session?.user as any)?.plan) ? (session!.user as any).plan : (hasProAccess ? 'pro' : 'free');
+  // The newest run is a paid view, decided here from the session's plan (the server-rendered
+  // text never reads a session) and enforced again by the API (apps/api middleware/latest-gate.ts).
+  const latestAllowed = planMeets(plan, REQUIRED_PLAN['latest-scores']);
+  const sessionReady = sessionStatus !== 'loading';
+
+  // "Track this model" survives the sign-up round trip. A signed-out click (TrackModelButton) or
+  // a "Get an email when it changes" link (WatchCta) sends the visitor to sign-up with
+  // callbackUrl=/models/<slug>?track=1; once they are back and signed in, this makes the same
+  // POST the button makes, takes the flag out of the address (so a reload or Back does not add
+  // the model again) and shows the result. The plan limit is enforced by the API, as always.
+  // Read through useSearchParams so a signed-in click on the page's own "Get an email when it
+  // changes" link (a soft navigation to ?track=1) is handled too, not only a fresh load.
+  const searchParams = useSearchParams();
+  const wantsTrack = searchParams?.get('track') === '1';
+  const trackBusy = useRef(false);
+  const [trackNote, setTrackNote] = useState<{ kind: 'tracked' | 'limit' | 'error'; message?: string } | null>(null);
+  useEffect(() => {
+    if (!wantsTrack || sessionStatus !== 'authenticated' || trackBusy.current) return;
+    trackBusy.current = true;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('track');
+    router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
+    fetch('/api/account/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modelId: Number(modelId) }),
+    })
+      .then(r => r.json().catch(() => null))
+      .then(d => {
+        if (d?.success) setTrackNote({ kind: 'tracked' });
+        else if (d?.error === 'watchlist_limit_reached') setTrackNote({ kind: 'limit', message: typeof d.message === 'string' ? d.message : undefined });
+        else setTrackNote({ kind: 'error' });
+      })
+      .catch(() => setTrackNote({ kind: 'error' }))
+      .finally(() => { trackBusy.current = false; });
+  }, [wantsTrack, sessionStatus, modelId, router]);
+
+  // Context rot is a paid panel (lib/capabilities 'context-rot'): below that plan, and for
+  // visitors, the panel is not rendered, so the browser never asks /api/pro/context-rot for an
+  // answer it could not show.
+  const contextRotAllowed = planMeets(plan, REQUIRED_PLAN['context-rot']);
 
   // Fetch visitor count on mount
   useEffect(() => {
@@ -373,9 +416,16 @@ export default function ModelDetailClient({
   };
 
   useEffect(() => {
+    // Wait for the session, so a plan that may see the newest run loads it first instead of
+    // loading 24 hours and reloading; a visitor with no session is not held up.
+    if (!sessionReady) return;
+    if (latestAllowed && !periodChosen.current && selectedPeriod !== 'latest') {
+      setSelectedPeriod('latest'); // this effect runs again with the new period
+      return;
+    }
     fetchModelData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modelId, selectedPeriod, selectedScoringMode]);
+  }, [modelId, selectedPeriod, selectedScoringMode, sessionReady, latestAllowed]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -537,10 +587,32 @@ export default function ModelDetailClient({
         isRefreshing={isRefreshing}
         onToggleAutoRefresh={() => setAutoRefresh(prev => !prev)}
         onRefresh={() => fetchModelData(true)}
-        primaryAction={<TrackModelButton modelId={modelId} modelName={modelDetails.name} />}
+        primaryAction={<TrackModelButton modelId={modelId} modelName={modelDetails.name} slug={slug} knownTracked={trackNote?.kind === 'tracked'} />}
       />
 
       <div className="st-body">
+        {/* The outcome of a ?track=1 round trip (see the effect above): tracked, at the plan limit, or failed. */}
+        {trackNote && (
+          <div className={`st-note ${trackNote.kind === 'tracked' ? 'is-good' : 'is-warn'}`} role="status">
+            <div>
+              {trackNote.kind === 'tracked' && (
+                <>
+                  <b>Tracking {modelDetails.displayName || modelDetails.name}.</b> We email you if its coding score falls five
+                  points in a week, and a weekly summary of what changed. <Link href="/watchlist">Open your watchlist</Link>
+                </>
+              )}
+              {trackNote.kind === 'limit' && (
+                <>
+                  {trackNote.message || 'Your watchlist is full, so this model was not added.'} <Link href="/pricing">See plans</Link>
+                </>
+              )}
+              {trackNote.kind === 'error' && (
+                <>We could not add {modelDetails.displayName || modelDetails.name} to your watchlist just now. Use &ldquo;Track this model&rdquo; to try again.</>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Reasoning / tool-use tests the community funds for this model: says so, explains it once,
             and lets a signed-in visitor fund today's run. Renders nothing for other models. */}
         {modelDetails.communitySuites && (
@@ -573,7 +645,7 @@ export default function ModelDetailClient({
           selectedScoringMode={selectedScoringMode}
           hasProAccess={hasProAccess}
           isRefreshing={isRefreshing}
-          onPeriodChange={setSelectedPeriod}
+          onPeriodChange={choosePeriod}
           onScoringModeChange={setSelectedScoringMode}
           onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
           latestAllowed={latestAllowed}
@@ -584,7 +656,7 @@ export default function ModelDetailClient({
           history={history?.history || []}
           selectedPeriod={selectedPeriod}
           selectedScoringMode={selectedScoringMode}
-          onSwitchPeriod={setSelectedPeriod}
+          onSwitchPeriod={choosePeriod}
         />
 
         {/* Where each suite's detector stands — armed with its statistic, or still warming up (free) */}
@@ -640,10 +712,12 @@ export default function ModelDetailClient({
         {/* Context rot (pilot): how far the context window really goes. A measurement panel, so it
             sits with calibration, before the decision panels. On a model outside the pilot it says
             so in one line instead of offering an upgrade that would unlock nothing. */}
-        <ModelDetailContextRot
-          modelName={modelDetails.name}
-          onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
-        />
+        {contextRotAllowed && (
+          <ModelDetailContextRot
+            modelName={modelDetails.name}
+            onShowProModal={(feature) => { setProModalFeature(feature); setShowProModal(true); }}
+          />
+        )}
 
         {/* Cheaper models that can do this one's work, and what switching costs in failed
             requests. Placed directly after calibration because both are decision panels

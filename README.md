@@ -1,233 +1,98 @@
-# AI Stupid Meter - Web Frontend
+# AI Stupid Level — web app
 
-🚀 **The World's First AI Intelligence Degradation Detection System**
+The Next.js front end of [AI Stupid Level](https://aistupidlevel.info), an independent, continuous
+LLM benchmark running since August 2025. The site is the leaderboard, the per-model pages, the
+drift reporting, the provider status page, the Smart Router dashboard and the public documentation.
 
-A Next.js-based web application that provides real-time monitoring and analysis of AI model performance, featuring advanced degradation detection, intelligent routing, and comprehensive analytics.
+## What the site shows
 
-## 🌟 Live Demo
+- **Benchmarks on a fixed schedule.** Models from OpenAI, Anthropic, Google, DeepSeek,
+  Moonshot AI (Kimi) and Z.ai (GLM) get the same tests through each provider's public API:
+  coding every four hours, reasoning and tool use daily, with an hourly canary probe.
+- **Coding graded by execution.** Repository debugging tasks are scored by running the project's
+  own tests, including hidden tests; the coding score is built from nine measures with published
+  weights. Reasoning is scored over long multi-turn sessions, tool use in sandboxed machines.
+- **Scores with error bars.** Every score carries a standard error from its own run-to-run
+  repeatability; models whose lead is inside that noise share a place on the board.
+- **Drift detection per suite.** Page-Hinkley change-point detection (a CUSUM-family test) runs
+  on each model's daily median, per suite, with the constants published on the methodology page.
+  Watchlist alerts go out by email when a watched model's coding score falls.
+- **Smart Router.** One OpenAI-compatible endpoint (`/v1/chat/completions`, plus an Anthropic
+  `/v1/messages` passthrough and `/v1/embeddings`) on your own provider keys, with 14 `auto-*`
+  routing modes driven by the benchmark results and zero markup on tokens.
+- **Data API.** A keyed JSON API for rankings, degradation alerts, drift signatures and provider
+  reliability, with a free tier.
+- **Plans.** Free, Pro, Developer and Teams, with Enterprise by arrangement; every price and limit is rendered from
+  `lib/entitlements.ts`, never typed into copy.
 
-- **Website**: [https://aistupidlevel.info](https://aistupidlevel.info)
-- **Hugging Face Space**: [https://huggingface.co/spaces/AIStupidLevel/](https://huggingface.co/spaces/AIStupidLevel/)
-- **Community**: [r/AIStupidLevel](https://www.reddit.com/r/AIStupidlevel)
+The methodology is public — every weight, statistical test and drift constant — at
+[aistupidlevel.info/methodology](https://aistupidlevel.info/methodology). The test tasks are
+private, so no lab can train on them. The benchmark runner and API are a separate, private
+service; this repository is the web application only.
 
-## 🚀 Key Features
+## Links
 
-### 🔬 **Intelligence Monitoring**
-- **Real-time AI model performance tracking** across 25+ models
-- **7-axis scoring methodology** (Correctness, Spec Compliance, Code Quality, Efficiency, Stability, Refusal Rate, Recovery)
-- **Dual-benchmark system**: Speed tests (hourly) + Deep reasoning (daily)
-- **Statistical degradation detection** using CUSUM algorithms and Mann-Whitney U tests
-- **Confidence intervals** and reliability badges for performance consistency
+- Live site: <https://aistupidlevel.info>
+- Methodology: <https://aistupidlevel.info/methodology>
+- Smart Router API documentation: <https://aistupidlevel.info/router/docs>
+- Public Data API: <https://aistupidlevel.info/api-docs>
+- Pricing: <https://aistupidlevel.info/pricing>
 
-### 🧠 **Model Intelligence Center**
-- **Advanced analytics engine** with 29 warning categories across 5 detection types
-- **Smart recommendations** for best coding models, most reliable, and fastest response
-- **Proactive alerts** for performance degradation and cost-efficiency issues
-- **Provider trust scores** tracking reliability across all AI providers
-- **Drift incident monitoring** with real-time notifications
+## Stack
 
-### 🔧 **Revolutionary Tool Calling Evaluation**
-- **World-first tool calling benchmarks** testing real system command execution
-- **Multi-step workflow evaluation** in secure sandbox environments
-- **171+ successful tool calling sessions** demonstrating practical AI capabilities
-- **Real-world task completion** beyond simple text generation
+- Next.js 14 (App Router) with React 18 server components, TypeScript
+- next-auth v5 (beta) for accounts; Stripe for plans
+- Plain CSS in `styles/` (no Tailwind); design tokens drive light and dark themes
+- Server components read the API over loopback (`API_INTERNAL_URL`); client components fetch
+  relative paths through the site's reverse proxy
 
-### 🎯 **AI Router Pro**
-- **Intelligent model routing** based on real-time performance data
-- **Cost optimization** with automatic provider switching
-- **Degradation protection** preventing use of poorly performing models
-- **One unified API** for accessing multiple AI providers
-- **Enterprise-grade reliability** with 99.9% uptime SLA
+## Running it locally
 
-### 📊 **Advanced Analytics**
-- **Historical performance tracking** with 24h, 7d, and 1m views
-- **Interactive charts** with confidence intervals and error bars
-- **Performance matrix** with reliability scoring
-- **Trend analysis** and change point detection
-- **Real-time ticker tape** with live performance updates
+Requires Node.js 18+ and a running instance of the benchmark API (not included).
 
-### 🔐 **Authentication & Subscriptions**
-- **NextAuth.js integration** with OAuth providers
-- **Stripe subscription management** with Pro features
-- **User dashboard** with personalized settings
-- **API key testing** for transparency and verification
-
-## 📋 Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-- Backend API running (see [aistupidmeter-api](https://github.com/StudioPlatforms/aistupidmeter-api))
-
-## 🛠️ Installation
-
-1. Clone the repository:
 ```bash
 git clone https://github.com/StudioPlatforms/aistupidmeter-web.git
 cd aistupidmeter-web
-```
-
-2. Install dependencies:
-```bash
 npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.local.template .env.local
-# Edit .env.local with your configuration
-```
-
-Required environment variables:
-```env
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-here
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
-STRIPE_SECRET_KEY=your-stripe-secret-key
-STRIPE_WEBHOOK_SECRET=your-stripe-webhook-secret
-DATABASE_URL=your-database-url
-API_BASE_URL=http://localhost:4000
-```
-
-4. Run the development server:
-```bash
+cp .env.local.template .env.local   # fill in the values
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+Scripts:
 
-## 📦 Available Scripts
+- `npm run dev` — development server on <http://localhost:3000>
+- `npm run build` — production build (`prebuild` writes `lib/page-dates.json`, the per-page last
+  commit dates the sitemap uses as `lastmod`)
+- `npm run start` — production server
+- `npx tsc --noEmit -p .` — type check
 
-- `npm run dev` - Start the development server
-- `npm run build` - Build the production application
-- `npm run start` - Start the production server
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
+## Layout of the code
 
-## 🏗️ Tech Stack
+- `app/` — routes. Public pages are server components with `export const revalidate`; signed-in
+  pages (`/router/*`, `/account/*`) are client-rendered inside the studio shell.
+- `components/landing/` — the landing and reading-page toolkit (`Reading.tsx`);
+  `components/seo/` — the shared pieces of the SEO pages; `components/studio/` — the app shell.
+- `lib/` — `entitlements.ts` (plans and limits), `pricing-display.ts`, `boards-core.ts`
+  (statistical ranks and ties, shared by the leaderboard and the server-rendered pages),
+  `seo.ts` (metadata and JSON-LD helpers), `seo-data.ts` (server-side data for the SEO pages),
+  `seo-routes.ts` (the route registry behind the sitemap).
+- `styles/` — one stylesheet per surface; `landing.css` and `reading.css` carry the public look.
 
-### **Core Framework**
-- **Next.js 14** with App Router
-- **React 18** with Server Components
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
+## Contributing
 
-### **Authentication & Payments**
-- **NextAuth.js** for authentication
-- **Stripe** for subscription management
-- **OAuth providers** (GitHub, Google)
+Pull requests are welcome. Keep copy to claims that can be checked against the code or the live
+data: no model names or rankings in static text (they are rendered from the API), no counts typed
+by hand, and the cadence exactly as the scheduler runs it.
 
-### **Data & State Management**
-- **React Query** for server state
-- **Zustand** for client state
-- **PostgreSQL** with Drizzle ORM
+## Community
 
-### **UI & Visualization**
-- **Recharts** for interactive charts
-- **Framer Motion** for animations
-- **Vintage CRT aesthetic** with custom CSS
-- **Responsive design** for mobile/desktop
+- X: [@AIStupidlevel](https://x.com/AIStupidlevel)
+- Reddit: [r/aistupidlevel](https://www.reddit.com/r/aistupidlevel/)
+- Hugging Face: [AIStupidLevel](https://huggingface.co/AIStupidLevel)
+- LinkedIn: [AI Stupid Level](https://www.linkedin.com/company/asl-aistupidlevel-info)
 
-### **Performance & Monitoring**
-- **Redis caching** for optimized performance
-- **Real-time updates** with Server-Sent Events
-- **Error tracking** and performance monitoring
-- **SEO optimization** with metadata
+## License
 
-## 🎨 Design Philosophy
+MIT — see `LICENSE`.
 
-The application features a unique **vintage terminal aesthetic** inspired by 1980s computer terminals:
-- **Phosphor green** color scheme
-- **CRT monitor styling** with scan lines
-- **Monospace fonts** for technical authenticity
-- **Retro animations** and loading states
-- **Terminal-style interfaces** for advanced users
-
-## 🔌 API Integration
-
-The frontend integrates with multiple backend services:
-
-### **Main API Endpoints**
-- `/dashboard/cached` - Cached dashboard data for instant loading
-- `/dashboard/scores` - Real-time model scores
-- `/analytics/*` - Advanced analytics and recommendations
-- `/models/*` - Individual model details and history
-
-### **Router API**
-- `/router/*` - AI Router Pro functionality
-- `/router/analytics` - Router performance metrics
-- `/router/keys` - API key management
-
-### **Authentication API**
-- `/api/auth/*` - NextAuth.js endpoints
-- `/api/subscription/*` - Stripe subscription management
-
-## 📱 Mobile Optimization
-
-- **Responsive design** that works on all screen sizes
-- **Touch-friendly interfaces** for mobile users
-- **Optimized performance** for slower connections
-- **Progressive Web App** features
-- **Mobile-specific navigation** and layouts
-
-## 🔗 Related Repositories
-
-- [AI Stupid Meter API](https://github.com/StudioPlatforms/aistupidmeter-api) - Backend API server
-- [Hugging Face Space](https://huggingface.co/spaces/AIStupidLevel/) - Interactive demo
-
-## 🌍 Community
-
-- **Reddit**: [r/AIStupidLevel](https://www.reddit.com/r/AIStupidlevel) - Community discussions
-- **X/Twitter**: [@AIStupidlevel](https://x.com/AIStupidlevel) - Latest updates
-- **GitHub Discussions** - Technical discussions and feature requests
-
-## 📝 License
-
-MIT License - see LICENSE file for details
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### **Development Workflow**
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Make your changes and test thoroughly
-4. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-5. Push to the branch (`git push origin feature/AmazingFeature`)
-6. Open a Pull Request
-
-### **Code Standards**
-- Follow TypeScript best practices
-- Use ESLint and Prettier for code formatting
-- Write meaningful commit messages
-- Add tests for new features
-- Update documentation as needed
-
-## 📧 Contact
-
-**Built by:** Laurent @ StudioPlatforms
-
-- **X/Twitter:** [@goatgamedev](https://x.com/goatgamedev)
-- **Email:** laurent@studio-blockchain.com
-- **GitHub:** [StudioPlatforms](https://github.com/StudioPlatforms)
-- **Website:** [https://studioplatforms.eu](https://studioplatforms.eu)
-
-## 🙏 Acknowledgments
-
-- **OpenAI, Anthropic, Google, xAI** for providing AI model APIs
-- **Vercel** for hosting and deployment
-- **Stripe** for payment processing
-- **Community contributors** for feedback and improvements
-
----
-
-**Project Links:**
-- **Repository**: [https://github.com/StudioPlatforms/aistupidmeter-web](https://github.com/StudioPlatforms/aistupidmeter-web)
-- **Live Site**: [https://aistupidlevel.info](https://aistupidlevel.info)
-- **Demo**: [https://huggingface.co/spaces/AIStupidLevel/](https://huggingface.co/spaces/AIStupidLevel/)
-
-*Last Updated: October 2025*
+Built by [Studio Platforms](https://studioplatforms.eu). Contact: <hello@aistupidlevel.info>.
