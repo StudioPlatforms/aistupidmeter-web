@@ -237,7 +237,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
     // recentNotices() also creates billing_notices on first use, so the query below can run.
     const notices = recentNotices();
     const legacyEmailed = new Map(
-      (db.prepare(`SELECT user_id AS userId, created_at AS at FROM billing_notices WHERE kind = 'legacy_ended'`).all() as Array<{ userId: number; at: string }>)
+      (db.prepare(`SELECT user_id AS userId, created_at AS at FROM billing_notices WHERE kind = 'legacy_price_notice'`).all() as Array<{ userId: number; at: string }>)
         .map(n => [n.userId, n.at]),
     );
     const attention: AttentionItem[] = [];
@@ -328,12 +328,15 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
       const prev = legacyFirst.get(s.userId);
       if (!prev || s.startedAt < prev) legacyFirst.set(s.userId, s.startedAt);
     }
+    // The renewal the $4.99 → $12 email named, kept on the subscription in Stripe.
+    const changeAt = new Map((stripe?.subscriptions ?? []).filter(s => s.priceChangeAt).map(s => [s.id, s.priceChangeAt!]));
     const anniversaries = Array.from(legacyFirst.entries())
       .filter(([userId]) => { const r = byId.get(userId); return !!r && ownPlanFor(r) === 'legacy_pro'; })
       .map(([userId, firstStart]) => {
         const d = new Date(firstStart);
         d.setUTCFullYear(d.getUTCFullYear() + 1);
-        return { userId, email: byId.get(userId)!.email, firstStart, anniversary: d.toISOString() };
+        const r = byId.get(userId)!;
+        return { userId, email: r.email, firstStart, anniversary: d.toISOString(), changeAt: r.stripe_subscription_id ? changeAt.get(r.stripe_subscription_id) ?? null : null };
       })
       .sort((a, b) => a.anniversary.localeCompare(b.anniversary));
     for (const a of anniversaries) {
@@ -344,10 +347,8 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
         kind: 'legacy_anniversary', tone: passed ? 'warn' : 'accent', userId: a.userId, email: a.email,
         title: `${a.email}: 12 months at $4.99 ${passed ? 'reached' : 'reached on'} ${dateLabel(a.anniversary)}`,
         detail: legacyEmailed.has(a.userId)
-          ? `First subscribed ${dateLabel(a.firstStart)}. Emailed on ${dateLabel(legacyEmailed.get(a.userId)!)} that the $4.99 term has ended; the subscription ends at the close of the period already paid for.`
-          : passed
-          ? `First subscribed ${dateLabel(a.firstStart)}. The billing watch ends the subscription at the close of the period already paid for and emails the customer that the $4.99 term has ended, with an invitation to the current plans.`
-          : `First subscribed ${dateLabel(a.firstStart)}. Three days before, the billing watch sets the subscription to end at the close of the paid period; on the date it emails the customer.`,
+          ? `First subscribed ${dateLabel(a.firstStart)}. Emailed on ${dateLabel(legacyEmailed.get(a.userId)!)} that the price moves to $12${a.changeAt ? ` from the renewal on ${dateLabel(a.changeAt)}` : ''}, with a cancel link.`
+          : `First subscribed ${dateLabel(a.firstStart)}. The billing watch emails the customer that the price moves to $12 at the first renewal at least 30 days later, with a cancel link (only with LEGACY_PRICE_CHANGE=on).`,
       });
     }
     const toneRank = { bad: 0, warn: 1, accent: 2 } as const;

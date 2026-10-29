@@ -320,6 +320,9 @@ export function activateSubscription(
     // $4.99 Price maps to legacy_pro itself (planForPriceId); the guard covers
     // the 'pro' fallback when it cannot be mapped. It must not cover a switch
     // to Developer or Teams: that customer pays the new price and gets it.
+    // It also keeps legacy_pro through the last $4.99 period after the billing
+    // watch has moved the subscription to the $12 Price; the watch moves the
+    // account to Pro once the first $12 period begins (moveLegacyToPro).
     //
     // No last_payment_at here: Stripe reports a subscription active at each
     // renewal (and at the end of a trial) before the charge is attempted, so
@@ -335,6 +338,22 @@ export function activateSubscription(
         updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
       WHERE id = ?
     `).run(stripeSubscriptionId, plan, plan, userId);
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * A $4.99 subscriber whose first period at the current Pro price has begun (lib/billing-watch.ts):
+ * from here the account is ordinary Pro. Only ever moves legacy_pro.
+ */
+export function moveLegacyToPro(userId: number): void {
+  const db = getDb();
+  try {
+    db.prepare(`
+      UPDATE router_users SET subscription_tier = 'pro', updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+      WHERE id = ? AND subscription_tier = 'legacy_pro'
+    `).run(userId);
   } finally {
     db.close();
   }

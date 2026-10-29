@@ -11,8 +11,13 @@ const NOTICE: Record<string, string> = {
   payment_failed: 'Emailed: payment failed',
   downgraded: 'Moved to Free',
   cancelled_unpaid: 'Emailed: billing problem',
+  legacy_price_notice: 'Emailed: $4.99 → $12',
+  legacy_price_changed: 'Switched to $12',
+  legacy_now_pro: 'Moved to Pro',
+  cancelled_from_email: 'Cancelled from the $12 email',
   legacy_end_scheduled: 'Set $4.99 to end',
   legacy_ended: 'Emailed: $4.99 ended',
+  legacy_end_reverted: 'Kept: end undone',
 };
 
 const ENDED = new Set(['canceled', 'incomplete_expired']);
@@ -182,7 +187,7 @@ export default function BillingTab({ data }: { data: AdminOverview }) {
 
       <Pane
         title="Billing automation"
-        sub="What the billing watch has done: cancelled duplicates, moved unpaid accounts to Free, ended $4.99 subscriptions after 12 months, and every email it sent. It runs every six hours; Stripe events also trigger the emails as they happen."
+        sub="What the billing watch has done: cancelled duplicates, moved unpaid accounts to Free, moved $4.99 subscriptions to $12 after 12 months, and every email it sent. It runs every six hours; Stripe events also trigger the emails as they happen."
         ruled flush
       >
         <div className="st-table-wrap ad-scroll">
@@ -205,7 +210,7 @@ export default function BillingTab({ data }: { data: AdminOverview }) {
 
       <Pane
         title="Legacy Pro at $4.99"
-        sub={`${b.legacy.live} live subscriptions on the original price. Each runs 12 months from the subscriber's first subscription, then ends at the close of the period already paid for, and the subscriber is emailed an invitation to the current plans.`}
+        sub={`${b.legacy.live} live subscriptions on the original price. Each keeps $4.99 for 12 months from the subscriber's first subscription, then moves to the $12 Pro price at the first renewal at least 30 days after the subscriber is emailed (37 days before the mark); the email has a cancel link.`}
       >
         <div className="ad-two">
           <div>

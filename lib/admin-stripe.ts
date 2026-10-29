@@ -27,7 +27,14 @@ export interface StripeSubscriptionRecord {
   interval: string;
   monthly: number;
   startedAt: string;
+  /** The subscription item that carries the price (one per subscription here). */
+  itemId: string | null;
+  periodStart: string | null;
   periodEnd: string | null;
+  /** Monthly renewals fall on this timestamp's day of the month (or the month's last day). */
+  billingAnchor: string | null;
+  /** Set with the $4.99 → $12 notice: the renewal from which the price is $12 (lib/billing-watch.ts). */
+  priceChangeAt: string | null;
   trialEnd: string | null;
   cancelAt: string | null;
   endedAt: string | null;
@@ -84,7 +91,11 @@ function record(s: Stripe.Subscription): StripeSubscriptionRecord {
     interval,
     monthly: Math.round(perMonth(amount, interval, price?.recurring?.interval_count ?? 1)),
     startedAt: iso(raw.start_date) ?? iso(s.created)!,
+    itemId: item?.id ?? null,
+    periodStart: iso(item?.current_period_start ?? raw.current_period_start),
     periodEnd: iso(item?.current_period_end ?? raw.current_period_end),
+    billingAnchor: iso(raw.billing_cycle_anchor),
+    priceChangeAt: s.metadata?.asl_price_change_at || null,
     trialEnd: iso(raw.trial_end),
     // The customer portal cancels by setting cancel_at; older cancellations set the flag.
     cancelAt: iso(raw.cancel_at) ?? (raw.cancel_at_period_end ? iso(item?.current_period_end) : null),

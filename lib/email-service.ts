@@ -126,13 +126,15 @@ function renderEmail(opts: {
   heading: string;
   intro: string;
   rows?: Array<[string, string]>;
+  /** Further paragraphs, after the details table. */
+  paragraphs?: string[];
   ctaLabel?: string;
   ctaUrl?: string;
   footnote?: string;
   preheader?: string;
   signoff?: boolean;
 }): string {
-  const { heading, intro, rows = [], ctaLabel, ctaUrl, footnote, preheader, signoff } = opts;
+  const { heading, intro, rows = [], paragraphs = [], ctaLabel, ctaUrl, footnote, preheader, signoff } = opts;
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
@@ -152,6 +154,7 @@ function renderEmail(opts: {
               <td style="padding:7px 0;text-align:right;font-weight:600;color:#202124;border-bottom:1px solid #eceff1;">${v}</td>
             </tr>`).join('')}
           </table>` : ''}
+          ${paragraphs.map(p => `<p style="font-size:14px;line-height:1.65;color:#3c4043;margin:0 0 16px;">${p}</p>`).join('')}
           ${ctaLabel && ctaUrl ? `<p style="margin:0 0 18px;">
             <a href="${ctaUrl}" style="display:inline-block;background:#1a73e8;color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:4px;font-size:14px;font-weight:600;">${ctaLabel}</a>
           </p>` : ''}
@@ -174,7 +177,10 @@ function linkFallback(url: string): string {
     `<a href="${url}" style="word-break:break-all;color:#1a73e8;text-decoration:none;">${url}</a>`;
 }
 
-async function deliver(to: string, subject: string, html: string, text: string, replyTo?: string) {
+/** The sender for mail a customer may want to answer: it reaches a person (the noreply@ default does not invite replies). */
+const HELLO = 'hello@aistupidlevel.info';
+
+async function deliver(to: string, subject: string, html: string, text: string, replyTo?: string, from = SMTP_FROM) {
   try {
     const isLocalhost = SMTP_HOST === 'localhost' || SMTP_HOST === '127.0.0.1';
     if (!isLocalhost && (!SMTP_USER || !SMTP_PASS)) {
@@ -182,7 +188,7 @@ async function deliver(to: string, subject: string, html: string, text: string, 
       return { success: false, error: 'Email service not configured' };
     }
     await createTransporter().sendMail({
-      from: `"AI Stupid Level" <${SMTP_FROM}>`,
+      from: `"AI Stupid Level" <${from}>`,
       // Never put the sender's address in From: — we are not authorised to sign
       // for their domain, and DMARC-protected senders would fail outright.
       // Reply-To is the correct header for "answer this person".
@@ -393,37 +399,53 @@ export async function sendSubscriptionCancelledUnpaidEmail(email: string, opts: 
 }
 
 /**
- * The original $4.99 Pro subscription has run its twelve months (lib/billing-watch.ts): it ends
- * at the close of the period already paid for and is not renewed.
+ * The original $4.99 Pro subscription moves to the current Pro price after its twelve months
+ * (lib/billing-watch.ts). Sent at least 30 days before the first charge at $12, as the terms
+ * promise, from hello@ so a reply reaches a person. Keeping the subscription takes nothing; the
+ * cancel link (lib/cancel-link.ts) opens a page that asks before anything is cancelled.
  */
-export async function sendLegacyTermEndedEmail(
+export async function sendLegacyPriceChangeEmail(
   email: string,
-  opts: { started: string; ended: string; accessUntil: string },
+  opts: { started: string; changes: string; cancelUrl: string },
 ) {
+  const link = (href: string, label: string) => `<a href="${href}" style="color:#1a73e8;font-weight:600;">${label}</a>`;
   return deliver(
     email,
-    'Your $4.99 AI Stupid Level subscription has ended',
+    'Your AI Stupid Level subscription price is changing',
     renderEmail({
-      heading: 'Your 12 months at $4.99 are complete',
-      preheader: 'Thank you for being one of our first subscribers.',
+      heading: 'Your subscription is moving to $12 a month',
+      preheader: `From ${opts.changes}. To keep your subscription, you do not need to do anything.`,
       intro:
-        `Thank you for being one of our first subscribers. Your Pro subscription at the original price of ` +
-        `$4.99 a month included 12 months, which ended on ${opts.ended}. It will not renew, so you will not be ` +
-        `charged again, and you keep full access until ${opts.accessUntil}. ` +
-        `You are invited to subscribe again under our current plans.`,
+        `Thank you for being one of our first subscribers. You joined on ${opts.started} at our original price of ` +
+        `$4.99 a month, which covers your first 12 months. From your renewal on ${opts.changes}, your Pro ` +
+        `subscription moves to our current Pro price of $12 a month.`,
       rows: [
-        ['Subscribed', opts.started],
-        ['12 months ended', opts.ended],
-        ['Access until', opts.accessUntil],
+        ['Plan', 'Pro'],
+        ['Your price now', '$4.99 a month'],
+        [`From ${opts.changes}`, '$12 a month'],
       ],
-      ctaLabel: 'See current plans',
-      ctaUrl: `${SITE}/pricing`,
+      paragraphs: [
+        `To keep your subscription, you do not need to do anything. It renews on the same payment method, and ` +
+        `your account, watchlist and alerts stay as they are. Everything Pro includes is on our ${link(`${SITE}/pricing`, 'pricing page')}.`,
+        `If you would rather not continue, you can ${link(opts.cancelUrl, 'cancel your subscription')} at any time ` +
+        `before ${opts.changes}. You will not be charged again, and you keep full access until the end of the ` +
+        `period you have already paid for.`,
+      ],
       signoff: true,
+      footnote: 'Questions about this change? Reply to this email and we will help.',
     }),
-    `Thank you for being one of our first subscribers. Your Pro subscription at the original price of $4.99 a month ` +
-    `included 12 months, which ended on ${opts.ended}. It will not renew, so you will not be charged again, ` +
-    `and you keep full access until ${opts.accessUntil}.\n\n` +
-    `You are invited to subscribe again under our current plans: ${SITE}/pricing\n`
+    `Thank you for being one of our first subscribers. You joined on ${opts.started} at our original price of ` +
+    `$4.99 a month, which covers your first 12 months. From your renewal on ${opts.changes}, your Pro subscription ` +
+    `moves to our current Pro price of $12 a month.\n\n` +
+    `To keep your subscription, you do not need to do anything. It renews on the same payment method, and your ` +
+    `account, watchlist and alerts stay as they are. Everything Pro includes: ${SITE}/pricing\n\n` +
+    `If you would rather not continue, you can cancel your subscription at any time before ${opts.changes}. ` +
+    `You will not be charged again, and you keep full access until the end of the period you have already paid for:\n` +
+    `${opts.cancelUrl}\n\n` +
+    `Questions about this change? Reply to this email and we will help.\n\n` +
+    `Thank you,\nThe AI Stupid Level team\n`,
+    undefined,
+    HELLO,
   );
 }
 

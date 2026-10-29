@@ -12,10 +12,16 @@
  *    there is a problem with their billing. The webhook does this as it happens; the watch
  *    catches any cancellation the webhook missed (account 168 kept its plan unpaid for three
  *    and a half months that way).
- *  - Legacy $4.99. Twelve months after a subscriber's first subscription, the subscription is
- *    set to end at the close of the period already paid for, so no renewal is ever charged
- *    after the twelve months, and the customer is emailed that the $4.99 term has ended and
- *    invited to subscribe under the current plans.
+ *  - Legacy $4.99 (changed 2026-10-29: these move to the current price instead of ending).
+ *    Twelve months after a subscriber's first subscription, the subscription moves to the current
+ *    Pro price, $12 a month. The customer is emailed from 37 days before the 12-month mark, and
+ *    the first $12 charge is the first renewal that is both on or after the mark and at least 30
+ *    days after the email (the terms promise 30 days' notice of a price change). Two days before
+ *    that renewal the price is switched with no proration, so the period already paid for stays
+ *    at $4.99; the account keeps its plan until the first $12 period begins, then becomes Pro.
+ *    The email's cancel link ends the subscription at the close of the period already paid for.
+ *    The emails go only with LEGACY_PRICE_CHANGE=on (the owner approves the wording first); a dry
+ *    run shows who would get one.
  *
  * The API worker calls POST /api/internal/billing-watch every six hours. Every action and
  * email is recorded in billing_notices, one per kind and Stripe object, so a rerun never
@@ -24,11 +30,13 @@
 import Stripe from 'stripe';
 import { openIdentityDb } from '@/lib/identity-db';
 import { PLANS, ownPlanFor, type Plan } from '@/lib/entitlements';
-import { downgradeToFree } from '@/lib/db-client';
+import { cancelSubscription, downgradeToFree, findUserById, moveLegacyToPro } from '@/lib/db-client';
 import { syncDataApiTier } from '@/lib/data-api-tier';
 import { recordActivation } from '@/lib/activation';
 import { stripeSnapshot, type StripeSubscriptionRecord } from '@/lib/admin-stripe';
-import { sendLegacyTermEndedEmail, sendPaymentFailedEmail, sendSubscriptionCancelledUnpaidEmail } from '@/lib/email-service';
+import { priceIdFor } from '@/lib/stripe-plans';
+import { PREVIEW_SUBSCRIPTION, cancelLink } from '@/lib/cancel-link';
+import { sendLegacyPriceChangeEmail, sendPaymentFailedEmail, sendSubscriptionCancelledUnpaidEmail } from '@/lib/email-service';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-09-30.clover' });
 
@@ -36,17 +44,24 @@ const DAY = 86_400_000;
 /** Stripe states in which a subscription still bills or will bill. */
 const LIVE = new Set(['active', 'trialing', 'past_due', 'unpaid', 'paused', 'incomplete']);
 const ENDED = new Set(['canceled', 'incomplete_expired']);
+/** The terms: a price change is announced at least 30 days before it applies. */
+const NOTICE_MS = 30 * DAY;
 /**
- * How long before the 12-month date the legacy end is set. A subscription whose renewal falls on
- * the date itself would otherwise renew (and charge a 13th month) before the watch next runs.
+ * The $4.99 → $12 email goes this long before the 12-month mark, so the first renewal after the
+ * mark can take the new price with the 30 days' notice kept even if the watch misses some runs.
  */
-const LEGACY_LEAD_MS = 3 * DAY;
+const NOTICE_LEAD_MS = 37 * DAY;
+/** How long before that renewal the price is switched; the watch runs every six hours. */
+const SWITCH_LEAD_MS = 2 * DAY;
 /** Our own accounts and the demo account: never billed, never emailed by this. */
 const DEMO_ACCOUNT_ID = 1360;
 const INTERNAL_ROLES = new Set(['admin', 'superadmin', 'system']);
 
 export type NoticeKind =
-  | 'duplicate_cancelled' | 'payment_failed' | 'downgraded' | 'cancelled_unpaid' | 'legacy_end_scheduled' | 'legacy_ended';
+  | 'duplicate_cancelled' | 'payment_failed' | 'downgraded' | 'cancelled_unpaid'
+  | 'legacy_price_notice' | 'legacy_price_changed' | 'legacy_now_pro' | 'cancelled_from_email'
+  // Before 2026-10-29 a $4.99 subscription ended at 12 months; these remain in the log.
+  | 'legacy_end_scheduled' | 'legacy_ended' | 'legacy_end_reverted';
 
 export interface WatchAction {
   kind: NoticeKind;
@@ -80,6 +95,23 @@ const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 const isoOf = (unix: unknown) => (typeof unix === 'number' && unix > 0 ? new Date(unix * 1000).toISOString() : null);
 const addYear = (iso: string) => { const d = new Date(iso); d.setUTCFullYear(d.getUTCFullYear() + 1); return d.toISOString(); };
+
+/**
+ * The first renewal of a monthly subscription at or after `notBefore`, counting from the current
+ * period's end. Stripe renews on the billing anchor's day of the month (a shorter month's last
+ * day) at the anchor's time.
+ */
+function renewalOnOrAfter(periodEnd: string, anchor: string, notBefore: number): string {
+  const a = new Date(anchor);
+  let at = new Date(periodEnd);
+  while (at.getTime() < notBefore) {
+    const year = at.getUTCFullYear();
+    const month = at.getUTCMonth() + 1;
+    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+    at = new Date(Date.UTC(year, month, Math.min(a.getUTCDate(), lastDay), a.getUTCHours(), a.getUTCMinutes(), a.getUTCSeconds()));
+  }
+  return at.toISOString();
+}
 
 function withNotices<T>(fn: (db: ReturnType<typeof openIdentityDb>) => T): T {
   const db = openIdentityDb();
@@ -254,7 +286,11 @@ export async function runBillingWatch({ dryRun = false } = {}): Promise<{ at: st
     }
   }
 
-  // 4. Legacy $4.99: twelve months from the account's first subscription, then it ends.
+  // 4. Legacy $4.99: twelve months from the account's first subscription, then the current Pro price.
+  const proMonthly = priceIdFor('pro', 'monthly');
+  const noticesOn = process.env.LEGACY_PRICE_CHANGE === 'on';
+  const noticed = new Set(withNotices(db => db.prepare(`SELECT ref FROM billing_notices WHERE kind = 'legacy_price_notice'`).all() as Array<{ ref: string }>)
+    .map(n => n.ref));
   const firstLegacy = new Map<number, string>();
   for (const x of subs) {
     if (!x.owner || x.s.plan !== 'legacy_pro') continue;
@@ -263,37 +299,126 @@ export async function runBillingWatch({ dryRun = false } = {}): Promise<{ at: st
   }
   for (const acc of accounts) {
     if (isInternal(acc) || ownPlanFor(acc) !== 'legacy_pro') continue;
-    const first = firstLegacy.get(acc.id);
     const current = acc.stripe_subscription_id ? subById.get(acc.stripe_subscription_id) : undefined;
-    if (!first || !current || !LIVE.has(current.status) || current.plan !== 'legacy_pro' || cancelled.has(current.id)) continue;
-    const mark = addYear(first);
-    const markAt = Date.parse(mark);
-    let endsAt = current.cancelAt;
-    // Only the renewal that would start the 13th month is stopped: one that begins inside the
-    // twelve months is part of what they were promised.
-    if (!endsAt && now >= markAt - LEGACY_LEAD_MS && current.periodEnd && Date.parse(current.periodEnd) >= markAt) {
-      const a = await once(
-        {
-          kind: 'legacy_end_scheduled', userId: acc.id, email: acc.email, ref: current.id,
-          detail: `12 months from ${first.slice(0, 10)} reach ${mark.slice(0, 10)}; ${current.id} ends ${current.periodEnd.slice(0, 10)}, not renewed`,
-        },
-        async () => {
-          await stripe.subscriptions.update(current.id, { cancel_at_period_end: true, metadata: { asl_end_reason: 'legacy_term' } });
-        },
-        dryRun,
-      );
-      push(a);
-      if (a?.done || dryRun) endsAt = current.periodEnd;
-    }
-    // The email says it will not renew, so it goes only once that is true.
-    if (now >= markAt && endsAt) {
+    if (!current || !LIVE.has(current.status) || cancelled.has(current.id)) continue;
+    const changeAt = current.priceChangeAt ? Date.parse(current.priceChangeAt) : NaN;
+
+    // Already on the $12 price: the account becomes Pro once the first period at that price has begun.
+    if (current.plan === 'pro') {
+      if (Number.isNaN(changeAt) || !current.periodStart || Date.parse(current.periodStart) < changeAt - DAY) continue;
       push(await once(
-        { kind: 'legacy_ended', userId: acc.id, email: acc.email, ref: `user:${acc.id}`, detail: `$4.99 term ended ${mark.slice(0, 10)}; access until ${endsAt.slice(0, 10)}; emailed` },
-        () => sendLegacyTermEndedEmail(acc.email, { started: longDate(first), ended: longDate(mark), accessUntil: longDate(endsAt!) }),
+        { kind: 'legacy_now_pro', userId: acc.id, email: acc.email, ref: current.id, detail: `First $12 period began ${current.periodStart.slice(0, 10)}; account moved to Pro` },
+        async () => { moveLegacyToPro(acc.id); syncDataApiTier(acc.id); },
         dryRun,
       ));
+      continue;
     }
+    // One that is ending is not renewed at any price; if it is renewed later, it is picked up then.
+    const first = firstLegacy.get(acc.id);
+    if (!first || current.plan !== 'legacy_pro' || current.cancelAt || !current.periodEnd) continue;
+    const mark = addYear(first);
+    const markAt = Date.parse(mark);
+
+    // The email: from 37 days before the mark, naming the first renewal that is on or after the
+    // mark and at least 30 days away. A renewal that begins inside the twelve months stays $4.99.
+    if (!noticed.has(current.id)) {
+      if (now < markAt - NOTICE_LEAD_MS || current.interval !== 'month' || !current.billingAnchor) continue;
+      if (!noticesOn && !dryRun) continue;
+      const changes = renewalOnOrAfter(current.periodEnd, current.billingAnchor, Math.max(markAt, now + NOTICE_MS));
+      push(await once(
+        {
+          kind: 'legacy_price_notice', userId: acc.id, email: acc.email, ref: current.id,
+          detail: `12 months from ${first.slice(0, 10)} reach ${mark.slice(0, 10)}; $12 from the renewal on ${changes.slice(0, 10)}; emailed${noticesOn ? '' : ' once LEGACY_PRICE_CHANGE=on'}`,
+        },
+        async () => {
+          // Stripe keeps the date the email names, for the switch below and for anyone reading the subscription.
+          await stripe.subscriptions.update(current.id, { metadata: { asl_price_change_at: changes } });
+          return sendLegacyPriceChangeEmail(acc.email, { started: longDate(first), changes: longDate(changes), cancelUrl: cancelLink(acc.id, current.id) });
+        },
+        dryRun,
+      ));
+      continue;
+    }
+
+    // The switch: in the last two days before that renewal. No proration, so the period already
+    // paid for stays at $4.99 and the renewal charges $12.
+    const periodEnd = Date.parse(current.periodEnd);
+    if (!proMonthly || !current.itemId || Number.isNaN(changeAt) || periodEnd < changeAt - DAY || now < periodEnd - SWITCH_LEAD_MS) continue;
+    push(await once(
+      { kind: 'legacy_price_changed', userId: acc.id, email: acc.email, ref: current.id, detail: `${current.id} moved to the $12 Pro price; the renewal on ${current.periodEnd.slice(0, 10)} charges $12` },
+      async () => {
+        // The Pro price carries a 7-day trial for new checkouts; a switch must not start one.
+        await stripe.subscriptions.update(current.id, {
+          items: [{ id: current.itemId!, price: proMonthly }],
+          proration_behavior: 'none',
+          trial_from_plan: false,
+        });
+      },
+      dryRun,
+    ));
   }
 
   return { at: new Date().toISOString(), dryRun, actions };
+}
+
+/** What the cancel link in a price-change email can still do, for app/billing/cancel. */
+export type CancelLinkState =
+  | { state: 'invalid' }
+  | { state: 'ended' }
+  | { state: 'ending'; endsAt: string | null }
+  | { state: 'live'; amount: string; periodEnd: string | null };
+
+function linkState(s: Stripe.Subscription): CancelLinkState {
+  if (ENDED.has(s.status)) return { state: 'ended' };
+  const raw = s as any;
+  const item = s.items?.data?.[0];
+  const periodEnd = isoOf(item?.current_period_end ?? raw.current_period_end);
+  if (raw.cancel_at || raw.cancel_at_period_end) return { state: 'ending', endsAt: isoOf(raw.cancel_at) ?? periodEnd };
+  return { state: 'live', amount: money((item?.price?.unit_amount ?? 0) * (item?.quantity ?? 1)), periodEnd };
+}
+
+/** The subscription a link names, when it belongs to the account the link was signed for. */
+async function linkedSubscription(userId: number, subscriptionId: string) {
+  const acc = findUserById(userId);
+  if (!acc) return null;
+  try {
+    const s = await stripe.subscriptions.retrieve(subscriptionId);
+    const customer = typeof s.customer === 'string' ? s.customer : s.customer.id;
+    return s.metadata?.userId === String(userId) || customer === acc.stripe_customer_id ? { acc, s } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The page behind a cancel link. Opening it changes nothing. The preview subscription shows the
+ * page to us (demo account only) and, after its button, what a customer would see.
+ */
+export async function cancelLinkState(userId: number, subscriptionId: string, afterCancel = false): Promise<CancelLinkState> {
+  if (subscriptionId === PREVIEW_SUBSCRIPTION) {
+    if (userId !== DEMO_ACCOUNT_ID) return { state: 'invalid' };
+    const end = new Date(Date.now() + 9 * DAY).toISOString();
+    return afterCancel ? { state: 'ending', endsAt: end } : { state: 'live', amount: '$4.99', periodEnd: end };
+  }
+  const found = await linkedSubscription(userId, subscriptionId);
+  return found ? linkState(found.s) : { state: 'invalid' };
+}
+
+/** The cancel link's button: the subscription ends at the close of the period already paid for. */
+export async function cancelFromLink(userId: number, subscriptionId: string): Promise<CancelLinkState> {
+  if (subscriptionId === PREVIEW_SUBSCRIPTION) return cancelLinkState(userId, subscriptionId, true);
+  const found = await linkedSubscription(userId, subscriptionId);
+  if (!found) return { state: 'invalid' };
+  const before = linkState(found.s);
+  if (before.state !== 'live') return before;
+  const after = linkState(await stripe.subscriptions.update(subscriptionId, {
+    cancel_at_period_end: true,
+    metadata: { asl_end_reason: 'declined_price_change' },
+  }));
+  const endsAt = after.state === 'ending' ? after.endsAt : before.periodEnd;
+  // The webhook records this too; doing it here shows it on the account at once.
+  if (found.acc.stripe_subscription_id === subscriptionId) cancelSubscription(userId, endsAt);
+  withNotices(db => db.prepare('INSERT OR IGNORE INTO billing_notices (user_id, kind, ref, detail) VALUES (?, ?, ?, ?)')
+    .run(userId, 'cancelled_from_email', subscriptionId, `Customer cancelled from the price-change email; ends ${endsAt ? endsAt.slice(0, 10) : 'at the period end'}`));
+  return after;
 }
