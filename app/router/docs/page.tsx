@@ -436,8 +436,10 @@ providers:
 
 /** Integrations in apps and agents: no code, a few settings. */
 const APP_INTEGRATIONS: CodeSample[] = [
-  { label: 'n8n', lang: 'text', code: `Install (self-hosted n8n):
-  Settings → Community Nodes → Install → n8n-nodes-aistupidlevel
+  { label: 'n8n', lang: 'text', code: `Install:
+  n8n Cloud     search "AI Stupid Level" on the canvas (a verified node;
+                Verified Community Nodes must be on in the Admin Panel)
+  Self-hosted   Settings → Community Nodes → Install → n8n-nodes-aistupidlevel
 
 Credentials:
   AI Stupid Level Router API   router key (aism_…)      chat and routing
@@ -1194,7 +1196,7 @@ export default function DocsPage() {
                 <div className="sd-flow">
                   <h3 className="sd-h3">Built in</h3>
                   <dl className="st-kv sd-hdrs">
-                    <div><dt><code>n8n-nodes-aistupidlevel</code></dt><dd><strong>n8n.</strong> A node for chat, routing and benchmark data, plus an AI Stupid Level Chat Model for the AI Agent. Install it from Settings → Community Nodes</dd></div>
+                    <div><dt><code>n8n-nodes-aistupidlevel</code></dt><dd><strong>n8n.</strong> A node for chat, routing and benchmark data, plus an AI Stupid Level Chat Model for the AI Agent. Verified on n8n Cloud, where you add it from the canvas; on self-hosted n8n, install it from Settings → Community Nodes</dd></div>
                     <div><dt><code>@aistupidlevel/mcp</code></dt><dd><strong>MCP server</strong>, listed in the official MCP Registry. Rankings, drift, incidents, route previews and router answers as tools in Claude, Cursor, VS Code and any MCP client</dd></div>
                     <div><dt><code>langchain-aistupidlevel</code></dt><dd><strong>LangChain</strong> chat model <C>ChatAISL</C>: tools, structured output and streaming, plus the model that answered and why</dd></div>
                     <div><dt><code>@aistupidlevel/ai-sdk-provider</code></dt><dd><strong>Vercel AI SDK</strong> provider: <C>generateText</C>, <C>streamText</C> and tools</dd></div>
