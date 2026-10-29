@@ -140,6 +140,8 @@ export interface RecentRequest {
   cost: string;
   latency: number;
   success: boolean;
+  /** Why a failed request failed: a failure class, or 'no_provider_key'; null when it succeeded. */
+  cause?: string | null;
   timestamp: string;
 }
 

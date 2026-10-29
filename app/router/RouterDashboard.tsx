@@ -73,6 +73,17 @@ function forDemo(snap: LandingStrategy): LandingStrategy {
 }
 
 const providerName = (p: string) => PROVIDER_LABEL[p] ?? (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Provider');
+/** Why a request failed, in the words a customer acts on (the API's `cause`). */
+const FAILURE: Record<string, (provider: string) => string> = {
+  client_quota: p => `${p} account out of credit`,
+  no_provider_key: p => `No ${p} key saved`,
+  client_auth: p => `${p} rejected the key`,
+  client_rate_limit: p => `${p} key rate-limited`,
+  client_request: p => `${p} rejected the request`,
+  refusal: () => 'The model declined the request',
+  model: () => 'The model did not answer',
+  transport: () => 'Network error or timeout',
+};
 const pctText = (v: string | number) => (String(v).endsWith('%') ? String(v) : `${v}%`);
 const plural = (n: number, word: string) => (n ? `${n} ${word}${n === 1 ? '' : 's'}` : '');
 const decimals = (v: string | number | undefined) => (String(v ?? '').split('.')[1] ?? '').replace(/\D.*$/, '').length;
@@ -465,8 +476,12 @@ function RouterDashboardContent() {
                       <div className="st-row-main">
                         <div className="st-row-t" title={req.model}>{names[req.model] ?? req.model}</div>
                         <div className="st-row-s">
-                          {providerName(req.provider)} · {(req.tokensIn + req.tokensOut).toLocaleString()} tokens
-                          {req.latency != null ? ` · ${Number(req.latency).toLocaleString()} ms` : ''}{when ? ` · ${when}` : ''}
+                          {!req.success && req.cause && FAILURE[req.cause]
+                            ? <>{FAILURE[req.cause](providerName(req.provider))}{when ? ` · ${when}` : ''}</>
+                            : <>
+                                {providerName(req.provider)} · {(req.tokensIn + req.tokensOut).toLocaleString()} tokens
+                                {req.latency != null ? ` · ${Number(req.latency).toLocaleString()} ms` : ''}{when ? ` · ${when}` : ''}
+                              </>}
                         </div>
                       </div>
                       <div className="st-row-end">
