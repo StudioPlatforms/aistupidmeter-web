@@ -39,6 +39,7 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
     // Sol and Luna first: the generic gpt-6 branch is Astra's price (5x / 100x theirs).
     // GPT-6.1 Sol (2026-09-29) is spelled with a dot, so 'gpt-6-sol' does not catch it.
     if (name.includes('gpt-6.1-sol')) return { input: 2, output: 10 };
+    if (name.includes('gpt-6.1-terra')) return { input: 1, output: 5 };
     if (name.includes('gpt-6-sol')) return { input: 2, output: 10 };
     if (name.includes('gpt-6-luna')) return { input: 0.10, output: 0.50 };
     if (name.includes('gpt-6')) return { input: 10, output: 50 };

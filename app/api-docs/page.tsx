@@ -52,10 +52,14 @@ const ENDPOINTS: Array<{ path: string; desc: string; params?: string }> = [
 
 const ERRORS: [string, string, string][] = [
   ['400', 'invalid_model_id', 'The model id in the path is malformed.'],
+  ['400', 'invalid_period', 'period is not one of the accepted values. The body lists them.'],
+  ['400', 'invalid_sort', 'sortBy is not one of the accepted values (or not one history takes). The body lists them.'],
   ['401', 'api_key_required', 'No key was sent.'],
   ['401', 'invalid_api_key', 'The key is unknown or has been revoked.'],
+  ['403', 'latest_requires_plan', 'A free key asked for period=latest. Use 24h, 7d or 1m, or a paid plan.'],
   ['404', 'model_not_found', 'No such model.'],
   ['429', 'quota_exceeded', 'Daily quota spent. Resets at 00:00 UTC.'],
+  ['502', 'Bad Gateway', 'Our side failed to produce the data. Not caused by your request and not counted against your quota. Retry later; if it persists, contact us with the time and path.'],
 ];
 
 const CURL = `curl -H "Authorization: Bearer asl_live_your_key_here" \\

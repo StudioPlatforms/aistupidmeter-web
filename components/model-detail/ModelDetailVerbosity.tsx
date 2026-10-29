@@ -157,7 +157,7 @@ export default function ModelDetailVerbosity({ modelId, focus = null }: { modelI
       flush
       foot={(
         <>
-          Counts the words each model returned — {rows.map(k => `${LABEL[k].toLowerCase()}: ${WHAT[k]}`).join('; ')} — over the last seven days on the current version of each test.
+          Counts the words each model returned — {rows.map(k => `${LABEL[k].toLowerCase()}: ${WHAT[k]}`).join('; ')} — over recent runs on the current version of each test.
           Hidden reasoning is never counted. Each model is compared with the typical model on exactly the tasks it ran.
         </>
       )}
