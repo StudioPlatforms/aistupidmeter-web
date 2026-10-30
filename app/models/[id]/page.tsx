@@ -16,7 +16,7 @@ import {
 } from '@/lib/seo';
 import {
   boardLabel, findModel, getBoards24h, getDriftSignature, getPrice, getRoster, lastUpdatedOf, pairSlug, placementOn, placementSentence,
-  relatedModels, trendWord, vendorByKey, vendorMention,
+  relatedModels, retiredModelTarget, trendWord, vendorByKey, vendorMention,
   type DriftSignature, type Placement, type PriceSnapshot, type RelatedModels, type SeoBoards, type SeoModel, type Vendor,
 } from '@/lib/seo-data';
 import '@/styles/landing.css';
@@ -170,7 +170,12 @@ export default async function ModelDetailPage({ params }: { params: { id: string
   }
 
   const model = findModel(roster, params.id);
-  if (!model) notFound();
+  if (!model) {
+    // A retired model's old numeric address goes to its vendor's page instead of a 404.
+    const retired = await retiredModelTarget(params.id);
+    if (retired) permanentRedirect(retired);
+    notFound();
+  }
   const m = model as SeoModel;
 
   // 308 any non-canonical form — legacy numeric ids and stale slugs — to the slug URL so link

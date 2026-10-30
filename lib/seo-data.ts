@@ -187,6 +187,22 @@ export function findModel(roster: SeoModel[], param: string): SeoModel | null {
   return r ? roster.find((m) => m.id === String(r.model.id)) ?? null : null;
 }
 
+/**
+ * Where a retired model's old numeric address (/models/185) should go: its vendor's page. The
+ * API's detail route still answers retired ids because their history is kept, so a model retired
+ * later is covered without a new line in next.config.js. null when the API does not know the id,
+ * when the model is still ranked (a roster a few minutes stale must never send a live model's page
+ * away for good), and when the vendor has no page of ours. Named successors (kimi-k3 → K3.1 Pro)
+ * stay in next.config.js, which runs first.
+ */
+export async function retiredModelTarget(param: string): Promise<string | null> {
+  if (!/^\d+$/.test(param)) return null;
+  const m = await getJson<{ vendor?: string; showInRankings?: boolean }>(`/api/models/${param}`, 3600, 5000);
+  if (!m || m.showInRankings !== false) return null;
+  const v = vendorByKey(String(m.vendor ?? ''));
+  return v ? `/models/${v.slug}` : null;
+}
+
 /* ───────────────────────── boards (24h, statistical ranks) ───────────────────────── */
 
 export type BoardPeriod = '24h' | '7d' | '1m';

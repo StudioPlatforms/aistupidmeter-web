@@ -52,7 +52,8 @@ const nextConfig = {
 
       // Retired models whose pages were indexed (in the sitemap, or still requested by
       // Googlebot) go to their successor or their vendor's page instead of a 404, so the
-      // links they earned are kept. Add a line here whenever a ranked model is retired.
+      // links they earned are kept. Add a line here for the slug whenever a ranked model is
+      // retired; its old numeric id is sent to its vendor's page by the model page itself.
       { source: '/models/kimi-k3', destination: '/models/kimi-k3-1-pro', permanent: true },
       { source: '/models/kimi-k2-7-code', destination: '/models/kimi', permanent: true },
       { source: '/models/claude-opus-4-5', destination: '/models/anthropic', permanent: true },
@@ -61,8 +62,15 @@ const nextConfig = {
       { source: '/models/glm-5-2', destination: '/models/glm', permanent: true },
       { source: '/models/claude-sonnet-4-5', destination: '/models/anthropic', permanent: true },
       { source: '/models/kimi-k2.7-code', destination: '/models/kimi', permanent: true },
-      // Old numeric model URLs. Current models' ids already go to their slug from the model page;
-      // these belong to retired models (xAI is no longer tracked, so its ids go to the model hub).
+      { source: '/models/claude-fable-5', destination: '/models/claude-fable-5-1', permanent: true },
+      { source: '/models/gemini-3-1-pro-preview', destination: '/models/google', permanent: true },
+      { source: '/models/gemini-3-1-flash-lite', destination: '/models/google', permanent: true },
+      { source: '/models/google-gemini-2-5-flash', destination: '/models/google', permanent: true },
+      // Old numeric model URLs. Current models' ids go to their slug from the model page, and any
+      // other retired id goes to its vendor's page from there (retiredModelTarget in
+      // lib/seo-data.ts). These lines cover ids with a named successor, and xAI, which is no
+      // longer tracked and has no vendor page, so its ids go to the model hub.
+      { source: '/models/269', destination: '/models/claude-fable-5-1', permanent: true },  // claude-fable-5
       { source: '/models/41', destination: '/models', permanent: true },   // grok-4-latest
       { source: '/models/42', destination: '/models', permanent: true },   // grok-code-fast-1
       { source: '/models/69', destination: '/models/openai', permanent: true },   // gpt-4o-2024-11-20
@@ -77,6 +85,8 @@ const nextConfig = {
       { source: '/models/272', destination: '/models/glm', permanent: true },    // glm-5.2
       { source: '/models/278', destination: '/models/kimi-k3-1-pro', permanent: true },  // kimi-k3
       { source: '/models/295', destination: '/models/anthropic', permanent: true },  // claude-sonnet-4-5
+      // Googlebot asks for this misspelling now and then.
+      { source: '/sitemaps.xml', destination: '/sitemap.xml', permanent: true },
     ];
   },
 

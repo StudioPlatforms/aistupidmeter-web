@@ -53,7 +53,11 @@ export function isNumericId(param: string): boolean {
  * the full models list. Returns the matched model and its canonical slug, or
  * null if nothing matches.
  *
- * Numeric params match by id; slug params match by slugified name. If two active
+ * Numeric params match by id; slug params match by slugified name. The param is
+ * slugified too, so the raw model id people type or copy (/models/gpt-6.1-sol,
+ * /models/GLM-5.3) finds the model and the page 308s it to the canonical slug.
+ * Until 2026-10-30 only the exact slug matched, and real visitors and Googlebot
+ * got a 404 for every current model whose name has a dot in it. If two active
  * models ever slugify identically, the lowest id wins deterministically (callers
  * can add a display-name qualifier later if needed).
  */
@@ -70,7 +74,8 @@ export function resolveModelParam(
     return { model, slug: modelSlug(model), matchedByNumericId: true };
   }
 
-  const target = param.toLowerCase();
+  const target = slugifyModelName(param);
+  if (!target) return null;
   const matches = models.filter((m) => modelSlug(m) === target);
   if (matches.length === 0) return null;
   const model = matches.sort((a, b) => Number(a.id) - Number(b.id))[0];
