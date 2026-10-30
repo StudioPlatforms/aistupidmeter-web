@@ -12,7 +12,7 @@ import { isNumericId } from '@/lib/model-slug';
 import { BOARD_KEYS, standingOnBoard, type BoardKey, type Boards, type Standing } from '@/lib/boards-core';
 import { lpBody, lpDisplay } from '@/lib/fonts';
 import {
-  MONTHS_SHORT, TITLE_MAX, TITLE_SUFFIX, DESC_MAX, breadcrumbLd, clampDesc, dayLabel, faqLd, graphLd, isoDay, monthLabel, pageMeta, toDate, utcStamp, webPageLd,
+  TITLE_MAX, TITLE_SUFFIX, DESC_MAX, breadcrumbLd, clampDesc, dayLabel, faqLd, graphLd, isoDay, pageMeta, toDate, utcStamp, webPageLd,
 } from '@/lib/seo';
 import {
   boardLabel, findModel, getBoards24h, getDriftSignature, getPrice, getRoster, lastUpdatedOf, pairSlug, placementOn, placementSentence,
@@ -45,7 +45,6 @@ export const dynamic = 'force-dynamic';
 const CADENCE = 'coding every four hours, reasoning and tool use daily, with an hourly canary probe';
 /** The audit's wording for the description: the schedule the scores on this page follow. */
 const CADENCE_DESC = 'coding re-tested every four hours, reasoning and tool use daily, with an hourly drift probe.';
-const TITLE_PART_MAX = TITLE_MAX - TITLE_SUFFIX.length; // 42
 const WINDOW = 'in the last 24 hours';
 
 type ModelStanding = Record<BoardKey, Standing>;
@@ -93,19 +92,16 @@ function standingsOf(boards: Boards, id: string): { standings: ModelStanding; pl
  * site suffix; the short month, then the plain "<Name> benchmark (October 2026)" form, are the
  * fallbacks, so a long model name keeps the month and the search pattern rather than a truncated tag.
  */
-function modelTitle(name: string, generatedAt: string | null | undefined): string {
-  const d = toDate(generatedAt);
-  const long = monthLabel(d);
-  const short = `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+function modelTitle(name: string): string {
+  // "<Name> benchmark & degradation tracker" for every current name: the two searches people type for
+  // a model ("<model> benchmark", "<model> degradation tracker"). pageMeta adds the brand when it fits
+  // within 60 characters and drops it when it does not; the shorter forms are for future long names.
   const candidates = [
-    `${name} benchmark & drift check (${long})`,
-    `${name} benchmark & drift check (${short})`,
-    `${name} benchmark (${long})`,
-    `${name} benchmark (${short})`,
-    `${name} benchmark & drift check`,
+    `${name} benchmark & degradation tracker`,
+    `${name} benchmark & drift tracker`,
     `${name} benchmark`,
   ];
-  return candidates.find((c) => c.length <= TITLE_PART_MAX) ?? name.slice(0, TITLE_PART_MAX);
+  return candidates.find((c) => c.length <= TITLE_MAX) ?? name.slice(0, TITLE_MAX);
 }
 
 /** 120–155 characters, the fullest form that fits; the audit's cadence wording is kept whole. */
@@ -124,11 +120,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const model = findModel(roster, params.id);
   if (!model) return { title: { absolute: `Model not found${TITLE_SUFFIX}` }, robots: { index: false, follow: true } };
 
-  const boards = await getBoards24h();
   const name = model.displayName;
   const vendor = vendorLabelOf(vendorByKey(model.vendor), model.vendor);
   return pageMeta({
-    title: modelTitle(name, boards?.generatedAt),
+    title: modelTitle(name),
     description: modelDescription(name, vendor),
     path: `/models/${model.slug}`,
     keywords: [
@@ -448,7 +443,7 @@ function buildContent(p: {
       q: `Is ${name} getting worse over time?`,
       a:
         (verdict ? `${verdict}\n\n` : '') +
-        `This is the question the platform exists to answer. A provider can change a model behind the same API name, and without continuous re-testing that ` +
+        `This section is ${name}'s degradation tracker, and the question the platform exists to answer. A provider can change a model behind the same API name, and without continuous re-testing that ` +
         `change is invisible to the people relying on it. Each of ${name}'s suites has its own Page-Hinkley (a CUSUM-family test) change-point detector, run on ` +
         `daily results, which separates a sustained decline from ordinary run-to-run noise; it arms after ${numWord(coldStart)} days of daily results on the ` +
         `current version of the tests. An hourly canary of two fixed probes watches for a sudden collapse, tests it against the previous week with Welch's ` +

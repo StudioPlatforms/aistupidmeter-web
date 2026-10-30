@@ -40,7 +40,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const TOC = [
   { id: 'nerfed', label: 'Nerfed, drift, harness' },
   { id: 'causes', label: 'Four causes' },
-  { id: 'record', label: 'What changed' },
+  { id: 'record', label: 'Degradation over time' },
   { id: 'families', label: 'By family' },
   { id: 'check', label: 'Check yourself' },
   { id: 'faq', label: 'FAQ' },
@@ -51,6 +51,8 @@ export default async function IsAiGettingWorsePage(): Promise<JSX.Element> {
   const data = await getWorseData();
   const { models, roster, asOf } = data;
   const counts = fleetCounts(models);
+  // The detectors' cold start as the signatures report it (ten days today), for the record section.
+  const coldDays = models.flatMap((m) => m.detectors).find((d) => d.kind !== 'none')?.coldStart ?? 10;
   const verdict = verdictSentence(models, null);
   const stamp = asOf ? utcStamp(asOf) : null;
   const h1 = `${HUB_H1.title} ${HUB_H1.accent}`;
@@ -181,8 +183,23 @@ export default async function IsAiGettingWorsePage(): Promise<JSX.Element> {
           </RdProse>
         </RdSection>
 
-        <RdSection id="record" n={num('record')} title="What changed in the record"
-          lead={`Dated, past-tense changes from the test record, ${FINDINGS_WINDOW}, newest first: the same tasks before and after, with the values.`}>
+        <RdSection id="record" n={num('record')} title="AI performance degradation over time"
+          lead={`What changed in the test record, ${FINDINGS_WINDOW}, newest first: dated, past-tense changes on the same tasks, with the values before and after.`}>
+          <RdProse>
+            <p>
+              The leaderboard doubles as a degradation tracker. Every model on it is re-tested on the same tasks — {CADENCE} — and each
+              suite is compared with that model&apos;s own past by a Page-Hinkley detector, so a decline shows as a dated change rather than a hunch.
+              {counts.series > 0 && (
+                <>
+                  {' '}{stamp ? `As of ${stamp}, ` : 'Right now, '}{counts.armed} of {counts.series} per-suite detectors are armed with no detection
+                  {counts.fired > 0 ? `, ${counts.fired} ${counts.fired === 1 ? 'has' : 'have'} fired` : ''}
+                  {counts.cold > 0 ? `, and ${counts.cold} ${counts.cold === 1 ? 'is' : 'are'} still collecting ${numWord(coldDays)} days of daily results` : ''}.
+                </>
+              )}
+              {' '}The changes the record caught so far are below; every row comes from the published study of{' '}
+              <Link href="/research/thirteen-months-of-llm-monitoring">13 months of monitoring LLM APIs</Link>.
+            </p>
+          </RdProse>
           <FindingsRows findings={findings} />
         </RdSection>
 

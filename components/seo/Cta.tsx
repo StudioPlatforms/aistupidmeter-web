@@ -32,7 +32,8 @@ function Label({ text }: { text: string }) {
   return <>{t} <span className="lp-ar" aria-hidden="true">→</span></>;
 }
 
-function Block({ href, label, sub, cta, ghost, login }: { href: string; label: string; sub?: string; cta: string; ghost?: boolean; login?: string }) {
+/** loginText: the sign-in prompt in the page's language, e.g. ['已有账户？', '登录'] on /zh. */
+function Block({ href, label, sub, cta, ghost, login, loginText = ['Already have an account?', 'Log in'] }: { href: string; label: string; sub?: string; cta: string; ghost?: boolean; login?: string; loginText?: [string, string] }) {
   return (
     <div className="seo-cta">
       <Link href={href} className={`lp-btn ${ghost ? 'lp-btn-ghost' : 'lp-btn-primary'}`} data-cta={cta}>
@@ -41,7 +42,7 @@ function Block({ href, label, sub, cta, ghost, login }: { href: string; label: s
       {sub && <p className="seo-cta-sub">{sub}</p>}
       {login && (
         <p className="seo-cta-sub">
-          Already have an account? <Link href={login} data-cta={`${cta}-login`}>Log in</Link>
+          {loginText[0]} <Link href={login} data-cta={`${cta}-login`}>{loginText[1]}</Link>
         </p>
       )}
     </div>
@@ -49,9 +50,10 @@ function Block({ href, label, sub, cta, ghost, login }: { href: string; label: s
 }
 
 /** Choosing between models: the boards. */
-export function LeaderboardCta({ label, sub, cta, ghost }: { label?: string; sub?: string; cta: string; ghost?: boolean }) {
+export function LeaderboardCta({ label, sub, cta, ghost, loginText }: { label?: string; sub?: string; cta: string; ghost?: boolean; loginText?: [string, string] }) {
   const signedIn = useSignedIn();
-  if (signedIn) return <Block href="/" label={label ?? 'Open the leaderboard →'} sub={sub} cta={cta} ghost={ghost} />;
+  // Captions are sign-up pitches (free account, no card): never shown to a signed-in visitor.
+  if (signedIn) return <Block href="/" label={label ?? 'Open the leaderboard →'} cta={cta} ghost={ghost} />;
   return (
     <Block
       href={signup('/')}
@@ -60,6 +62,7 @@ export function LeaderboardCta({ label, sub, cta, ghost }: { label?: string; sub
       cta={cta}
       ghost={ghost}
       login={signin('/')}
+      loginText={loginText}
     />
   );
 }
@@ -72,7 +75,7 @@ export function WatchCta({ slug, label, sub, cta, ghost }: { slug?: string; labe
     <Block
       href={signedIn ? next : signup(next)}
       label={label ?? 'Get an email when it changes →'}
-      sub={sub ?? `${cap(word(FREE.watchedModels))} models free · email when a watched model's coding score falls five points in a week`}
+      sub={signedIn ? undefined : sub ?? `${cap(word(FREE.watchedModels))} models free · email when a watched model's coding score falls five points in a week`}
       cta={cta}
       ghost={ghost}
     />
@@ -82,7 +85,7 @@ export function WatchCta({ slug, label, sub, cta, ghost }: { slug?: string; labe
 /** Choosing between models, or routing around an outage: a router key. */
 export function RouterCta({ label, sub, cta, ghost }: { label?: string; sub?: string; cta: string; ghost?: boolean }) {
   const signedIn = useSignedIn();
-  if (signedIn) return <Block href="/router/keys" label={label ?? 'Get a router key →'} sub={sub} cta={cta} ghost={ghost} />;
+  if (signedIn) return <Block href="/router/keys" label={label ?? 'Get a router key →'} cta={cta} ghost={ghost} />;
   return (
     <Block
       href={signup('/router/keys')}
@@ -97,7 +100,7 @@ export function RouterCta({ label, sub, cta, ghost }: { label?: string; sub?: st
 /** A sign-up that lands on `next` (signed-in visitors go straight there). */
 export function SignupCta({ next, label, sub, cta, ghost }: { next: string; label: string; sub?: string; cta: string; ghost?: boolean }) {
   const signedIn = useSignedIn();
-  return <Block href={signedIn ? next : signup(next)} label={label} sub={sub} cta={cta} ghost={ghost} />;
+  return <Block href={signedIn ? next : signup(next)} label={label} sub={signedIn ? undefined : sub} cta={cta} ghost={ghost} />;
 }
 
 /** Lays CTA blocks side by side (stacked on phones). A plain div, safe to use from server components. */

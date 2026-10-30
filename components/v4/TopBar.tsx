@@ -51,13 +51,16 @@ export default function TopBar({ selectedView, onViewChange, todayVisits }: TopB
   }, []);
 
   // The Smart Router is what the paid plans sell, and until 2026-10-16 it was only in the account
-  // menu: about 1 in 20 new accounts ever opened it. Signed out, /router bounces to sign-in, so
-  // the link shows the landing's router section instead.
+  // menu: about 1 in 20 new accounts ever opened it. Since 2026-10-26 /router is also a public page
+  // for signed-out visitors (the Smart Router landing), so every visitor goes there. Signed out,
+  // "Leaderboard" opens the public top-ten board (/leaderboard), which is also what crawlers see
+  // on every page; signed in, the full leaderboard at /.
   const { status } = useSession();
-  const routerHref = status === 'authenticated' ? '/router' : '/#router';
+  const routerHref = '/router';
+  const boardHref = status === 'authenticated' ? '/' : '/leaderboard';
 
   const links: Array<{ view: string; href: string; label: string; go: () => void; minor?: boolean }> = [
-    { view: 'dashboard', href: '/', label: 'Leaderboard', go: () => { onViewChange('dashboard'); router.push('/'); } },
+    { view: 'dashboard', href: boardHref, label: 'Leaderboard', go: () => { if (boardHref === '/') onViewChange('dashboard'); router.push(boardHref); } },
     { view: 'router', href: routerHref, label: 'Smart Router', go: () => router.push(routerHref) },
     { view: 'about', href: '/about', label: 'About', go: () => router.push('/about'), minor: true },
     { view: 'faq', href: '/faq', label: 'FAQ', go: () => router.push('/faq'), minor: true },

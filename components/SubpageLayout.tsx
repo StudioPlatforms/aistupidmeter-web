@@ -22,7 +22,7 @@ export default function SubpageLayout({ children }: SubpageLayoutProps): React.J
     : path === '/pricing' || path.startsWith('/assessment') ? 'pricing'
     : path === '/watchlist' ? 'watchlist'
     : path === '/contact' ? 'contact'
-    : path === '/' ? 'dashboard'
+    : path === '/' || path === '/leaderboard' ? 'dashboard'
     : '';
 
   const handleViewChange = (view: 'dashboard' | 'about' | 'faq') => {

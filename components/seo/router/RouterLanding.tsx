@@ -8,6 +8,7 @@ import { CtaRow, LeaderboardCta, RouterCta } from '@/components/seo/Cta';
 import JsonLd from '@/components/seo/JsonLd';
 import { AsOf } from '@/components/seo/Verdict';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
+import { ClusterTags } from '@/components/seo/routers/RouterBlocks';
 import { PLANS, ROUTER_CREDITS, type Plan } from '@/lib/entitlements';
 import { monthly, planName, priceNumber } from '@/lib/pricing-display';
 import { ORG_ID, SITE, breadcrumbLd, faqLd, graphLd, isoDay, utcStamp, webPageLd } from '@/lib/seo';
@@ -41,7 +42,8 @@ export const ROUTER_TITLE = 'Smart Router: benchmark-driven LLM router';
 /** 120–155 characters. */
 export const ROUTER_DESCRIPTION = 'One OpenAI-compatible endpoint sending each request to the model scoring best for it: coding, reasoning, tool use, value or speed. Your keys, no markup.';
 export const ROUTER_KEYWORDS = [
-  'LLM router', 'AI model router', 'Smart Router', 'benchmark-driven LLM router', 'OpenAI compatible proxy',
+  'AI router', 'smart router', 'LLM router', 'AI model router', 'Smart Router', 'AI aggregator', 'LLM aggregator',
+  'OpenRouter alternative', 'best AI router', 'benchmark-driven LLM router', 'OpenAI compatible proxy',
   'one API key all AI models', 'AI gateway with your own keys', 'route requests to best LLM', 'automatic model selection LLM',
   'LLM cost optimization routing', 'Claude Code custom API endpoint', 'Cursor custom OpenAI endpoint', 'AI failover routing',
 ];
@@ -189,7 +191,7 @@ const TOC = [
   { id: 'what', label: 'What it is' },
   { id: 'works', label: 'Works with' },
   { id: 'plans', label: 'Plans' },
-  { id: 'gateway', label: 'AI gateway?' },
+  { id: 'gateway', label: 'Gateway or aggregator?' },
   { id: 'faq', label: 'FAQ' },
 ];
 const num = (id: string) => tocNumber(TOC, id);
@@ -235,6 +237,10 @@ function buildFaq({ interval, perVendor }: FaqContext): FaqItem[] {
     {
       q: 'Which models can it route to?',
       a: `${roster} You add a key for each provider you want in play, and the modes rank only the models you can reach. Any real model id from GET /v1/models can also be pinned directly. The router handles text, code and tool calls, because those are what the benchmarks measure.`,
+    },
+    {
+      q: 'Is the Smart Router an OpenRouter alternative?',
+      a: `Yes. Like OpenRouter, it puts many models behind one OpenAI-compatible API. It differs in how it picks the model, from public benchmark results re-run ${CADENCE}, and in always using your own provider keys, with no markup on tokens. [OpenRouter alternatives](/openrouter-alternatives) compares the two with the other options, each from its vendor’s own pages, and shows the three steps to switch; [Best AI routers in 2026](/best-ai-router) sets the wider field side by side, and [AI aggregator](/ai-aggregator) and [what an AI router is](/ai-router) cover the terms.`,
     },
     {
       q: 'Is there a free tier?',
@@ -311,8 +317,8 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
         title={H1}
         accent={H1_ACCENT}
         lead={<>
-          One endpoint, {MODE_COUNT} auto-* modes, your own provider keys, zero markup on tokens. Point any OpenAI-compatible
-          client at <code>{BASE_URL}</code>, send <code>model: &quot;auto-coding&quot;</code> or any other mode, and the request
+          An AI router with one endpoint, {MODE_COUNT} auto-* modes, your own provider keys and zero markup on tokens. Point any
+          OpenAI-compatible client at <code>{BASE_URL}</code>, send <code>model: &quot;auto-coding&quot;</code> or any other mode, and the request
           goes to the model placing highest for that job among the providers you hold keys for, re-ranked as the benchmarks
           re-run: {CADENCE}.
         </>}
@@ -520,8 +526,8 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
         <RdSection
           id="gateway"
           n={num('gateway')}
-          title="Is the Smart Router an AI gateway?"
-          lead="Yes, in the sense people usually mean: one base URL and one key in front of every provider, with logging, budgets, fallbacks and per-request accounting behind it."
+          title="Is the Smart Router an AI gateway or an AI aggregator?"
+          lead="Both, in the sense people usually mean: one base URL and one key in front of every provider, with logging, budgets, fallbacks and per-request accounting behind it."
         >
           <RdProse>
             <p>
@@ -541,7 +547,12 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
               <Link href="/status">status page</Link>. Any two models can be put side by side on <Link href="/compare">compare</Link>,
               and the same data is available by key through the <Link href="/api-docs">Data API</Link>.
             </p>
+            <p>
+              <b>Compare routers.</b> The Smart Router beside the other AI routers, gateways and aggregators, each described from its
+              vendor’s own pages, and the steps to switch:
+            </p>
           </RdProse>
+          <ClusterTags current={ROUTER_PATH} label="Compare routers" />
         </RdSection>
 
         <RdSection id="faq" n={num('faq')} title="Smart Router questions">

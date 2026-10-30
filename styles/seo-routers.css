@@ -1,0 +1,47 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The AI router cluster: /ai-router, /ai-aggregator, /best-ai-router, /openrouter-alternatives
+   (components/seo/routers/*). Everything else is reading.css and seo.css. Scoped under .lp .rt-*.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── comparison table (on reading.css's .rd-table and seo.css's .seo-table) ── */
+.lp .rt-table-wrap { max-width: 1200px; }
+.lp .rt-table th[scope="row"] { min-width: 150px; font-weight: 600; }
+.lp .rt-table th[scope="row"] a { color: var(--lp-fg); text-decoration: none; }
+.lp .rt-table th[scope="row"] a:hover { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .rt-table td { line-height: 1.6; color: var(--lp-fg2); }
+.lp .rt-table tr.rt-own > * { background: color-mix(in srgb, var(--lp-accent) 5%, transparent); }
+.lp .rt-table tr.rt-own th[scope="row"] a { color: var(--lp-accent); }
+
+/* ── the detailed list (reading.css .rd-rows) ── */
+.lp .rt-name a { color: var(--lp-fg); text-decoration: none; }
+.lp .rt-name a:hover { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .rt-detail { display: grid; gap: 8px; }
+.lp .rt-detail p { margin: 0; }
+.lp .rt-detail b { font-weight: 600; color: var(--lp-fg); }
+
+/* ── live picks (on /ai-router) ── */
+.lp .rt-live th[scope="row"] { min-width: 0; white-space: nowrap; }
+.lp .rt-live th[scope="row"] code { font-size: 13px; font-weight: 500; color: var(--lp-accent); background: none; padding: 0; }
+.lp .rt-live td a { color: var(--lp-fg); font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lp .rt-prov { color: var(--lp-fg3); font-size: 13.5px; white-space: nowrap; }
+
+/* ── two products side by side (on /openrouter-alternatives) ── */
+.lp .rt-vs th[scope="row"] { min-width: 130px; }
+.lp .rt-vs td { width: 42%; }
+
+/* ── the roster by provider (on /ai-aggregator) ── */
+.lp .rt-roster td a { color: var(--lp-fg); text-decoration: none; }
+.lp .rt-roster td a:hover { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .rt-roster .rt-models { line-height: 1.75; }
+
+/* ── vendor sources ── */
+.lp .rt-sources { font-size: 13.5px; color: var(--lp-fg3); }
+.lp .rt-sources ul { gap: 4px; }
+.lp .rt-sources a { color: var(--lp-fg2); }
+
+/* ── phones: a tighter table ── */
+@media (max-width: 760px) {
+  .lp .rt-table { font-size: 14px; }
+  .lp .rt-table th, .lp .rt-table td { padding: 11px 12px; }
+  .lp .rt-table th[scope="row"] { min-width: 110px; }
+}

@@ -24,7 +24,7 @@ const YEAR = new Date().getUTCFullYear()
  */
 export const metadata: Metadata = {
   title: {
-    default: `LLM Leaderboard & Drift Detection ${YEAR} | ${SITE_NAME}`,
+    default: `AI Benchmarks & Live LLM Rankings ${YEAR} | ${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
   },
   description: 'Independent LLM benchmarks since August 2025: GPT, Claude, Gemini, DeepSeek, Kimi and GLM re-tested on a fixed schedule, with drift alerts and a router.',

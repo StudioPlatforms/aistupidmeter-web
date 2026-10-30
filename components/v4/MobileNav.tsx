@@ -52,7 +52,9 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
   const go = (href: string) => { setDrawer(false); router.push(href); };
 
   const authed = status === 'authenticated';
-  const routerHref = authed ? '/router' : '/#router';
+  // /router is public since 2026-10-26; signed out, the Leaderboard tab opens the public top ten.
+  const routerHref = '/router';
+  const boardHref = authed ? '/' : '/leaderboard';
   const user = session?.user as any;
   const plan: Plan = isPlan(user?.plan) ? user.plan : 'free';
   const ent = PLANS[plan];
@@ -68,13 +70,13 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
   return (
     <>
       <nav className={`sb-mnav ${ROOT}`} aria-label="Primary">
-        <a className="sb-mtab" href="/" aria-current={selectedView === 'dashboard' ? 'page' : undefined}
-          onClick={navClick(() => onViewChange('dashboard'))}>Leaderboard</a>
+        <a className="sb-mtab" href={boardHref} aria-current={selectedView === 'dashboard' ? 'page' : undefined}
+          onClick={navClick(() => (authed ? onViewChange('dashboard') : go(boardHref)))}>Leaderboard</a>
         <a className="sb-mtab" href="/watchlist" aria-current={selectedView === 'watchlist' ? 'page' : undefined}
           onClick={navClick(() => go('/watchlist'))}>Watchlist</a>
         {/* The paid product gets the third slot (FAQ moved into More, 2026-10-16): buried in the
-            sheet, about 1 in 20 new accounts ever opened it. Signed out, /router asks for a
-            sign-in, so the tab shows the landing's router section instead. */}
+            sheet, about 1 in 20 new accounts ever opened it. /router is a public page for signed-out visitors
+            since 2026-10-26. */}
         <a className="sb-mtab" href={routerHref} onClick={navClick(() => go(routerHref))}>Smart Router</a>
         <button type="button" className="sb-mtab" aria-expanded={drawer} aria-controls="sb-more"
           onClick={() => setDrawer(d => !d)}>More</button>

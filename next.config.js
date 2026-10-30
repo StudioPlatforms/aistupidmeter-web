@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Lets a deploy build into another folder while the live server keeps serving .next, then
+  // swap the two (/root/admin/deploy-web.sh): seconds of restart instead of minutes of 502s,
+  // which Google records as server errors. Unset, this is Next's own default.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   webpack: (config, { isServer }) => {
     // Exclude Node.js modules from client bundle
     if (!isServer) {
@@ -54,6 +58,25 @@ const nextConfig = {
       { source: '/models/claude-opus-4-5', destination: '/models/anthropic', permanent: true },
       { source: '/models/gpt-5-3-codex', destination: '/models/openai', permanent: true },
       { source: '/models/gpt-5-4', destination: '/models/openai', permanent: true },
+      { source: '/models/glm-5-2', destination: '/models/glm', permanent: true },
+      { source: '/models/claude-sonnet-4-5', destination: '/models/anthropic', permanent: true },
+      { source: '/models/kimi-k2.7-code', destination: '/models/kimi', permanent: true },
+      // Old numeric model URLs. Current models' ids already go to their slug from the model page;
+      // these belong to retired models (xAI is no longer tracked, so its ids go to the model hub).
+      { source: '/models/41', destination: '/models', permanent: true },   // grok-4-latest
+      { source: '/models/42', destination: '/models', permanent: true },   // grok-code-fast-1
+      { source: '/models/69', destination: '/models/openai', permanent: true },   // gpt-4o-2024-11-20
+      { source: '/models/140', destination: '/models', permanent: true },  // grok-4-0709
+      { source: '/models/160', destination: '/models/anthropic', permanent: true },  // claude-sonnet-4-5-20250929
+      { source: '/models/171', destination: '/models/kimi', permanent: true },   // kimi-latest
+      { source: '/models/185', destination: '/models/google', permanent: true },  // gemini-3-pro-preview
+      { source: '/models/188', destination: '/models/anthropic', permanent: true },  // claude-opus-4-5-20251101
+      { source: '/models/226', destination: '/models/openai', permanent: true },  // gpt-5.3-codex
+      { source: '/models/230', destination: '/models/openai', permanent: true },  // gpt-5.4
+      { source: '/models/270', destination: '/models/kimi', permanent: true },   // kimi-k2.7-code
+      { source: '/models/272', destination: '/models/glm', permanent: true },    // glm-5.2
+      { source: '/models/278', destination: '/models/kimi-k3-1-pro', permanent: true },  // kimi-k3
+      { source: '/models/295', destination: '/models/anthropic', permanent: true },  // claude-sonnet-4-5
     ];
   },
 

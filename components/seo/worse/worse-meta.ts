@@ -29,6 +29,12 @@ export interface WorseCopy {
   tool: string;
   toolH2: string;
   toolFaqQ: string;
+  /** The "is there a … degradation tracker?" question, worded as people search for this family. */
+  trackerQ: string;
+  /** An optional family-specific line for that answer (a product people name alongside the models). */
+  trackerNote?: string;
+  /** An extra question in the words the searches use, where Search Console shows them (Gemini). */
+  dumberQ?: string;
   keywords: string[];
 }
 
@@ -36,22 +42,29 @@ export const WORSE_COPY: Record<WorseVendorKey, WorseCopy> = {
   openai: {
     name: 'ChatGPT', query: 'is ChatGPT getting worse', nerfQuery: 'is ChatGPT nerfed',
     tool: 'ChatGPT', toolH2: 'ChatGPT feels dumber — the app or the model?', toolFaqQ: 'Do you test ChatGPT itself?',
-    keywords: ['is ChatGPT getting worse', 'is ChatGPT nerfed', 'ChatGPT getting dumber', 'ChatGPT quality dropped', 'GPT getting dumber', 'has ChatGPT been downgraded', 'is the OpenAI API down', 'AI model nerfed', 'why is my AI model getting dumber'],
+    trackerQ: 'Is there a GPT or Codex degradation tracker?',
+    trackerNote: 'Codex, like ChatGPT, runs these models inside its own harness, which we do not measure: a GPT model that holds steady here while Codex feels worse points at that layer.',
+    keywords: ['is ChatGPT getting worse', 'is ChatGPT nerfed', 'ChatGPT getting dumber', 'ChatGPT quality dropped', 'GPT getting dumber', 'has ChatGPT been downgraded', 'is the OpenAI API down', 'GPT degradation tracker', 'Codex degradation tracker', 'AI model nerfed', 'why is my AI model getting dumber'],
   },
   anthropic: {
     name: 'Claude', query: 'is Claude getting worse', nerfQuery: 'is Claude nerfed',
     tool: 'Claude Code', toolH2: 'Claude Code feels dumber — the tool or the model?', toolFaqQ: 'Do you test Claude Code itself?',
-    keywords: ['is Claude getting worse', 'is Claude nerfed', 'Claude getting dumber', 'Claude Code getting dumber', 'has Claude been downgraded', 'Claude degraded', 'is the Anthropic API down', 'AI model nerfed', 'why is my AI model getting dumber'],
+    trackerQ: 'Is there a Claude or Opus degradation tracker?',
+    trackerNote: 'Every Claude model on the board, Opus included, is in the table at the top of this page.',
+    keywords: ['is Claude getting worse', 'is Claude nerfed', 'Claude getting dumber', 'Claude Code getting dumber', 'has Claude been downgraded', 'Claude degraded', 'is the Anthropic API down', 'Claude degradation tracker', 'Opus degradation tracker', 'AI model nerfed', 'why is my AI model getting dumber'],
   },
   google: {
     name: 'Gemini', query: 'is Gemini getting worse', nerfQuery: 'is Gemini nerfed',
     tool: 'the Gemini app', toolH2: 'The Gemini app vs the Gemini API', toolFaqQ: 'Do you test the Gemini app itself?',
-    keywords: ['is Gemini getting worse', 'is Gemini nerfed', 'Gemini getting dumber', 'Gemini quality regression', 'has Gemini been downgraded', 'is the Gemini API down', 'AI model nerfed', 'why is my AI model getting dumber'],
+    trackerQ: 'Is there a Gemini degradation tracker?',
+    dumberQ: 'Is Gemini getting dumber?',
+    keywords: ['is Gemini getting worse', 'is Gemini nerfed', 'Gemini getting dumber', 'Gemini quality regression', 'has Gemini been downgraded', 'is the Gemini API down', 'is Gemini dumb', 'is Gemini stupid', 'Gemini degradation tracker', 'AI model nerfed', 'why is my AI model getting dumber'],
   },
   deepseek: {
     name: 'DeepSeek', query: 'is DeepSeek getting worse', nerfQuery: 'is DeepSeek nerfed',
     tool: 'the DeepSeek app', toolH2: 'The DeepSeek app vs the DeepSeek API', toolFaqQ: 'Do you test the DeepSeek app itself?',
-    keywords: ['is DeepSeek getting worse', 'is DeepSeek nerfed', 'DeepSeek getting dumber', 'DeepSeek quality dropped', 'has DeepSeek been downgraded', 'is the DeepSeek API down', 'AI model nerfed', 'why is my AI model getting dumber'],
+    trackerQ: 'Is there a DeepSeek degradation tracker?',
+    keywords: ['is DeepSeek getting worse', 'is DeepSeek nerfed', 'DeepSeek getting dumber', 'DeepSeek quality dropped', 'has DeepSeek been downgraded', 'is the DeepSeek API down', 'DeepSeek degradation tracker', 'AI model nerfed', 'why is my AI model getting dumber'],
   },
 };
 

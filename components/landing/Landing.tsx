@@ -492,6 +492,7 @@ export default async function Landing() {
             ? <RouterExplorer snapshot={snapshot} />
             : <p className="lp-lead">Live routing data is refreshing — <Link className="lp-more" href="/router/docs">read the router documentation</Link></p>}
           <p className="lp-compat lp-up">Also speaks Anthropic: native <code>/v1/messages</code> passthrough, plus <code>/v1/embeddings</code>. Works with any client that lets you set a base URL. <Link className="lp-more" href="/router/docs">Router documentation</Link></p>
+          <p className="lp-compat lp-up">Choosing a router? <Link className="lp-more" href="/best-ai-router">AI routers compared</Link> <Link className="lp-more" href="/openrouter-alternatives">OpenRouter alternatives</Link> <Link className="lp-more" href="/ai-router">What an AI router does</Link></p>
           <p {...up('', 'lp-router-go')}><Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGN_UP_ROUTER}>Get your router key <span className="lp-ar">→</span></Link></p>
         </div>
       </section>

@@ -65,6 +65,7 @@ export default function TopFive({ data, signInHref }: { data: TopFiveData; signI
         <a className="lp-btn lp-btn-primary" href={signInHref}>Sign in for the full leaderboard <span className="lp-ar">→</span></a>
         <a className="lp-btn lp-btn-ghost" href="/pricing">Subscribe for the newest run’s scores</a>
       </div>
+      <p className="lp-top5-note"><a className="lp-more" href="/leaderboard">The top ten on every board: the AI leaderboard</a></p>
     </div>
   );
 }

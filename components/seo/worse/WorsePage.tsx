@@ -182,6 +182,14 @@ export default async function WorsePage({ vendor: key }: { vendor: WorseVendorKe
       q: `Is ${name} nerfed?`,
       a: `A nerf is a deliberate change that cuts a model's cost or capability. From outside, intent is invisible; behaviour is not. ${verdict ? `${verdict} ` : ''}A sustained fall on fixed tasks is what the per-suite Page-Hinkley detector is built to confirm over days; a single bad answer is not evidence, because model output varies run to run even when nothing has changed. Deliberate or not, a change behind a stable model name shows here as a change.`,
     },
+    ...(copy.dumberQ ? [{
+      q: copy.dumberQ,
+      a: `${verdict ? `${verdict} ` : ''}"Dumber" usually means one of three things: the model behind the API changed, the app around it changed, or a long conversation is wearing it down. The first shows on this page as a decline on the 24-hour boards or a fired drift detector. The app layer is the section on ${copy.toolH2.charAt(0).toLowerCase()}${copy.toolH2.slice(1)}, and long conversations are measured on [context rot](/context-rot).`,
+    }] : []),
+    {
+      q: copy.trackerQ,
+      a: `Yes: this page. It tracks every ${family} model on the board through the ${vendor.label} API, at ${vendor.apiHost}: the 24-hour scores and places on the Coding, Reasoning and Tool use boards, a Page-Hinkley detector per suite that confirms a sustained decline over days, the API's availability, and the dated changes in the record${findings.length ? `, ${findings.length} of them for this family so far` : ''}. ${copy.trackerNote ? `${copy.trackerNote} ` : ''}Each model also has its own page with its drift chart, and [the whole board](/is-ai-getting-worse) is tracked the same way.`,
+    },
     {
       q: `Why does ${name} seem dumber in long sessions?`,
       a: `Because a long conversation gives the model a different problem: more context to hold, more of it stale, and the facts that matter buried in the middle. Our boards use short, fixed tasks, so they separate a change in the model from a long-session effect. How accuracy falls as the context grows — finding, linking, tracking and counting facts from 8K to 1M tokens, graded exactly — is measured on [context rot](/context-rot).`,
