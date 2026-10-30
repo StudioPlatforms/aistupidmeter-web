@@ -188,7 +188,7 @@ export default async function WorsePage({ vendor: key }: { vendor: WorseVendorKe
     }] : []),
     {
       q: copy.trackerQ,
-      a: `Yes: this page. It tracks every ${family} model on the board through the ${vendor.label} API, at ${vendor.apiHost}: the 24-hour scores and places on the Coding, Reasoning and Tool use boards, a Page-Hinkley detector per suite that confirms a sustained decline over days, the API's availability, and the dated changes in the record${findings.length ? `, ${findings.length} of them for this family so far` : ''}. ${copy.trackerNote ? `${copy.trackerNote} ` : ''}Each model also has its own page with its drift chart, and [the whole board](/is-ai-getting-worse) is tracked the same way.`,
+      a: `Yes: this page. It tracks every ${family} model on the board through the ${vendor.label} API, at ${vendor.apiHost}: the 24-hour scores and places on the Coding, Reasoning and Tool use boards, a Page-Hinkley detector per suite that confirms a sustained decline over days, the API's availability, and the dated changes in the record${findings.length ? `, ${findings.length} of them for this family so far` : ''}. ${copy.trackerNote ? `${copy.trackerNote} ` : ''}Each model also has its own page with its drift chart, the [${family} section of the AI degradation tracker](/ai-degradation-tracker#${vendor.family.toLowerCase()}) shows how close each detector is to firing, and [the whole board](/is-ai-getting-worse) is tracked the same way.`,
     },
     {
       q: `Why does ${name} seem dumber in long sessions?`,

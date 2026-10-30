@@ -125,6 +125,8 @@ const FAQ: Array<[string, string]> = [
     'Sometimes — and usually without notice. Providers change weights, safety layers and serving infrastructure behind the same model name. AI Stupid Level re-runs the same tasks on every model on a fixed schedule and compares each one with its own history, so a drop shows up as data instead of a hunch. [Is your AI getting worse?](/is-ai-getting-worse) gives the answer by provider.'],
   ['Is ChatGPT getting worse? Is Claude getting worse?',
     'Check the record: [is ChatGPT getting worse](/is-chatgpt-getting-worse) and [is Claude getting worse](/is-claude-getting-worse) each read the drift detectors and the 24-hour board for that family. Every OpenAI and Anthropic model we track is re-tested on coding every 4 hours and on reasoning and tool use every day, and a model is flagged only when a change holds up statistically — not after one bad run.'],
+  ['Is there a live AI degradation tracker?',
+    'Yes. The [AI degradation tracker](/ai-degradation-tracker) shows every model we test with the state of each suite’s drift detector, how close it is to firing, and the hourly canary’s alarms over the last 30 days. The Smart Router reads the same alarms: for new requests in the routing modes an alarm affects, that model drops behind healthy ones while the alarm is open.'],
   ['What does “cost per correct fix” mean?',
     'What we paid the provider, at its list price, for every attempt at a task, divided by the attempts that passed the hidden tests. A model that is cheap per token but fails often can cost more per correct result than a pricier one that gets it right, so this is the number that tells you what the work really costs.'],
   ['Which AI model is best for coding right now?',
@@ -248,8 +250,8 @@ export default async function Landing() {
       '@context': 'https://schema.org',
       ...webPageLd({
         path: '/',
-        name: 'AI Stupid Level: independent LLM benchmarks, drift detection and a Smart Router',
-        description: 'Independent, continuous benchmarks of large language models, drift detection, and a Smart Router that sends every request to the model measured best for it.',
+        name: 'AI Stupid Level: independent AI benchmarks, an LLM degradation tracker and a Smart Router',
+        description: 'Independent, continuous benchmarks of large language models, a live degradation tracker with per-suite drift detection, and a Smart Router that routes each request on those results.',
       }),
     },
     {
@@ -408,7 +410,7 @@ export default async function Landing() {
       <section className="lp-sec lp-B lp-textured" id="drift">
         <div className="lp-wrap">
           <div className="lp-head lp-head-split lp-up">
-            <p className="lp-kicker">AI drift detection</p>
+            <p className="lp-kicker">AI degradation tracker</p>
             <h2 className="lp-h2">When a model quietly changes, you see it — and the router moves on.</h2>
             <p className="lp-lead">Providers change models without changing the name. We have tested every model on a fixed schedule since August 2025, so a change leaves its mark in the record: in quality, in speed and in what each answer costs. A few of them:</p>
           </div>
@@ -429,6 +431,7 @@ export default async function Landing() {
             <div><b>Evidence, not vibes</b><p>Every flag points to the runs behind it. Full history and the diagnosis behind each change come with Pro.</p></div>
           </div>
           <p {...up()} style={{ marginTop: 32, display: 'flex', flexWrap: 'wrap', gap: '12px 36px' }}>
+            <Link className="lp-more" href="/ai-degradation-tracker">Open the AI degradation tracker</Link>
             <Link className="lp-more" href="/is-ai-getting-worse">Is your AI getting worse?</Link>
             <Link className="lp-more" href="/ai-drift-detection">How AI drift detection works</Link>
           </p>

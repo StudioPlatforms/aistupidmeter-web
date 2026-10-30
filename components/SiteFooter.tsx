@@ -66,6 +66,7 @@ export default function SiteFooter({ force = false }: { force?: boolean } = {}) 
         <a href="https://x.com/AIStupidlevel" target="_blank" rel="noopener noreferrer">Follow on X</a>
         <a href="https://github.com/StudioPlatforms/aistupidmeter-web" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a href="https://www.producthunt.com/products/aistupidlevel?launch=aistupidlevel" target="_blank" rel="noopener noreferrer">Product Hunt</a>
+        <Link href="/ai-degradation-tracker">AI degradation tracker</Link>
         <Link href="/status">Provider status</Link>
         <Link href="/contact">Contact</Link>
         <Link href="/privacy">Privacy</Link>

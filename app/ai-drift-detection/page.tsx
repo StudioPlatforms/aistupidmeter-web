@@ -31,9 +31,9 @@ import '@/styles/seo-worse.css';
  */
 
 const PATH = '/ai-drift-detection';
-const TITLE = 'AI drift detection: is your model worse?';
-const DESCRIPTION = 'AI drift detection: how to tell when a model degrades behind a stable API name. Page-Hinkley (CUSUM-family) detection per suite, with the detectors’ state.';
-const HEADLINE = 'AI drift detection: is your model getting worse?';
+const TITLE = 'AI drift detection: how we catch LLM degradation';
+const DESCRIPTION = 'AI drift detection for LLMs: how a model degrading behind a stable API name is caught, with a Page-Hinkley detector per suite and an hourly canary.';
+const HEADLINE = 'AI drift detection: how we catch LLM degradation';
 
 export const metadata: Metadata = pageMeta({
   title: TITLE,
@@ -48,6 +48,10 @@ export const metadata: Metadata = pageMeta({
     'AI model degradation',
     'AI performance degradation',
     'AI performance decline',
+    'LLM degradation',
+    'LLM degradation detection',
+    'model degradation detection',
+    'AI degradation tracker',
     'model drift monitoring',
     'is ChatGPT getting worse',
     'is Claude getting worse',
@@ -125,6 +129,18 @@ export default async function AiDriftDetectionPage(): Promise<JSX.Element> {
       a: `The coding suite runs every four hours, the reasoning suite (all four sessions) and the tool-use suite (nine tasks) once a day, and a two-probe canary every hour. The Page-Hinkley statistic is computed per suite on daily medians, so it confirms a sustained shift over days rather than reacting to one bad hour. The canary's Welch test is the fast instrument for a collapse: in a replay over the record, an injected fall from 100 to 50 was caught 22 times out of 22, with a median delay of four hours. A suite that could not run — a provider outage, or a prompt the provider declined — drops out of the composite, which is labelled with how many suites contributed.`,
     },
     {
+      q: 'Is there a live AI degradation tracker?',
+      a: 'Yes. The [AI degradation tracker](/ai-degradation-tracker) shows every model on the board with each suite’s detector state, how close the detector is to its threshold, the 24-hour board’s early warning and every hourly canary alarm of the last 30 days, grouped by family.',
+    },
+    {
+      q: 'What is LLM degradation?',
+      a: 'LLM degradation is a sustained drop in a language model’s output quality while its name and API stay the same. It shows on fixed tasks as a lower pass rate, longer or slower answers for the same work, or more refusals, and it is caught by comparing the model with its own past rather than with other models.',
+    },
+    {
+      q: 'Does the Smart Router avoid drifting models?',
+      a: 'Yes, by default, for new requests. A model whose detector has fired on a suite your routing mode ranks on, or that has an open canary incident, goes behind every model without an alert. It is never removed: if every option is flagged the best of them still answers, and a conversation the model is already answering stays on it. The response’s X-AISM-Reasoning header names any model that was passed over. The setting is “Avoid models with an active drift alert” in the [Smart Router](/router) preferences.',
+    },
+    {
       q: 'Which models do you monitor for degradation?',
       a: `Current models across ${VENDOR_LIST} — the ${FAMILY_LIST} lines${counts.onBoard > 0 ? `; ${counts.onBoard} models are on the 24-hour boards` : ''}. Every model on the leaderboard has its own page with its score history and its per-suite detector state, and the whole board is answered at once on [Is your AI getting worse?](${WORSE_HUB_PATH}).`,
     },
@@ -159,14 +175,14 @@ export default async function AiDriftDetectionPage(): Promise<JSX.Element> {
         className="rd-worse rd-drift"
         kicker="AI drift detection"
         title="AI drift detection"
-        accent="& model degradation monitoring"
+        accent="& LLM degradation monitoring"
         lead={`How to tell when a model quietly gets worse behind a stable API name, and how AI Stupid Level checks for it, model by model, across ${VENDOR_LIST}.`}
         note={stamp ? `As of ${stamp} · 24-hour boards · per-suite Page-Hinkley detectors` : undefined}
         actions={(
           <CtaRow>
             <WatchCta cta="drift-hero-watch" label="Watch the models you use →" />
             <div className="seo-cta">
-              <a className="lp-btn lp-btn-ghost" href="#detection" data-cta="drift-hero-how">How we detect drift</a>
+              <Link className="lp-btn lp-btn-ghost" href="/ai-degradation-tracker" data-cta="drift-hero-tracker">Open the AI degradation tracker</Link>
             </div>
           </CtaRow>
         )}
@@ -260,7 +276,9 @@ export default async function AiDriftDetectionPage(): Promise<JSX.Element> {
             <p>
               A detector is armed once it has {coldDays} days of daily medians on the current test version, and fires only on a sustained fall. Model by
               model, with the four 24-hour scores and each detector&apos;s state, the answer is on{' '}
-              <Link href={WORSE_HUB_PATH} data-cta="drift-monitor-hub">{HUB_H1.title}</Link>.
+              <Link href={WORSE_HUB_PATH} data-cta="drift-monitor-hub">{HUB_H1.title}</Link>. Suite by suite, with how close each detector is
+              to its threshold and every canary alarm of the last 30 days, it is on the{' '}
+              <Link href="/ai-degradation-tracker" data-cta="drift-monitor-tracker">AI degradation tracker</Link>.
             </p>
           </RdProse>
         </RdSection>
@@ -297,7 +315,12 @@ export default async function AiDriftDetectionPage(): Promise<JSX.Element> {
             </p>
             <p>
               Every model on the board has its own page with its score history, per-suite breakdown and drift status. Start from the{' '}
-              <Link href="/">AI model leaderboard</Link>, or read the <Link href="/faq">benchmarking FAQ</Link> for shorter answers to common questions.
+              <Link href="/leaderboard">AI model leaderboard</Link>, or read the <Link href="/faq">benchmarking FAQ</Link> for shorter answers to common questions.
+            </p>
+            <p>
+              Measuring a change is half of it; the other half is not sending new work to a model while its alarm is open. The{' '}
+              <Link href="/router">Smart Router</Link> reads the same detectors and, for new requests, puts a model with an open alarm behind
+              every model without one, in the routing modes that rank on the affected suite.
             </p>
           </RdProse>
         </RdSection>

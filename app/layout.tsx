@@ -12,9 +12,6 @@ import '../styles/drift-cards.css'
 import '../styles/v4-layout.css'
 import '../styles/clean-theme.css'
 
-// The year is read, never typed, so the default title cannot go stale on 1 January.
-const YEAR = new Date().getUTCFullYear()
-
 /**
  * Site-wide defaults. Every page sets its own title, description, canonical, openGraph and
  * twitter through pageMeta() in lib/seo.ts (Next merges metadata shallowly per key, so a page that
@@ -24,10 +21,15 @@ const YEAR = new Date().getUTCFullYear()
  */
 export const metadata: Metadata = {
   title: {
-    default: `AI Benchmarks & Live LLM Rankings ${YEAR} | ${SITE_NAME}`,
+    // The homepage's title (app/page.tsx sets none). Measured in Search Console, 29 Jul–28 Oct 2026:
+    // "ai benchmark(s)" brought the most impressions, the "degradation tracker" searches sat at
+    // positions 1–3 with ~30% click-through, and the brand carries the informal "stupid ai" family.
+    // The Smart Router's searches are owned by /router and the router pages; it leads the
+    // description, the social titles and the page itself.
+    default: `AI Benchmarks & LLM Degradation Tracker | ${SITE_NAME}`,
     template: `%s | ${SITE_NAME}`,
   },
-  description: 'Independent LLM benchmarks since August 2025: GPT, Claude, Gemini, DeepSeek, Kimi and GLM re-tested on a fixed schedule, with drift alerts and a router.',
+  description: 'Independent AI benchmarks since August 2025, a live LLM degradation tracker, and a Smart Router that routes each request on the measured results.',
   keywords: [
     // Core benchmark keywords
     'AI benchmark',
@@ -175,8 +177,8 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: SITE,
-    title: `AI Benchmarks & Drift Detection | ${SITE_NAME}`,
-    description: 'Independent AI benchmarks since August 2025 with per-suite drift detection, and a Smart Router that sends each request to the model scoring best for it.',
+    title: `AI Benchmarks, Degradation Tracker & Smart Router | ${SITE_NAME}`,
+    description: 'Independent AI benchmarks since August 2025, a live LLM degradation tracker with per-suite drift detection, and a Smart Router that routes each request on the results.',
     siteName: SITE_NAME,
     // One image, the dynamic one. X reads twitter:image, and Telegram/Slack/LinkedIn/Discord/
     // Facebook all take the FIRST og:image, so a second "fallback" entry is never reached. The
@@ -186,8 +188,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `AI Benchmarks & Drift Detection | ${SITE_NAME}`,
-    description: 'Independent AI benchmarks since August 2025 with per-suite drift detection, and a Smart Router that sends each request to the model scoring best for it.',
+    title: `AI Benchmarks, Degradation Tracker & Smart Router | ${SITE_NAME}`,
+    description: 'Independent AI benchmarks since August 2025, a live LLM degradation tracker with per-suite drift detection, and a Smart Router that routes each request on the results.',
     creator: TWITTER_SITE,
     site: TWITTER_SITE,
     images: [OG_IMAGE.url],

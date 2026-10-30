@@ -454,7 +454,8 @@ function buildContent(p: {
         `current version of the tests. An hourly canary of two fixed probes watches for a sudden collapse, tests it against the previous week with Welch's ` +
         `t-test, and records an incident when the fall is large and significant. A Page-Hinkley detection is marked on the chart above and changes ${name}'s ` +
         `status on the drift monitor. If you are wondering whether ${name} has been nerfed, or why it seems dumber lately, see ` +
-        `[the current answer for every ${family} model](${worseHref}) and [how AI drift detection works](/ai-drift-detection) for the method.`,
+        `[the current answer for every ${family} model](${worseHref}), [every ${family} model on the AI degradation tracker](/ai-degradation-tracker${vendor ? `#${vendor.family.toLowerCase()}` : ''}) ` +
+        `and [how AI drift detection works](/ai-drift-detection) for the method.`,
     },
     {
       q: `How does ${name} compare with other models?`,

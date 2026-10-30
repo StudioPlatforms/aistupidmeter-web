@@ -455,6 +455,55 @@ export async function getDriftSignature(id: string | number): Promise<DriftSigna
   return { ...d, pageHinkleyBySuite: d.pageHinkleyBySuite && typeof d.pageHinkleyBySuite === 'object' ? d.pageHinkleyBySuite : {} } as DriftSignature;
 }
 
+/* ───────────────────────── canary incidents ───────────────────────── */
+
+/**
+ * One alarm raised by the hourly canary: two fixed probes, the last 6 or 24 hours tested against
+ * the prior seven days with Welch's t-test (apps/api canary job; metadata.detectionMethod
+ * 'canary_welch_t'). It is the same signal drift-aware routing reads for an open incident.
+ */
+export interface CanaryIncident {
+  id: number;
+  modelId: number;
+  modelName: string;
+  detectedAt: string;
+  /** null while the alarm is open. */
+  resolvedAt: string | null;
+  /** "last 6 h" or "last 24 h", as the detector records it. */
+  window: string | null;
+  baselineMean: number | null;
+  recentMean: number | null;
+  p: number | null;
+}
+
+/**
+ * The canary's alarms over the last 30 days, newest first. Only the Welch canary's
+ * performance_drift rows count: the provider-wide correlation rows are not a measurement of a
+ * model, and retracted rows are already left out by the API. null when the feed does not answer,
+ * so a page can say it could not check instead of claiming there was no alarm. The feed filters on
+ * detection time, so an alarm still open after 30 days would be missing; the canary closes its own
+ * alarms once the 24-hour mean is back within 10 points, and none has ever stayed open that long.
+ */
+export async function getCanaryIncidents(): Promise<CanaryIncident[] | null> {
+  const json = await getJson<any>('/dashboard/incidents?period=1m&limit=500', 900);
+  if (!json?.success || !Array.isArray(json.data)) return null;
+  const num = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+  return json.data
+    .filter((i: any) => i && i.incidentType === 'performance_drift' && i.metadata?.detectionMethod === 'canary_welch_t' && Number.isFinite(Number(i.modelId)))
+    .map((i: any): CanaryIncident => ({
+      id: Number(i.id),
+      modelId: Number(i.modelId),
+      modelName: String(i.modelName ?? ''),
+      detectedAt: String(i.detectedAt),
+      resolvedAt: i.resolvedAt ? String(i.resolvedAt) : null,
+      window: typeof i.metadata?.window === 'string' ? i.metadata.window : null,
+      baselineMean: num(i.metadata?.baselineMean),
+      recentMean: num(i.metadata?.recentMean),
+      p: num(i.metadata?.p),
+    }))
+    .sort((a: CanaryIncident, b: CanaryIncident) => b.detectedAt.localeCompare(a.detectedAt));
+}
+
 /* ───────────────────────── pairs ───────────────────────── */
 
 export const PAIR_SEP = '-vs-';

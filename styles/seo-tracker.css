@@ -1,0 +1,83 @@
+/* ═══════════════════════════════════════════════════════════════════
+   The AI degradation tracker (app/ai-degradation-tracker, components/seo/tracker/*): the
+   per-family tables with a pill and a threshold bar per suite, the status column, the canary
+   log and the family jump links. Layout, type and tokens come from landing.css (.lp, .lp-pill),
+   reading.css (.rd-*) and seo.css (.seo-*); this file adds only what those lack. Every colour
+   is a landing token, so the dark theme follows. Scoped under .lp.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── jump links to each family ── */
+.lp .tk-jump { display: flex; flex-wrap: wrap; gap: 8px 10px; margin: 0; padding: 0; list-style: none; }
+.lp .tk-jump li { padding: 0; }
+.lp .tk-jump li::before { content: none; }
+.lp .tk-jump a { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border: 1px solid var(--lp-line2); border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--lp-fg) !important; text-decoration: none !important; }
+.lp .tk-jump a:hover { border-color: var(--lp-fg3); background: color-mix(in srgb, var(--lp-fg) 5%, transparent); }
+.lp .tk-jump a b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.lp .tk-jump a.is-bad b { color: var(--lp-bad); }
+.lp .tk-jump a.is-warn b { color: var(--lp-warn); }
+
+/* ── a family block ── */
+.lp .tk-family { display: grid; gap: 14px; scroll-margin-top: 96px; }
+.lp .tk-family + .tk-family { margin-top: 44px; }
+.lp .tk-family h3 { margin: 0; color: var(--lp-fg); }
+.lp .tk-family-line { margin: 0; max-width: 80ch; font-size: 15px; line-height: 1.6; color: var(--lp-fg2); }
+.lp .tk-family-links { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0; font-size: 14px; }
+.lp .tk-family-links a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── the table ── */
+.lp .tk-wrap { max-width: 1100px; }
+.lp .tk-table { font-size: 14px; }
+.lp .tk-table th, .lp .tk-table td { vertical-align: top; }
+.lp .tk-table thead th { white-space: nowrap; }
+.lp .tk-table tbody th { min-width: 13em; }
+.lp .tk-table tbody th a { display: inline-block; font-weight: 600; }
+.lp .tk-status { display: block; margin-top: 7px; }
+.lp .tk-router { display: block; margin-top: 7px; max-width: 30ch; font-size: 12.5px; font-weight: 400; line-height: 1.45; color: var(--lp-fg2); }
+.lp .tk-cell { min-width: 9.5em; }
+.lp .tk-cell .lp-pill { white-space: nowrap; }
+.lp .tk-cell small { display: block; margin-top: 6px; max-width: 22ch; font-size: 12.5px; line-height: 1.45; color: var(--lp-fg3); }
+.lp .tk-cell small.tk-score { margin-top: 2px; }
+.lp .tk-table tr.is-bad > th { box-shadow: inset 3px 0 0 var(--lp-bad); }
+.lp .tk-table tr.is-warn > th { box-shadow: inset 3px 0 0 var(--lp-warn); }
+
+/* the detector's statistic against its threshold */
+.lp .tk-meter { display: block; width: 100%; max-width: 9em; height: 4px; margin-top: 8px; border-radius: 99px; background: color-mix(in srgb, var(--lp-fg) 10%, transparent); overflow: hidden; }
+.lp .tk-meter i { display: block; height: 100%; border-radius: inherit; background: var(--lp-fg3); }
+.lp .tk-meter.near i, .lp .tk-meter.warn i { background: var(--lp-warn); }
+.lp .tk-meter.bad i { background: var(--lp-bad); }
+
+/* ── the canary log ── */
+.lp .tk-log { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; max-width: 900px; border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: var(--lp-shadow-1); overflow: hidden; }
+.lp .tk-log li { display: grid; grid-template-columns: 11.5em minmax(0, 1fr) auto; gap: 4px 20px; align-items: baseline; padding: 16px 20px; border-bottom: 1px solid var(--lp-line); }
+.lp .tk-log li:last-child { border-bottom: 0; }
+.lp .tk-log li::before { content: none; }
+.lp .tk-log p { margin: 0; }
+.lp .tk-log-when { grid-row: 1 / span 2; font-size: 13px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.lp .tk-log-m { font-weight: 600; color: var(--lp-fg); }
+.lp .tk-log-m a { color: var(--lp-fg); text-decoration: none; }
+.lp .tk-log-m a:hover { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.lp .tk-log-t { grid-column: 2; font-size: 14px; line-height: 1.55; color: var(--lp-fg2); }
+.lp .tk-log-s { grid-column: 3; grid-row: 1; }
+
+/* ── phones: each row becomes a card, each cell keeps its label ── */
+@media (max-width: 760px) {
+  .lp .tk-wrap { overflow: visible; }
+  .lp .tk-table, .lp .tk-table tbody { display: block; width: 100%; }
+  .lp .tk-table thead { display: none; }
+  .lp .tk-table caption { display: block; padding: 12px 14px 4px; }
+  .lp .tk-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; padding: 16px 14px; border-bottom: 1px solid var(--lp-line); }
+  .lp .tk-table tbody tr:last-child { border-bottom: 0; }
+  .lp .tk-table tr > * { display: block; min-width: 0; padding: 0 !important; border-bottom: 0 !important; background: none !important; }
+  .lp .tk-table tbody th { grid-column: 1 / -1; min-width: 0; }
+  .lp .tk-table tr.is-bad, .lp .tk-table tr.is-warn { box-shadow: inset 3px 0 0 var(--lp-bad); }
+  .lp .tk-table tr.is-warn { box-shadow: inset 3px 0 0 var(--lp-warn); }
+  .lp .tk-table tr.is-bad > th, .lp .tk-table tr.is-warn > th { box-shadow: none; }
+  .lp .tk-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; font-weight: 500; color: var(--lp-fg3); }
+  .lp .tk-cell { min-width: 0; }
+  .lp .tk-cell small { max-width: none; }
+  .lp .tk-router { max-width: none; }
+  .lp .tk-log li { grid-template-columns: minmax(0, 1fr) auto; padding: 14px 16px; }
+  .lp .tk-log-when { grid-row: auto; grid-column: 1; }
+  .lp .tk-log-s { grid-column: 2; grid-row: 1; }
+  .lp .tk-log-m, .lp .tk-log-t { grid-column: 1 / -1; }
+}

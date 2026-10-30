@@ -79,6 +79,8 @@ export interface ModelWorse {
   /** Boards on which the row is declining (fleet bucket 'degraded') or marked critical. */
   downOn: BoardKey[];
   detectors: DetectorState[];
+  /** The raw per-suite Page-Hinkley state (statistic, threshold, days), for pages that show how close a detector is to firing. */
+  ph: Partial<Record<DriftSuite, PageHinkleySuite>>;
   /** True when a board is declining or a detector has fired. */
   flagged: boolean;
   /** Why it is flagged, in words: "declining on the Coding board", "reasoning detector fired". */
@@ -113,7 +115,7 @@ function summarise(model: SeoModel, boards: SeoBoards | null, sig: DriftSignatur
     ...downOn.map((k) => `declining on the ${BOARD_TITLE[k]} board`),
     ...fired.map((d) => `${d.label.toLowerCase()} detector fired`),
   ];
-  return { model, placements, onBoard, trend, downOn, detectors, flagged: reasons.length > 0, reasons, signatureAt };
+  return { model, placements, onBoard, trend, downOn, detectors, ph: sig?.pageHinkleyBySuite ?? {}, flagged: reasons.length > 0, reasons, signatureAt };
 }
 
 /** Models in Combined board order (ranked, then community, then other), then any on no board by name. */

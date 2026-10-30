@@ -412,7 +412,8 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
             ['Drift-aware by default', <>
               A model whose Page-Hinkley detector (a CUSUM-family test) has fired on the suite your mode relies on, or that has an
               open canary incident, moves behind every unflagged model. It is never removed: if every candidate is flagged, the
-              best of them is used, and the routing reason names any model passed over. The same detectors answer{' '}
+              best of them is used, and the routing reason names any model passed over. Every model&apos;s alarms are on the{' '}
+              <Link href="/ai-degradation-tracker">AI degradation tracker</Link>. The same detectors answer{' '}
               <Link href="/is-chatgpt-getting-worse">is ChatGPT getting worse</Link> and{' '}
               <Link href="/is-claude-getting-worse">is Claude getting worse</Link>; how they work is on{' '}
               <Link href="/ai-drift-detection">AI drift detection</Link>.

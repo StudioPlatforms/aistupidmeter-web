@@ -187,7 +187,8 @@ export default async function IsAiGettingWorsePage(): Promise<JSX.Element> {
           lead={`What changed in the test record, ${FINDINGS_WINDOW}, newest first: dated, past-tense changes on the same tasks, with the values before and after.`}>
           <RdProse>
             <p>
-              The leaderboard doubles as a degradation tracker. Every model on it is re-tested on the same tasks — {CADENCE} — and each
+              The leaderboard doubles as a degradation tracker, and the <Link href="/ai-degradation-tracker">AI degradation tracker</Link> shows it
+              suite by suite. Every model on it is re-tested on the same tasks — {CADENCE} — and each
               suite is compared with that model&apos;s own past by a Page-Hinkley detector, so a decline shows as a dated change rather than a hunch.
               {counts.series > 0 && (
                 <>

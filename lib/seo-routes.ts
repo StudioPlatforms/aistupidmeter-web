@@ -38,6 +38,7 @@ export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/leaderboard', file: 'app/leaderboard/page.tsx', changeFrequency: 'hourly', priority: 0.9, family: 'core' },
   { path: '/zh', file: 'app/zh/page.tsx', changeFrequency: 'daily', priority: 0.6, family: 'core' },
   { path: '/ai-drift-detection', file: 'app/ai-drift-detection/page.tsx', changeFrequency: 'daily', priority: 0.9, family: 'worse' },
+  { path: '/ai-degradation-tracker', file: 'app/ai-degradation-tracker/page.tsx', changeFrequency: 'hourly', priority: 0.9, family: 'worse' },
   { path: '/methodology', file: 'app/methodology/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
   { path: '/faq', file: 'app/faq/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
   { path: '/about', file: 'app/about/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'core' },

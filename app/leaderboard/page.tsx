@@ -191,7 +191,8 @@ export default async function LeaderboardPage() {
               {OPENNESS} Every weight and constant is on the <Link href="/methodology">methodology page</Link>. For one job at a time, see{' '}
               <Link href="/best-llm-for-coding">best LLM for coding</Link>, <Link href="/best-llm-for-reasoning">best LLM for reasoning</Link>,{' '}
               <Link href="/best-ai-model-for-agents">best AI model for agents</Link> and <Link href="/compare">head-to-head comparisons</Link>;
-              whether a model is slipping is on <Link href="/is-ai-getting-worse">is your AI getting worse?</Link>
+              whether a model is slipping is on the <Link href="/ai-degradation-tracker">AI degradation tracker</Link> and{' '}
+              <Link href="/is-ai-getting-worse">is your AI getting worse?</Link>
             </p>
           </RdProse>
         </RdSection>
