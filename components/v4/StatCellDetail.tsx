@@ -100,11 +100,15 @@ export default function StatCellDetail({
     return () => mq.removeEventListener('change', on);
   }, []);
 
-  // Keep the panel on screen: if it would overflow the right edge, anchor it to the right.
+  // Keep the panel inside its row of cells and on screen: if it would overflow either right
+  // edge, anchor it to the right. The row's edge matters on the drift monitor, where the last
+  // tile's panel otherwise ran past the card into the next column.
   useEffect(() => {
     if (!open || !ref.current) return;
     const r = ref.current.getBoundingClientRect();
-    setFlip(r.left + 8 + POP_WIDTH > window.innerWidth - 8);
+    const row = ref.current.parentElement?.getBoundingClientRect();
+    const limit = Math.min(window.innerWidth - 8, row ? row.right : Infinity);
+    setFlip(r.left + 8 + POP_WIDTH > limit);
   }, [open]);
 
   useEffect(() => {

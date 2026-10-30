@@ -645,8 +645,9 @@
   .st .dmz-sub { font-size: 14px; }
 }
 
-/* the matrix */
-.st .dm.drift-heatmap, .st .drift-heatmap { padding: 20px 22px 22px; border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: none; margin: 0; }
+/* the matrix. drift-cards.css clips the old card (overflow: hidden), which cut the headline tiles'
+   detail panels off at the card's edge; the table scrolls inside .dm-scroll, so nothing needs it. */
+.st .dm.drift-heatmap, .st .drift-heatmap { overflow: visible; padding: 20px 22px 22px; border: 1px solid var(--lp-line); border-radius: 18px; background: var(--lp-card); box-shadow: none; margin: 0; }
 .st .dm-head { gap: 12px 24px; margin-bottom: 16px; }
 .st .dm-title { margin: 0; font-family: var(--lp-font-disp) !important; font-size: 18px; font-weight: 600; letter-spacing: -.015em; line-height: 1.3; color: var(--lp-fg); }
 .st .dm-sub { margin: 4px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--lp-fg2); max-width: 78ch; }
