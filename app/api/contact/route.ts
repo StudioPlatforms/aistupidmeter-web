@@ -8,7 +8,9 @@ import { clientIp } from '@/lib/ip-rate-limit';
 
 export const dynamic = 'force-dynamic';
 
-const TOPICS = new Set(['general', 'enterprise', 'sales', 'support', 'security', 'press']);
+// The form's own topics (app/contact/ContactClient.tsx). One missing here is filed as 'general':
+// custom-benchmark was, from the day it was added to the form until 2026-11-02.
+const TOPICS = new Set(['general', 'enterprise', 'sales', 'custom-benchmark', 'support', 'security', 'press', 'investment']);
 
 /**
  * Rate limit by IP, in process.
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
 
     // The acknowledgement is a courtesy; failing to send it must not fail the
     // request, because the message is already safely recorded.
-    void sendContactAcknowledgement(email, name, topic);
+    void sendContactAcknowledgement(email, name);
 
     console.log(`[contact] #${id} from ${email} (${topic})`);
     return NextResponse.json({ success: true, data: { id } });

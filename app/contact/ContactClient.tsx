@@ -25,6 +25,7 @@ const TOPICS: Array<{ id: string; label: string; blurb: string }> = [
   { id: 'support', label: 'Support', blurb: 'Something is not working the way it should.' },
   { id: 'security', label: 'Security', blurb: 'Vulnerability reports and security questions.' },
   { id: 'press', label: 'Press', blurb: 'Questions about the benchmark or our methodology.' },
+  { id: 'investment', label: 'Investment', blurb: 'Investing in AI Stupid Level: the round, its terms and a call with us.' },
 ];
 
 /** The API's own limits (app/api/contact/route.ts), so nothing is cut or refused after typing. */
@@ -163,7 +164,9 @@ export default function ContactClient() {
               ? 'How many people would use it, which identity provider you use, and what you need to sign off on.'
               : topic === 'security'
                 ? 'What you found, how to reproduce it, and how you would like to be credited.'
-                : 'What you are trying to do, and where you got stuck.'
+                : topic === 'investment'
+                  ? 'Who you are or which fund you represent, the ticket you have in mind, and how you heard about us.'
+                  : 'What you are trying to do, and where you got stuck.'
           }
         />
         <span id="contalf-count" className={`lf-count${nearLimit ? ' is-near' : ''}`}>

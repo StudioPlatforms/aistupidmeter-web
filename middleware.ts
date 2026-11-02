@@ -1,21 +1,47 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { redirectToPath, signInPath } from '@/lib/safe-redirect';
+import { SESSION_HINT_COOKIE } from '@/lib/session-hint';
 
 /**
  * Simple cookie-based middleware for NextAuth v5
  * Edge Runtime compatible - no database access
  */
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
   // Get NextAuth v5 (Auth.js) session token from cookies
   // Note: v5 renamed cookies from 'next-auth.*' to 'authjs.*'
-  const sessionToken = request.cookies.get('authjs.session-token') || 
+  const sessionToken = request.cookies.get('authjs.session-token') ||
                        request.cookies.get('__Secure-authjs.session-token');
-  
+
   const isLoggedIn = !!sessionToken;
-  
+  return withSessionHint(request, route(request, isLoggedIn), isLoggedIn);
+}
+
+/**
+ * The theme boot script must know before first paint whether this browser is signed in: signed
+ * out, the site opens in Dark as the landing page does; signed in, in the app's Light default
+ * (lib/theme-config.ts). The session cookie is httpOnly, so its presence is mirrored here in one
+ * the page can read. Written only when that changes, so almost no response carries it.
+ */
+function withSessionHint(request: NextRequest, response: NextResponse, isLoggedIn: boolean): NextResponse {
+  const hinted = request.cookies.get(SESSION_HINT_COOKIE)?.value === '1';
+  if (isLoggedIn && !hinted) {
+    response.cookies.set(SESSION_HINT_COOKIE, '1', {
+      path: '/',
+      sameSite: 'lax',
+      // nginx reaches Next.js over plain http, so the visitor's scheme is in the forwarded header.
+      secure: request.headers.get('x-forwarded-proto') === 'https',
+      maxAge: 30 * 86_400,
+    });
+  } else if (!isLoggedIn && hinted) {
+    response.cookies.delete(SESSION_HINT_COOKIE);
+  }
+  return response;
+}
+
+function route(request: NextRequest, isLoggedIn: boolean): NextResponse {
+  const { pathname } = request.nextUrl;
+
   // Skip middleware for:
   // - API routes (handled by NextAuth)
   // - Static files

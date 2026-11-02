@@ -5,6 +5,7 @@
 //   primaryDim     -> --phosphor-dim    (secondary text)
 //   background     -> --terminal-black  (page CANVAS)
 //   backgroundDark -> --terminal-dark   (SURFACE / cards)
+import { SESSION_HINT_COOKIE } from './session-hint';
 export interface ThemeColors {
   name: string;
   description: string;
@@ -101,28 +102,46 @@ export function applyTheme(theme: ThemeColors) {
 }
 
 /**
- * Inline script for the root layout's <head>: applies the saved theme before the first paint.
+ * Inline script for the root layout's <head>: applies the visitor's theme before the first paint.
  *
  * applyTheme otherwise runs only when the top bar mounts, so anything drawn before it — the home
  * and model pages' loading screens, which render without the top bar — came up in the light theme
  * for a visitor who had chosen dark, and every page flashed light before switching.
+ *
+ * Which theme is getCurrentThemeIndex()'s rule, repeated here because this runs before any bundle.
  */
 export function themeBootScript(): string {
   const themes = THEMES.map((t) => ({ v: themeVars(t), light: t.isLight, bar: t.backgroundDark }));
-  return `(function(){try{var T=${JSON.stringify(themes)};var i=parseInt(localStorage.getItem('retro-theme-index')||'0',10);if(!(i>=0&&i<T.length))i=0;var t=T[i],r=document.documentElement;for(var k in t.v)r.style.setProperty(k,t.v[k]);r.setAttribute('data-theme',t.light?'light':'dark');r.style.colorScheme=t.light?'light':'dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t.bar);}catch(e){}})();`;
+  return `(function(){try{var T=${JSON.stringify(themes)};var i=parseInt(localStorage.getItem('retro-theme-index')||'0',10);if(!(i>=0&&i<T.length))i=0;if(localStorage.getItem('${THEME_CHOSEN_KEY}')===null&&!/(?:^|;\\s*)${SESSION_HINT_COOKIE}=1/.test(document.cookie))i=${DARK_THEME_INDEX};var t=T[i],r=document.documentElement;for(var k in t.v)r.style.setProperty(k,t.v[k]);r.setAttribute('data-theme',t.light?'light':'dark');r.style.colorScheme=t.light?'light':'dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t.bar);}catch(e){}})();`;
 }
 
 function getDefaultThemeIndex(): number {
   return 0; // Light
 }
 
-export function getCurrentThemeIndex(): number {
+/** The saved theme, or Light: what the app shows a signed-in visitor who never chose one. */
+function getSavedThemeIndex(): number {
   if (typeof window === 'undefined') return getDefaultThemeIndex();
   const saved = localStorage.getItem('retro-theme-index');
   const idx = saved !== null ? parseInt(saved, 10) : getDefaultThemeIndex();
   // Clamp: older builds saved indices 0-7 that no longer exist
   if (Number.isNaN(idx) || idx < 0 || idx >= THEMES.length) return getDefaultThemeIndex();
   return idx;
+}
+
+function signedInHint(): boolean {
+  try { return new RegExp(`(?:^|;\\s*)${SESSION_HINT_COOKIE}=1`).test(document.cookie); } catch { return false; }
+}
+
+/**
+ * The theme a page shows: the visitor's choice if they made one; otherwise Dark while signed out,
+ * which is how the landing page opens, so the public site no longer switched to Light one click
+ * away from it (owner, 2026-11-02); and signed in, the app's saved or Light default.
+ */
+export function getCurrentThemeIndex(): number {
+  if (typeof window === 'undefined') return getDefaultThemeIndex();
+  if (!hasChosenTheme() && !signedInHint()) return DARK_THEME_INDEX;
+  return getSavedThemeIndex();
 }
 
 export function saveThemeIndex(index: number) {
@@ -132,8 +151,8 @@ export function saveThemeIndex(index: number) {
 
 /**
  * Set only when a person presses a Theme button. `retro-theme-index` alone cannot tell a choice
- * from a default, because initializeTheme() writes it on every dashboard visit; the landing and
- * sign-in pages, which open in Dark unless someone chose otherwise, need the difference.
+ * from a default, because initializeTheme() writes it on every dashboard visit; signed-out pages,
+ * which open in Dark unless someone chose otherwise, need the difference.
  */
 export const THEME_CHOSEN_KEY = 'retro-theme-chosen';
 
@@ -155,12 +174,13 @@ export function cycleTheme(): number {
   return nextIndex;
 }
 
-/** Dark, unless the person chose a theme: what the landing and sign-in pages open in. */
+/** Dark, unless the person chose a theme: what signed-out pages open in. */
 export const DARK_THEME_INDEX = Math.max(0, THEMES.findIndex(t => !t.isLight));
 
 /**
  * Inline script for the landing and sign-in pages: before their first paint, switch to Dark when
- * no theme was ever chosen. Nothing is saved, so the dashboard keeps its own default.
+ * no theme was ever chosen, even with a session (the owner previews the landing at /welcome).
+ * Nothing is saved, so the dashboard keeps its own default.
  */
 export function darkDefaultScript(): string {
   const t = THEMES[DARK_THEME_INDEX];
@@ -169,7 +189,8 @@ export function darkDefaultScript(): string {
 
 export function initializeTheme() {
   if (typeof window === 'undefined') return;
-  const index = getCurrentThemeIndex();
-  saveThemeIndex(index); // normalise any stale saved value
-  applyTheme(THEMES[index]);
+  // Normalise any stale saved value. Only the saved one: the signed-out Dark default is never
+  // written, or it would become a signed-in visitor's theme too.
+  saveThemeIndex(getSavedThemeIndex());
+  applyTheme(THEMES[getCurrentThemeIndex()]);
 }

@@ -531,9 +531,11 @@ const TOPIC_LABEL: Record<string, string> = {
   general: 'General enquiry',
   enterprise: 'Enterprise',
   sales: 'Sales and pricing',
+  'custom-benchmark': 'Custom benchmarking',
   support: 'Support',
   security: 'Security',
   press: 'Press',
+  investment: 'Investment',
 };
 
 /** HTML-escape untrusted text before it goes into an email body. */
@@ -597,8 +599,7 @@ export async function sendContactNotification(msg: {
  * attacker-controlled body to an arbitrary address is a spam relay, and the
  * value of the acknowledgement is the promise of a reply, not a transcript.
  */
-export async function sendContactAcknowledgement(to: string, name?: string | null, topic = 'general') {
-  const label = TOPIC_LABEL[topic] ?? 'enquiry';
+export async function sendContactAcknowledgement(to: string, name?: string | null) {
   const who = name ? `${name}, thanks` : 'Thanks';
   return deliver(
     to,
@@ -606,7 +607,7 @@ export async function sendContactAcknowledgement(to: string, name?: string | nul
     renderEmail({
       heading: 'Thanks for getting in touch',
       intro:
-        `${who} for writing to us. Your ${label.toLowerCase()} has reached a person, not a queue — ` +
+        `${who} for writing to us. Your message has reached a person, not a queue — ` +
         `we answer every message ourselves, usually within one business day.`,
       footnote:
         'If it is urgent, replying to this email adds to the same thread. ' +
