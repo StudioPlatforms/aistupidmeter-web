@@ -103,6 +103,7 @@ export default function MobileNav({ selectedView, onViewChange }: MobileNavProps
               {item('FAQ', '/faq', () => { setDrawer(false); onViewChange('faq'); })}
               {item('Compare models', '/compare')}
               {item('Methodology', '/methodology')}
+              {item('Investors', '/investors')}
               {/* The bottom bar stays at four items — a fifth shrinks every label, which is
                   why it was cut from six. Contact sits with the other header links instead. */}
               {item('Contact', '/contact')}

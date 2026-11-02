@@ -143,11 +143,17 @@ export function RdStats({ items }: { items: { value: ReactNode; count?: number; 
 }
 
 /** A weights table: each measure's share drawn to scale beside its number (the bars grow in on reveal). */
-export function RdWeights({ rows, label = 'Measure' }: { rows: [string, number, string][]; label?: string }) {
+export function RdWeights({ rows, label = 'Measure', share = 'Weight', note = 'What it measures' }: {
+  rows: [string, number, string][];
+  label?: string;
+  /** The other two column headings, for a table of shares that are not measures. */
+  share?: string;
+  note?: string;
+}) {
   return (
     <div className="rd-table-wrap is-narrow lp-up">
       <table className="rd-table">
-        <thead><tr><th>{label}</th><th className="rd-wt">Weight</th><th>What it measures</th></tr></thead>
+        <thead><tr><th>{label}</th><th className="rd-wt">{share}</th><th>{note}</th></tr></thead>
         <tbody>
           {rows.map(([name, w, note], i) => (
             <tr key={name}>

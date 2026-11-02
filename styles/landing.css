@@ -617,6 +617,10 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-js .lp-up.is-in { opacity: 1; transform: none; }
 
 /* ── responsive ── */
+/* Seven links fit from 1280px; narrower, the last one (Investors) is left to the footer and the phone menu. */
+@media (max-width: 1279px) {
+  .lp-links a:nth-child(n+7) { display: none; }
+}
 @media (max-width: 1180px) {
   .lp-links a:nth-child(n+6) { display: none; }
   .lp-hero-row { grid-template-columns: minmax(0, 1fr); }

@@ -84,6 +84,14 @@ export default function ContactPage() {
                 <Link href="/assessment" className="ct-more" data-cta="contact-assessment">About the assessment <span aria-hidden="true">→</span></Link>
               </li>
               <li>
+                <h2>Investing in AI Stupid Level?</h2>
+                <p>
+                  We are raising a pre-seed round. Choose Investment in the form and tell us who you
+                  are; we share the figures and terms privately.
+                </p>
+                <Link href="/investors" className="ct-more" data-cta="contact-investors">About the round <span aria-hidden="true">→</span></Link>
+              </li>
+              <li>
                 <h2>Security reports</h2>
                 <p>
                   We will not pursue anyone who reports a genuine issue in good faith, gives us reasonable

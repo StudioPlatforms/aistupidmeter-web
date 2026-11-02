@@ -48,6 +48,7 @@ export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/docs/teams', file: 'app/docs/teams/page.tsx', changeFrequency: 'monthly', priority: 0.6, family: 'core' },
   { path: '/assessment', file: 'app/assessment/page.tsx', changeFrequency: 'monthly', priority: 0.6, family: 'core' },
   { path: '/contact', file: 'app/contact/page.tsx', changeFrequency: 'yearly', priority: 0.4, family: 'core' },
+  { path: '/investors', file: 'app/investors/page.tsx', changeFrequency: 'monthly', priority: 0.5, family: 'core' },
   { path: '/privacy', file: 'app/privacy/page.tsx', changeFrequency: 'yearly', priority: 0.3, family: 'core' },
   { path: '/terms', file: 'app/terms/page.tsx', changeFrequency: 'yearly', priority: 0.3, family: 'core' },
   // Smart Router (public surfaces only)

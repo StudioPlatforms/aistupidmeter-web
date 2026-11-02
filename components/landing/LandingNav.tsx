@@ -17,6 +17,7 @@ const LINKS = [
   ['#assessment', 'For business'],
   ['#pricing', 'Pricing'],
   ['/methodology', 'Methodology'],
+  ['/investors', 'Investors'],
 ] as const;
 
 /** The landing page's header: transparent over the hero, frosted once the page scrolls. */

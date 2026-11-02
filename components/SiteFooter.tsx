@@ -69,6 +69,7 @@ export default function SiteFooter({ force = false }: { force?: boolean } = {}) 
         <Link href="/ai-degradation-tracker">AI degradation tracker</Link>
         <Link href="/status">Provider status</Link>
         <Link href="/contact">Contact</Link>
+        <Link href="/investors">Investors</Link>
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
         <CookieSettings />
