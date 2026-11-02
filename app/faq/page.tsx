@@ -217,12 +217,12 @@ const FAQ: FAQGroup[] = [
       {
         id: 'paid',
         q: 'Do AI companies pay you to rank them higher?',
-        a: 'No. We have no financial relationship with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu or any other model provider. We take no vendor sponsorship and no affiliate commission. The scheduled benchmarks run on our own servers with API keys we pay for.\n\nThe one exception is visible on the site. Some reasoning and tool-use runs for five community-funded models are paid for by visitors with their own keys. They run exactly the same test on the same servers.',
+        a: 'No. We have no financial relationship with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu or any other model provider. We take no vendor sponsorship and no affiliate commission. The scheduled benchmarks run on our own servers with API keys we pay for, out of our subscription revenue and our funding.\n\nThe one exception is visible on the site. Some reasoning and tool-use runs for five community-funded models are paid for by visitors with their own keys. They run exactly the same test on the same servers.',
       },
       {
         id: 'funding',
         q: 'How do you fund this platform?',
-        a: 'Venture funding, plus revenue from subscriptions, paid tiers of the Data API and data licensing to organisations that are not model vendors. No AI model provider funds us, and none of our investors is one. That is the one line we will not cross: the site only works if nobody who scores well has paid us.',
+        a: 'Revenue from subscriptions, which goes into the benchmark runs, from paid tiers of the Data API and from data licensing to organisations that are not model vendors; investment covers the rest. We are raising a [pre-seed round](/investors), and AI model providers cannot invest: none funds us, and none of our investors is one. That is the one line we will not cross: the site only works if nobody who scores well has paid us.',
       },
       {
         id: 'trust-method',

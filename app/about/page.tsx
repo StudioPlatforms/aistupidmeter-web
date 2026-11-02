@@ -192,8 +192,8 @@ export default async function AboutPage() {
           ['Vendor money', 'None. No AI model provider funds us, and none of our investors is an AI model provider.'],
           ['Vendor relationships', 'No financial relationship with OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu or any other model provider.'],
           ['Affiliate links', 'None. We earn nothing from API sign-ups or referrals; a model’s place on a board is decided by the measurement alone.'],
-          ['Who pays for the runs', <>We do: scheduled benchmarks run on our servers with API keys we pay for. The one exception is labelled on the site — reasoning and tool-use runs for five <Link key="c" href="/methodology#community">community-funded models</Link> are paid for by visitors with their own keys, running the same test on the same servers.</>],
-          ['How we are funded', 'Venture funding, which covers what revenue does not — benchmarking every model every four hours is not cheap; paid plans; and data licensing to organisations that are not model vendors.'],
+          ['Who pays for the runs', <>We do, out of our subscription revenue and our funding: scheduled benchmarks run on our servers with API keys we pay for. The one exception is labelled on the site — reasoning and tool-use runs for five <Link key="c" href="/methodology#community">community-funded models</Link> are paid for by visitors with their own keys, running the same test on the same servers.</>],
+          ['How we are funded', <>Our paid plans, whose revenue goes into the benchmark runs; data licensing to organisations that are not model vendors; and investment, which covers what revenue does not — benchmarking every model every four hours is not cheap. We are raising a <Link key="i" href="/investors">pre-seed round</Link>; AI model providers cannot invest.</>],
         ]} />
       </RdSection>
 
