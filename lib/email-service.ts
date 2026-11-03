@@ -528,7 +528,7 @@ export async function sendAccountDeletedEmail(email: string) {
 export const CONTACT_INBOX = process.env.CONTACT_INBOX || 'ionutvisan@studioplatforms.eu';
 
 const TOPIC_LABEL: Record<string, string> = {
-  general: 'General enquiry',
+  general: 'General',
   enterprise: 'Enterprise',
   sales: 'Sales and pricing',
   'custom-benchmark': 'Custom benchmarking',
