@@ -31,6 +31,14 @@
 .lp .seo-cta .lp-btn { min-height: 44px; }
 .lp .seo-cta-sub { margin: 0; max-width: 46ch; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg3); }
 .lp .seo-cta-sub a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+/* A closing section is centred (landing.css .lp-final), so are its buttons: each one over its caption, and
+   stacked blocks under one another. Left-aligned blocks put the buttons ~70px left of the heading on a
+   desktop. Phones keep the left-aligned, full-width layout from the 760px rules below. */
+@media (min-width: 761px) {
+  .lp .lp-final .seo-cta-row { justify-content: center; }
+  .lp .lp-final .seo-cta-row.is-stack { align-items: center; }
+  .lp .lp-final .seo-cta { justify-items: center; }
+}
 
 /* ── 168 hourly cells, oldest first: '' answered, w slow, b did not answer, o our side, e no check
       (lib/seo-data hourCells). Server-rendered, no reveal animation. ── */
