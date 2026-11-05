@@ -62,11 +62,14 @@ export function renderMarkdown(text: string): string {
   // Step 6: Italic (*text*)
   html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
 
-  // Step 7: Links [text](url)
-  html = html.replace(
-    /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
-  );
+  // Step 7: Links [text](url). Only web, mail and same-site links become links: this HTML is set
+  // with dangerouslySetInnerHTML, so a `javascript:` (or `data:`) URL would run in our origin when
+  // clicked. Anything else stays as the literal text the author typed.
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text: string, url: string) => {
+    const href = url.trim();
+    if (!/^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(href)) return match;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+  });
 
   // Step 8: Blockquotes (lines starting with > )
   html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
