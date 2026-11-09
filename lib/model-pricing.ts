@@ -67,6 +67,8 @@ export function getModelPricing(modelName: string, provider: string): ModelPrice
   }
 
   if (prov === 'anthropic') {
+    // Fable 5.2 (Nov 2026) came in below Fable 5 / 5.1, so it needs its own branch first.
+    if (name.includes('fable-5-2')) return { input: 8, output: 40 };
     if (name.includes('fable-5') || name.includes('mythos-5')) return { input: 10, output: 50 };
     if (name.includes('opus-4-1') || name.includes('opus-4.1')) return { input: 15, output: 75 }; // legacy tier
     // Opus 5.5 came in BELOW the tier it succeeds, so it needs its own branch first.
