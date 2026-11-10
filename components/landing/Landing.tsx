@@ -20,7 +20,7 @@ import StatusBoard from './StatusBoard';
 import PricingPlans from './PricingPlans';
 import ConsentBar from './ConsentBar';
 import LandingEffects from './LandingEffects';
-import PriceFinding from './PriceFinding';
+import RouteBoard, { routeRows } from './RouteBoard';
 import RealPrice from './RealPrice';
 import TopFive from './TopFive';
 
@@ -162,7 +162,7 @@ function withLinks(text: string): ReactNode[] {
 const up = (d?: string, cls = ''): { className: string; style?: CSSProperties } =>
   ({ className: `${cls} lp-up`.trim(), ...(d ? { style: { '--d': d } as CSSProperties } : {}) });
 
-/** The router's selling points: in the hero when there is no measured finding to show, else in the router section. */
+/** The router's selling points: in the hero when the live route board cannot be shown, else in the router section. */
 function RouterFacts({ className = '', style }: { className?: string; style?: CSSProperties }) {
   return (
     <dl className={`lp-facts ${className}`.trim()} style={style}>
@@ -228,7 +228,9 @@ export default async function Landing() {
   const models = [...roster].sort((a, b) =>
     (PROVIDERS.indexOf(a.vendor) - PROVIDERS.indexOf(b.vendor)) || a.displayName.localeCompare(b.displayName));
 
-  const finding = price?.finding && price.coding ? price : null;
+  // The hero's route board needs most of its requests answered; with fewer it would not make its point.
+  const routes = routeRows(snapshot);
+  const board = routes.length >= 3 ? routes : null;
   const coded = (price?.coding?.models ?? []).filter(m => m.costPerSuccess != null).map(m => m.costPerSuccess as number);
   const spread = coded.length > 1 ? { lo: Math.min(...coded), hi: Math.max(...coded) } : null;
 
@@ -277,7 +279,8 @@ export default async function Landing() {
 
       {/* ── hero ── Two versions of the same first screen, one shown per width (styles/landing.css),
           both server-rendered so every visitor and crawler gets the same page. Phones keep the original
-          router-first hero; wider screens ask the value question beside a measured finding. */}
+          router-first headline; wider screens ask the value question. Both explain the product with the
+          same route board (RouteBoard): everyday requests and where the router sends each one right now. */}
       <header className="lp-hero lp-textured" id="top">
         <div className="lp-streaks" aria-hidden="true"><i /><i /><i /><i /></div>
         <div className="lp-wrap lp-hero-m">
@@ -297,13 +300,10 @@ export default async function Landing() {
                 </div>
                 <p className="lp-fine lp-intro" style={{ '--d': '.36s' } as CSSProperties}>Free account: every ranking, a 3-model watchlist and 1,000 routed requests a month. No card.</p>
               </div>
-              <RouterFacts className="lp-intro" style={{ '--d': '.42s' } as CSSProperties} />
+              {board
+                ? <RouteBoard rows={board} modelCount={modelCount} reveal />
+                : <RouterFacts className="lp-intro" style={{ '--d': '.42s' } as CSSProperties} />}
             </div>
-          </div>
-          <div className="lp-intro" style={{ '--d': '.5s' } as CSSProperties}>
-            {scenarios.length
-              ? <RouterDemo scenarios={scenarios} modelCount={modelCount} />
-              : <div className="lp-rv"><p className="lp-rv-fallback">Live routing decisions are refreshing. <Link className="lp-more" href="/router/docs">Read how the Smart Router decides</Link></p></div>}
           </div>
         </div>
         <div className="lp-wrap lp-hero-d">
@@ -326,8 +326,8 @@ export default async function Landing() {
                 Free account: every ranking, a 3-model watchlist and 1,000 routed requests a month. No card.
               </p>
             </div>
-            {finding
-              ? <div className="lp-intro" style={{ '--d': '.42s' } as CSSProperties}><PriceFinding price={finding} /></div>
+            {board
+              ? <div className="lp-intro" style={{ '--d': '.42s' } as CSSProperties}><RouteBoard rows={board} modelCount={modelCount} /></div>
               : <RouterFacts className="lp-intro" style={{ '--d': '.42s' } as CSSProperties} />}
           </div>
         </div>
@@ -484,9 +484,9 @@ export default async function Landing() {
             <h2 className="lp-h2"><span className="lp-wide-only">Models change overnight. Your router should know.</span><span className="lp-phone-only">One endpoint. Fourteen ways to decide.</span></h2>
             <p className="lp-lead">Point any OpenAI-compatible client at ASL’s <Link href="/router">Smart Router</Link> and every request goes to the model that is measurably best right now — for code, reasoning, tool use, speed or cost — ranked on the same results as this page. One endpoint, your own provider keys, zero markup on tokens. <Link href="/router/docs">How it decides</Link>.</p>
           </div>
-          {/* On phones the hero already shows these two (.lp-hero-m), so they are hidden there. */}
-          {finding && <RouterFacts {...up('', 'is-row lp-wide-only')} />}
-          <div {...up('.06s', 'lp-router-demo lp-wide-only')}>
+          {/* The facts sit here whenever the hero shows the route board instead of them. */}
+          {board && <RouterFacts {...up('', 'is-row')} />}
+          <div {...up('.06s', 'lp-router-demo')}>
             {scenarios.length
               ? <RouterDemo scenarios={scenarios} modelCount={modelCount} />
               : <div className="lp-rv"><p className="lp-rv-fallback">Live routing decisions are refreshing. <Link className="lp-more" href="/router/docs">Read how the Smart Router decides</Link></p></div>}

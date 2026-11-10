@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import '../styles/site-footer.css';
+import { useNextCodingRun } from '../lib/use-next-coding-run';
 import { useVisitorStats } from '../lib/use-visitor-stats';
 import CookieSettings from './CookieSettings';
 
@@ -20,30 +20,6 @@ import CookieSettings from './CookieSettings';
  */
 
 const HIDDEN = [/^\/router(\/|$)(?!forum|docs|help|integrations)/, /^\/admin(\/|$)/, /^\/share(\/|$)/];
-
-function useNextCodingRun(): string {
-  const [text, setText] = useState('');
-  useEffect(() => {
-    const update = () => {
-      const now = new Date();
-      // The coding sweep is cron '0 */4 * * *' in Europe/Berlin; read Berlin's wall clock,
-      // DST included, and show the result in the viewer's own time.
-      const berlin = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-      }).formatToParts(now).reduce((acc: Record<string, string>, p) => { acc[p.type] = p.value; return acc; }, {});
-      const bh = Number(berlin.hour) % 24, bm = Number(berlin.minute), bs = Number(berlin.second);
-      let secsLeft = 4 * 3600 - ((bh % 4) * 3600 + bm * 60 + bs);
-      if (secsLeft <= 0) secsLeft += 4 * 3600;
-      const next = new Date(now.getTime() + secsLeft * 1000);
-      const local = next.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      setText(`${Math.floor(secsLeft / 3600)}h ${Math.floor((secsLeft % 3600) / 60)}m (${local})`);
-    };
-    update();
-    const t = setInterval(update, 60000);
-    return () => clearInterval(t);
-  }, []);
-  return text;
-}
 
 export default function SiteFooter({ force = false }: { force?: boolean } = {}) {
   const pathname = usePathname() || '/';
@@ -73,7 +49,7 @@ export default function SiteFooter({ force = false }: { force?: boolean } = {}) 
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
         <CookieSettings />
-        {nextRun && <span>Next bench: <b style={{ color: 'var(--phosphor-green)' }}>{nextRun}</b></span>}
+        {nextRun && <span>Next bench: <b style={{ color: 'var(--phosphor-green)' }}>{nextRun.left} ({nextRun.local})</b></span>}
       </div>
       <div>
         {/* totals.visits counts visits, not people (unique is a tenth of it) — label it as such. */}
