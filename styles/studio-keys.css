@@ -128,7 +128,7 @@
 .st .sk-tags .st-tag { font-size: 12px; padding: 2px 9px; }
 .st .sk-prov-foot { margin-top: auto; display: grid; gap: 12px; padding-top: 4px; }
 .st .sk-prov-foot .st-kv > div { grid-template-columns: minmax(80px, .6fr) minmax(0, 1.4fr); }
-.st .sk-prov-act { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.st .sk-prov-act { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; }
 
 .st .sk-row-text { margin-top: 3px; font-size: 13.5px; line-height: 1.55; color: var(--lp-fg2); }
 .st .sk-mtitle { display: inline-flex; align-items: center; gap: 12px; }
@@ -234,3 +234,40 @@
   .st .sk-disclose-state i { transition: none; }
   .st.st-js .sk-axes .st-meter i { transform: none; transition: none; }
 }
+
+/* ── Provider key form (components/router/ProviderKeyForm), 2026-11-10 ── */
+.st .pk-form { display: grid; gap: 16px; }
+.st .pk-pick { margin: 0; padding: 0; border: 0; min-width: 0; }
+.st .pk-pick legend { margin-bottom: 8px; }
+.st .pk-pick-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.st .pk-pick-item { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 8px 12px; border: 1px solid var(--lp-line2); border-radius: 12px;
+  background: var(--lp-card); color: var(--lp-fg) !important; text-align: left; cursor: pointer; font-size: 14px; font-weight: 600;
+  transition: border-color .18s, background-color .18s; }
+.st .pk-pick-item:hover { border-color: var(--lp-fg3); }
+.st .pk-pick-item.is-on { border-color: var(--lp-accent); background: var(--lp-accent-bg); box-shadow: inset 0 0 0 1px var(--lp-accent); }
+.st .pk-pick-name { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.st .pk-pick-name small { font-size: 12px; font-weight: 500; color: var(--lp-fg3); }
+.st .pk-pick-have { margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--lp-good); white-space: nowrap; }
+.st .pk-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+@media (max-width: 520px) {
+  .st .pk-pick-list { grid-template-columns: 1fr 1fr; }
+  .st .pk-actions .st-btn { flex: 1 1 auto; }
+}
+
+/* Provider cards: a key that needs attention, and the result of a check (providers page). */
+.st .sk-prov.is-problem { border-color: color-mix(in srgb, var(--lp-warn) 55%, var(--lp-line)); }
+.st .sk-prov.is-broken { border-color: color-mix(in srgb, var(--lp-bad) 55%, var(--lp-line)); }
+.st .sk-prov-msg { margin: 0; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sk-prov-msg b { color: var(--lp-fg); }
+.st .sk-prov-msg.is-bad { color: var(--lp-bad); }
+.st .sk-prov-msg.is-warn { color: var(--lp-warn); }
+.st .sk-prov-msg.is-good { color: var(--lp-good); }
+
+/* Router key dialog: the steps (keys page). */
+.st .sk-steps-head { display: flex; gap: 6px; margin: 0 0 4px; padding: 0; list-style: none; font-size: 12.5px; font-weight: 600; color: var(--lp-fg3); }
+.st .sk-steps-head li { display: inline-flex; align-items: center; gap: 6px; }
+.st .sk-steps-head li + li::before { content: ''; width: 18px; height: 1px; background: var(--lp-line2); }
+.st .sk-steps-head li.is-on { color: var(--lp-accent); }
+.st .sk-steps-head li.is-done { color: var(--lp-good); }
+.st .sk-skip { padding: 0; border: 0; background: none; color: var(--lp-fg2) !important; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; justify-self: start; }
+.st .sk-skip:hover { color: var(--lp-fg) !important; }

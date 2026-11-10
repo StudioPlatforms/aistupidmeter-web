@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
 import { apiClient } from '@/lib/api-client';
-import type { AnalyticsOverview, RecentRequest, CostSavings, PreferencesPreview, UserPreferences } from '@/lib/api-client';
+import type { AnalyticsOverview, RecentRequest, CostSavings, PreferencesPreview, UserPreferences, ProviderKey } from '@/lib/api-client';
 import { PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
 import {
   PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Note, Tag, Pill, ProviderMark, Meter,
@@ -76,7 +76,9 @@ const providerName = (p: string) => PROVIDER_LABEL[p] ?? (p ? p.charAt(0).toUppe
 /** Why a request failed, in the words a customer acts on (the API's `cause`). */
 const FAILURE: Record<string, (provider: string) => string> = {
   client_quota: p => `${p} account out of credit`,
-  no_provider_key: p => `No ${p} key saved`,
+  // A routing mode refused for want of any key has no provider of its own.
+  no_provider_key: p => (p === 'Provider' ? 'Refused: no provider key saved' : `Refused: no ${p} key saved`),
+  refused: () => 'Refused before routing (see the message in Analytics)',
   client_auth: p => `${p} rejected the key`,
   client_rate_limit: p => `${p} key rate-limited`,
   client_request: p => `${p} rejected the request`,
@@ -126,6 +128,8 @@ function RouterDashboardContent() {
   const [example, setExample] = useState<LandingSnapshot | null>(null);
   const [routerKeys, setRouterKeys] = useState<number | null>(null);
   const [routedMeter, setRoutedMeter] = useState<UsageMeter | null>(null);
+  // Saved provider keys that real requests show are refused or out of credit.
+  const [keyProblems, setKeyProblems] = useState<ProviderKey[]>([]);
   const names = useModelNames();
   const userId = session?.user?.id;
 
@@ -204,6 +208,9 @@ function RouterDashboardContent() {
     if (status !== 'authenticated' || !userId) return;
     apiClient.setUserId(userId);
     loadLive();
+    apiClient.getProviderKeys()
+      .then(r => setKeyProblems((r.keys || []).filter(k => k.isActive && k.problem)))
+      .catch(() => setKeyProblems([]));
     fetch('/api/account/usage', { cache: 'no-store' })
       .then(r => r.json())
       .then(u => { if (u?.success) setRoutedMeter((u.data?.meters ?? []).find((m: UsageMeter) => m.key === 'routedRequests') ?? null); })
@@ -385,6 +392,32 @@ function RouterDashboardContent() {
           </div>
         )}
 
+        {live.kind === 'nokeys' && recentRequests.some(r => !r.success && r.cause === 'no_provider_key') && (
+          <Note tone="warn" title="Your app is already sending requests, and they are being refused">
+            Requests are arriving with your router key, but there is no provider key to answer them with, so each one is
+            refused with a message saying so. Add a provider key (step 1 below) and they start working straight away, with no
+            change in your app.
+            <div className="sk-note-act">
+              <Link href="/router/providers" className="st-btn is-primary is-sm">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
+            </div>
+          </Note>
+        )}
+
+        {keyProblems.length > 0 && (
+          <Note tone="warn" title={keyProblems.length === 1 ? `Your ${providerName(keyProblems[0].provider)} key needs attention` : 'Some provider keys need attention'}>
+            {keyProblems.map(k => (
+              <span key={k.id} className="sr-keyprob">
+                {k.problem!.kind === 'no_credit'
+                  ? `${providerName(k.provider)} refused requests for lack of credit on ${new Date(k.problem!.at).toLocaleDateString()}: add credit in your ${providerName(k.provider)} account. `
+                  : `${providerName(k.provider)} refused your key on ${new Date(k.problem!.at).toLocaleDateString()}: replace it with a new one. `}
+              </span>
+            ))}
+            <div className="sk-note-act">
+              <Link href="/router/providers" className="st-btn is-sm">Open provider keys</Link>
+            </div>
+          </Note>
+        )}
+
         {live.kind === 'nokeys' && (
           <>
             <Pane
@@ -471,7 +504,7 @@ function RouterDashboardContent() {
                 {recentRequests.map((req) => {
                   const when = ago(req.timestamp);
                   return (
-                    <div key={req.id} className="st-row">
+                    <div key={req.id} className="st-row" title={!req.success && req.error ? req.error : undefined}>
                       <ProviderMark provider={req.provider} />
                       <div className="st-row-main">
                         <div className="st-row-t" title={req.model}>{names[req.model] ?? req.model}</div>
@@ -479,7 +512,7 @@ function RouterDashboardContent() {
                           {!req.success && req.cause && FAILURE[req.cause]
                             ? <>{FAILURE[req.cause](providerName(req.provider))}{when ? ` · ${when}` : ''}</>
                             : <>
-                                {providerName(req.provider)} · {(req.tokensIn + req.tokensOut).toLocaleString()} tokens
+                                {providerName(req.provider)} · {(req.tokensIn + req.tokensOut).toLocaleString()} {req.tokensIn + req.tokensOut === 1 ? 'token' : 'tokens'}
                                 {req.latency != null ? ` · ${Number(req.latency).toLocaleString()} ms` : ''}{when ? ` · ${when}` : ''}
                               </>}
                         </div>
@@ -522,7 +555,7 @@ function RouterDashboardContent() {
                           <i style={{ width: `${Math.min(100, pct)}%` }} />
                         </div>
                         <div className="sr-pu-sub">
-                          <span>{provider.requests.toLocaleString()} requests</span>
+                          <span>{provider.requests.toLocaleString()} {Number(provider.requests) === 1 ? 'request' : 'requests'}</span>
                           <span>{pctText(provider.percentage)}</span>
                         </div>
                       </div>

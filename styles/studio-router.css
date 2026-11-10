@@ -263,3 +263,22 @@
   .st .sr-stats, .st .sr-rank, .st .sr-splitbar span, .st .sr-go .st-card-t .st-ar { transition: none; }
   .st .sr-dash .st-up .st-meter i { transition-delay: 0s; }
 }
+
+/* Providers and models without a key (Preferences, 2026-11-10): say what is missing, link to add it. */
+.st a.st-chip.sr-chip.is-nokey { text-decoration: none; }
+.st .sr-chip .sr-addkey { color: var(--lp-accent); font-weight: 600; }
+.st .sr-needkey { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--lp-line2); }
+.st .sr-needkey-row { display: grid; grid-template-columns: minmax(130px, auto) 1fr auto; align-items: center; gap: 12px; padding: 8px 0; }
+.st .sr-needkey-row + .sr-needkey-row { border-top: 1px solid var(--lp-line); }
+.st .sr-needkey-p { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--lp-fg); }
+.st .sr-needkey-m { font-size: 13px; line-height: 1.45; color: var(--lp-fg3); min-width: 0; }
+.st .sr-nowrap { white-space: nowrap; }
+.st .sr-fb-name small.is-bad, .st .sr-split-state.is-bad { color: var(--lp-bad); }
+.st .sr-fb-name small a, .st .sr-split-state a { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+@media (max-width: 640px) {
+  .st .sr-needkey-row { grid-template-columns: 1fr; gap: 6px; }
+  .st .sr-needkey-row .st-btn { justify-self: start; }
+}
+/* Action row under a note (as on the keys pages), and one line per key problem on the overview. */
+.st .sk-note-act { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+.st .sr-keyprob { display: block; }

@@ -646,14 +646,17 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
                     <td data-label="Key"><code className="st-ic">…{k.hint}</code></td>
                     <td className="sw-hide-sm is-dim">{k.addedBy ?? '—'} · {day(k.createdAt)}</td>
                     <td data-label="Last check">
-                      {k.validationError ? <Tag tone="bad" title={k.validationError}>Refused</Tag>
+                      {k.validationError
+                        ? (k.validationError.startsWith('[no_credit]')
+                            ? <Tag tone="warn" title={k.validationError.replace('[no_credit] ', '')}>No credit</Tag>
+                            : <Tag tone="bad" title={k.validationError}>Refused</Tag>)
                         : k.lastValidatedAt ? <Tag tone="good">Works</Tag> : <span className="sw-status">Not checked</span>}
                     </td>
                     <td className="sw-acts-cell">
                       <div className="sw-acts">
                         <button type="button" className="st-btn is-sm" onClick={async () => {
                           const r = await wsApi<any>(`/provider-keys/${k.id}/test`, { method: 'POST' });
-                          flash(r.data?.valid ? `${providerLabel(k.provider)} accepted the key.` : `${providerLabel(k.provider)} refused the key: ${r.data?.error ?? r.error}`, !r.data?.valid);
+                          flash(r.data?.message ?? (r.data?.valid ? `${providerLabel(k.provider)} accepted the key.` : `${providerLabel(k.provider)} refused the key: ${r.data?.error ?? r.error}`), !r.data?.valid);
                           loadKeys();
                         }}>Check</button>
                         <button type="button" className="st-btn is-sm is-quiet sw-bad-text" onClick={async () => {

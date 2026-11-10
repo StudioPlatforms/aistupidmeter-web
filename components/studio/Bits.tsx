@@ -53,14 +53,14 @@ function logoFile(provider: string): string | null {
   return LOGOS.has(p) ? p : null;
 }
 
-/** A provider's official mark on a white chip, as on the leaderboard. Unknown providers get initials. */
+/** A provider's official mark on a white chip, as on the leaderboard. Unknown providers get initials; none (a request refused before routing) gets a dash. */
 export function ProviderMark({ provider, size }: { provider: string; size?: 'sm' | 'lg' }) {
   const file = logoFile(provider);
   return (
     <span className={`st-logo${size ? ` is-${size}` : ''}`} aria-hidden="true">
       {file
         ? <img src={`/logos/${file}.svg`} alt="" width={18} height={18} loading="lazy" />
-        : <b style={{ fontSize: 11, color: '#5f6368' }}>{provider.slice(0, 2).toUpperCase()}</b>}
+        : <b style={{ fontSize: 11, color: '#5f6368' }}>{(provider || '').slice(0, 2).toUpperCase() || '–'}</b>}
     </span>
   );
 }

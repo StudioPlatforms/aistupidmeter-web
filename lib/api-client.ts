@@ -16,7 +16,19 @@ export interface UniversalKey {
   createdAt: string;
   lastUsedAt: string | null;
   revoked: boolean;
+  /** waiting_for_provider_key: the account has no working provider key, so live requests are refused. */
+  status?: 'active' | 'revoked' | 'waiting_for_provider_key';
 }
+
+/** The account's routing setup, as GET /router/keys reports it. */
+export interface RouterSetup {
+  /** Providers with a working (active) key. */
+  providers: string[];
+  waitingForProviderKey: boolean;
+}
+
+/** What the provider said when a key was checked (router/keys/key-check.ts in the API). */
+export type KeyVerdict = 'valid' | 'invalid' | 'no_credit' | 'unverified';
 
 export interface ProviderKey {
   id: number;
@@ -27,6 +39,8 @@ export interface ProviderKey {
   isActive: boolean;
   createdAt: string;
   lastValidated: string | null;
+  /** The latest sign from real requests that the key is not working (refused, or out of credit). */
+  problem?: { kind: 'rejected' | 'no_credit'; at: string; message: string } | null;
 }
 
 export type RoutingStrategyId = 'best_overall' | 'best_coding' | 'best_reasoning' | 'best_tooling' | 'best_creative' | 'cheapest' | 'fastest'
@@ -140,7 +154,9 @@ export interface RecentRequest {
   cost: string;
   latency: number;
   success: boolean;
-  /** Why a failed request failed: a failure class, or 'no_provider_key'; null when it succeeded. */
+  /** The message the caller got, when the request failed. */
+  error?: string | null;
+  /** Why a failed request failed: a failure class, 'no_provider_key' or 'refused'; null when it succeeded. */
   cause?: string | null;
   timestamp: string;
 }
@@ -338,7 +354,7 @@ class ApiClient {
   /**
    * Get all universal API keys for the current user
    */
-  async getUniversalKeys(): Promise<{ keys: UniversalKey[] }> {
+  async getUniversalKeys(): Promise<{ keys: UniversalKey[]; setup?: RouterSetup }> {
     return this.request('/api/router/keys');
   }
 
@@ -351,6 +367,8 @@ class ApiClient {
     name: string;
     keyPrefix: string;
     message: string;
+    providers?: string[];
+    waitingForProviderKey?: boolean;
   }> {
     return this.request('/api/router/keys', {
       method: 'POST',
@@ -417,30 +435,41 @@ class ApiClient {
   /**
    * Add a new provider API key
    */
+  /**
+   * Add a provider key, or replace the one saved for that provider. The API asks the provider
+   * first: a refused key is not saved and the call throws with the provider's reason.
+   */
   async addProviderKey(
     provider: string,
-    apiKey: string
+    apiKey: string,
+    replace = false,
   ): Promise<{
     success: boolean;
     message: string;
     keyId: number;
     provider: string;
+    verdict?: KeyVerdict;
+    replaced?: boolean;
+    modelsAvailable?: number;
+    providers?: string[];
   }> {
     return this.request('/api/router/provider-keys', {
       method: 'POST',
-      body: JSON.stringify({ provider, apiKey }),
+      body: JSON.stringify({ provider, apiKey, replace }),
     });
   }
 
   /**
-   * Validate a provider API key
+   * Check a saved provider key with the provider
    */
   async validateProviderKey(keyId: number): Promise<{
     success: boolean;
     valid: boolean;
     message: string;
+    verdict?: KeyVerdict;
     modelsAvailable?: number;
     models?: string[];
+    providers?: string[];
   }> {
     return this.request(`/api/router/provider-keys/${keyId}/validate`, {
       method: 'POST',

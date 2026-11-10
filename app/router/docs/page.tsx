@@ -105,7 +105,9 @@ const STRATEGIES: Array<{ id: string; cat: string; desc: string }> = [
 const ERRORS: Array<{ http: number; type: string; code: string; desc: string }> = [
   { http: 400, type: 'invalid_request_error', code: 'invalid_messages / invalid_tools / unsupported_content / model_not_found', desc: 'The request cannot be routed as sent (the message says what to change)' },
   { http: 400, type: 'invalid_request_error', code: 'provider_rejected_request', desc: 'The provider rejected the request itself; its own words are in the message' },
-  { http: 400, type: 'invalid_request_error', code: 'provider_key_rejected / no_provider_keys', desc: 'Your provider key is missing or was refused — add or update it in Providers' },
+  { http: 400, type: 'invalid_request_error', code: 'no_provider_keys', desc: 'Your account (or the project) has no provider key yet, so nothing can be routed: add one under Provider keys. Sandbox requests (X-ASL-Sandbox: true) still work' },
+  { http: 400, type: 'invalid_request_error', code: 'no_provider_key', desc: 'The model you named belongs to a provider you have no key for: add that key, name a model from a provider you have, or send a routing mode' },
+  { http: 400, type: 'invalid_request_error', code: 'provider_key_rejected', desc: 'The provider refused your saved key (revoked, mistyped or for another product): replace it under Provider keys' },
   { http: 400, type: 'invalid_request_error', code: 'no_routable_model', desc: 'Your preferences exclude every model (the message names the setting)' },
   { http: 401, type: 'authentication_error', code: 'invalid_api_key', desc: 'Missing or invalid aism_ key' },
   { http: 401, type: 'authentication_error', code: 'expired_api_key', desc: 'The key had an expiry date and it has passed (the message says when)' },

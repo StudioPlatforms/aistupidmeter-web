@@ -61,6 +61,18 @@ function Keys({ d, reload, flash }: { d: ProjectData; reload: () => void; flash:
         ruled
         flush
       >
+        {Object.keys(d.providerSources).length === 0 && (
+          <div className="sw-pad">
+            <Note tone="warn" title="This project has no provider key yet">
+              Its router keys cannot answer until one is available: requests are refused with a message that says so.
+              {d.me.canManage
+                ? ' Add the project’s own key under “Who pays the providers” below'
+                : ' Ask a project manager to add one'}
+              {d.me.isOwner ? ', share one from the workspace page, or let members use their own keys in the rules below.' : '.'}
+              {' '}Keys created now start working as soon as a provider key is added.
+            </Note>
+          </div>
+        )}
         {live.length === 0 ? (
           <div className="sw-none">
             <span className="st-empty-mark" aria-hidden="true"><i /><i /><i /></span>
@@ -373,7 +385,9 @@ function ProviderKeys({ d, reload, flash }: { d: ProjectData; reload: () => void
                   <td data-label="Paid by">
                     <div className="sw-cellbox sw-paid">
                       {src === 'project' ? <span>This project&rsquo;s key</span> : src === 'workspace' ? <span>The workspace&rsquo;s key</span> : src === 'members' ? <span className="sw-dim">Each person&rsquo;s own key, if they have one</span> : <span className="sw-dim">No key: requests to {pr.label} fail</span>}
-                      {k?.validationError && <Tag tone="bad" title={k.validationError}>Refused at last check</Tag>}
+                      {k?.validationError && (k.validationError.startsWith('[no_credit]')
+                        ? <Tag tone="warn" title={k.validationError.replace('[no_credit] ', '')}>No credit at last check</Tag>
+                        : <Tag tone="bad" title={k.validationError}>Refused at last check</Tag>)}
                     </div>
                   </td>
                   <td className="sw-hide-sm is-dim">{k ? <><code className="st-ic">…{k.hint}</code>{k.alias ? ` · ${k.alias}` : ''}</> : '—'}</td>
@@ -383,7 +397,7 @@ function ProviderKeys({ d, reload, flash }: { d: ProjectData; reload: () => void
                         <div className="sw-acts">
                           <button type="button" className="st-btn is-sm" onClick={async () => {
                             const r = await wsApi<any>(`/projects/${d.project.id}/provider-keys/${own.find(x => x.provider === pr.id)!.id}/test`, { method: 'POST' });
-                            flash(r.data?.valid ? `${pr.label} accepted the key.` : `${pr.label} refused the key: ${r.data?.error ?? r.error}`, !r.data?.valid);
+                            flash(r.data?.message ?? (r.data?.valid ? `${pr.label} accepted the key.` : `${pr.label} refused the key: ${r.data?.error ?? r.error}`), !r.data?.valid);
                             reload();
                           }}>Check</button>
                           <button type="button" className="st-btn is-sm is-quiet sw-bad-text" onClick={async () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
@@ -9,6 +9,7 @@ import { apiClient } from '@/lib/api-client';
 import type { UserPreferences, RoutingStrategyId, PreferencesPreview, PreviewCandidate, TieBreak } from '@/lib/api-client';
 import { PageHead, Pane, Loader, Note, Tag, ProviderMark, RankList, previewToSnap, useModelNames } from '@/components/studio';
 import { scoreLabel } from '@/components/landing/util';
+import { addKeyHref, providerList, routerProvider } from '@/lib/router-providers';
 import '@/styles/studio-router.css';
 
 /**
@@ -103,6 +104,15 @@ const plural = (n: number, word: string) => (n ? `${n} ${word}${n === 1 ? '' : '
 /** Model id → display name, falling back to the id while names load (or for an unlisted model). */
 type NameOf = (model: string) => string;
 
+/** "an Anthropic", "a Google". */
+const an = (word: string) => `${/^[AEIOU]/i.test(word) ? 'an' : 'a'} ${word}`;
+
+/** A model in a picker, marked when its provider has no key (choosing it would be skipped). */
+function optionLabel(model: string, candidates: PreviewCandidate[], nameOf: NameOf): string {
+  const c = candidates.find(x => x.model === model);
+  return c?.status === 'no_key' ? `${nameOf(model)} (no ${PROVIDER_LABEL[c.provider] || c.provider} key)` : nameOf(model);
+}
+
 export default function RouterPreferencesPage() {
   return (
     <RouterLayout>
@@ -179,6 +189,13 @@ function Preferences() {
 
   const dirty = useMemo(() => !!prefs && !!saved && JSON.stringify(norm(prefs)) !== JSON.stringify(norm(saved)), [prefs, saved]);
   const modelNames = useMemo(() => [...candidates].sort((a, b) => b.score - a.score).map(c => c.model), [candidates]);
+  // Providers this account has a working key for. Read off the candidates (a model's status is
+  // no_key before anything else), so it stays right when a preview finds nothing usable.
+  const keyedProviders = useMemo<string[] | null>(() => {
+    if (candidates.length) return Array.from(new Set(candidates.filter(c => c.status !== 'no_key').map(c => c.provider)));
+    return keyed;
+  }, [candidates, keyed]);
+  const noKeyProviders = useMemo(() => (keyedProviders === null ? [] : PROVIDERS.filter(p => !keyedProviders.includes(p))), [keyedProviders]);
 
   const validation = useMemo(() => {
     if (!prefs) return null;
@@ -247,6 +264,15 @@ function Preferences() {
 
       <div className="st-body sr-prefs">
         {saveError && <Note tone="bad" title="Not saved">{saveError}</Note>}
+        {keyedProviders !== null && keyedProviders.length === 0 && (
+          <Note tone="warn" title="Add a provider key first">
+            These settings decide among the models your provider keys can reach, and you have not added one yet, so nothing
+            can be routed. You can still choose your settings now: they apply as soon as you add a key.
+            <div className="sk-note-act">
+              <Link href={addKeyHref()} className="st-btn is-primary is-sm">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
+            </div>
+          </Note>
+        )}
 
         <div className="sr-pgrid">
           <aside className="sr-pside" aria-label="Live preview">
@@ -319,43 +345,83 @@ function Preferences() {
               <div className="sr-chips">
                 {PROVIDERS.map(p => {
                   const excluded = prefs.excludedProviders.includes(p);
-                  const noKey = keyed !== null && !keyed.includes(p);
+                  const noKey = noKeyProviders.includes(p);
+                  // A provider with no key cannot be used, so excluding it means nothing: the chip
+                  // says what is missing and opens the dialog to add the key instead.
+                  if (noKey && !excluded) {
+                    return (
+                      <Link key={p} href={addKeyHref(p)} className="st-chip sr-chip is-nokey"
+                        title={`No ${PROVIDER_LABEL[p]} key yet: the router skips its models. Click to add one.`}>
+                        <ProviderMark provider={p} size="sm" />
+                        {PROVIDER_LABEL[p]} · <span className="sr-addkey">Add key</span>
+                      </Link>
+                    );
+                  }
                   return (
                     <button type="button" key={p} aria-pressed={excluded}
-                      className={`st-chip sr-chip${excluded ? ' is-off' : ''}${noKey ? ' is-nokey' : ''}`}
-                      title={noKey ? 'No key added for this provider' : excluded ? 'Excluded — click to include' : 'Click to exclude'}
+                      className={`st-chip sr-chip${excluded ? ' is-off' : ''}`}
+                      title={excluded ? 'Excluded: click to include' : 'Click to exclude'}
                       onClick={() => set({ excludedProviders: excluded ? prefs.excludedProviders.filter(x => x !== p) : [...prefs.excludedProviders, p] })}>
                       <ProviderMark provider={p} size="sm" />
                       {excluded && <span className="sr-x" aria-hidden="true">✕</span>}
-                      {PROVIDER_LABEL[p]}{noKey ? ' · no key' : ''}
+                      {PROVIDER_LABEL[p]}
                     </button>
                   );
                 })}
               </div>
               <p className="st-hint">
-                The router only uses providers you have added a key for. <Link href="/router/providers">Manage provider keys</Link>.
+                {noKeyProviders.length > 0 && keyedProviders && keyedProviders.length > 0
+                  ? <>The router only uses providers you have a key for. With no key yet for {providerList(noKeyProviders)}, their models are skipped: add a key to include them. </>
+                  : <>The router only uses providers you have added a key for. Click one to exclude it. </>}
+                <Link href="/router/providers">Manage provider keys</Link>.
               </p>
               <p className="st-label sr-sublabel">Models</p>
               {candidates.length === 0 ? (
                 <p className="st-hint">{previewing ? 'Loading models…' : 'No ranked models to show yet.'}</p>
-              ) : (
-                <div className="sr-chips">
-                  {[...candidates].sort((a, b) => b.score - a.score).map(c => {
-                    const excluded = prefs.excludedModels.includes(c.model);
-                    const covered = prefs.excludedProviders.includes(c.provider);
-                    return (
-                      <button type="button" key={c.model} aria-pressed={excluded}
-                        className={`st-chip sr-chip${excluded ? ' is-off' : ''}${(covered || c.status === 'no_key') && !excluded ? ' is-dim' : ''}`}
-                        title={`${c.model} · ${PROVIDER_LABEL[c.provider] || c.provider} · score ${Math.round(c.score)} · ${STATUS_TEXT[c.status]}`}
-                        onClick={() => set({ excludedModels: excluded ? prefs.excludedModels.filter(x => x !== c.model) : [...prefs.excludedModels, c.model] })}>
-                        {excluded && <span className="sr-x" aria-hidden="true">✕</span>}
-                        {nameOf(c.model)}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              <p className="st-hint">Click a model to exclude it. Faded models have no key, or their provider is excluded.</p>
+              ) : (() => {
+                const sorted = [...candidates].sort((a, b) => b.score - a.score);
+                // Models whose provider has no key go in their own list, by provider, with the way to
+                // add that key: excluding them would change nothing.
+                const needKey = sorted.filter(c => c.status === 'no_key' && !prefs.excludedModels.includes(c.model));
+                const usable = sorted.filter(c => !needKey.includes(c));
+                const byProvider = PROVIDERS.map(p => ({ p, models: needKey.filter(c => c.provider === p) })).filter(g => g.models.length);
+                return (
+                  <>
+                    {usable.length > 0 ? (
+                      <div className="sr-chips">
+                        {usable.map(c => {
+                          const excluded = prefs.excludedModels.includes(c.model);
+                          const covered = prefs.excludedProviders.includes(c.provider);
+                          return (
+                            <button type="button" key={c.model} aria-pressed={excluded}
+                              className={`st-chip sr-chip${excluded ? ' is-off' : ''}${covered && !excluded ? ' is-dim' : ''}`}
+                              title={`${c.model} · ${PROVIDER_LABEL[c.provider] || c.provider} · score ${Math.round(c.score)} · ${STATUS_TEXT[c.status]}`}
+                              onClick={() => set({ excludedModels: excluded ? prefs.excludedModels.filter(x => x !== c.model) : [...prefs.excludedModels, c.model] })}>
+                              {excluded && <span className="sr-x" aria-hidden="true">✕</span>}
+                              {nameOf(c.model)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="st-hint">No model can be used until you add a provider key.</p>
+                    )}
+                    <p className="st-hint">Click a model to exclude it. Faded models belong to a provider you excluded.</p>
+                    {byProvider.length > 0 && (
+                      <div className="sr-needkey">
+                        <p className="st-label sr-sublabel">Need a key you have not added</p>
+                        {byProvider.map(({ p, models }) => (
+                          <div key={p} className="sr-needkey-row">
+                            <span className="sr-needkey-p"><ProviderMark provider={p} size="sm" />{PROVIDER_LABEL[p]}</span>
+                            <span className="sr-needkey-m">{models.map((c, i) => <Fragment key={c.model}>{i ? ', ' : ''}<span className="sr-nowrap">{nameOf(c.model)}</span></Fragment>)}</span>
+                            <Link href={addKeyHref(p)} className="st-btn is-sm">Add {routerProvider(p)?.name ?? PROVIDER_LABEL[p]} key</Link>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </Pane>
 
             {/* Fallbacks */}
@@ -384,7 +450,14 @@ function Preferences() {
         </div>
 
         <div className="st-savebar">
-          {validation ? <span className="sr-warn" role="alert">{validation}</span> : dirty ? <span>You have unsaved changes.</span> : <span>All changes saved.</span>}
+          {validation ? <span className="sr-warn" role="alert">{validation}</span>
+            : preview && !preview.ok && !previewing
+              ? <span className="sr-warn" role="status">
+                  {preview.error === 'no_provider_keys'
+                    ? 'No provider key yet: these settings apply once you add one.'
+                    : `With these settings, requests sent as "auto" are refused: no model qualifies (the preview says why).${dirty ? ' You can still save.' : ''}`}
+                </span>
+              : dirty ? <span>You have unsaved changes.</span> : <span>All changes saved.</span>}
           <button type="button" onClick={() => prefs && saved && setPrefs(saved)} className="st-btn" disabled={!dirty || saving}>Discard changes</button>
           <button type="button" onClick={save} disabled={saving || !dirty || !!validation} className="st-btn is-primary">
             {saving ? 'Saving…' : justSaved ? 'Saved' : 'Save changes'}
@@ -476,11 +549,23 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
               <RankList rows={view.snap.rows} kind={view.kind} winLabel="your pick" />
             </div>
           )}
-          {preview.details.split && preview.details.split.length > 0 && (
-            <p className="sr-split-note">
-              Split: {preview.details.split.map(x => `${nameOf(x.model)} ${Math.round(x.share * 100)}%${x.usable ? '' : ` (unusable: ${x.reason})`}`).join(' · ')}. The first choice above changes from request to request in these proportions.
-            </p>
-          )}
+          {preview.details.split && preview.details.split.length > 0 && (() => {
+            // The router draws only among the split's usable models, so a skipped model's traffic
+            // goes to the others in proportion to their weights.
+            const split = preview.details.split;
+            const live = split.filter(x => x.usable);
+            const skipped = split.filter(x => !x.usable);
+            const liveTotal = live.reduce((a, x) => a + x.weight, 0);
+            const shares = (rows: typeof split, total: number) =>
+              rows.map(x => `${nameOf(x.model)} ${total ? Math.round((x.weight / total) * 100) : 0}%`).join(' · ');
+            return (
+              <p className="sr-split-note">
+                {skipped.length === 0
+                  ? <>Split: {shares(split, split.reduce((a, x) => a + x.weight, 0))}. The first choice above changes from request to request in these proportions.</>
+                  : <>Skipped from your split: {skipped.map(x => `${nameOf(x.model)} (${x.reason || 'unavailable'})`).join(', ')}. Until that changes, requests go {shares(live, liveTotal)}.</>}
+              </p>
+            );
+          })()}
           <div className="sr-why">
             <p className="st-label">Why this model</p>
             <p>{preview.primary.reasoning}</p>
@@ -603,13 +688,16 @@ function SplitEditor({ prefs, set, modelNames, candidates, split, nameOf }: {
             <div key={i} className="sr-split-row">
               <select className="st-select" value={r.model} aria-label={`Model ${i + 1}`}
                 onChange={e => update(i, { model: e.target.value })}>
-                {[r.model, ...unused].map(m => <option key={m} value={m}>{nameOf(m)}</option>)}
+                {/* The chosen model shows its plain name: the note beside it says when it has no key. */}
+                {[r.model, ...unused].map(m => <option key={m} value={m}>{m === r.model ? nameOf(m) : optionLabel(m, candidates, nameOf)}</option>)}
               </select>
               <input type="number" min={1} max={100} className="st-input sr-num" value={r.weight} aria-label={`Weight for ${r.model}`}
                 onChange={e => update(i, { weight: Math.round(parseFloat(e.target.value) || 0) })} />
               <span className="sr-share">{total ? Math.round(((r.weight || 0) / total) * 100) : 0}%</span>
-              <span className={`sr-split-state${info && !info.usable ? ' is-bad' : ''}`}>
-                {info && !info.usable ? `Not used: ${info.reason}` : cand ? `score ${Math.round(cand.score)}` : ''}
+              <span className={`sr-split-state${(info && !info.usable) || cand?.status === 'no_key' ? ' is-bad' : ''}`}>
+                {cand?.status === 'no_key'
+                  ? <>Needs {an(PROVIDER_LABEL[cand.provider] || cand.provider)} key · <Link href={addKeyHref(cand.provider)}>Add it</Link></>
+                  : info && !info.usable ? `Not used: ${info.reason}` : cand ? `score ${Math.round(cand.score)}` : ''}
               </span>
               <button type="button" className="st-btn is-sm is-quiet" onClick={() => set({ trafficSplit: rows.filter((_, k) => k !== i) })} aria-label={`Remove ${r.model}`}>Remove</button>
             </div>
@@ -656,7 +744,10 @@ function FallbackOrder({ prefs, set, modelNames, candidates, nameOf }: {
                 <ProviderMark provider={c?.provider ?? ''} size="sm" />
                 <span className="sr-fb-name" title={m}>
                   <span>{nameOf(m)}</span>
-                  {c && c.status !== 'eligible' && <small>{STATUS_TEXT[c.status]}</small>}
+                  {c && c.status === 'no_key' && (
+                    <small className="is-bad">Skipped: needs {an(PROVIDER_LABEL[c.provider] || c.provider)} key · <Link href={addKeyHref(c.provider)}>Add it</Link></small>
+                  )}
+                  {c && c.status !== 'eligible' && c.status !== 'no_key' && <small>{STATUS_TEXT[c.status]}</small>}
                   {!c && candidates.length > 0 && <small>not a ranked model</small>}
                 </span>
                 <span className="sr-fb-act">
@@ -673,7 +764,7 @@ function FallbackOrder({ prefs, set, modelNames, candidates, nameOf }: {
         <div className="sr-add">
           <select className="st-select" value={pick} onChange={e => setPick(e.target.value)} aria-label="Model to add to your fallback order">
             <option value="">Choose a model…</option>
-            {options.map(m => <option key={m} value={m}>{nameOf(m)}</option>)}
+            {options.map(m => <option key={m} value={m}>{optionLabel(m, candidates, nameOf)}</option>)}
           </select>
           <button type="button" className="st-btn" disabled={!pick}
             onClick={() => { if (pick) { set({ fallbackOrder: [...list, pick] }); setPick(''); } }}>Add</button>

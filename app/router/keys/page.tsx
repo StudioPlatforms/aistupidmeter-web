@@ -8,8 +8,13 @@ import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { apiClient } from '@/lib/api-client';
 import type { UniversalKey } from '@/lib/api-client';
 import { CC_SWITCH_APPS, ccSwitchProviderLink } from '@/lib/cc-switch';
+import { providerList } from '@/lib/router-providers';
+import ProviderKeyForm, { savedKeyNote, type SavedProviderKey } from '@/components/router/ProviderKeyForm';
 import { PageHead, Pane, Stats, Stat, CountUp, CodeBlock, CopyButton, Modal, Loader, Empty, Note, Tag, Pill, ProviderMark } from '@/components/studio';
 import '@/styles/studio-keys.css';
+
+/** The router key dialog: a provider key first when the account has none, then the name, then the key. */
+type CreateStep = 'provider' | 'name' | 'created';
 
 const SNIPPETS = [
   {
@@ -191,9 +196,15 @@ export default function RouterKeysPage() {
   const [newKeyName, setNewKeyName] = useState('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [step, setStep] = useState<CreateStep>('name');
+  // The provider key added as step 1 of this dialog, for the next step's message.
+  const [addedProvider, setAddedProvider] = useState<SavedProviderKey | null>(null);
   // A router key answers nothing until the account has a provider key: most new keys were created
-  // and never used because that second step was only on the router overview. null = not known yet.
-  const [providerCount, setProviderCount] = useState<number | null>(null);
+  // and never used because that second step was only on the router overview. These are the
+  // providers with a WORKING key (GET /router/keys setup); null = not known yet.
+  const [providers, setProviders] = useState<string[] | null>(null);
+  const providerCount = providers === null ? null : providers.length;
   // The models a request can name right now, best first (the router's own ranking table).
   const [lineup, setLineup] = useState<Array<{ name: string; provider: string }>>([]);
   const nameField = useRef<HTMLInputElement>(null);
@@ -202,7 +213,6 @@ export default function RouterKeysPage() {
     if (status === 'authenticated' && session?.user?.id) {
       apiClient.setUserId(session.user.id);
       fetchKeys();
-      apiClient.getProviderKeys().then(r => setProviderCount((r.keys || []).length)).catch(() => setProviderCount(null));
       apiClient.getAvailableModels().then(r => setLineup((r.models || []).map(m => ({ name: m.name, provider: m.provider })))).catch(() => setLineup([]));
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
@@ -210,13 +220,21 @@ export default function RouterKeysPage() {
     }
   }, [status, session]);
 
+  // ?create=1 (the provider keys page's "Create your router key") opens the dialog.
+  useEffect(() => {
+    if (loading || providers === null) return;
+    if (new URLSearchParams(window.location.search).get('create') !== '1') return;
+    openCreate();
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [loading, providers]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // The dialog focuses itself when it opens; put the caret in the name field after it, as the
   // old dialog's autoFocus did. (Child effects run first, so this frame comes after the dialog's.)
   useEffect(() => {
-    if (!showCreateModal || createdKey) return;
+    if (!showCreateModal || createdKey || step !== 'name') return;
     const raf = requestAnimationFrame(() => nameField.current?.focus());
     return () => cancelAnimationFrame(raf);
-  }, [showCreateModal, createdKey]);
+  }, [showCreateModal, createdKey, step]);
 
   const fetchKeys = async () => {
     try {
@@ -224,6 +242,8 @@ export default function RouterKeysPage() {
       setError(null);
       const response = await apiClient.getUniversalKeys();
       setKeys(response.keys);
+      if (response.setup) setProviders(response.setup.providers);
+      else apiClient.getProviderKeys().then(r => setProviders((r.keys || []).filter(k => k.isActive).map(k => k.provider))).catch(() => setProviders(null));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load keys');
     } finally {
@@ -231,15 +251,26 @@ export default function RouterKeysPage() {
     }
   };
 
+  /** Without a working provider key the dialog starts with adding one (the owner's rule, 2026-11-10). */
+  const openCreate = () => {
+    setCreateError(null);
+    setAddedProvider(null);
+    setStep(providerCount === 0 ? 'provider' : 'name');
+    setShowCreateModal(true);
+  };
+
   const handleCreateKey = async () => {
     if (!newKeyName.trim()) return;
     try {
       setCreating(true);
+      setCreateError(null);
       const response = await apiClient.createUniversalKey(newKeyName.trim());
       setCreatedKey(response.key);
+      setStep('created');
+      if (response.providers) setProviders(response.providers);
       await fetchKeys();
     } catch (err) {
-      alert(`Failed to create key: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setCreateError(err instanceof Error ? err.message : 'The key could not be created. Try again.');
     } finally {
       setCreating(false);
     }
@@ -261,6 +292,8 @@ export default function RouterKeysPage() {
     setShowCreateModal(false);
     setNewKeyName('');
     setCreatedKey(null);
+    setCreateError(null);
+    setStep('name');
   };
 
   const activeKeysCount = keys.filter(k => !k.revoked).length;
@@ -275,7 +308,7 @@ export default function RouterKeysPage() {
           title="Router API keys"
           lead="One key that routes your prompts to whichever model is performing best right now."
           actions={
-            <button type="button" className="st-btn is-primary" onClick={() => setShowCreateModal(true)}>
+            <button type="button" className="st-btn is-primary" onClick={openCreate}>
               Create key <span className="st-ar" aria-hidden="true">→</span>
             </button>
           }
@@ -292,11 +325,19 @@ export default function RouterKeysPage() {
           )}
 
           {providerCount === 0 && (
-            <Note tone="warn" title="Add a provider key before you use your router key">
-              The router calls models with your own OpenAI, Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key, so a router
-              key can&rsquo;t answer anything until you add at least one. Providers bill you directly, at their own list price.
-              Want to try it first? Requests with the <code className="st-ic">X-ASL-Sandbox: true</code> header route for real
-              and return a mock answer, no provider key needed.
+            <Note
+              tone="warn"
+              title={activeKeysCount > 0
+                ? `Your router ${activeKeysCount === 1 ? 'key is' : 'keys are'} waiting for a provider key`
+                : 'Step 1: add a provider key, then create your router key'}
+            >
+              The router calls models with your own OpenAI, Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key, and the
+              provider bills you directly at its own list price.
+              {activeKeysCount > 0
+                ? <> Until you add one, requests sent with {activeKeysCount === 1 ? 'your key' : 'your keys'} are refused with a message that says so; add one and {activeKeysCount === 1 ? 'it starts' : 'they start'} working straight away, with no change in your apps.</>
+                : <> A router key can&rsquo;t answer anything until you add at least one.</>}
+              {' '}To see routing work first, send requests with the <code className="st-ic">X-ASL-Sandbox: true</code> header:
+              the routing is real and the answer is a mock, with no provider key needed.
               <div className="sk-note-act">
                 <Link href="/router/providers" className="st-btn is-primary is-sm">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
               </div>
@@ -326,12 +367,14 @@ export default function RouterKeysPage() {
                 <Empty
                   title="No Smart Router keys"
                   actions={
-                    <button type="button" className="st-btn is-primary" onClick={() => setShowCreateModal(true)}>
-                      Create first key <span className="st-ar" aria-hidden="true">→</span>
+                    <button type="button" className="st-btn is-primary" onClick={openCreate}>
+                      {providerCount === 0 ? 'Get started' : 'Create first key'} <span className="st-ar" aria-hidden="true">→</span>
                     </button>
                   }
                 >
-                  Create your first SR key to start routing prompts to the best-performing model.
+                  {providerCount === 0
+                    ? 'Two steps: add a key from a provider you use, then create the router key your apps send requests with.'
+                    : 'Create your first SR key to start routing prompts to the best-performing model.'}
                 </Empty>
               </div>
             ) : (
@@ -371,7 +414,11 @@ export default function RouterKeysPage() {
                           <td data-label="Key" className="is-code"><code className="sk-prefix">{key.keyPrefix}…</code></td>
                           <td data-label="Created" className="is-dim">{day(key.createdAt)}</td>
                           <td data-label="Last used" className="is-dim">{key.lastUsedAt ? day(key.lastUsedAt) : '—'}</td>
-                          <td data-label="Status">{key.revoked ? <Pill>Revoked</Pill> : <Pill tone="good">Active</Pill>}</td>
+                          <td data-label="Status">
+                            {key.revoked ? <Pill>Revoked</Pill>
+                              : providerCount === 0 ? <span title="Live requests are refused until you add a provider key; sandbox requests work."><Pill tone="warn">Needs a provider key</Pill></span>
+                              : <Pill tone="good">Active</Pill>}
+                          </td>
                           <td className="sk-key-act">
                             {!key.revoked && (
                               <>
@@ -542,15 +589,24 @@ export default function RouterKeysPage() {
           </section>
         </div>
 
-        {/* Create key: a name first, then the key — shown once. */}
+        {/* Create key. Without a working provider key it starts with adding one: a router key alone
+            answers nothing, and keys made without one were plugged into apps that then failed every
+            request. A key can still be made first, for sandbox tests. */}
         <Modal
           open={showCreateModal}
           onClose={closeCreate}
           size="narrow"
-          title="Create new SR API key"
-          sub={createdKey ? undefined : 'A key that routes through the provider keys you have connected.'}
+          title={step === 'provider' ? 'First, add a provider key' : step === 'created' ? 'Your router key' : 'Create new SR API key'}
+          sub={step === 'provider'
+            ? 'The router sends your requests to models with your own provider key, and the provider bills you directly. Add one, then name your router key.'
+            : step === 'name'
+              ? (providerCount === 0
+                  ? 'No provider key yet: this key will answer sandbox requests only until you add one.'
+                  : `Routes through your ${providers && providers.length ? providerList(providers) : 'connected'} ${providers && providers.length === 1 ? 'key' : 'keys'}.`)
+              : undefined}
           footer={
-            createdKey ? (
+            step === 'provider' ? undefined
+            : step === 'created' ? (
               providerCount === 0 ? (
                 <>
                   <button type="button" className="st-btn" onClick={closeCreate}>Later</button>
@@ -569,32 +625,81 @@ export default function RouterKeysPage() {
             )
           }
         >
-          {!createdKey ? (
-            <div className="st-field">
-              <label className="st-field-label" htmlFor="sk-key-name">Key name</label>
-              <input
-                ref={nameField}
-                id="sk-key-name"
-                type="text"
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && newKeyName.trim() && !creating) handleCreateKey(); }}
-                placeholder="e.g., My MacBook, Production Server"
-                className="st-input"
-                disabled={creating}
-                autoComplete="off"
-              />
-              <p className="st-hint">Give your key a descriptive name to identify it later</p>
-            </div>
-          ) : (
+          {(step === 'provider' || addedProvider) && step !== 'created' && (
+            <ol className="sk-steps-head" aria-label="Steps">
+              <li className={step === 'provider' ? 'is-on' : 'is-done'}>1. Provider key{step !== 'provider' ? ' ✓' : ''}</li>
+              <li className={step === 'name' ? 'is-on' : ''}>2. Router key</li>
+            </ol>
+          )}
+
+          {step === 'provider' && (
             <div className="sk-about">
-              <Note tone="good" title="Key created">Copy your key now — you won&rsquo;t be able to see it again.</Note>
+              <ProviderKeyForm
+                connected={providers ?? []}
+                onSaved={s => { setAddedProvider(s); setProviders(s.providers ?? [s.provider]); setStep('name'); }}
+                onCancel={closeCreate}
+              />
+              <button type="button" className="sk-skip" onClick={() => setStep('name')}>
+                Only testing? Skip this step and try it in sandbox mode
+              </button>
+            </div>
+          )}
+
+          {step === 'name' && (
+            <div className="sk-about">
+              {addedProvider && (() => {
+                const t = savedKeyNote(addedProvider);
+                return <Note tone={t.tone} title={t.title}>{addedProvider.message}</Note>;
+              })()}
+              {providerCount === 0 && (
+                <Note tone="warn" title="Sandbox only until you add a provider key">
+                  Requests with the <code className="st-ic">X-ASL-Sandbox: true</code> header will route for real and return a mock
+                  answer. Live requests are refused with a message saying a provider key is missing, until you add one under
+                  Provider keys; then this same key starts working, with no change in your apps.
+                </Note>
+              )}
+              <div className="st-field">
+                <label className="st-field-label" htmlFor="sk-key-name">Key name</label>
+                <input
+                  ref={nameField}
+                  id="sk-key-name"
+                  type="text"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && newKeyName.trim() && !creating) handleCreateKey(); }}
+                  placeholder="e.g., My MacBook, Production Server"
+                  className="st-input"
+                  disabled={creating}
+                  autoComplete="off"
+                />
+                <p className="st-hint">Give your key a descriptive name to identify it later</p>
+              </div>
+              {createError && <Note tone="bad" title="Not created">{createError}</Note>}
+            </div>
+          )}
+
+          {step === 'created' && createdKey && (
+            <div className="sk-about">
+              <Note tone="good" title="Key created">Copy it now and keep it somewhere safe, such as a password manager or your app&rsquo;s environment variables: we can&rsquo;t show it again once you close this dialog.</Note>
               <div className="sk-secret-field">
                 <span className="st-field-label" id="sk-new-key-label">Your API key</span>
                 <div className="st-secret" aria-labelledby="sk-new-key-label">
                   <code>{createdKey}</code>
                   <CopyButton text={createdKey} />
                 </div>
+              </div>
+              <div className="sk-secret-field">
+                <span className="st-field-label">Try it</span>
+                <p className="st-hint">
+                  {providerCount === 0
+                    ? 'A sandbox request: real routing, a mock answer, nothing spent.'
+                    : <>Send <code className="st-ic">model: &quot;auto&quot;</code> and the router picks the best model your keys reach; the response headers say which and why.</>}
+                </p>
+                <CodeBlock samples={[{
+                  label: 'cURL',
+                  lang: 'bash' as const,
+                  code: `curl https://aistupidlevel.info/v1/chat/completions \\\n  -H "Authorization: Bearer ${createdKey}" \\\n  -H "Content-Type: application/json" \\${providerCount === 0 ? '\n  -H "X-ASL-Sandbox: true" \\' : ''}\n  -d '{"model": "auto", "messages": [{"role": "user", "content": "Hello!"}]}'`,
+                }]} />
               </div>
               <div className="sk-ccswitch">
                 <span className="st-field-label">Add it to CC Switch</span>
@@ -608,11 +713,11 @@ export default function RouterKeysPage() {
                   ))}
                 </div>
               </div>
-              <Note tone="warn" title="Important">Store this key securely. We cannot show it again after you close this dialog.</Note>
               {providerCount === 0 && (
                 <Note title="Next: add a provider key">
                   This key routes through your own provider keys, and you haven&rsquo;t added one yet. Add an OpenAI,
-                  Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key and your requests start routing; until then they are refused.
+                  Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key and your requests start routing; until then live requests
+                  are refused with a message that says so.
                 </Note>
               )}
             </div>

@@ -25,7 +25,8 @@ export function formatMetric(kind: MetricKind, v: number | null, estimated?: boo
     case 'latency': return { main: `${(v / 1000).toFixed(1)} s`, unit: estimated ? 'est.' : undefined };
     case 'value': return { main: Math.round(v).toLocaleString('en-US'), unit: 'pts/$' };
     case 'spread': return { main: `± ${v.toFixed(1)}` };
-    case 'weight': return { main: `${v}%` };
+    // The weight as typed: weights are relative, so 100 and 20 are a 83/17 split, not 100% and 20%.
+    case 'weight': return { main: String(v) };
     default: return { main: Number.isInteger(v) ? String(v) : v.toFixed(1) };
   }
 }
