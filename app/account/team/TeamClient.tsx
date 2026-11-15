@@ -13,15 +13,22 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import '@/styles/studio-team.css';
 import Tabs, { useTab } from '@/components/workspace/Tabs';
 import SpendChart from '@/components/workspace/SpendChart';
 import WatchlistPanel from '@/components/workspace/WatchlistPanel';
+import PersonRow from '@/components/workspace/PersonRow';
+import type { EndpointScope } from '@/components/router/EndpointsPane';
+import { useTeamServers, useOwnEndpoints } from '@/components/workspace/servers';
 import { PageHead, Pane, Stats, Stat, CountUp, CopyButton, Loader, Empty, Tag, ProviderMark, Meter } from '@/components/studio';
 import {
   wsApi, money, pct, num, ago, day, ROLE_LABEL, PROVIDERS, providerLabel,
   type ModelOption, type WatchModel,
 } from '@/components/workspace/ws';
+
+/** The servers pane is loaded only once the workspace's servers answered (staff), so nobody else downloads it. */
+const EndpointsPane = dynamic(() => import('@/components/router/EndpointsPane'), { ssr: false });
 
 interface Member {
   id: number; userId: number | null; role: string; email: string | null; name: string | null; pending: boolean;
@@ -193,12 +200,16 @@ function Workspace({ d, load, act, msg, secret, clearSecret, flash }: {
 }) {
   const isOwner = d.role === 'owner';
   const seat = d.role === 'owner' || d.role === 'editor';
+  // R5 (staff only): the workspace's own servers, for the owner. Read only when GET
+  // /account/org/endpoints answers 200; every other workspace gets 404 and sees the page as it was.
+  const servers = useTeamServers(undefined, isOwner);
+  const withServers = servers.state.kind === 'ok';
   const tabs = useMemo(() => [
     { id: 'overview', label: 'Overview' },
     { id: 'watchlist', label: 'Team watchlist' },
     { id: 'people', label: 'People' },
-    ...(isOwner ? [{ id: 'settings', label: 'Keys & webhooks' }] : []),
-  ], [isOwner]);
+    ...(isOwner ? [{ id: 'settings', label: withServers ? 'Keys, servers & webhooks' : 'Keys & webhooks' }] : []),
+  ], [isOwner, withServers]);
   const [tab, setTab] = useTab(tabs);
 
   return (
@@ -237,7 +248,7 @@ function Workspace({ d, load, act, msg, secret, clearSecret, flash }: {
         {tab === 'overview' && <Overview d={d} seat={seat} act={act} />}
         {tab === 'watchlist' && <TeamWatchlist isOwner={isOwner} flash={flash} />}
         {tab === 'people' && <People d={d} isOwner={isOwner} act={act} flash={flash} />}
-        {tab === 'settings' && isOwner && <Settings d={d} act={act} flash={flash} load={load} />}
+        {tab === 'settings' && isOwner && <Settings d={d} act={act} flash={flash} load={load} servers={servers} />}
       </div>
     </>
   );
@@ -498,28 +509,27 @@ function People({ d, isOwner, act, flash }: { d: Data; isOwner: boolean; act: Ac
   const used = d.seatsUsed ?? 0;
 
   const person = (m: Member) => (
-    <div key={m.id} className="sw-person">
-      <span className={`sw-avatar${m.pending ? ' is-pending' : m.role === 'owner' ? ' is-ink' : ''}`} aria-hidden="true">
-        {(m.name || m.email || '?').trim().charAt(0).toUpperCase()}
-      </span>
-      <div className="sw-person-main">
-        <div className="sw-person-line">
-          <span className="sw-t">{m.name || m.email || '—'}{m.self && <span className="sw-you"> (you)</span>}</span>
-          <Tag tone={ROLE_TONE[m.role] ?? 'line'}>{ROLE_LABEL[m.role] ?? m.role}</Tag>
-          {m.pending && !m.expired && <Tag tone="warn">Invited · until {day(m.expiresAt)}</Tag>}
-          {m.pending && m.expired && <Tag tone="bad">Invitation expired</Tag>}
-          {m.deactivated && <Tag tone="bad">Deactivated</Tag>}
+    <PersonRow
+      key={m.id}
+      name={m.name}
+      email={m.email}
+      role={m.role}
+      roleLabel={ROLE_LABEL[m.role] ?? m.role}
+      roleTone={ROLE_TONE[m.role] ?? 'line'}
+      pending={m.pending}
+      expired={m.expired}
+      expiresAt={m.expiresAt}
+      deactivated={m.deactivated}
+      self={m.self}
+      detail={(m.name || (!m.pending && !m.deactivated)) && (
+        <div className="sw-s">
+          {m.name && m.email}
+          {m.name && !m.pending && !m.deactivated && ' · '}
+          {!m.pending && !m.deactivated && (m.provisionedBy === 'scim' ? 'Managed by your directory' : m.provisionedBy === 'sso' ? 'Joined through single sign-on' : 'Member')}
         </div>
-        {(m.name || (!m.pending && !m.deactivated)) && (
-          <div className="sw-s">
-            {m.name && m.email}
-            {m.name && !m.pending && !m.deactivated && ' · '}
-            {!m.pending && !m.deactivated && (m.provisionedBy === 'scim' ? 'Managed by your directory' : m.provisionedBy === 'sso' ? 'Joined through single sign-on' : 'Member')}
-          </div>
-        )}
-      </div>
-      {isOwner && (
-        <div className="sw-person-acts">
+      )}
+      actions={isOwner ? (
+        <>
           {m.pending && <button type="button" className="st-btn is-sm" onClick={() => act(`/members/${m.id}/resend`, 'POST', {}, 'Invitation sent again')}>Resend</button>}
           {m.pending && m.inviteUrl && !m.expired && <button type="button" className="st-btn is-sm" onClick={() => copy(m.inviteUrl!)}>Copy link</button>}
           {m.role !== 'owner' && (
@@ -528,9 +538,9 @@ function People({ d, isOwner, act, flash }: { d: Data; isOwner: boolean; act: Ac
               act(`/members/${m.id}`, 'DELETE', undefined, m.pending ? 'Invitation withdrawn' : 'Removed from the workspace');
             }}>{m.pending ? 'Withdraw' : 'Remove'}</button>
           )}
-        </div>
-      )}
-    </div>
+        </>
+      ) : undefined}
+    />
   );
 
   return (
@@ -611,12 +621,18 @@ function People({ d, isOwner, act, flash }: { d: Data; isOwner: boolean; act: Ac
 
 interface SharedKey { id: number; provider: string; alias: string | null; hint: string | null; active: boolean; addedBy: string | null; createdAt: string; lastValidatedAt: string | null; validationError: string | null }
 
-function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: string, bad?: boolean) => void; load: () => void }) {
+function Settings({ d, act, flash, load, servers }: {
+  d: Data; act: Act; flash: (t: string, bad?: boolean) => void; load: () => void; servers: ReturnType<typeof useTeamServers>;
+}) {
   const [keys, setKeys] = useState<SharedKey[] | null>(null);
   const loadKeys = useCallback(() => wsApi<{ keys: SharedKey[] }>('/provider-keys').then(r => setKeys(r.data?.keys ?? [])), []);
   useEffect(() => { loadKeys(); }, [loadKeys]);
   const events = d.webhookEvents ?? Object.keys(EVENT_WORDS);
   const hooks = d.webhooks ?? [];
+  // R5 (staff only): "Servers for every project", under the provider keys every project shares.
+  const own = useOwnEndpoints(servers.state.kind === 'ok');
+  const projects = d.projects;
+  const scope = useMemo<EndpointScope>(() => ({ kind: 'workspace', projects: (projects ?? []).map(p => ({ id: p.id, name: p.name })) }), [projects]);
 
   return (
     <>
@@ -698,6 +714,10 @@ function Settings({ d, act, flash, load }: { d: Data; act: Act; flash: (t: strin
           <p className="st-hint">Adding a key for a provider that already has one replaces it.</p>
         </form>
       </Pane>
+
+      {servers.state.kind === 'ok' && (
+        <EndpointsPane list={servers.state.list} reload={servers.reload} scope={scope} api={servers.api} importable={own} />
+      )}
 
       <Pane
         title="Webhooks"

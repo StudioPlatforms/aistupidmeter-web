@@ -16,7 +16,8 @@ export function generateStaticParams(): Array<{ tool: string }> {
   return INTEGRATION_SLUGS.map((tool) => ({ tool }));
 }
 
-export async function generateMetadata({ params }: { params: { tool: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ tool: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const i = integrationBySlug(params.tool);
   if (!i) return { title: { absolute: `Not found${TITLE_SUFFIX}` }, robots: { index: false, follow: true } };
   return pageMeta({
@@ -28,7 +29,8 @@ export async function generateMetadata({ params }: { params: { tool: string } })
   });
 }
 
-export default async function Page({ params }: { params: { tool: string } }) {
+export default async function Page(props: { params: Promise<{ tool: string }> }) {
+  const params = await props.params;
   const i = integrationBySlug(params.tool);
   if (!i) notFound();
   if (params.tool !== i!.slug) permanentRedirect(integrationPath(i!.slug));

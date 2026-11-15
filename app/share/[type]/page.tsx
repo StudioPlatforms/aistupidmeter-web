@@ -33,8 +33,10 @@ export default function SharePage() {
         minHeight: '100vh',
         padding: 24,
         background: 'var(--terminal-black, #f6f8fc)',
+        // The site's system stack (styles/vintage.css --font-mono): no 'Inter', which since Next 15
+        // would match the web font next/font self-hosts under that name.
         fontFamily:
-          "'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif",
+          "'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif",
       }}
     >
       <div

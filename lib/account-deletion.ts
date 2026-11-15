@@ -8,10 +8,13 @@ import type { User } from '@/lib/db-client';
  * What goes: the account and everything that is only about it — watchlists, alert
  * preferences and deliveries, activation events, UI preferences, workspace and project
  * memberships (project_members), router credits, SSO tickets, billing notices (all ON DELETE CASCADE), the
- * forum profile and reactions, and workspaces the person owns alone. What stays, without a
- * link to the person: forum posts and topics (re-attributed to the "Deleted user" placeholder
- * so threads still read), contact messages, assessment requests, audit events and the team
- * watchlist entries they added (ON DELETE SET NULL). Stripe keeps invoices, as it must.
+ * forum profile and reactions, workspaces the person owns alone, and provider-account
+ * memberships. What stays, without a link to the person: forum posts and topics (re-attributed
+ * to the "Deleted user" placeholder so threads still read), provider-account legal and
+ * moderation records (acceptances, actions, appeals, complaints, notices, reports: re-attributed
+ * the same way), invitations other workspaces and provider accounts sent to the address, contact
+ * messages, assessment requests, audit events and the team watchlist entries they added (ON
+ * DELETE SET NULL). Stripe keeps invoices, as it must.
  */
 
 export const DELETED_USER_EMAIL = 'deleted-user@aistupidlevel.invalid';
@@ -35,9 +38,37 @@ export function ownedWorkspaceIds(userId: number): { orgIds: number[]; projectId
 }
 
 export interface DeletionBlocker {
-  code: 'subscription' | 'workspace';
+  code: 'subscription' | 'workspace' | 'provider';
   message: string;
   href?: string;
+}
+
+/** The provider accounts (not closed) this person owns, by name; [] without the provider tables. */
+function ownedProviders(db: ReturnType<typeof openIdentityDb>, userId: number): string[] {
+  try {
+    return (db.prepare(`
+      SELECT p.display_name AS name
+        FROM marketplace_provider_members m JOIN marketplace_providers p ON p.id = m.provider_id
+       WHERE m.user_id = ? AND m.role = 'owner' AND m.removed_at IS NULL AND p.state <> 'closed'
+    `).all(userId) as Array<{ name: string }>).map(r => r.name);
+  } catch {
+    return [];   // no provider tables yet: nothing to block on
+  }
+}
+
+export const providerBlockerMessage = (name: string) =>
+  `You own the provider account “${name}”. Close it or transfer ownership first.`;
+
+/**
+ * Thrown by deleteIdentityAccount when, by the time its transaction runs, the person owns a provider
+ * account (an ownership transfer accepted while the deletion was under way). Nothing in the identity
+ * database has changed then; the route says so.
+ */
+export class ProviderOwnerError extends Error {
+  constructor(readonly providerName: string) {
+    super(providerBlockerMessage(providerName));
+    this.name = 'ProviderOwnerError';
+  }
 }
 
 /** Reasons the account cannot be deleted yet. Empty means it can. */
@@ -72,6 +103,13 @@ export function deletionBlockers(user: User): DeletionBlocker[] {
     }
   } catch {
     /* no workspace tables yet: nothing to block on */
+  }
+  try {
+    // A provider account must keep an owner while it exists: the owner closes it or transfers
+    // ownership first. A closed one does not block.
+    for (const name of ownedProviders(db, user.id)) {
+      blockers.push({ code: 'provider', message: providerBlockerMessage(name), href: '/account/provider' });
+    }
   } finally {
     db.close();
   }
@@ -106,6 +144,11 @@ export function deleteIdentityAccount(userId: number, placeholderId: number): Re
       if (exists(table)) counts[label] = db.prepare(sql).run(...args).changes;
     };
     db.transaction(() => {
+      // Checked again here, inside the transaction: an ownership transfer accepted while the
+      // benchmark-database half ran would otherwise leave that provider account with no owner.
+      const owned = ownedProviders(db, userId);
+      if (owned.length) throw new ProviderOwnerError(owned[0]);
+
       // Forum: posts and topics stay so threads still read, attributed to "Deleted user".
       run('forum_posts', 'forum_posts', 'UPDATE forum_posts SET author_id = ? WHERE author_id = ?', placeholderId, userId);
       run('forum_posts_edited', 'forum_posts', 'UPDATE forum_posts SET edited_by = ? WHERE edited_by = ?', placeholderId, userId);
@@ -130,6 +173,36 @@ export function deleteIdentityAccount(userId: number, placeholderId: number): Re
       // Workspaces owned alone (deletionBlockers refused the shared ones); members, projects,
       // webhooks, SSO and SCIM configuration cascade with them.
       run('organizations', 'organizations', 'DELETE FROM organizations WHERE owner_user_id = ?', userId);
+
+      // Provider accounts. Memberships go (an owner of one that is not closed was refused above).
+      // Invitations other provider accounts sent to this address stay theirs, as workspace
+      // invitations do. The legal and moderation records stay, linked to "Deleted user" instead: an
+      // acceptance's signer_user_id is outside its hash, so the record chain still verifies.
+      run('marketplace_provider_members', 'marketplace_provider_members', 'DELETE FROM marketplace_provider_members WHERE user_id = ?', userId);
+      const relink: Array<[string, string]> = [
+        ['marketplace_agreement_acceptances', 'signer_user_id'],
+        ['marketplace_providers', 'created_by'],
+        ['marketplace_providers', 'approved_by'],
+        ['marketplace_actions', 'actor_user_id'],
+        ['marketplace_appeals', 'submitted_by'],
+        ['marketplace_appeals', 'decided_by'],
+        ['marketplace_complaints', 'submitted_by'],
+        ['marketplace_complaints', 'decided_by'],
+        ['marketplace_notices', 'acknowledged_by'],
+        ['marketplace_reports', 'reporter_user_id'],
+      ];
+      for (const [table, column] of relink) {
+        run(`${table}_${column}`, table, `UPDATE ${table} SET ${column} = ? WHERE ${column} = ?`, placeholderId, userId);
+      }
+      // A user-run test's statement of reasons (DSA Art. 17; API F7) was mailed to this address: the delivery row stays
+      // as the evidence that it was sent, without the address (F7 review MINOR-6). Counted only when one was sent.
+      if (exists('marketplace_deliveries')) {
+        const email = (db.prepare('SELECT email FROM router_users WHERE id = ?').get(userId) as { email: string | null } | undefined)?.email;
+        if (email) {
+          const n = db.prepare(`UPDATE marketplace_deliveries SET to_email = 'deleted-account' WHERE kind = 'user_test_statement' AND lower(to_email) = lower(?)`).run(email).changes;
+          if (n > 0) counts.marketplace_deliveries_user_test = n;
+        }
+      }
 
       // The account. Everything else about it cascades or is unlinked (see the header).
       counts.router_users = db.prepare('DELETE FROM router_users WHERE id = ?').run(userId).changes;

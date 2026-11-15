@@ -114,7 +114,7 @@ function useMedia(query: string): boolean {
  * Call the returned function just before the state change; the slide plays once React has
  * committed the new order. Positions are measured against the grid, so scrolling in between is fine.
  */
-function useReorderSlide(grid: RefObject<HTMLElement>) {
+function useReorderSlide(grid: RefObject<HTMLElement | null>) {
   const before = useRef<Map<string, { x: number; y: number }> | null>(null);
 
   const capture = useCallback(() => {

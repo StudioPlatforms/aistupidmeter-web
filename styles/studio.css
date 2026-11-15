@@ -273,7 +273,8 @@ body:has(.rv4-shell.st) { padding-bottom: 0 !important; }
 .st .st-btn.is-quiet:hover { color: var(--lp-fg) !important; background: var(--st-hover); }
 .st .st-btn.is-danger { color: var(--lp-bad) !important; border-color: color-mix(in srgb, var(--lp-bad) 45%, var(--lp-line2)); }
 .st .st-btn.is-danger:hover { background: var(--lp-bad-bg); border-color: var(--lp-bad); }
-.st .st-btn.is-danger.is-solid { background: var(--lp-bad); border-color: var(--lp-bad); color: #fff !important; }
+/* on-accent, not white: dark mode's danger red is light (#f28b82), and white on it is 2.4:1 */
+.st .st-btn.is-danger.is-solid { background: var(--lp-bad); border-color: var(--lp-bad); color: var(--lp-on-accent) !important; }
 .st .st-btn.is-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
 .st .st-btn.is-lg { height: 50px; padding: 0 24px; font-size: 15.5px; border-radius: 12px; }
 .st .st-btn.is-block { width: 100%; }

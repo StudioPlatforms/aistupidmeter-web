@@ -2,7 +2,8 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { RdProse, RdRows } from '@/components/landing/Reading';
 import { PROVIDER_LABEL, type LandingSnapshot } from '@/components/landing/types';
-import { CHECKED, CLUSTER, LIVE_MODES, sourcesOf, type RouterEntry } from './routers-data';
+import { livePicksFastestQuality, scoringOf } from '@/lib/router-scoring';
+import { CHECKED, CLUSTER, LIVE_MODES, VALUE_FLOOR_POINTS, sourcesOf, type RouterEntry } from './routers-data';
 
 /**
  * Server blocks for the AI router pages. The comparison table shows only the two columns every
@@ -84,6 +85,8 @@ export function VsTable({ other, rows, caption }: { other: string; rows: Array<[
  * with a key for every provider). `slugs` maps a model id to its /models/<slug> page.
  */
 export function LivePicks({ snapshot, slugs, caption }: { snapshot: LandingSnapshot; slugs: Map<string, string>; caption: ReactNode }) {
+  // auto-fastest-quality's rule follows the router's live estimator (the snapshot's `scoring`, API A1).
+  const scoring = scoringOf(snapshot.scoring);
   const rows = LIVE_MODES.flatMap((m) => {
     const st = snapshot.strategies[m.key];
     return st?.primary?.model ? [{ m, p: st.primary }] : [];
@@ -103,7 +106,7 @@ export function LivePicks({ snapshot, slugs, caption }: { snapshot: LandingSnaps
             return (
               <tr key={m.id}>
                 <th scope="row"><code>{m.id}</code></th>
-                <td>{m.ranks}</td>
+                <td>{m.key === 'fastest_quality' ? livePicksFastestQuality(scoring, VALUE_FLOOR_POINTS) : m.ranks}</td>
                 <td>
                   {slug ? <Link href={`/models/${slug}`}>{name}</Link> : name}
                   <span className="rt-prov"> · {PROVIDER_LABEL[p.provider] ?? p.provider}</span>

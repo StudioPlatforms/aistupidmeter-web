@@ -9,7 +9,19 @@ import { ReadingPage, RdSection, RdProse, RdFacts, RdRows, RdFinal, tocNumber } 
  * the 90-day visit-row purge (api jobs/visitor-retention.ts), nginx log rotation (14 days), mail
  * logs (4 weekly rotations), nightly database backups (7 kept, scripts in /root/backups) and the
  * Google Analytics consent default (denied until accepted, app/layout.tsx). Change the code and
- * this page together.
+ * this page together. The model-pick memory rows (api router/proxy/pick-memory.ts, release A0b): one row
+ * per account or project, routing mode and tie-break, rewritten at least hourly while in use, deleted by
+ * an hourly sweep 7 days after its last write and with the account or the project. Router release A1: the
+ * request records' routing labels (api router/billing/request-accounting.ts recordRouteMeta: strategy and its
+ * source, benchmark, matched rule, turn kind, conversation event, reply signals, routing and first-byte
+ * timings, score freshness; labels only, never prompt text), and the routing comparisons (api
+ * router/jobs/estimator-shadow.ts, table router_estimator_shadow: per account routed in the last 7 days, the
+ * pick of each routing mode it used under the current rules and the rules under test; deleted after 30 days
+ * by the job itself and with the account or the project). Router release A2: per routed request, what Match each
+ * request and each Model switching setting would do (api db/router-adaptive-schema.ts, table router_shadow_routes:
+ * the mode asked for, the switching setting and the turn kind, the live pick and event, the matched rule, each
+ * setting's model, event and short reason, and the estimated move cost; labels only, never prompt text; kept 30
+ * days and deleted with the account or the project), in the same "Routing comparisons" row.
  */
 
 export const metadata: Metadata = pageMeta({
@@ -18,7 +30,15 @@ export const metadata: Metadata = pageMeta({
   path: '/privacy',
 });
 
-const UPDATED = '19 October 2026';
+/**
+ * The day router release A1d goes live (the Request records row: which model a new conversation's pick replaced, and
+ * why): a placeholder until the deploy day is set. A production build refuses the placeholder, so this page cannot ship
+ * with it (as for A1 and A2). A1d's install block sets it on the deploy day (phase W), in its own commit.
+ */
+const UPDATED: string = '14 November 2026';
+if (UPDATED === 'AW4_DEPLOY_DAY' && process.env.NODE_ENV === 'production') {
+  throw new Error('app/privacy/page.tsx: set UPDATED to the day router A1d is deployed before building this branch');
+}
 const EMAIL = 'hello@aistupidlevel.info';
 
 const TOC = [
@@ -96,8 +116,10 @@ export default function PrivacyPage() {
       <RdSection id="router" n={n('router')} title="Smart Router traffic" lead="The router passes your requests to the AI provider you hold a key for. It does not keep your prompts unless you turn that on.">
         <RdRows rows={[
           ['Your requests and the answers', 'Pass through our server on their way to and from the provider. They are not stored, except as described in the rows below.'],
-          ['Prompt logging (off by default)', 'If you turn it on in API monitoring, for your account or for one key, we store the last user message of each request, encrypted with AES-256-GCM, after automatically removing API keys and tokens, email addresses, phone numbers and other strings that look like secrets. It is deleted after your retention setting (90 days unless you change it). You can view it, delete one prompt or delete all of them at any time.'],
-          ['Request records', 'For every request: time, router key, requested and selected model, provider, routing reason, token counts, latency, cost estimate, success or error, and any fallback. These power your dashboard, budgets and analytics. Your plan sets how far back you can see them (3 days on Free and Pro, 30 on Developer, 90 on Teams, 365 on Enterprise).'],
+          ['Prompt logging (off by default)', 'If you turn it on in API monitoring, for your account or for one key, we store the last user message of each request (up to its first 256 KB), encrypted with AES-256-GCM, after automatically removing API keys and tokens, email addresses, phone numbers and other strings that look like secrets. It is deleted after your retention setting (90 days unless you change it). You can view it, delete one prompt or delete all of them at any time.'],
+          ['Request records', 'For every request: time, router key, requested and selected model, provider, routing reason, token counts, latency, cost estimate, success or error, and any fallback, with labels of how it was routed: the strategy and benchmark it was ranked on and where that strategy came from, the rule that matched it, the kind of turn, the model-switching setting, whether a conversation stayed on its model (or which model it moved from), which model a new conversation’s pick replaced, and why, signals about the answer (that it was empty, that a tool call’s arguments were malformed, that a failed tool call was repeated, or that it was cut off at our default length; labels only, never the text), how fresh the scores were, and timings (routing, first byte, first text). These power your dashboard, budgets and analytics. Your plan sets how far back you can see them (3 days on Free and Pro, 30 on Developer, 90 on Teams, 365 on Enterprise).'],
+          ['Model-pick memory', 'For each routing mode and tie-break, the model the router last chose for your account (or project) and when, so that a pick between statistically tied models does not change when our server restarts, and to record on a new conversation’s request which model its pick replaced. Kept 7 days after its last use.'],
+          ['Routing comparisons', 'If you used routing in the last 7 days: after each benchmark run, for each routing mode you used, the model it picks for you under the current rules and under rules we are testing, so a change is checked against your own settings before it goes live. Stored: the mode and tie-break, the providers you hold keys for, the models picked and which models were tied for first, and a short note when no model could be picked. For routed requests, also what Match each request and each Model switching setting would have done with the request: the model it would have gone to, whether the conversation would have stayed or moved and why, the rule that matched it and the estimated cost of a move, with the mode it asked for, the kind of turn and your Model switching setting. Never a prompt. Kept 30 days.'],
           ['Retry protection', <>If you send an <code key="i">Idempotency-Key</code>, the response is kept for 24 hours so that a retry gets the same answer instead of a second charge.</>],
           ['Tool calls', 'To continue a multi-step tool conversation on the same model, the model’s own turn data is kept, encrypted, for 24 hours.'],
           ['Provider keys', 'Stored encrypted with AES-256-GCM and decrypted only to make your requests. You can remove them at any time.'],
@@ -146,6 +168,8 @@ export default function PrivacyPage() {
           ['Request records', 'While your account exists. Deleted with your account.'],
           ['Logged prompts', 'Your retention setting, 90 days by default. Only if you turned logging on.'],
           ['Retry protection and tool-call turns', '24 hours.'],
+          ['Model-pick memory', '7 days after its last use (an hourly clean-up deletes it), or sooner with your account or project.'],
+          ['Routing comparisons', '30 days (an hourly clean-up deletes older ones), or sooner with your account or project.'],
           ['Site visits (IP address, browser, page, location)', '90 days. After that only daily totals remain (visits, unique visitors, top pages and top countries), with no IP addresses.'],
           ['Web server logs', '14 days.'],
           ['Mail server logs', 'About four weeks.'],

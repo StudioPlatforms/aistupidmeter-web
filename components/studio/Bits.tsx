@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { hostInitials, logoSources } from '@/lib/host-logo';
 
 /** Loading state: the ASL node's three slanted bars, lighting in turn. */
 export function Loader({ label = 'Loading…', minHeight }: { label?: ReactNode; minHeight?: number }) {
@@ -53,14 +54,64 @@ function logoFile(provider: string): string | null {
   return LOGOS.has(p) ? p : null;
 }
 
-/** A provider's official mark on a white chip, as on the leaderboard. Unknown providers get initials; none (a request refused before routing) gets a dash. */
-export function ProviderMark({ provider, size }: { provider: string; size?: 'sm' | 'lg' }) {
-  const file = logoFile(provider);
+/** A server the account added itself: "endpoint" (X-AISM-Provider), or a request row's "ep:<id>" provider. */
+const isEndpoint = (provider: string) => provider === 'endpoint' || provider.startsWith('ep:') || provider.startsWith('ep/');
+
+/** The glyph's size in each chip, matching the brand marks' image sizes in studio.css (.st-logo img). */
+const GLYPH_PX = { sm: 14, md: 18, lg: 24 } as const;
+
+/**
+ * Private endpoints have no brand, so they get a server glyph: two rack units with their status
+ * lights. The chip is white in both themes, as for the brand marks, so the glyph keeps the light
+ * theme's colours: the secondary ink (--lp-fg2) for the outline, the accent (--lp-accent) for the lights.
+ */
+function EndpointGlyph({ px }: { px: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={px} height={px} fill="none" stroke="#5f6368" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" focusable="false" style={{ display: 'block' }}>
+      <rect x="3" y="3.5" width="18" height="7" rx="2" />
+      <rect x="3" y="13.5" width="18" height="7" rx="2" />
+      <path d="M11.5 7h5.5M11.5 17h5.5" />
+      <circle cx="7" cy="7" r="1.4" fill="#1a73e8" stroke="none" />
+      <circle cx="7" cy="17" r="1.4" fill="#1a73e8" stroke="none" />
+    </svg>
+  );
+}
+
+/**
+ * A provider's official mark on a white chip, as on the leaderboard. A private endpoint gets the
+ * server glyph; unknown providers get initials; none (a request refused before routing) gets a dash.
+ *
+ * A host (an inference provider listed on AI Stupid Level) passes its display `name`, and its
+ * approved mark's 64 px rendition as `logoUrl` once it has one (Phase 3 plan §3.5): the chip then
+ * shows that mark, or the host's initials (components/marketplace/HostLogo's rule), and never a
+ * vendor's mark that a host's slug happens to spell. A `logoUrl` that is not one of a host's PNG
+ * renditions (lib/host-logo.ts) draws the initials too.
+ */
+export function ProviderMark({ provider, size, logoUrl, name }: {
+  provider: string;
+  size?: 'sm' | 'lg';
+  logoUrl?: string | null;
+  name?: string;
+}) {
+  const p = provider || '';
+  if (logoUrl || name !== undefined) {
+    const host = logoUrl ? logoSources(logoUrl, GLYPH_PX[size ?? 'md']) : null;
+    return (
+      <span className={`st-logo${size ? ` is-${size}` : ''}`} aria-hidden="true">
+        {host
+          ? <img src={host.src} srcSet={host.srcSet} sizes={host.sizes} alt="" width={18} height={18} loading="lazy" />
+          : <b style={{ fontSize: 11, color: '#5f6368' }}>{hostInitials(name ?? p)}</b>}
+      </span>
+    );
+  }
+  const file = logoFile(p);
   return (
     <span className={`st-logo${size ? ` is-${size}` : ''}`} aria-hidden="true">
       {file
         ? <img src={`/logos/${file}.svg`} alt="" width={18} height={18} loading="lazy" />
-        : <b style={{ fontSize: 11, color: '#5f6368' }}>{(provider || '').slice(0, 2).toUpperCase() || '–'}</b>}
+        : isEndpoint(p)
+          ? <EndpointGlyph px={GLYPH_PX[size ?? 'md']} />
+          : <b style={{ fontSize: 11, color: '#5f6368' }}>{p.slice(0, 2).toUpperCase() || '–'}</b>}
     </span>
   );
 }

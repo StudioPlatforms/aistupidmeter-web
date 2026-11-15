@@ -18,7 +18,8 @@ export function generateStaticParams(): Array<{ provider: string }> {
   return VENDOR_KEYS.map((provider) => ({ provider }));
 }
 
-export async function generateMetadata({ params }: { params: { provider: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ provider: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const vendor = providerBySlug(params.provider);
   if (!vendor) return { title: { absolute: `Not found${TITLE_SUFFIX}` }, robots: { index: false, follow: true } };
   const data = await getProviders();
@@ -31,7 +32,8 @@ export async function generateMetadata({ params }: { params: { provider: string 
   });
 }
 
-export default async function Page({ params }: { params: { provider: string } }) {
+export default async function Page(props: { params: Promise<{ provider: string }> }) {
+  const params = await props.params;
   if (!isProviderSlug(params.provider)) notFound();
   const vendor = providerBySlug(params.provider);
   if (!vendor) notFound();

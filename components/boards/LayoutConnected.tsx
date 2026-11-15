@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { BOARD_KEYS, BOARD_TITLE, BOARD_CADENCE, standingOn, useElementWidth, type Board, type BoardRow, type Boards } from '../../lib/use-boards';
-import { Logo, Star, modelHref, useFlip } from './BoardBits';
+import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, Star, modelHref, useFlip } from './BoardBits';
 
 /**
  * Layout "Connected" (the default): each board is a column, best at the top, and a line
@@ -29,7 +29,7 @@ const LABEL = 36;
 const EDGE = 1;
 const PAD = 6;
 
-type Group = 'ranked' | 'community' | 'other';
+type Group = 'ranked' | 'community' | 'hosted' | 'other';
 type Item = { kind: 'row'; row: BoardRow; group: Group } | { kind: 'label'; group: Group; text: string; title?: string };
 
 function columnItems(board: Board): Item[] {
@@ -51,7 +51,19 @@ function columnItems(board: Board): Item[] {
     items.push({ kind: 'label', group: 'other', text: 'Not ranked right now' });
     board.other.forEach((row) => items.push({ kind: 'row', row, group: 'other' }));
   }
+  // M9 (§7.1): the hosted group, last, under its own label (never "community"); nothing while it is empty.
+  if (board.hosted.length) {
+    items.push({ kind: 'label', group: 'hosted', text: HOSTED_TITLE, title: HOSTED_SUB });
+    board.hosted.forEach((row) => items.push({ kind: 'row', row, group: 'hosted' }));
+  }
   return items;
+}
+
+/** Every hosted row on any board, once (a hosted entry may be on Coding without a Combined row). */
+function hostedRows(boards: Boards): BoardRow[] {
+  const seen = new Set<string>(); const out: BoardRow[] = [];
+  for (const k of BOARD_KEYS) for (const r of boards[k].hosted) if (!seen.has(r.id)) { seen.add(r.id); out.push(r); }
+  return out;
 }
 
 /** `selected` lives in Leaderboards so the watchlist card can pick a model to follow too. */
@@ -74,7 +86,11 @@ export default function LayoutConnected({ boards, selected, onSelect }: {
   }), [boards]);
 
   const everyone = useMemo(
-    () => [...boards.combined.ranked, ...boards.combined.community, ...boards.combined.other],
+    () => {
+      const fleet = [...boards.combined.ranked, ...boards.combined.community, ...boards.combined.other];
+      const hosted = hostedRows(boards);
+      return hosted.length ? [...fleet, ...hosted] : fleet;
+    },
     [boards],
   );
   const sel = selected ?? everyone[0]?.id ?? null;
@@ -172,14 +188,14 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
                     <div
                       key={it.row.id}
                       data-flip={`${board.key}:${it.row.id}`}
-                      className={`sl-crow2${it.group !== 'ranked' ? ' is-muted' : ''}${it.row.id === focus ? ' is-hot' : ''}`}
+                      className={`sl-crow2${it.group !== 'ranked' ? ' is-muted' : ''}${it.row.paused ? ' is-paused' : ''}${it.row.id === focus ? ' is-hot' : ''}`}
                       style={{ height: ROW }}
                       onMouseEnter={() => onHover(it.row.id)}
                     >
-                      <span className="sl-crank">{it.group === 'ranked' ? it.row.rankText : '–'}</span>
+                      <span className="sl-crank">{it.group === 'ranked' || (it.group === 'hosted' && it.row.rank !== null) ? it.row.rankText : '–'}</span>
                       <span className="sl-model">
                         <Star row={it.row} size={12} />
-                        <Logo provider={it.row.provider} size="xs" />
+                        <Logo provider={it.row.provider} size="xs" host={it.row.host} />
                         <button
                           type="button"
                           className="sl-pick sl-stretch"
@@ -187,9 +203,10 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
                           onFocus={() => onHover(it.row.id)}
                           onBlur={() => onHover(null)}
                           aria-pressed={it.row.id === sel}
+                          aria-label={it.row.host ? `Follow ${it.row.label} across the four boards` : undefined}
                           title={it.group === 'other' && it.row.staleReason ? it.row.staleReason : `Follow ${it.row.label} across the four boards`}
                         >
-                          {it.row.label}
+                          {it.row.host ? <HostedName row={it.row} /> : it.row.label}
                         </button>
                       </span>
                       <span className="sl-cscore">{it.row.score ?? '—'}</span>
@@ -220,7 +237,19 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
         <span><svg width="28" height="8"><path d="M0 4H28" className="sl-line is-dashed" /></svg>Not ranked on one side (community-funded)</span>
         <span><svg width="28" height="8"><path d="M0 4H28" className="sl-line is-hot" /></svg>Selected model</span>
       </div>
+      <HostedNote boards={boards} />
     </>
+  );
+}
+
+/** M9: under the columns, what the hosted group is and the two links (only while any board shows one). */
+function HostedNote({ boards }: { boards: Boards }) {
+  if (!BOARD_KEYS.some((k) => boards[k].hosted.length > 0)) return null;
+  return (
+    <div className="sl-hosted-note">
+      <p><b>{HOSTED_TITLE}.</b> {HOSTED_SUB}</p>
+      <HostedLinks />
+    </div>
   );
 }
 
@@ -229,7 +258,7 @@ function TraceBar({ row, boards }: { row: BoardRow; boards: Boards }) {
   return (
     <div className="sl-trace" aria-live="polite">
       <div className="sl-trace-who sl-swap" key={`who-${row.id}`}>
-        <Logo provider={row.provider} size="lg" />
+        <Logo provider={row.provider} size="lg" host={row.host} />
         <span className="sl-trace-id">
           <span className="sl-trace-kicker">Following</span>
           <span className="sl-trace-name">{row.label}</span>
@@ -249,7 +278,7 @@ function TraceBar({ row, boards }: { row: BoardRow; boards: Boards }) {
       </dl>
       <div className="sl-trace-links">
         {isCommunity && <Link href={modelHref(row, true)} className="st-btn is-sm">Fund a run</Link>}
-        <Link href={modelHref(row)} className="st-more">Open model page</Link>
+        <Link href={modelHref(row)} className="st-more">{row.host ? 'Open the host\'s page' : 'Open model page'}</Link>
       </div>
     </div>
   );
@@ -268,12 +297,16 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
   const bucket = new Map<string, Group>();
   boards.combined.community.forEach((r) => bucket.set(r.id, 'community'));
   boards.combined.other.forEach((r) => bucket.set(r.id, 'other'));
+  hostedRows(boards).forEach((r) => bucket.set(r.id, 'hosted'));
 
   const rows = everyone.map((m) => {
     const group: Group = bucket.get(m.id) ?? 'ranked';
     const cells = BOARD_KEYS.map((k) => {
       const r = boards[k].ranked.find((x) => x.id === m.id);
       if (r) return { label: r.rankText, rank: r.rank as number };
+      // A hosted row's place among the hosted rows: words only, never a point on the fleet's rank chart.
+      const h = group === 'hosted' ? boards[k].hosted.find((x) => x.id === m.id) : undefined;
+      if (h) return { label: h.rank !== null ? h.rankText : '–', rank: null as number | null };
       const c = boards[k].community.find((x) => x.id === m.id);
       return { label: c && k !== 'combined' ? (c.when || '—') : '—', rank: null as number | null };
     });
@@ -286,6 +319,7 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
       // A community row has one rank (coding); saying so is shorter and clearer than "— · =2 · 24 Sep · 24 Sep".
       sub: isCommunity
         ? `coding ${cells[1].rank ? cells[1].label : '—'}${cells[2].label !== '—' ? ` · ${cells[2].label}` : ''}`
+        : group === 'hosted' ? `${m.vendor} · hosted ${cells.map((c) => c.label).join(' · ')}`
         : cells.map((c) => c.label).join(' · '),
       line: present.length > 1 ? present.map((p, i) => `${i ? 'L' : 'M'}${p.x} ${p.y}`).join(' ') : '',
       dots: present.map((p) => `M${p.x} ${p.y}h0`).join(' '),
@@ -309,15 +343,27 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
       {rows.map((r, i) => (
         <div key={r.m.id} data-flip={r.m.id}>
           {groupOf(r) !== 'ranked' && (i === 0 || groupOf(rows[i - 1]) !== groupOf(r)) && (
-            <div className="sl-rl-group">
-              {groupOf(r) === 'community' ? 'Community-funded reasoning and tool use' : 'Not ranked on every board'}
-            </div>
+            groupOf(r) === 'hosted' ? (
+              <div className="sl-rl-group sl-rl-hosted">
+                <span>{HOSTED_TITLE}</span>
+                <HostedLinks className="sl-hosted-links is-inline" />
+              </div>
+            ) : (
+              <div className="sl-rl-group">
+                {groupOf(r) === 'community' ? 'Community-funded reasoning and tool use' : 'Not ranked on every board'}
+              </div>
+            )
           )}
-          <div className={`sl-rl-row${r.muted ? ' is-muted' : ''}`}>
+          <div className={`sl-rl-row${r.muted ? ' is-muted' : ''}${r.m.paused ? ' is-paused' : ''}`}>
             <span className="sl-model">
               <Star row={r.m} />
-              <Logo provider={r.m.provider} size="sm" />
-              <span className="sl-model-t"><Link href={modelHref(r.m)} className="sl-name sl-stretch">{r.m.label}</Link><span className="sl-vendor">{r.sub}</span></span>
+              <Logo provider={r.m.provider} size="sm" host={r.m.host} />
+              <span className="sl-model-t">
+                {r.m.host
+                  ? <Link href={modelHref(r.m)} className="sl-name sl-stretch" aria-label={r.m.label}><HostedName row={r.m} /></Link>
+                  : <Link href={modelHref(r.m)} className="sl-name sl-stretch">{r.m.label}</Link>}
+                <span className="sl-vendor">{r.sub}</span>
+              </span>
             </span>
             <svg width="144" height="40" aria-hidden="true" className="sl-rl-chart">
               <path d="M0 5H144" className="sl-rl-top" />

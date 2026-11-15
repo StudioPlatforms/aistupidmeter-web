@@ -4,7 +4,11 @@ import { findUserById } from '@/lib/db-client';
 import { verifyPassword } from '@/lib/password';
 import { sendAccountDeletedEmail } from '@/lib/email-service';
 import { clientIp, limited } from '@/lib/ip-rate-limit';
-import { deletionBlockers, deletedUserPlaceholderId, deleteIdentityAccount, ownedWorkspaceIds } from '@/lib/account-deletion';
+import {
+  deletionBlockers, deletedUserPlaceholderId, deleteIdentityAccount, ownedWorkspaceIds, ProviderOwnerError,
+  type DeletionBlocker,
+} from '@/lib/account-deletion';
+import { readProviderSummary } from '@/lib/provider-membership';
 
 /**
  * Delete the signed-in account (Settings → Delete account).
@@ -22,6 +26,20 @@ import { deletionBlockers, deletedUserPlaceholderId, deleteIdentityAccount, owne
  */
 export const dynamic = 'force-dynamic';
 
+/**
+ * A provider blocker sends its owner to /account/provider to close the account or transfer it.
+ * When the API no longer lets this account in there (its access was switched off), that page is a
+ * 404 for them, so the blocker points to us instead. Asked only of provider owners.
+ */
+async function reachableBlockers(userId: number, blockers: DeletionBlocker[]): Promise<DeletionBlocker[]> {
+  if (!blockers.some(b => b.code === 'provider')) return blockers;
+  const { status } = await readProviderSummary(userId, 1500);
+  if (status === 200) return blockers;
+  return blockers.map(b => (b.code === 'provider'
+    ? { ...b, message: `${b.message} Contact us and we will do it with you.`, href: '/contact?topic=support' }
+    : b));
+}
+
 async function signedInUser() {
   const session = await auth();
   const id = Number((session?.user as any)?.id);
@@ -36,7 +54,7 @@ export async function GET() {
     success: true,
     email: user.email,
     needsPassword: !!user.password_hash,
-    blockers: deletionBlockers(user),
+    blockers: await reachableBlockers(user.id, deletionBlockers(user)),
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
@@ -60,8 +78,9 @@ export async function POST(request: NextRequest) {
     if (!ok) return NextResponse.json({ success: false, error: 'That password is not correct.' }, { status: 403 });
   }
 
-  const blockers = deletionBlockers(user);
-  if (blockers.length) {
+  const found = deletionBlockers(user);
+  if (found.length) {
+    const blockers = await reachableBlockers(user.id, found);
     return NextResponse.json({ success: false, error: blockers[0].message, blockers }, { status: 409 });
   }
 
@@ -95,6 +114,16 @@ export async function POST(request: NextRequest) {
     const counts = deleteIdentityAccount(user.id, placeholderId);
     console.log(`[account/delete] user ${user.id}: identity database deleted`, counts);
   } catch (err) {
+    // Ownership of a provider account arrived while the purge ran (a transfer accepted in another
+    // tab): the identity transaction refused, so the account and its provider memberships are
+    // intact, but the Smart Router and Data API records are already gone. Say exactly that.
+    if (err instanceof ProviderOwnerError) {
+      console.warn(`[account/delete] user ${user.id}: refused after purge, now owns a provider account`);
+      return NextResponse.json({
+        success: false,
+        error: `${err.message} Your account was not deleted, but its Smart Router and Data API records already were.`,
+      }, { status: 409 });
+    }
     console.error(`[account/delete] user ${user.id}: identity delete failed after purge:`, err);
     return NextResponse.json({ success: false, error: 'Part of your data was deleted but your account was not. Please try again, or contact us.' }, { status: 500 });
   }

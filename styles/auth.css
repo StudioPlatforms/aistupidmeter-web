@@ -123,6 +123,17 @@ body:has(.au) { padding-bottom: 0 !important; }
 .au-text-btn { background: none; border: 0; padding: 0; font: inherit; color: var(--au-accent); text-decoration: underline; cursor: pointer; }
 .au-busy { padding: 18px 0; text-align: center; color: var(--au-fg2); font-size: 15px; }
 
+/* sign-up: "What will you use AI Stupid Level for?" — two options, each a 40 px target */
+.au-choice { margin: 22px 0 0; padding: 0; border: 0; min-width: 0; }
+.au-choice > legend { width: 100%; padding: 0; margin-bottom: 8px; }
+.au-choice-opts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px; padding: 4px; border: 1px solid var(--au-line2); border-radius: 12px; background: var(--au-bg); }
+.au-choice-opt { position: relative; display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 7px 10px; border-radius: 9px; font-size: 14px; font-weight: 600; line-height: 1.25; text-align: center; color: var(--au-fg2); cursor: pointer; transition: background-color .2s, color .2s, box-shadow .2s; }
+.au-choice-opt input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.au-choice-opt:hover { color: var(--au-fg); }
+.au-choice-opt.is-on { background: var(--au-surface); color: var(--au-fg); box-shadow: 0 1px 2px rgba(60, 64, 67, .12), 0 0 0 1px var(--au-line2); }
+.au-choice-opt:has(input:focus-visible) { outline: 2px solid var(--au-accent); outline-offset: 2px; }
+.au-choice + .au-note, .au-choice + .au-form { margin-top: 18px; }
+
 @media (max-width: 980px) {
   .au { grid-template-columns: minmax(0, 1fr); min-height: 0; }
   .au-side { display: none; }

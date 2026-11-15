@@ -75,7 +75,7 @@ export default function PricingPlans({
           const paid = p !== 'free';
           const open = !paid || buyable.includes(p);
           const href = !paid ? signUpHref : open ? upgradeHref(p, interval) : '/pricing';
-          const label = !paid ? 'Create free account' : open ? 'Start free trial' : onPricingPage ? 'Available shortly' : 'See plan details';
+          const label = !paid ? 'Create free account' : open ? `Get ${planName(p)}` : onPricingPage ? 'Available shortly' : 'See plan details';
           const btn = `lp-btn ${p === FEATURED ? 'lp-btn-primary' : 'lp-btn-ghost'}`;
           return (
             <div key={p} className={`lp-plan${p === FEATURED ? ' is-pop' : ''}`}>

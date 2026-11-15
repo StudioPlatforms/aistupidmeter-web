@@ -383,6 +383,17 @@
 .st .sw-split-rows { display: grid; gap: 8px; }
 .st .sw-split-row { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto; align-items: center; gap: 8px; }
 
+/* Smart Router, R5: Model source at the top of the rules, the chosen source explained under it */
+.st .sw-source { display: grid; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--lp-line); }
+.st .sw-source > .st-field { max-width: 420px; }
+.st .sw-source > .st-hint { margin: 0; }
+.st .sw-source-desc p { margin: 0; max-width: 84ch; font-size: 14px; line-height: 1.6; color: var(--lp-fg2); }
+.st .sw-source-desc code { white-space: nowrap; }
+.st .sw-source-scope { margin: 0; font-size: 13px; line-height: 1.5; color: var(--lp-fg3); }
+/* Who pays the providers under Only: the stored keys, one click away */
+.st .sw-kept { margin-top: 0; }
+.st .sw-kept > .sw-addbar { margin-top: 12px; border: 1px solid var(--lp-line); border-radius: 12px; }
+
 @media (max-width: 760px) {
   .st .sw-toolbar.is-fields { align-items: stretch; flex-direction: column; }
   .st .sw-toolbar.is-fields > .st-seg button { flex: 1 1 0; }
@@ -406,9 +417,14 @@
   .st .sw-split-row > .st-btn { grid-column: 1 / -1; justify-self: start; }
   .st .sw-policy-acts .st-btn { flex: 1 1 100%; }
   .st .sw-hls { gap: 14px; }
+  .st .sw-source > .st-field { max-width: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .st .sw-forecast, .st .sw-mark, .st .sw-details.sw-section > summary { transition: none; }
   .st-js .st-up:not(.is-in) .sw-forecast { opacity: 1; }
 }
+
+/* A project's Match each request and Model switching (router release A2), beside each other on wide screens. */
+.st .sw-adaptive { align-items: start; }
+.st .sw-switch { display: grid; gap: 12px; }

@@ -28,8 +28,12 @@
  *   an IdP mint them would let a customer's directory silently raise their bill.
  */
 import crypto from 'crypto';
-import { SignJWT, jwtVerify, createRemoteJWKSet, decodeJwt } from 'jose';
+import { SignJWT, jwtVerify, createRemoteJWKSet, decodeJwt, customFetch } from 'jose';
 import { openIdentityDb } from '@/lib/identity-db';
+import {
+  checkUrl, guardedRequest, isRefusal, OutboundBlockedError, resolvePublic, SSO_ENDPOINT_POLICY, SSO_ISSUER_POLICY,
+  type GuardedRequestOptions, type GuardedResponse,
+} from '@/lib/outbound-guard';
 
 export type Protocol = 'oidc' | 'saml';
 
@@ -166,26 +170,129 @@ interface Discovery {
 const discoveryCache = new Map<string, { doc: Discovery; at: number }>();
 const DISCOVERY_TTL_MS = 10 * 60_000;
 
+// Every IdP request goes through the outbound guard (lib/outbound-guard.ts, a byte copy of the
+// API's): public https addresses only, pinned to the address that was checked, no redirects,
+// identity encoding, and these size caps.
+const DISCOVERY_MAX_BYTES = 256 * 1024;
+const JWKS_MAX_BYTES = 256 * 1024;
+const TOKEN_MAX_BYTES = 64 * 1024;
+
+const withoutTrailingSlash = (s: string) => s.replace(/\/+$/, '');
+
+/**
+ * The issuer a discovery document names must be the one it was fetched for. Compared as URLs:
+ * scheme and host case, a default port and a trailing slash make no difference (the API's SSO
+ * save, routes/teams.ts, compares the same way).
+ */
+function issuerKey(raw: string): string | null {
+  try {
+    const u = new URL(String(raw).trim());
+    u.pathname = u.pathname.replace(/\/+$/, '');
+    return u.href;
+  } catch {
+    return null;
+  }
+}
+function sameIssuer(a: string, b: string): boolean {
+  const ka = issuerKey(a);
+  return ka !== null && ka === issuerKey(b);
+}
+
+/** JSON.parse that, like fetch's res.json(), ignores a leading byte-order mark. */
+function parseJsonBody(body: Buffer): unknown {
+  return JSON.parse(body.toString('utf8').replace(/^\uFEFF/, ''));
+}
+
+/** One journal line per guard refusal: the purpose, the host and the code, never the path or query. */
+function logRefusal(purpose: string, err: unknown): void {
+  if (err instanceof OutboundBlockedError && isRefusal(err.code)) {
+    console.warn(`[outbound-guard] purpose=${purpose} host=${err.detail?.host || '-'} code=${err.code}`);
+  }
+}
+
+async function guarded(purpose: string, url: string, opts: GuardedRequestOptions): Promise<GuardedResponse> {
+  try {
+    return await guardedRequest(url, opts);
+  } catch (err) {
+    logRefusal(purpose, err);
+    throw err;
+  }
+}
+
+/** A token or key endpoint a discovery document names: a public https URL. */
+async function assertPublicEndpoint(value: unknown, field: string): Promise<void> {
+  if (typeof value !== 'string' || !value) throw new Error(`OIDC discovery has no ${field}`);
+  const checked = checkUrl(value, SSO_ENDPOINT_POLICY);
+  if (!checked.ok) {
+    console.warn(`[outbound-guard] purpose=sso_discovery host=${checked.detail?.host || '-'} code=${checked.code}`);
+    throw new Error(`OIDC ${field} is not allowed: ${checked.message}`);
+  }
+  try {
+    await resolvePublic(checked.host);
+  } catch (err) {
+    logRefusal('sso_discovery', err);
+    throw err;
+  }
+}
+
 export async function discover(issuer: string): Promise<Discovery> {
   const hit = discoveryCache.get(issuer);
   if (hit && Date.now() - hit.at < DISCOVERY_TTL_MS) return hit.doc;
 
-  const url = `${issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`;
-  const res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
-  if (!res.ok) throw new Error(`OIDC discovery failed for ${issuer}: ${res.status}`);
-  const doc = (await res.json()) as Discovery;
-  if (!doc.authorization_endpoint || !doc.token_endpoint || !doc.jwks_uri) {
+  const url = `${withoutTrailingSlash(issuer)}/.well-known/openid-configuration`;
+  const res = await guarded('sso_discovery', url, {
+    method: 'GET', headers: { Accept: 'application/json' }, policy: SSO_ISSUER_POLICY,
+    timeoutMs: 8000, maxBytes: DISCOVERY_MAX_BYTES,
+  });
+  if (res.status < 200 || res.status > 299) throw new Error(`OIDC discovery failed for ${issuer}: ${res.status}`);
+  let doc: Discovery;
+  try {
+    doc = parseJsonBody(res.body) as Discovery;
+  } catch {
+    throw new Error(`OIDC discovery for ${issuer} is not JSON`);
+  }
+  if (!doc || !doc.authorization_endpoint || !doc.token_endpoint || !doc.jwks_uri) {
     throw new Error(`OIDC discovery for ${issuer} is missing required endpoints`);
+  }
+  // The document must name the issuer it was fetched for, and its token and key endpoints must
+  // be public https servers too: the token request carries the client secret.
+  if (typeof doc.issuer !== 'string' || !sameIssuer(doc.issuer, issuer)) {
+    throw new Error(`OIDC discovery for ${issuer} names another issuer`);
+  }
+  await assertPublicEndpoint(doc.token_endpoint, 'token_endpoint');
+  await assertPublicEndpoint(doc.jwks_uri, 'jwks_uri');
+  let authz: URL | null = null;
+  try { authz = new URL(doc.authorization_endpoint); } catch { authz = null; }
+  if (!authz || authz.protocol !== 'https:') {
+    throw new Error(`OIDC discovery for ${issuer}: authorization_endpoint must be https`);
   }
   discoveryCache.set(issuer, { doc, at: Date.now() });
   return doc;
+}
+
+/** jose's fetch for the key set, through the guard: no redirects, 256 KiB, the caller's timeout. */
+async function guardedJoseFetch(
+  url: string,
+  options: { headers: Headers; method: 'GET'; redirect: 'manual'; signal: AbortSignal },
+): Promise<Response> {
+  const headers: Record<string, string> = {};
+  options.headers.forEach((value, name) => { headers[name] = value; });
+  const res = await guarded('sso_jwks', url, {
+    method: 'GET', headers, policy: SSO_ENDPOINT_POLICY, timeoutMs: 5000, maxBytes: JWKS_MAX_BYTES,
+    signal: options.signal,
+  });
+  const noBody = res.status === 204 || res.status === 205 || res.status === 304;
+  return new Response(noBody ? null : res.body.toString('utf8'), {
+    status: res.status,
+    headers: { 'content-type': String(res.headers['content-type'] || 'application/json') },
+  });
 }
 
 const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 function jwksFor(uri: string) {
   let set = jwksCache.get(uri);
   if (!set) {
-    set = createRemoteJWKSet(new URL(uri));
+    set = createRemoteJWKSet(new URL(uri), { [customFetch]: guardedJoseFetch, timeoutDuration: 5000 });
     jwksCache.set(uri, set);
   }
   return set;
@@ -216,23 +323,30 @@ export async function completeOidc(
   }
   const doc = await discover(conn.issuer);
 
-  const res = await fetch(doc.token_endpoint, {
+  const res = await guarded('sso_token', doc.token_endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
       code,
       redirect_uri: oidcRedirectUri(),
       client_id: conn.client_id,
       client_secret: conn.client_secret,
-    }),
-    signal: AbortSignal.timeout(10_000),
+    }).toString(),
+    policy: SSO_ENDPOINT_POLICY,
+    timeoutMs: 10_000,
+    maxBytes: TOKEN_MAX_BYTES,
   });
-  if (!res.ok) {
-    throw new Error(`Token exchange failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  if (res.status < 200 || res.status > 299) {
+    throw new Error(`Token exchange failed: ${res.status} ${res.body.toString('utf8').slice(0, 200)}`);
   }
-  const tokens = (await res.json()) as { id_token?: string };
-  if (!tokens.id_token) throw new Error('Identity provider returned no id_token');
+  let tokens: { id_token?: string };
+  try {
+    tokens = parseJsonBody(res.body) as { id_token?: string };
+  } catch {
+    throw new Error('Identity provider answered the token request with something other than JSON');
+  }
+  if (!tokens || !tokens.id_token) throw new Error('Identity provider returned no id_token');
 
   const { payload } = await jwtVerify(tokens.id_token, jwksFor(doc.jwks_uri), {
     issuer: doc.issuer,

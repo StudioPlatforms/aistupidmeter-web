@@ -17,6 +17,7 @@ import { recordActivation } from './lib/activation';
 import { consumeTicket, ssoRequiredFor } from '@/lib/sso';
 import { planFor, entitlementsFor } from '@/lib/entitlements';
 import { withWorkspace, workspaceFor } from './lib/workspace-plan';
+import { providerFor } from './lib/provider-membership';
 import { verifyPassword } from './lib/password';
 
 /**
@@ -258,6 +259,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             (session.user as any).emailVerified = user.email_verified === 1;
             (session.user as any).role = user.role || 'user';
             (session.user as any).forumUsername = user.forum_username || null;
+            // The provider account this person is a member of, for the sidebar's Provider group:
+            // null for nearly everyone, for accounts provider listings are not switched on for,
+            // and when the identity file has no provider tables (lib/provider-membership.ts). Last,
+            // and on its own, so nothing about it can ever cost the fields above.
+            try {
+              (session.user as any).provider = await providerFor(user.id);
+            } catch {
+              (session.user as any).provider = null;
+            }
           }
         } catch (error) {
           console.error('[AUTH] Error fetching subscription status:', error);

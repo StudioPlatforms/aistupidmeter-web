@@ -18,6 +18,14 @@ const NOTICE: Record<string, string> = {
   legacy_end_scheduled: 'Set $4.99 to end',
   legacy_ended: 'Emailed: $4.99 ended',
   legacy_end_reverted: 'Kept: end undone',
+  paid_start: 'Paid start',
+  purchase_confirmed: 'Emailed: subscription confirmed',
+  refunded_in_window: 'Refunded within 7 days',
+  refund_confirmed: 'Emailed: refund confirmed',
+  refund_failed: 'Refund failed',
+  granted_late: 'Plan granted by the watch',
+  upgrade_voided: 'Unpaid plan change voided',
+  credit_reversed: 'Plan-change credit reversed',
 };
 
 const ENDED = new Set(['canceled', 'incomplete_expired']);
@@ -68,7 +76,10 @@ export default function BillingTab({ data }: { data: AdminOverview }) {
         <Stat value={money(b.mrr, true)} label="Monthly recurring revenue" sub="Active subscriptions at list price" tone="accent" />
         <Stat value={money(b.mrr * 12, true)} label="Annual run rate" sub="MRR × 12" />
         <Stat value={money(b.collected30, true)} label="Collected, last 30 days" sub={`${num(b.invoicesPaid30)} paid invoices`} />
-        <Stat value={money(b.trialPipeline, true)} unit="/mo" label="Trials, if they convert" sub={`${b.trialing} on trial`} />
+        {/* New subscriptions start paid (2026-11-13); this slot shows the old trials until the last converts. */}
+        {b.trialing > 0
+          ? <Stat value={money(b.trialPipeline, true)} unit="/mo" label="Trials, if they convert" sub={`${b.trialing} on trial`} />
+          : <Stat value={money(b.refundWindow.cents, true)} label="In refund window" sub={`${num(b.refundWindow.count)} paid ${b.refundWindow.count === 1 ? 'subscription' : 'subscriptions'}, refundable for 7 days`} tone={b.refundWindow.count ? 'accent' : undefined} />}
         <Stat value={money(b.atRisk, true)} unit="/mo" label="Past due" sub={`${b.pastDue} ${b.pastDue === 1 ? 'subscription' : 'subscriptions'} not collected`} tone={b.atRisk ? 'bad' : undefined} />
         <Stat value={money(b.ending, true)} unit="/mo" label="Ending" sub="Cancelled, still running to period end" tone={b.ending ? 'warn' : undefined} />
       </Stats>

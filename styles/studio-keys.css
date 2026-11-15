@@ -271,3 +271,61 @@
 .st .sk-steps-head li.is-done { color: var(--lp-good); }
 .st .sk-skip { padding: 0; border: 0; background: none; color: var(--lp-fg2) !important; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; justify-self: start; }
 .st .sk-skip:hover { color: var(--lp-fg) !important; }
+
+/* ── Listed providers (components/router/ListedProvidersPane; Phase 3 M8) ── */
+.st .lh-search { padding: 12px 22px; border-bottom: 1px solid var(--lp-line); }
+.st .lh-none { margin: 0; padding: 16px 22px; color: var(--lp-fg3); font-size: 13.5px; }
+.st .lh-row { align-items: start; }
+.st .lh-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+.st .lh-name b { font-size: 14.5px; color: var(--lp-fg); }
+.st .lh-meta { font-size: 12.5px; color: var(--lp-fg3); }
+.st .lh-models { display: flex; flex-wrap: wrap; gap: 2px 12px; margin-top: 4px; font-size: 13px; color: var(--lp-fg2); min-width: 0; }
+.st .lh-model { overflow-wrap: anywhere; }
+.st .lh-more { color: var(--lp-fg3); }
+.st .lh-facts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; font-size: 12.5px; color: var(--lp-fg3); }
+.st .lh-offer-line { display: inline-flex; align-items: center; gap: 6px; color: var(--lp-fg2); min-width: 0; }
+.st .lh-row .sk-prov-msg { margin-top: 8px; }
+.st .lh-row .sk-prov-msg p { margin: 0; }
+.st .lh-confirm { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-width: 0; }
+/* "Send my key to <host>": the host is the point, so the button wraps instead of being cut at phone width (M8 review). */
+.st .lh-row .lh-confirm .st-btn { max-width: 100%; height: auto; min-height: 32px; padding-top: 6px; padding-bottom: 6px; line-height: 1.35;
+  white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.st .lh-steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14px; color: var(--lp-fg2); }
+.st .lh-data ul { margin: 6px 0 4px; padding-left: 18px; display: grid; gap: 2px; font-size: 13.5px; color: var(--lp-fg2); }
+.st .lh-offer { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--lp-line2); border-radius: 12px; }
+.st .lh-offer-t { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.st .lh-offer p { margin: 0; }
+.st .lh-offer-d { font-size: 12px; color: var(--lp-fg3); }
+@media (max-width: 560px) {
+  .st .lh-search { padding: 12px 16px; }
+  .st .lh-row { grid-template-columns: auto minmax(0, 1fr); row-gap: 10px; padding: 13px 16px; }
+  .st .lh-row .st-row-end { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+  .st .lh-row .st-btn { height: 40px; }
+}
+
+/* ── /router/test-keys: the "Listed host" option (F7) ───────────────── */
+/* A radio or checkbox line with its words (the key's source, "Show my name"): the studio's own st-toggle, as on
+   /router/preferences (F7 review web MINOR-1), with a 40px row on phones. */
+.st .sk-lh-choice { margin-top: 8px; }
+.st .sk-lh-choice > span { min-width: 0; overflow-wrap: anywhere; }
+.st .sk-lh-choice.is-off { cursor: default; }
+.st .sk-lh-choice.is-off b { color: var(--lp-fg3); }
+.st .sk-lh-hidden, .st .sk-lh-why { display: block; margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: var(--lp-fg2); max-width: 36em; overflow-wrap: anywhere; }
+/* F6c: a long unbroken host name wraps inside its history cell (it ran over the next cell and pushed the table sideways). */
+.st .sk-lh-hist .sk-history td[data-label="Host"] { overflow-wrap: anywhere; }
+.st .sk-lh-act { display: block; margin-top: 8px; }
+.st .sk-lh-wait { display: grid; gap: 12px; justify-items: start; }
+.st .sk-lh-wait .st-note { justify-self: stretch; margin: 0; }
+/* A test that cannot start now reads as one (web SHOULD-3): the studio's disabled controls are faded too. */
+.st .sk-suite:disabled { opacity: .55; cursor: not-allowed; }
+.st .sk-suite:disabled:hover { border-color: var(--lp-line); }
+/* Long unbroken names wrap inside the steps instead of widening them (web MINOR-6). */
+.st .sk-lh-step .st-note-t, .st .sk-lh-step .st-pane-sub, .st .sk-lh-step .st-hint { overflow-wrap: anywhere; }
+.st .sk-lh-step .sk-run { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) {
+  .st .sk-lh-choice { min-height: 40px; margin-top: 0; padding: 10px 0; }
+  /* A hidden test's statement or a failed test's reason takes the row's whole width (web MINOR-5). */
+  .st .sk-lh-hist .st-table.sk-history.is-stack td[data-label="State"] { grid-column: 1 / -1; }
+  /* "Stop showing my name" and "Withdraw": 36px targets on phones (the studio's small button is 32px). */
+  .st .sk-lh-hist .st-pane-act .st-btn, .st .sk-lh-act .st-btn, .st .sk-lh-wait .st-btn { height: 36px; }
+}

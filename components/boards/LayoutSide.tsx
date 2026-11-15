@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { BOARD_KEYS, BOARD_CADENCE, useElementWidth, type Board, type Boards } from '../../lib/use-boards';
-import { CommunityIcon, Logo, Note, Rank, Score, ScoreBar, Star, communityBlurb, modelHref, useFlip } from './BoardBits';
+import { CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedName, Logo, Note, Rank, Score, ScoreBar, Star, communityBlurb, modelHref, useFlip } from './BoardBits';
 
 /**
  * Layout "Side by side": the four boards as four full lists next to each other. Below
@@ -28,8 +28,10 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
             <Rank row={row} />
             <span className="sl-model">
               <Star row={row} />
-              <Logo provider={row.provider} />
-              <Link href={modelHref(row)} className="sl-name sl-stretch">{row.label}</Link>
+              <Logo provider={row.provider} host={row.host} />
+              {row.host
+                ? <Link href={modelHref(row)} className="sl-name sl-stretch" aria-label={row.label}><HostedName row={row} /></Link>
+                : <Link href={modelHref(row)} className="sl-name sl-stretch">{row.label}</Link>}
               <Note row={row} />
             </span>
             <ScoreBar row={row} />
@@ -79,6 +81,29 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {board.hosted.length > 0 && (
+        <div className="sl-comm sl-hosted">
+          <div className="sl-comm-head">
+            <HostIcon />
+            <span>{HOSTED_TITLE}</span>
+            <span className="sl-comm-count">{board.hosted.length} hosted</span>
+          </div>
+          <p className="sl-comm-text">{HOSTED_SUB}</p>
+          <ul className="sl-crows">
+            {board.hosted.map((row) => (
+              <li key={row.id} data-flip={`${k}:h:${row.id}`} className={`sl-crow sl-hrow${row.paused ? ' is-paused' : ''}`}>
+                <Rank row={row} />
+                <Logo provider={row.provider} size="xs" host={row.host} />
+                <Link href={modelHref(row)} className="sl-name sl-stretch" aria-label={row.label}><HostedName row={row} /></Link>
+                {row.rank === null && row.when && <span className="sl-date" title={row.staleReason || undefined}>{row.when}</span>}
+                <Score row={row} muted={row.rank === null} />
+              </li>
+            ))}
+          </ul>
+          <HostedLinks />
         </div>
       )}
     </section>

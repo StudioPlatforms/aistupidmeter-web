@@ -40,9 +40,12 @@
   /* Dynamic accent with opacity — used by rgba(var(--primary-rgb), a) tints */
   --primary-rgb: 26, 115, 232;  /* Will be updated by theme */
 
-  /* Typography — clean sans-serif system stack (was monospace) */
-  --font-mono: 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif;
-  --font-display: 'Google Sans', 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif;
+  /* Typography — clean sans-serif system stack (was monospace).
+     No 'Inter' here: since Next 15, next/font names the Inter it self-hosts for the landing and
+     studio pages plain 'Inter' (Next 14 named it '__Inter_<hash>'), so listing it would switch
+     every page using these stacks from the system font to that web font. */
+  --font-mono: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif;
+  --font-display: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Arial, sans-serif;
   --font-code: 'SF Mono', 'Monaco', 'Menlo', 'DejaVu Sans Mono', 'Courier New', monospace;
   --font-size-xs: 10px;
   --font-size-sm: 12px;

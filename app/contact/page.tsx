@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
 import JsonLd from '@/components/seo/JsonLd';
 import type { CSSProperties } from 'react';
-import { Suspense } from 'react';
 import Link from 'next/link';
 import SubpageLayout from '@/components/SubpageLayout';
 import LandingEffects from '@/components/landing/LandingEffects';
@@ -26,7 +25,11 @@ const CONTACT_LD = graphLd([
   { ...webPageLd({ path: '/contact', name: TITLE, description: DESCRIPTION }), '@type': 'ContactPage' },
 ]);
 
-/** useSearchParams needs either a Suspense boundary or a dynamic page; it has both. */
+/**
+ * useSearchParams needs either a Suspense boundary or a dynamic page. This page is dynamic and
+ * deliberately has no boundary around the form: React 19 streams a finished boundary after the page
+ * shell once enough HTML has gone out, so a slow connection painted an empty card before the form.
+ */
 export const dynamic = 'force-dynamic';
 
 const intro = (d: string): CSSProperties => ({ '--d': d } as CSSProperties);
@@ -60,9 +63,7 @@ export default function ContactPage() {
             </div>
 
             <div className="ct-form-col">
-              <Suspense fallback={<div className="lf-card lf-card-wait" aria-busy="true" aria-label="Loading the form" />}>
-                <ContactClient />
-              </Suspense>
+              <ContactClient />
             </div>
 
             <ul className="ct-notes lp-intro" style={intro('.3s')}>

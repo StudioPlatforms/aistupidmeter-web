@@ -6,7 +6,7 @@ import {
   BOARD_KEYS, BOARD_TO_SORT, SORT_TO_BOARD,
   type BoardKey, type BoardRow, type Boards, type SortKey,
 } from '../../lib/use-boards';
-import { Logo, Star, modelHref } from './BoardBits';
+import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, Star, modelHref } from './BoardBits';
 
 /**
  * Layout "Simple" (replaced "Top 5" on 2026-10-18): one board at a time, in plain words, for
@@ -69,6 +69,17 @@ export default function LayoutSimple({ boards, sortKey, onSortChange }: {
         </button>
       )}
 
+      {board.hosted.length > 0 && (
+        <section className="sl-simple-hosted" aria-label={HOSTED_TITLE}>
+          <h3>{HOSTED_TITLE}</h3>
+          <p>{HOSTED_SUB}</p>
+          <ol className="sl-simple-list">
+            {board.hosted.map((row) => <SimpleRow key={row.id} row={row} />)}
+          </ol>
+          <HostedLinks />
+        </section>
+      )}
+
       {all && unranked.length > 0 && (
         <section className="sl-simple-unranked" aria-label="Not ranked on this board">
           <h3>Not ranked on this board</h3>
@@ -93,6 +104,31 @@ function SimpleRow({ row }: { row: BoardRow }) {
   const v = verdict(score);
   const trend = TREND[row.trend] ?? 'Steady';
   const tied = row.rankText.startsWith('=');
+  // M9: a hosted row (§7.1) has its place among the hosted rows, or "–" (paused, measuring), and no star.
+  if (row.host) {
+    return (
+      <li className={`sl-simple-row is-hosted${row.paused ? ' is-paused' : ''}`}>
+        <span className="sl-simple-rank" title={tied ? 'Joint place: too close to call apart' : undefined}>{row.rank ?? '–'}</span>
+        <span className="sl-simple-model">
+          <Logo provider={row.provider} size="md" host={row.host} />
+          <span className="sl-simple-name">
+            <Link href={modelHref(row)} className="sl-name sl-stretch" aria-label={row.label}><HostedName row={row} /></Link>
+            <span className="sl-vendor">{row.vendor}{row.note ? ` · ${row.note}` : ''}</span>
+          </span>
+        </span>
+        <span className="sl-simple-score" aria-label={`score ${row.score ?? 'none'} out of 100`}>
+          <b>{row.score ?? '—'}</b><small>/100</small>
+        </span>
+        <span className="sl-simple-bar" aria-hidden="true"><i style={{ width: `${Math.max(0, Math.min(100, score))}%` }} /></span>
+        <span className="sl-simple-tags">
+          {row.paused
+            ? <span className="sl-simple-verdict is-fair">{row.staleReason || 'Measurement paused'}</span>
+            : row.score === null ? null : <span className={`sl-simple-verdict is-${v.tone}`}>{v.word}</span>}
+          {!row.paused && row.score !== null && <span className={`sl-simple-trend is-${row.trend === 'up' ? 'up' : row.trend === 'down' ? 'down' : 'flat'}`}>{trend}</span>}
+        </span>
+      </li>
+    );
+  }
   return (
     <li className={`sl-simple-row${row.rank === 1 ? ' is-first' : ''}`}>
       <span className="sl-simple-rank" title={tied ? 'Joint place: too close to call apart' : undefined}>{row.rank}</span>

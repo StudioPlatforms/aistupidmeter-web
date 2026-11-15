@@ -11,6 +11,8 @@ import { ago, compact, fullDate, num, pct, planLabel, usd, PROVIDER_NAME } from 
 
 const CAUSE: Record<string, string> = {
   no_provider_key: 'No provider key saved',
+  // M8: an automatic request from an account whose only routes are listed hosts, under Model source All.
+  no_auto_candidates: 'Automatic routing with listed hosts only',
   client_auth: 'Provider rejected the key',
   client_request: 'Provider rejected the request',
   client_quota: 'Provider account out of credit',
@@ -128,7 +130,7 @@ export default function RouterTab({ data }: { data: AdminOverview }) {
                   <td className="is-num ad-hide-md" title={u.keyLastUsedAt ? `Last used ${fullDate(u.keyLastUsedAt)}` : 'Never used'}>{u.keysActive}<span className="st-faint">/{u.keysTotal}</span></td>
                   <td><Providers u={u} /></td>
                   <td className="ad-hide-md">
-                    {u.topModel ? <span className="ad-model" title={`${num(u.topModel.requests)} successful requests in 30 days`}><ProviderMark provider={u.topModel.provider} />{u.topModel.model}</span> : <span className="st-faint">—</span>}
+                    {u.topModel ? <span className="ad-model" title={`${num(u.topModel.requests)} successful requests in 30 days`}><ProviderMark provider={u.topModel.provider} />{u.topModel.label ?? u.topModel.model}</span> : <span className="st-faint">—</span>}
                   </td>
                   <td className="ad-hide-md">{u.topMode ? <code className="ad-code">{u.topMode}</code> : <span className="st-faint">—</span>}</td>
                 </tr>
@@ -160,7 +162,7 @@ export default function RouterTab({ data }: { data: AdminOverview }) {
                 {r.models.length === 0 && <EmptyRow cols={3}>No successful requests in the last 30 days.</EmptyRow>}
                 {r.models.map(m => (
                   <tr key={`${m.provider}/${m.model}`}>
-                    <td><span className="ad-model"><ProviderMark provider={m.provider} />{m.model}</span></td>
+                    <td><span className="ad-model"><ProviderMark provider={m.provider} />{m.label ?? m.model}</span></td>
                     <td className="is-num">{num(m.requests)}</td>
                     <td className="is-num is-dim">{pct(m.requests, modelTotal)}</td>
                   </tr>

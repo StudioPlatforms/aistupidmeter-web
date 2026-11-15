@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function UnsubscribePage({ searchParams }: { searchParams: { t?: string } }) {
+export default async function UnsubscribePage(props: { searchParams: Promise<{ t?: string }> }) {
+  const searchParams = await props.searchParams;
   return <UnsubscribeClient token={searchParams.t ?? ''} />;
 }

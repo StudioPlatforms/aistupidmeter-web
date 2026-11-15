@@ -18,6 +18,7 @@ import { withWorkspace } from '@/lib/workspace-plan';
 import type { SubscriptionStatus } from '@/lib/db-client';
 import { stripeSnapshot, type StripeSnapshot, type StripeSubscriptionRecord } from '@/lib/admin-stripe';
 import { recentNotices } from '@/lib/billing-watch';
+import { noticesSince, refundsUnconfirmed } from '@/lib/billing-notices';
 import type {
   AdminAccount, AdminOverview, AdminSubscription, AttentionItem, DataApiAccount, PlanRow, RouterUser,
 } from '@/lib/admin-types';
@@ -62,7 +63,8 @@ interface RouterUsageResponse {
     today: number; last7: number; last30: number; last30Success: number; tokens30: number; cost30: number;
     latency30: number | null; fallback30: number; noProviderKey: number; firstAt: string | null; lastAt: string | null;
   }>;
-  models30: Array<{ userId: number; provider: string | null; model: string | null; requests: number }>;
+  /** `label` (M8): a listed host's row, "<Host> · <model> (listed host)"; absent on every other row. */
+  models30: Array<{ userId: number; provider: string | null; model: string | null; requests: number; label?: string }>;
   modes30: Array<{ userId: number; mode: string; requests: number }>;
   failures30: Array<{ userId: number; cause: string; requests: number }>;
   daily: Array<{ userId: number; date: string; ok: number; failed: number }>;
@@ -86,6 +88,10 @@ const shortId = (id: string) => `…${id.slice(-8)}`;
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const dateLabel = (iso: string | null) => iso
   ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  : 'unknown';
+/** A deadline: "20 Nov 2026, 15:06 UTC". */
+const dateTimeLabel = (iso: string | null) => iso
+  ? `${dateLabel(iso)}, ${new Date(iso).toISOString().slice(11, 16)} UTC`
   : 'unknown';
 const planName = (plan: Plan | null) => (plan === 'legacy_pro' ? 'Pro ($4.99 legacy)' : plan ? PLANS[plan].label : 'unknown plan');
 const stripeLink = (kind: 'subscriptions' | 'customers', id: string) => `https://dashboard.stripe.com/${kind}/${id}`;
@@ -212,14 +218,14 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
       ?? (s.customerEmail ? byEmail.get(s.customerEmail.toLowerCase()) : undefined)
       ?? null;
 
-    const subs: Array<AdminSubscription & { _owner: UserRow | null }> = (stripe?.subscriptions ?? []).map(s => {
+    const subs: Array<AdminSubscription & { _owner: UserRow | null; _rec: StripeSubscriptionRecord }> = (stripe?.subscriptions ?? []).map(s => {
       const owner = ownerOf(s);
       return {
         id: s.id, customerId: s.customerId, userId: owner?.id ?? null, email: owner?.email ?? s.customerEmail,
         status: s.status, plan: s.plan ?? (owner ? ownPlanFor(owner) : null), amount: s.amount, interval: s.interval,
         monthly: s.monthly, startedAt: s.startedAt, periodEnd: s.periodEnd, trialEnd: s.trialEnd, cancelAt: s.cancelAt,
         endedAt: s.endedAt, discounted: s.discounted, linked: !!owner && owner.stripe_subscription_id === s.id,
-        invoice: s.invoice, _owner: owner,
+        invoice: s.invoice, _owner: owner, _rec: s,
       };
     });
     const ours = (s: { _owner: UserRow | null }) => !s._owner || !internalIds.has(s._owner.id);
@@ -259,18 +265,25 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
     }
 
     const liveByUser = new Map<number, typeof live>();
-    for (const s of live) if (s.userId) liveByUser.set(s.userId, [...(liveByUser.get(s.userId) ?? []), s]);
+    // An unpaid checkout (incomplete) never charged anything, so it is not a second charge.
+    for (const s of live) if (s.userId && s.status !== 'incomplete') liveByUser.set(s.userId, [...(liveByUser.get(s.userId) ?? []), s]);
     liveByUser.forEach((list, userId) => {
       if (list.length < 2) return;
       const linked = list.find(s => s.linked);
       const extra = sumBy(list, s => s.monthly) - (linked?.monthly ?? Math.max(...list.map(s => s.monthly)));
       // The billing watch keeps the dearer one (the one in use on a tie) and cancels the rest,
-      // but only when the one it keeps is the one in use (lib/billing-watch.ts).
+      // but only when the one it keeps is the one in use (lib/billing-watch.ts), and never a paid
+      // start in its first 7 days: that one was charged at checkout, so a person refunds it.
       const automatic = !!linked && list.every(s => s.monthly <= linked.monthly);
+      const held = list.filter(s => s !== linked && s._rec.paidStart && now - (time(s.startedAt) ?? 0) <= 7 * DAY);
+      const heldIds = held.map(s => shortId(s.id)).join(', ');
       attention.push({
         kind: 'duplicate', tone: 'bad', userId, email: list[0].email ?? undefined,
         title: `${who(list[0])} has ${list.length} live subscriptions`,
-        detail: `About ${money(extra)}/month charged twice. ` + (automatic
+        detail: `About ${money(extra)}/month charged twice. ` + (automatic && held.length
+          ? `${heldIds} ${held.length > 1 ? 'were' : 'was'} paid at checkout in the last 7 days, so the billing watch leaves ${held.length > 1 ? 'them' : 'it'} for you: refund ${held.length > 1 ? 'their payments' : 'its payment'} in Stripe and cancel ${held.length > 1 ? 'them' : 'it'}, keeping ${shortId(linked!.id)}, the one in use.`
+            + (list.length - 1 > held.length ? ' The billing watch cancels the other extra ones on its next run, unrefunded.' : '')
+          : automatic
           ? `The billing watch cancels the extra ${list.length > 2 ? 'ones' : 'one'} on its next run and keeps ${shortId(linked!.id)}, the one in use. Charges already taken are not refunded automatically.`
           : linked
             ? `The account uses ${shortId(linked.id)}, but another costs more, so the billing watch leaves this for you: cancel the cheaper one only after moving the account to the subscription it keeps.`
@@ -317,6 +330,82 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
         detail: s.cancelAt
           ? 'Cancelled during the trial, so it will not convert.'
           : `Converts to ${money(s.amount)}/${s.interval} unless they cancel.`,
+        links: [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }],
+      });
+    }
+
+    // A paid start that began with a trial: Checkout passes none, so a Price's own trial applied
+    // after all and the sale was not charged (the webhook grants it as a trial). Every new sale may
+    // be starting the same way, so it is shown as a problem, not as an ordinary trial.
+    for (const s of live.filter(x => x._rec.paidStart && x.status === 'trialing')) {
+      attention.push({
+        kind: 'paid_start_trial', tone: 'bad', userId: s.userId ?? undefined, email: s.email ?? undefined,
+        title: `${who(s)}: ${planName(s.plan)} began with a trial, not a payment`,
+        detail: `Checkout passes no trial, so a trial on the Price itself applied${s.trialEnd ? `; nothing is charged until ${dateLabel(s.trialEnd)}` : ''}. Check the Price in Stripe: other new subscriptions may be starting unpaid too.`,
+        links: [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }],
+      });
+    }
+
+    // Paid start (lib/paid-start.ts): subscriptions a customer can still cancel and refund, refunds
+    // asked for and not finished, refunds the bank sent back, and plan changes waiting for payment.
+    const nowIso = new Date(now).toISOString();
+    const refundable = live.filter(s => s.status === 'active' && s._rec.refundUntil && s._rec.refundUntil > nowIso && !s._rec.refundRequestedAt);
+    for (const s of refundable) {
+      attention.push({
+        kind: 'refund_window', tone: 'accent', userId: s.userId ?? undefined, email: s.email ?? undefined,
+        title: `${who(s)}: ${planName(s.plan)} paid ${money(s._rec.paidCents ?? s.amount)}; refundable until ${dateTimeLabel(s._rec.refundUntil)}`,
+        detail: 'Until then the customer can choose Cancel and refund on the billing page: the plan ends at once and every payment on it is refunded. After it, this is an ordinary paid subscription.',
+        links: [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }],
+      });
+    }
+    const refundedRefs = new Set(
+      (db.prepare(`SELECT ref FROM billing_notices WHERE kind = 'refunded_in_window'`).all() as Array<{ ref: string }>).map(n => n.ref),
+    );
+    for (const s of subs.filter(x => x._rec.refundRequestedAt && !refundedRefs.has(x.id) && ours(x))) {
+      attention.push({
+        kind: 'refund_unfinished', tone: 'bad', userId: s.userId ?? undefined, email: s.email ?? undefined,
+        title: `${who(s)}: refund asked for ${dateTimeLabel(s._rec.refundRequestedAt)}, not finished`,
+        detail: `${planName(s.plan)} · ${s.status}. The billing watch tries to finish it every six hours. If this stays, refund the payments in Stripe and cancel the subscription by hand.`,
+        links: [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }],
+      });
+    }
+    // Refunded and recorded, but the plan-change credit or the refund email is stuck: the refund
+    // is recorded before both, so the item above no longer shows it, and a credit left on the
+    // customer pays for their next purchase while it lasts. From our own records (Stripe's list
+    // only adds the plan and status), an hour after the refund.
+    const subsById = new Map(subs.map(s => [s.id, s]));
+    for (const n of refundsUnconfirmed(60)) {
+      const r = n.userId ? byId.get(n.userId) : undefined;
+      const s = subsById.get(n.ref);
+      if ((r && internalIds.has(r.id)) || (s && !ours(s))) continue;
+      const email = r?.email ?? s?.email ?? null;
+      const customerId = s?.customerId ?? r?.stripe_customer_id ?? null;
+      attention.push({
+        kind: 'refund_unfinished', tone: 'bad', userId: n.userId ?? undefined, email: email ?? undefined,
+        title: `${email ?? 'A customer'}: refunded ${dateTimeLabel(n.createdAt)}, not finished`,
+        detail: `${s ? `${planName(s.plan)} · ${s.status}. ` : ''}Refunded and ended, but the plan-change credit or the refund email is not finished. The billing watch retries every six hours; if this stays, check the customer's balance in Stripe and email them.`,
+        links: [
+          { label: 'Subscription in Stripe', href: stripeLink('subscriptions', n.ref) },
+          ...(customerId ? [{ label: 'Customer in Stripe', href: stripeLink('customers', customerId) }] : []),
+        ],
+      });
+    }
+    for (const n of noticesSince('refund_failed', 30)) {
+      const r = n.userId ? byId.get(n.userId) : undefined;
+      if (r && internalIds.has(r.id)) continue;
+      attention.push({
+        kind: 'refund_failed', tone: 'bad', userId: n.userId ?? undefined, email: r?.email,
+        title: `${r?.email ?? 'A customer'}: a refund failed on ${dateLabel(n.createdAt)}`,
+        detail: n.detail ?? 'The bank returned the refund.',
+        links: [{ label: 'Refund in Stripe', href: `https://dashboard.stripe.com/refunds/${n.ref}` }],
+      });
+    }
+    for (const s of live.filter(x => x._rec.pendingUpdate)) {
+      const p = s._rec.pendingUpdate!;
+      attention.push({
+        kind: 'upgrade_pending', tone: 'warn', userId: s.userId ?? undefined, email: s.email ?? undefined,
+        title: `${who(s)}: change to ${planName(p.plan)} waiting for payment`,
+        detail: `The plan stays ${planName(s.plan)} until it is paid. The customer was given Stripe's payment page; Stripe drops the change unpaid${p.expiresAt ? ` at ${dateTimeLabel(p.expiresAt)}` : ' after about a day'}, and the billing watch voids its invoice if it is still open after 24 hours.`,
         links: [{ label: 'Subscription in Stripe', href: stripeLink('subscriptions', s.id) }],
       });
     }
@@ -418,7 +507,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
           providers: (p?.providers ?? '').split(',').filter(Boolean).sort(),
           providerKeysFailing: p?.failing ?? 0,
           noProviderKey: u?.noProviderKey ?? 0,
-          topModel: m ? { provider: m.provider ?? '', model: m.model ?? 'unknown', requests: m.requests } : null,
+          topModel: m ? { provider: m.provider ?? '', model: m.model ?? 'unknown', requests: m.requests, ...(m.label ? { label: m.label } : {}) } : null,
           topMode: topMode.get(id)?.mode ?? null,
           tokens30: u?.tokens30 ?? 0,
           cost30: u?.cost30 ?? 0,
@@ -470,9 +559,10 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
         for (const x of list) if (!internalIds.has(x.userId)) out.set(key(x), (out.get(key(x)) ?? 0) + x.requests);
         return Array.from(out.entries()).sort((a, b) => b[1] - a[1]);
       };
+      const labels = new Map(usage.models30.filter(m => m.label).map(m => [`${m.provider ?? ''}\u0000${m.model ?? 'unknown'}`, m.label as string]));
       models = fold(usage.models30, m => `${m.provider ?? ''}\u0000${m.model ?? 'unknown'}`)
         .slice(0, 10)
-        .map(([k, requests]) => { const [provider, model] = k.split('\u0000'); return { provider, model, requests }; });
+        .map(([k, requests]) => { const [provider, model] = k.split('\u0000'); const label = labels.get(k); return { provider, model, requests, ...(label ? { label } : {}) }; });
       modes = fold(usage.modes30, m => m.mode).map(([mode, requests]) => ({ mode, requests }));
       failures = fold(usage.failures30, f => f.cause).map(([cause, requests]) => ({ cause, requests }));
 
@@ -531,7 +621,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
     };
 
     const recentlyEnded = subs.filter(s => !LIVE.has(s.status) && s.endedAt && time(s.endedAt)! >= now - 60 * DAY && ours(s));
-    const strip = ({ _owner, ...s }: AdminSubscription & { _owner: UserRow | null }): AdminSubscription => s;
+    const strip = ({ _owner, _rec, ...s }: AdminSubscription & { _owner: UserRow | null; _rec: StripeSubscriptionRecord }): AdminSubscription => s;
 
     return {
       generatedAt: new Date().toISOString(),
@@ -550,6 +640,7 @@ export async function buildOverview({ freshStripe = false } = {}): Promise<Admin
         ending: sumBy(active.filter(s => s.cancelAt), s => s.monthly),
         atRisk: sumBy(live.filter(s => s.status === 'past_due' || s.status === 'unpaid'), s => s.monthly),
         trialPipeline: sumBy(live.filter(s => s.status === 'trialing' && !s.cancelAt), s => s.monthly),
+        refundWindow: { count: refundable.length, cents: sumBy(refundable, s => s._rec.paidCents ?? s.amount) },
         payingCustomers,
         trialing: live.filter(s => s.status === 'trialing').length,
         pastDue: live.filter(s => s.status === 'past_due' || s.status === 'unpaid').length,

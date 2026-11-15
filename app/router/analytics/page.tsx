@@ -7,7 +7,9 @@ import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard, { useCapability } from '@/components/SubscriptionGuard';
 import { apiClient } from '@/lib/api-client';
 import type { AnalyticsOverview, TimelineData, CostSavings, RecentRequest } from '@/lib/api-client';
-import { PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Note, Tag, ProviderMark, useModelNames, PROVIDER_LABEL } from '@/components/studio';
+import { analyticsCsv, analyticsJson } from '@/lib/recent-requests';
+import { PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Note, ProviderMark, useModelNames, PROVIDER_LABEL } from '@/components/studio';
+import { RequestLogRows, hasRankedOn } from '@/components/router/RecentRequests';
 import { useReducedMotion } from '@/components/landing/util';
 import '@/styles/studio-insights.css';
 
@@ -35,15 +37,6 @@ const money = (n: number) => moneyFor(n)(n);
 const tokens = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : Math.round(n).toLocaleString('en-US'));
 const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}K` : String(Math.round(n)));
 const axisMoney = (v: number) => (v === 0 ? '$0' : `$${v < 0.01 ? v.toFixed(4) : v < 10 ? v.toFixed(2) : Math.round(v).toLocaleString('en-US')}`);
-
-/** A log time: the clock time for today's entries, the date as well for older ones. */
-function when(ts: string): string {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toDateString() === new Date().toDateString()
-    ? d.toLocaleTimeString()
-    : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
 
 interface DayPoint { key: string; label: string; long: string; requests: number; cost: number; successRate: number | null }
 
@@ -201,28 +194,17 @@ export default function RouterAnalyticsPage() {
   const handleExport = (format: 'csv' | 'json') => {
     if (!overview) return;
     const timestamp = new Date().toISOString().split('T')[0];
+    // lib/recent-requests: each recent request with what it asked for, what the router ranked on and
+    // why it chose the model, whenever the API sends them; CSV fields quoted where they need it.
+    const data = { exportDateText: new Date().toLocaleString(), exportDateIso: new Date().toISOString(), timeRange, overview, costSavings, recentRequests };
     if (format === 'csv') {
-      let csv = '# ANALYTICS OVERVIEW\n';
-      csv += `Export Date,${new Date().toLocaleString()}\nTime Range,${timeRange}\n`;
-      csv += `Total Requests,${overview.overview.totalRequests}\nSuccess Rate,${overview.overview.successRate}\n`;
-      csv += `Total Cost,$${overview.overview.totalCost}\nTotal Tokens,${overview.overview.totalTokens}\n`;
-      if (costSavings) {
-        csv += `\n# COST SAVINGS\nActual Cost,$${costSavings.actualCost}\nWorse Case,$${costSavings.worstCaseCost}\nSavings,$${costSavings.savings}\n`;
-      }
-      if (overview.providers.length > 0) {
-        csv += '\n# PROVIDER BREAKDOWN\nProvider,Requests,Percentage,Total Cost\n';
-        overview.providers.forEach(p => { csv += `${p.provider},${p.requests},${p.percentage},${p.totalCost}\n`; });
-      }
-      if (recentRequests.length > 0) {
-        csv += '\n# RECENT REQUESTS\nTimestamp,Model,Provider,Status,Tokens,Cost,Latency\n';
-        recentRequests.forEach(r => { csv += `${new Date(r.timestamp).toISOString()},${r.model},${r.provider},${r.success ? 'OK' : 'FAIL'},${r.tokensIn + r.tokensOut},${r.cost},${r.latency}\n`; });
-      }
+      const csv = analyticsCsv(data);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `analytics-${timeRange}-${timestamp}.csv`; a.click();
       URL.revokeObjectURL(url);
     } else {
-      const json = JSON.stringify({ exportDate: new Date().toISOString(), timeRange, overview: overview.overview, costSavings, providers: overview.providers, topModels: overview.topModels, recentRequests }, null, 2);
+      const json = analyticsJson(data);
       const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `analytics-${timeRange}-${timestamp}.json`; a.click();
@@ -397,6 +379,8 @@ export default function RouterAnalyticsPage() {
                     <tr>
                       <th>Status</th>
                       <th>Model</th>
+                      {/* AW2: the benchmark each request was ranked on, when the requests carry it (API A1). */}
+                      {hasRankedOn(recentRequests) && <th>Ranked on</th>}
                       <th>Provider</th>
                       <th className="is-num">Tokens</th>
                       <th className="is-num">Cost</th>
@@ -405,21 +389,8 @@ export default function RouterAnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentRequests.map((req) => (
-                      <tr key={req.id}>
-                        <td className="sa-c-end" data-label="Status">
-                          {req.success ? <Tag tone="good">OK</Tag> : <Tag tone="bad">Failed</Tag>}
-                        </td>
-                        <td className="sa-c-head" data-label="Model">
-                          {names[req.model] ? <span className="sa-name" title={req.model}>{names[req.model]}</span> : <span className="sa-id">{req.model}</span>}
-                        </td>
-                        <td className="sa-c-meta is-dim" data-label="Provider">{PROVIDER_LABEL[req.provider] ?? req.provider}</td>
-                        <td className="sa-c-meta is-num" data-label="Tokens">{(req.tokensIn + req.tokensOut).toLocaleString()}<span className="sa-unit"> tokens</span></td>
-                        <td className="sa-c-meta is-num" data-label="Cost">${req.cost}</td>
-                        <td className="sa-c-meta is-num is-dim" data-label="Latency">{req.latency == null ? '—' : `${req.latency.toLocaleString()} ms`}</td>
-                        <td className="sa-c-meta is-num is-dim sa-when" data-label="Time" title={new Date(req.timestamp).toLocaleString()}>{when(req.timestamp)}</td>
-                      </tr>
-                    ))}
+                    {/* Each with what it asked for (from the API's A1 release) and "Why this model". */}
+                    {recentRequests.map((req) => <RequestLogRows key={req.id} req={req} names={names} rankedCol={hasRankedOn(recentRequests)} />)}
                   </tbody>
                 </table>
               </div>

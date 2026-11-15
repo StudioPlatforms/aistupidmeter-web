@@ -59,7 +59,9 @@ export interface AdminSubscription {
 }
 
 export type AttentionKind =
-  | 'past_due' | 'duplicate' | 'unpaid_access' | 'unlinked' | 'trial_ending' | 'legacy_anniversary';
+  | 'past_due' | 'duplicate' | 'unpaid_access' | 'unlinked' | 'trial_ending' | 'legacy_anniversary'
+  // Paid start and the refund window (lib/paid-start.ts), from 2026-11-13.
+  | 'refund_window' | 'refund_unfinished' | 'refund_failed' | 'upgrade_pending' | 'paid_start_trial';
 
 export interface AttentionItem {
   kind: AttentionKind;
@@ -109,7 +111,8 @@ export interface RouterUser {
   providerKeysFailing: number;
   /** Requests refused because no provider key was saved, ever. */
   noProviderKey: number;
-  topModel: { provider: string; model: string; requests: number } | null;
+  /** `label` (M8): a listed host, "<Host> · <model> (listed host)". */
+  topModel: { provider: string; model: string; requests: number; label?: string } | null;
   topMode: string | null;
   tokens30: number;
   /** Estimated provider cost of the last 30 days' successful requests, in dollars (paid to the providers). */
@@ -154,6 +157,8 @@ export interface AdminOverview {
     atRisk: number;
     /** Trials not cancelled: what they add if they convert. */
     trialPipeline: number;
+    /** Paid starts still inside their 7-day refund window: how many, and what they collected (cents). */
+    refundWindow: { count: number; cents: number };
     payingCustomers: number;
     trialing: number;
     pastDue: number;
@@ -181,7 +186,7 @@ export interface AdminOverview {
     };
     funnel: Array<{ step: string; count: number }>;
     daily: Array<{ date: string; ok: number; failed: number }>;
-    models: Array<{ provider: string; model: string; requests: number }>;
+    models: Array<{ provider: string; model: string; requests: number; label?: string }>;
     modes: Array<{ mode: string; requests: number }>;
     failures: Array<{ cause: string; requests: number }>;
     users: RouterUser[];

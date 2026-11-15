@@ -134,8 +134,8 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
    */
   const unlockedBy = feature === 'api-monitoring' ? ROUTER_PLAN : ENTRY_PAID_PLAN;
 
-  // Straight to Stripe for the plan quoted below, with its free trial, rather than via /pricing:
-  // the button says "Start your free trial", so it starts one. `from` records which locked feature
+  // Straight to Stripe for the plan quoted below, rather than via /pricing: the button names the
+  // plan, so it buys that plan (paid at checkout, refundable within 7 days). `from` records which locked feature
   // sold it (activation_events detail). Without an account, sign-up comes first and then continues
   // to the same checkout (lib/return-path).
   const sellable = unlockedBy === 'pro' || unlockedBy === 'developer' || unlockedBy === 'teams';
@@ -164,7 +164,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
             </button>
           )}
           <button type="button" className="st-btn is-primary" onClick={handleUpgrade}>
-            {session ? 'Start your free trial' : 'Start your free trial'} <span className="st-ar" aria-hidden="true">→</span>
+            Get {planName(unlockedBy)} <span className="st-ar" aria-hidden="true">→</span>
           </button>
         </div>
       }
@@ -184,7 +184,7 @@ export default function ProFeatureModal({ isOpen, onClose, feature }: ProFeature
 
         <div className="sb-pf-price">
           <b>{monthly(unlockedBy)}<span>{planName(unlockedBy)}</span></b>
-          <small>Free trial · cancel anytime · a card is collected at checkout</small>
+          <small>Full refund within 7 days of your first subscription · cancel any time</small>
         </div>
         <Link href="/pricing" className="st-more sb-pf-compare" onClick={onClose}>Compare all plans</Link>
       </div>

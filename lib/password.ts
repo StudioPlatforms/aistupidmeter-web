@@ -82,6 +82,9 @@ const TOP_LABEL = /^(?:[A-Za-z]{2,63}|xn--[A-Za-z0-9-]{1,59})$/;
  */
 export function validateEmail(email: string): boolean {
   if (typeof email !== 'string' || email.length > 254) return false;
+  // No control character, space or DEL anywhere: the URL parser below strips trailing C0 controls, so
+  // "a@b.com\u0000" would otherwise pass (the API's lib/email-address.ts has the same line).
+  if (/[\u0000-\u0020\u007f]/.test(email)) return false;
   const at = email.lastIndexOf('@');
   const local = email.slice(0, at);
   let domain = email.slice(at + 1);

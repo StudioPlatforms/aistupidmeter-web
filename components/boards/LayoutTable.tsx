@@ -9,7 +9,7 @@ import {
   BOARD_KEYS, BOARD_TITLE, BOARD_TO_SORT, SORT_TO_BOARD, useElementWidth,
   type BoardKey, type BoardRow, type Boards, type SortKey,
 } from '../../lib/use-boards';
-import { CommunityIcon, Logo, Rank, Star, modelHref, useFlip } from './BoardBits';
+import { CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedName, Logo, Rank, Star, modelHref, useFlip } from './BoardBits';
 
 /**
  * Layout "Table": one row per model with all four scores and each score's rank on its own
@@ -19,7 +19,7 @@ import { CommunityIcon, Logo, Rank, Star, modelHref, useFlip } from './BoardBits
  * underneath. Rows slide to their new places when the sort or the period changes.
  */
 
-type Group = 'ranked' | 'community' | 'other';
+type Group = 'ranked' | 'community' | 'hosted' | 'other';
 interface Entry { row: BoardRow; group: Group }
 
 const fmtPrice = (n: number) => `$${Number(n.toFixed(2))}`;
@@ -38,6 +38,7 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
       boards[k].ranked.forEach((row) => m.set(row.id, { row, group: 'ranked' }));
       boards[k].community.forEach((row) => m.set(row.id, { row, group: 'community' }));
       boards[k].other.forEach((row) => m.set(row.id, { row, group: 'other' }));
+      boards[k].hosted.forEach((row) => m.set(row.id, { row, group: 'hosted' }));
       out[k] = m;
     }
     return out;
@@ -52,8 +53,10 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
         { key: 'ranked', rows: boards[active].ranked },
         { key: 'community', rows: boards[active].community },
         { key: 'other', rows: boards[active].other },
+        // M9: the hosted group, in the API's order (§7.1); empty (nothing rendered) while no hosted row is shown.
+        { key: 'hosted', rows: boards[active].hosted },
       ]
-    : [{ key: 'ranked', rows: [...everyone].sort((a, b) => price(a) - price(b)) }];
+    : [{ key: 'ranked', rows: [...everyone].sort((a, b) => price(a) - price(b)) }, { key: 'hosted', rows: boards.combined.hosted }];
 
   const cell = (k: BoardKey, id: string) => index[k].get(id);
   const positionOf = (i: number) => i + 1;
@@ -90,7 +93,13 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                 {g.key !== 'ranked' && (
                   <tr className="sl-tgroup">
                     <td colSpan={7}>
-                      {g.key === 'community' ? (
+                      {g.key === 'hosted' ? (
+                        <div>
+                          <div className="sl-comm-head"><HostIcon /><span>{HOSTED_TITLE}</span></div>
+                          <p className="sl-comm-text">{HOSTED_SUB}</p>
+                          <HostedLinks />
+                        </div>
+                      ) : g.key === 'community' ? (
                         <div>
                           <div className="sl-comm-head"><CommunityIcon /><span>Community-funded</span></div>
                           <p className="sl-comm-text">We test these on coding every 4 hours. Reasoning and tool use show the last funded run and are not ranked. Open a model to fund its next run.</p>
@@ -102,17 +111,20 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                   </tr>
                 )}
                 {g.rows.map((row, i) => (
-                  <tr key={row.id} data-flip={row.id} className="sl-trow" onClick={() => router.push(modelHref(row, g.key === 'community'))}>
+                  <tr key={row.id} data-flip={row.id} className={`sl-trow${row.paused ? ' is-paused' : ''}`} onClick={() => router.push(modelHref(row, g.key === 'community'))}>
                     <td className="sl-td-rank">
-                      {g.key !== 'ranked' ? <span className="sl-rank is-none">–</span>
+                      {g.key === 'hosted' ? <Rank row={row} />
+                        : g.key !== 'ranked' ? <span className="sl-rank is-none">–</span>
                         : active ? <Rank row={row} /> : <span className="sl-rank">{positionOf(i)}</span>}
                     </td>
                     <td className="sl-td-model">
                       <span className="sl-model">
-                        <span className="sl-star" onClick={(e) => e.stopPropagation()}><WatchStar modelId={row.id} modelName={row.label} size={14} /></span>
-                        <Logo provider={row.provider} size="md" />
+                        {!row.host && <span className="sl-star" onClick={(e) => e.stopPropagation()}><WatchStar modelId={row.id} modelName={row.label} size={14} /></span>}
+                        <Logo provider={row.provider} size="md" host={row.host} />
                         <span className="sl-model-t">
-                          <Link href={modelHref(row)} className="sl-name" onClick={(e) => e.stopPropagation()}>{row.label}</Link>
+                          {row.host
+                            ? <Link href={modelHref(row)} className="sl-name" aria-label={row.label} onClick={(e) => e.stopPropagation()}><HostedName row={row} /></Link>
+                            : <Link href={modelHref(row)} className="sl-name" onClick={(e) => e.stopPropagation()}>{row.label}</Link>}
                           <span className="sl-vendor">{row.vendor}</span>
                         </span>
                       </span>
@@ -123,7 +135,7 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                       </td>
                     ))}
                     <td className={`sl-td-score${sortKey === 'price' ? ' is-on' : ''}`}>
-                      <PriceCell row={row} />
+                      {row.host ? <span className="sl-cell is-price"><b className="is-muted">—</b><small>on its page</small></span> : <PriceCell row={row} />}
                     </td>
                   </tr>
                 ))}
@@ -153,21 +165,31 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                     </div>
                   )}
                   {g.key === 'other' && <div className="sl-comm"><div className="sl-comm-head"><span>Not ranked right now</span></div></div>}
+                  {g.key === 'hosted' && (
+                    <div className="sl-comm sl-hosted">
+                      <div className="sl-comm-head"><HostIcon /><span>{HOSTED_TITLE}</span></div>
+                      <p className="sl-comm-text">{HOSTED_SUB}</p>
+                      <HostedLinks />
+                    </div>
+                  )}
                   {rows.map((row, i) => (
-                    <div key={row.id} data-flip={row.id} className="sl-tcard">
+                    <div key={row.id} data-flip={row.id} className={`sl-tcard${row.paused ? ' is-paused' : ''}`}>
                       <span className="sl-tcard-top">
                         <span className="sl-tcard-rank">
-                          {g.key !== 'ranked' ? <span className="sl-rank is-none">–</span>
+                          {g.key === 'hosted' ? <Rank row={row} />
+                            : g.key !== 'ranked' ? <span className="sl-rank is-none">–</span>
                             : active ? <Rank row={row} /> : <span className="sl-rank">{positionOf(i)}</span>}
                         </span>
                         <Star row={row} />
-                        <Logo provider={row.provider} size="md" />
+                        <Logo provider={row.provider} size="md" host={row.host} />
                         <span className="sl-model-t">
-                          <Link href={modelHref(row, g.key === 'community')} className="sl-name sl-stretch">{row.label}</Link>
+                          {row.host
+                            ? <Link href={modelHref(row)} className="sl-name sl-stretch" aria-label={row.label}><HostedName row={row} /></Link>
+                            : <Link href={modelHref(row, g.key === 'community')} className="sl-name sl-stretch">{row.label}</Link>}
                           <span className="sl-vendor">{row.vendor}</span>
                         </span>
                         <span className="sl-tcard-main">
-                          {active ? <BigScore entry={cell(active, row.id)} board={active} /> : <PriceCell row={row} />}
+                          {active ? <BigScore entry={cell(active, row.id)} board={active} /> : row.host ? <span className="sl-big is-muted">{row.score ?? '—'}</span> : <PriceCell row={row} />}
                         </span>
                       </span>
                       <span className="sl-tcard-subs">
@@ -198,6 +220,14 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
 function ScoreCell({ entry, board }: { entry?: Entry; board: BoardKey }) {
   if (!entry) return <span className="sl-cell"><b className="is-muted">—</b></span>;
   const { row, group } = entry;
+  if (group === 'hosted') {
+    return (
+      <span className="sl-cell" title={row.staleReason || undefined}>
+        <b className={row.rank === null ? 'is-muted' : undefined}>{row.score ?? '—'}</b>
+        <small>{row.rank !== null ? `hosted ${row.rankText}` : row.paused ? 'paused' : 'not ranked'}</small>
+      </span>
+    );
+  }
   if (group === 'ranked') {
     return (
       <span className="sl-cell">
@@ -220,6 +250,7 @@ function ScoreCell({ entry, board }: { entry?: Entry; board: BoardKey }) {
 
 function BigScore({ entry, board }: { entry?: Entry; board: BoardKey }) {
   if (!entry) return <span className="sl-big is-muted">—</span>;
+  if (entry.group === 'hosted') return <span className={`sl-big${entry.row.rank === null ? ' is-muted' : ''}`}>{entry.row.score ?? '—'}</span>;
   if (entry.group === 'ranked') return <span className="sl-big">{entry.row.score}</span>;
   if (entry.group === 'community' && board === 'combined') return <span className="sl-date" title='Their reasoning and tool-use runs are funded by the community, so there is no complete combined score to rank. We test their coding every 4 hours.'>not ranked</span>;
   return <span className="sl-big is-muted">{entry.row.score ?? '—'}</span>;
@@ -228,6 +259,7 @@ function BigScore({ entry, board }: { entry?: Entry; board: BoardKey }) {
 function MiniCell({ entry, board }: { entry?: Entry; board: BoardKey }) {
   if (!entry) return <span className="sl-mini is-muted">—</span>;
   const { row, group } = entry;
+  if (group === 'hosted') return <span className={`sl-mini${row.rank === null ? ' is-muted' : ''}`}><b>{row.score ?? '—'}</b> <small>{row.rank !== null ? row.rankText : '–'}</small></span>;
   if (group === 'ranked') return <span className="sl-mini"><b>{row.score}</b> <small>{row.rankText}</small></span>;
   if (group === 'community') return <span className="sl-mini is-muted"><b>{board === 'combined' ? '—' : row.score}</b> <small>{row.when}</small></span>;
   return <span className="sl-mini is-muted"><b>{row.score ?? '—'}</b> <small>not ranked</small></span>;

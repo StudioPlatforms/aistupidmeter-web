@@ -2,21 +2,24 @@
 
 import { SAVINGS_PCT } from '@/lib/savings-estimate';
 
-import { useCallback, useEffect, useMemo, useState, Suspense, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RouterLayout from '@/components/RouterLayout';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, endpointEntryLabel, isEndpointEntry, isModelSource, setupOf } from '@/lib/api-client';
 import type { AnalyticsOverview, RecentRequest, CostSavings, PreferencesPreview, UserPreferences, ProviderKey } from '@/lib/api-client';
 import { PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
 import {
   PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Note, Tag, Pill, ProviderMark, Meter,
-  RankList, RouterDemo, previewToSnap, useModelNames, metricKind, PROVIDER_LABEL,
+  RankList, RouterDemo, previewToSnap, useModelNames, metricKind,
   type DemoScenario, type LandingStrategy,
 } from '@/components/studio';
 import type { LandingSnapshot } from '@/components/landing/types';
 import { scoreLabel } from '@/components/landing/util';
+import { ActivityRow, providerName } from '@/components/router/RecentRequests';
+import ModelChangesPane from '@/components/router/ModelChanges';
+import { STRATEGY_NAME } from '@/lib/router-adaptive';
 import '@/styles/studio-router.css';
 
 
@@ -53,13 +56,6 @@ const EXAMPLE: Array<{ id: string; q: string; meta: string; key: string }> = [
   { id: 'auto-value-coding', q: 'Write unit tests for parseDate()', meta: 'code', key: 'best_value_coding' },
 ];
 
-const STRATEGY_NAME: Record<string, string> = {
-  best_overall: 'Best overall', best_coding: 'Best for coding', best_reasoning: 'Best for reasoning', best_tooling: 'Best for tool use',
-  best_agentic_coding: 'Best for agentic coding',
-  best_value: 'Best value overall', best_value_coding: 'Best value for coding', best_value_reasoning: 'Best value for reasoning',
-  best_value_tooling: 'Best value for tool use', fastest_quality: 'Fastest good model', best_consistent: 'Most consistent',
-  fastest: 'Fastest response', cheapest: 'Lowest list price', match_task: 'Match each request', custom_split: 'Your traffic split',
-};
 
 /**
  * RouterDemo formats its numbers by the strategy id. A caller's preview carries scores for the
@@ -72,41 +68,21 @@ function forDemo(snap: LandingStrategy): LandingStrategy {
   return k === 'value' || k === 'spread' ? { ...snap, effectiveStrategy: `⁠${snap.effectiveStrategy}` } : snap;
 }
 
-const providerName = (p: string) => PROVIDER_LABEL[p] ?? (p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Provider');
-/** Why a request failed, in the words a customer acts on (the API's `cause`). */
-const FAILURE: Record<string, (provider: string) => string> = {
-  client_quota: p => `${p} account out of credit`,
-  // A routing mode refused for want of any key has no provider of its own.
-  no_provider_key: p => (p === 'Provider' ? 'Refused: no provider key saved' : `Refused: no ${p} key saved`),
-  refused: () => 'Refused before routing (see the message in Analytics)',
-  client_auth: p => `${p} rejected the key`,
-  client_rate_limit: p => `${p} key rate-limited`,
-  client_request: p => `${p} rejected the request`,
-  refusal: () => 'The model declined the request',
-  model: () => 'The model did not answer',
-  transport: () => 'Network error or timeout',
-};
+/** Model source (R4), as the Preferences page names it. */
+const SOURCE_NAME: Record<string, string> = { all: 'All connected', prefer_endpoints: 'Prefer my endpoints', only_endpoints: 'Only my endpoints' };
 const pctText = (v: string | number) => (String(v).endsWith('%') ? String(v) : `${v}%`);
 const plural = (n: number, word: string) => (n ? `${n} ${word}${n === 1 ? '' : 's'}` : '');
 const decimals = (v: string | number | undefined) => (String(v ?? '').split('.')[1] ?? '').replace(/\D.*$/, '').length;
-
-function ago(ts: string): string {
-  const t = new Date(ts).getTime();
-  if (!Number.isFinite(t)) return '';
-  const s = Math.max(0, (Date.now() - t) / 1000);
-  if (s < 60) return 'just now';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} h ago`;
-  return `${Math.floor(h / 24)} d ago`;
-}
 
 type Live =
   | { kind: 'loading' }
   | { kind: 'ready'; prefs: UserPreferences; runs: Array<{ s: Sample; p: OkPreview }> }
   | { kind: 'blocked'; prefs: UserPreferences; preview: PreferencesPreview }
   | { kind: 'nokeys' }
+  // No provider key, but the account's own endpoint models answer requests that name them (from R3,
+  // GET /router/keys setup): only automatic routing is waiting. `sourceAll`: the API has Model source
+  // (R4) and it is All connected, so Prefer or Only my endpoints would route automatic requests to them.
+  | { kind: 'endpoints'; endpointModels: number; listedHosts: number; sourceAll: boolean }
   | { kind: 'error'; message: string };
 
 interface UsageMeter { key: string; label: string; used: number; limit: number; period: string }
@@ -193,7 +169,14 @@ function RouterDashboardContent() {
       const answered = results.filter((r): r is { s: Sample; p: PreferencesPreview } => !!r.p);
       if (!answered.length) throw new Error('The routing preview did not answer.');
       if (answered.some(r => !r.p.ok && r.p.error === 'no_provider_keys')) {
-        setLive({ kind: 'nokeys' });
+        // The preview is about automatic routing, which needs a provider key. Whether the account's
+        // keys can answer anything at all is the API's verdict (setup.waitingForProviderKey), which
+        // counts the account's own endpoint models.
+        const setup = await apiClient.getUniversalKeys().then(r => r.setup, () => undefined);
+        const said = setup ? setupOf(setup) : null;
+        setLive(said && said.endpointsOnly
+          ? { kind: 'endpoints', endpointModels: said.endpointModels, listedHosts: said.listedHosts, sourceAll: isModelSource(saved.modelSource) && saved.modelSource === 'all' }
+          : { kind: 'nokeys' });
       } else {
         const runs = answered.filter((r): r is { s: Sample; p: OkPreview } => r.p.ok);
         setLive(runs.length ? { kind: 'ready', prefs, runs } : { kind: 'blocked', prefs, preview: answered[0].p });
@@ -219,12 +202,14 @@ function RouterDashboardContent() {
 
   // No provider keys: the setup steps, the landing's example router, and whether step 2 is done.
   useEffect(() => {
-    if (live.kind !== 'nokeys') return;
+    if (live.kind !== 'nokeys' && live.kind !== 'endpoints') return;
     let alive = true;
-    fetch('/dashboard/landing')
-      .then(r => (r.ok ? r.json() : null))
-      .then(j => { if (alive && j?.success && j.strategies) setExample(j as LandingSnapshot); })
-      .catch(() => {});
+    if (live.kind === 'nokeys') {
+      fetch('/dashboard/landing')
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => { if (alive && j?.success && j.strategies) setExample(j as LandingSnapshot); })
+        .catch(() => {});
+    }
     apiClient.getUniversalKeys()
       .then(r => { if (alive) setRouterKeys(r.keys.filter(k => !k.revoked).length); })
       .catch(() => {});
@@ -236,17 +221,23 @@ function RouterDashboardContent() {
     loadLive();
   };
 
+  // From R4 the first choice can be one of the account's own endpoints (Prefer or Only my endpoints,
+  // or All's last resort). The landing's demo animates the benchmark ranking and would crown its top
+  // cloud model, so such a chain is listed as it is instead (endpointRun below).
+  const endpointRun = useMemo(() => (live.kind === 'ready' ? live.runs.find(r => isEndpointEntry(r.p.primary)) ?? null : null), [live]);
+
   const demo = useMemo(() => {
-    if (live.kind !== 'ready') return null;
+    if (live.kind !== 'ready' || endpointRun) return null;
     const scenarios: DemoScenario[] = [];
     for (const { s, p } of live.runs) {
       const r = previewToSnap(p, names);
       if (r && r.snap.rows.length) scenarios.push({ id: 'auto', q: s.q, meta: s.meta, snap: forDemo(r.snap) });
     }
     const first = live.runs[0].p;
-    const usable = first.details.candidates.filter(c => c.status === 'eligible').length;
-    return { scenarios, modelCount: usable || first.details.candidates.length, providers: first.providers, split: first.details.split };
-  }, [live, names]);
+    const candidates = first.details?.candidates ?? [];
+    const usable = candidates.filter(c => c.status === 'eligible').length;
+    return { scenarios, modelCount: usable || candidates.length, providers: first.providers, split: first.details?.split };
+  }, [live, names, endpointRun]);
 
   const exampleScenarios = useMemo<DemoScenario[]>(() => (example
     ? EXAMPLE.flatMap(d => {
@@ -283,6 +274,8 @@ function RouterDashboardContent() {
   const allowance = planEnt.routerRequestsPerMonth;
 
   const strategyId = live.kind === 'ready' || live.kind === 'blocked' ? live.prefs.routingStrategy : null;
+  // Model source (R4): the lead says where requests go, so it follows the saved source.
+  const savedSource = live.kind === 'ready' || live.kind === 'blocked' ? live.prefs.modelSource : undefined;
   const strategyName = strategyId ? STRATEGY_NAME[strategyId] ?? strategyId : '';
 
   return (
@@ -290,7 +283,11 @@ function RouterDashboardContent() {
       <PageHead
         kicker="Smart Router"
         title="AI Smart Router"
-        lead="Intelligent model selection, backed by live benchmarks: each request goes to the model measuring best right now, sent with your own provider keys."
+        lead={savedSource === 'only_endpoints'
+          ? 'Model source is Only my endpoints: requests made with your personal router keys go to your own endpoints, in your order, and never to a built-in provider.'
+          : savedSource === 'prefer_endpoints'
+            ? 'Requests go to your own endpoints first, then to the benchmarked model measuring best right now, sent with your own provider keys.'
+            : 'Intelligent model selection, backed by live benchmarks: each request goes to the model measuring best right now, sent with your own provider keys.'}
         actions={<>
           {loading ? (
             <Pill tone="warn">Refreshing</Pill>
@@ -368,6 +365,32 @@ function RouterDashboardContent() {
           </section>
         )}
 
+        {live.kind === 'ready' && endpointRun && (
+          <Pane
+            title="Your router, live"
+            sub={`${SOURCE_NAME[live.prefs.modelSource ?? 'all'] ?? 'All connected'} · ${strategyName}`}
+            actions={<Link href="/router/preferences" className="st-btn is-sm">Routing preferences</Link>}
+            tone="accent"
+          >
+            <ol className="sr-chain" aria-label="Routing order">
+              {[endpointRun.p.primary, ...endpointRun.p.fallbacks].map((e, i) => (
+                <li key={`${i}-${e.model}`} className={i === 0 ? 'is-pick' : undefined}>
+                  <span className="sr-chain-k">{i === 0 ? 'First choice' : i === 1 ? 'If it fails' : 'Then'}</span>
+                  <span className="sr-chain-m" title={e.model}>
+                    {isEndpointEntry(e)
+                      ? <><b>{endpointEntryLabel(e, endpointRun.p.endpoints)}</b><small>your endpoint · not benchmarked</small></>
+                      : <><b>{names[e.model] ?? e.model}</b><small>{providerName(e.provider)}</small></>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="sr-why">
+              <p className="st-label">Why this model</p>
+              <p>{endpointRun.p.primary.reasoning}</p>
+            </div>
+          </Pane>
+        )}
+
         {live.kind === 'blocked' && (
           <Pane
             title="Your router, live"
@@ -390,6 +413,17 @@ function RouterDashboardContent() {
             <div><b>The live router preview is unavailable</b>{live.message}</div>
             <button type="button" onClick={loadLive} className="st-btn is-sm">Try again</button>
           </div>
+        )}
+
+        {live.kind === 'endpoints' && recentRequests.some(r => !r.success && r.cause === 'no_provider_key') && (
+          <Note tone="warn" title="Some of your requests need a provider key">
+            Requests that name one of your endpoint models are answered. Others, such as <code className="st-ic">auto</code> or the name of a cloud
+            model, are refused with a message saying a provider key is missing; add one and they start working, with no change
+            in your app.
+            <div className="sk-note-act">
+              <Link href="/router/providers" className="st-btn is-primary is-sm">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
+            </div>
+          </Note>
         )}
 
         {live.kind === 'nokeys' && recentRequests.some(r => !r.success && r.cause === 'no_provider_key') && (
@@ -416,6 +450,35 @@ function RouterDashboardContent() {
               <Link href="/router/providers" className="st-btn is-sm">Open provider keys</Link>
             </div>
           </Note>
+        )}
+
+        {live.kind === 'endpoints' && (
+          <Pane
+            title="Automatic routing needs a provider key"
+            actions={<>
+              <Link href="/router/providers" className="st-btn is-sm is-primary">Add a provider key</Link>
+              <Link href="/router/keys" className="st-btn is-sm">{routerKeys ? 'Manage router keys' : 'Create a router key'}</Link>
+            </>}
+            tone="accent"
+          >
+            {live.endpointModels === 0 && live.listedHosts > 0 ? (
+              // M8 (B3 item 6): the account's only routes are listed hosts it connected with its own keys.
+              <p className="st-text">
+                {live.listedHosts === 1 ? 'You connected a listed host' : `You connected ${live.listedHosts.toLocaleString()} listed hosts`}: requests that name one of
+                {' '}{live.listedHosts === 1 ? 'its' : 'their'} models (<code className="st-ic">mp/&lt;host&gt;/&lt;model&gt;</code>) are routed already, and so is automatic
+                routing among them when Model source prefers them (<Link href="/router/preferences">Routing preferences</Link>). Automatic routing across the
+                leaderboard&apos;s cloud models calls them with your own provider key, so it starts once you add one.
+              </p>
+            ) : (
+            <p className="st-text">
+              {live.endpointModels === 1 ? 'One of your endpoint models is set up: requests that name it' : `${live.endpointModels > 1 ? live.endpointModels.toLocaleString() : 'Your'} endpoint models are set up: requests that name them`}
+              {' '}(<code className="st-ic">ep/&lt;prefix&gt;/&lt;model&gt;</code>) are routed already. Automatic routing (<code className="st-ic">auto</code> and the{' '}
+              <code className="st-ic">auto-*</code> modes) chooses among benchmarked cloud models, which the router calls with your own provider key,
+              so it starts once you add one.
+              {live.sourceAll && <> To send automatic requests to your endpoints instead, set Model source to Prefer or Only my endpoints in <Link href="/router/preferences">Routing preferences</Link>.</>}
+            </p>
+            )}
+          </Pane>
         )}
 
         {live.kind === 'nokeys' && (
@@ -501,29 +564,8 @@ function RouterDashboardContent() {
           >
             {recentRequests.length > 0 ? (
               <div className="st-rows sr-act">
-                {recentRequests.map((req) => {
-                  const when = ago(req.timestamp);
-                  return (
-                    <div key={req.id} className="st-row" title={!req.success && req.error ? req.error : undefined}>
-                      <ProviderMark provider={req.provider} />
-                      <div className="st-row-main">
-                        <div className="st-row-t" title={req.model}>{names[req.model] ?? req.model}</div>
-                        <div className="st-row-s">
-                          {!req.success && req.cause && FAILURE[req.cause]
-                            ? <>{FAILURE[req.cause](providerName(req.provider))}{when ? ` · ${when}` : ''}</>
-                            : <>
-                                {providerName(req.provider)} · {(req.tokensIn + req.tokensOut).toLocaleString()} {req.tokensIn + req.tokensOut === 1 ? 'token' : 'tokens'}
-                                {req.latency != null ? ` · ${Number(req.latency).toLocaleString()} ms` : ''}{when ? ` · ${when}` : ''}
-                              </>}
-                        </div>
-                      </div>
-                      <div className="st-row-end">
-                        <span className="sr-cost">${req.cost}</span>
-                        {req.success ? <Tag tone="good">Success</Tag> : <Tag tone="bad">Failed</Tag>}
-                      </div>
-                    </div>
-                  );
-                })}
+                {/* Each with what it asked for (from the API's A1 release) and "Why this model". */}
+                {recentRequests.map((req) => <ActivityRow key={req.id} req={req} names={names} />)}
               </div>
             ) : (
               <Empty
@@ -588,6 +630,10 @@ function RouterDashboardContent() {
           </div>
         </div>
 
+        {/* Model changes (router release AW3): when a key's automatic requests started going to another model, and why.
+            Every plan; ?key=<id> preselects a key (the keys page's link); hidden while the API has no such route. */}
+        <ModelChangesPane names={names} initialKey={searchParams.get('key')} />
+
         {/* Quick actions */}
         <section className="st-up" aria-labelledby="sr-quick">
           <p className="st-label" id="sr-quick">Quick actions</p>
@@ -631,15 +677,12 @@ function RouterDashboardContent() {
   );
 }
 
+/**
+ * Only app/router/page.tsx renders this, and that page is dynamic, so useSearchParams needs no
+ * Suspense boundary here. Deliberately none: React 19 streams a finished boundary after the page
+ * shell once enough HTML has gone out, so a slow connection painted a loading fallback first. Without
+ * one the dashboard's own first state is in the first paint, as it was on Next 14.
+ */
 export default function RouterDashboard() {
-  return (
-    <Suspense fallback={
-      <RouterLayout>
-        <PageHead kicker="Smart Router" title="AI Smart Router" />
-        <Loader label="Loading" minHeight={360} />
-      </RouterLayout>
-    }>
-      <RouterDashboardContent />
-    </Suspense>
-  );
+  return <RouterDashboardContent />;
 }

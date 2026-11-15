@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
 
 /**
- * Terms of Service. Prices, trials and cancellation match the pricing page (lib/entitlements.ts,
- * app/pricing/PricingClient.tsx) as of 2026-10-19; keep them in step.
+ * Terms of Service. Prices, payment, the 7-day refund and cancellation match the pricing page
+ * (lib/entitlements.ts, app/pricing/PricingClient.tsx) and the billing code (lib/paid-start.ts) as
+ * of 2026-11-14; keep them in step.
  */
 
 export const metadata: Metadata = pageMeta({
@@ -14,7 +15,7 @@ export const metadata: Metadata = pageMeta({
   path: '/terms',
 });
 
-const UPDATED = '19 October 2026';
+const UPDATED = '14 November 2026';
 const EMAIL = 'hello@aistupidlevel.info';
 
 const TOC = [
@@ -108,11 +109,14 @@ export default function TermsPage() {
       <RdSection id="plans" n={n('plans')} title="Plans, trials and payment">
         <RdRows rows={[
           ['Prices', 'Prices are in US dollars and shown on the pricing page, excluding any applicable tax. Payments are processed by Stripe.'],
-          ['Free trials', 'Some plans start with a free trial, which collects a payment method. Unless you cancel before the trial ends, the subscription starts and you are charged.'],
+          ['Paying for a plan', 'You pay for a plan when you subscribe, and again at each renewal.'],
+          ['Changing plan', 'A move to a dearer plan, or to yearly billing, is charged at once, less the unused part of your current plan, and applies when that payment succeeds. A move to a cheaper plan credits the unused part to your next invoices; if you then use the 7-day refund, every payment is refunded and that credit is removed. Changing plan during a trial ends the trial, and the new plan is charged at once.'],
+          ['7-day refund', 'Within 7 days of your first subscription on an account, Cancel and refund on the billing page ends the plan at once and we refund the full amount you paid. This is in addition to the EU right of withdrawal below.'],
+          ['Earlier free trials', 'A subscription that began with a free trial is charged when the trial ends, unless you cancel before then.'],
           ['Renewal', 'Subscriptions renew automatically, monthly or yearly, until you cancel.'],
-          ['Cancelling', 'Cancel any time from the billing portal in Settings. You keep the paid plan until the end of the period already paid for, and you are not charged again.'],
+          ['Cancelling', 'Cancel any time in the billing portal, which Manage billing on your billing page opens. You keep the paid plan until the end of the period already paid for, and you are not charged again.'],
           ['Price changes', 'We will tell you about a price change for your subscription at least 30 days before it applies. You can cancel before then.'],
-          ['Refunds', 'Except where the law requires it (see the next section) or we say otherwise in writing (for example the assessment’s refund promise), payments are not refunded.'],
+          ['Refunds', 'Except for the 7-day refund above, where the law requires it (see the next section), or where we say otherwise in writing (for example the assessment’s refund promise), payments are not refunded.'],
           ['Failed payments', 'If a payment fails, Stripe retries it. If the subscription is cancelled because payment could not be collected, the account returns to the Free plan.'],
         ]} />
       </RdSection>
@@ -123,7 +127,8 @@ export default function TermsPage() {
             If you are a consumer in the European Union, you may withdraw from a paid subscription within 14 days of buying it, without
             giving a reason, by telling us at <Mail />. We refund what you paid within 14 days, by the method you paid with. If you
             asked us to start the paid plan during those 14 days, we may keep an amount in proportion to the service already provided.
-            A free trial costs nothing, so withdrawal during a trial is simply cancelling it.
+            During the first 7 days of a first subscription, Cancel and refund on the billing page does this at once and refunds the
+            full amount. A free trial costs nothing, so withdrawal during a trial is simply cancelling it.
           </p>
         </RdProse>
       </RdSection>
@@ -133,7 +138,7 @@ export default function TermsPage() {
         <RdRows rows={[
           ['Break the law', 'or use ASL to harm others, or to send requests that violate a provider’s usage policies.'],
           ['Scrape or overload', 'Collect our data with bots or scrapers, or exceed rate limits, instead of using the Data API with a key.'],
-          ['Get around limits', 'Share or resell accounts or keys, use several accounts to get around plan limits, or bypass payment, authentication or security.'],
+          ['Get around limits', 'Share or resell accounts or keys, use several accounts to get around plan limits or to get the 7-day refund more than once, or bypass payment, authentication or security.'],
           ['Attack the service', 'Probe, scan or test our systems for vulnerabilities without our written permission, or interfere with other users. Report security issues to us instead.'],
           ['Game the benchmarks', 'Try to extract our private test tasks, or manipulate measurements, ratings or community runs.'],
           ['Abuse the community', 'Post spam, harassment or illegal content in the forum or through our forms.'],

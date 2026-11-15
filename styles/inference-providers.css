@@ -1,0 +1,29 @@
+/* /inference-providers once listing is open (app/inference-providers/ListingOpen.tsx; Phase 3 plan §4.4, M10).
+   One purposeful animation: the steps' line draws in once when the list scrolls into view (the landing's lp-up
+   observer adds is-in), and stands still under prefers-reduced-motion. */
+.ip-steps { list-style: none; margin: 0; padding: 0 0 0 4px; position: relative; display: grid; gap: 0; counter-reset: ip; }
+.ip-steps::before { content: ''; position: absolute; left: 17px; top: 18px; bottom: 18px; width: 2px; background: var(--lp-accent, #1a73e8);
+  transform-origin: top; transform: scaleY(1); }
+.lp-js .ip-steps.lp-up { opacity: 1; transform: none; }
+.lp-js .ip-steps.lp-up:not(.is-in)::before { transform: scaleY(0); }
+.lp-js .ip-steps.lp-up.is-in::before { transition: transform 1.2s var(--lp-ease, ease); }
+.ip-step { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); column-gap: 18px; row-gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--lp-line, #e3e6ea); min-width: 0; }
+.ip-step:last-child { border-bottom: 0; }
+.ip-step-n { grid-row: 1 / span 2; position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--lp-accent, #1a73e8); background: var(--lp-bg, #fff); border: 2px solid var(--lp-accent, #1a73e8); }
+.ip-step b { font-size: 16px; line-height: 1.4; min-width: 0; }
+.ip-step span:last-child { color: var(--lp-fg2, #5f6368); font-size: 15px; line-height: 1.6; min-width: 0; overflow-wrap: anywhere; }
+.ip-table-wrap { max-width: 100%; overflow-x: auto; }
+.ip-table { border-collapse: collapse; width: 100%; max-width: 560px; font-size: 15px; }
+.ip-table caption { text-align: left; caption-side: top; color: var(--lp-fg2, #5f6368); font-size: 14px; padding-bottom: 8px; }
+.ip-table th, .ip-table td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--lp-line, #e3e6ea); font-variant-numeric: tabular-nums; }
+.ip-table td { text-align: right; }
+.ip-table tr.is-total th, .ip-table tr.is-total td { font-weight: 700; border-bottom: 0; }
+.ip-dir { list-style: none; margin: 0; padding: 0; display: grid; }
+.ip-dir li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 12px 0; border-bottom: 1px solid var(--lp-line, #e3e6ea); min-width: 0; }
+.ip-dir-main { display: grid; min-width: 0; flex: 1 1 200px; }
+.ip-dir-sub { color: var(--lp-fg2, #5f6368); font-size: 13.5px; overflow-wrap: anywhere; }
+.ip-dir-note { font-size: 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .lp-js .ip-steps.lp-up:not(.is-in)::before, .lp-js .ip-steps.lp-up.is-in::before { transform: none; transition: none; }
+}

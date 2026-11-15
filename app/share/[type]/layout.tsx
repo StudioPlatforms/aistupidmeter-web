@@ -3,7 +3,7 @@ import { buildBoard } from '@/lib/boards-core';
 import { DESC_MAX, SITE, SITE_NAME, TWITTER_SITE, clampDesc } from '@/lib/seo';
 
 type Props = {
-  params: { type: string }
+  params: Promise<{ type: string }>
 }
 
 // Server-side code needs an ABSOLUTE url. This file used to build
@@ -32,7 +32,7 @@ const fit = (candidates: string[]): string =>
   candidates.find((c) => c.length <= DESC_MAX) ?? clampDesc(candidates[candidates.length - 1]);
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { type } = params;
+  const { type } = await params;
   const safeType = encodeURIComponent(type);
   // No &v=Date.now() cache-buster: it made every crawl a unique URL, so the card
   // could never be cached and Next re-rendered the PNG for every single hit. The

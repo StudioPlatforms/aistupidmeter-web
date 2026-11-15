@@ -10,6 +10,8 @@ function toggleTheme() {
   if (next >= 0) chooseTheme(next);
 }
 
+// styles/landing.css hides links by position on narrower screens (Drift is 2nd, Methodology 6th,
+// and below 1180px everything after the 5th): reordering this list means updating those rules.
 const LINKS = [
   ['#price', 'Compare models'],
   ['#drift', 'Drift'],
@@ -17,6 +19,7 @@ const LINKS = [
   ['#assessment', 'For business'],
   ['#pricing', 'Pricing'],
   ['/methodology', 'Methodology'],
+  ['/inference-providers', 'Providers'],
   ['/investors', 'Investors'],
 ] as const;
 

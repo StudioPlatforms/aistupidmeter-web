@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { explorerFastestQuality, explorerQuality, scoringOf, type RouterScoring } from '@/lib/router-scoring';
 import RankList from './RankList';
 import { metricKind, RANKS_ON, type LandingSnapshot, type LandingStrategy } from './types';
 import { scoreLabel, useReducedMotion } from './util';
@@ -9,14 +10,17 @@ const GROUPS = ['Best quality', 'Best value', 'Speed, cost, stability', 'Adaptiv
 
 interface Mode { id: string; key: string; group: number; name: string; desc: string; order: string }
 
+/*
+ * An empty `order` or `desc` is filled by wordsFor from the router's live scoring (lib/router-scoring): the Best
+ * quality modes' tie-break words follow the tie band, auto-fastest-quality's rule follows the estimator.
+ */
 const MODES: Mode[] = [
-  { id: 'auto-best', key: 'best_overall', group: 0, name: 'Best overall', order: 'Quality, then the cheaper of tied leaders',
-    desc: 'The best combined score among the models you have keys for. When leaders are statistically tied, the one that costs less.' },
-  { id: 'auto-coding', key: 'best_coding', group: 0, name: 'Best coding', order: 'Quality, then the cheaper of tied leaders',
-    desc: 'The current leader on real repository bug fixes, re-measured every 4 hours.' },
-  { id: 'auto-reasoning', key: 'best_reasoning', group: 0, name: 'Best reasoning', order: 'Quality, then the cheaper of tied leaders',
+  { id: 'auto-best', key: 'best_overall', group: 0, name: 'Best overall', order: '', desc: '' },
+  { id: 'auto-coding', key: 'best_coding', group: 0, name: 'Best coding', order: '',
+    desc: 'The current leader on real repository bug fixes, re-tested every 4 hours.' },
+  { id: 'auto-reasoning', key: 'best_reasoning', group: 0, name: 'Best reasoning', order: '',
     desc: 'The leader on long, multi-turn engineering sessions whose requirements are checked by code.' },
-  { id: 'auto-tooling', key: 'best_tooling', group: 0, name: 'Best tool use', order: 'Quality, then the cheaper of tied leaders',
+  { id: 'auto-tooling', key: 'best_tooling', group: 0, name: 'Best tool use', order: '',
     desc: 'The model that finishes sandboxed agent tasks with real tools most reliably.' },
   { id: 'auto-value', key: 'best_value', group: 1, name: 'Best value', order: 'Points per measured dollar, among contenders',
     desc: 'Among models within 5 points of the best, the most combined points per measured dollar.' },
@@ -26,8 +30,7 @@ const MODES: Mode[] = [
     desc: 'Reasoning quality per dollar, among models within 5 points of the reasoning leader.' },
   { id: 'auto-value-tooling', key: 'best_value_tooling', group: 1, name: 'Best value for agents', order: 'Points per measured dollar, among contenders',
     desc: 'Tool-use quality per dollar, among models within 5 points of the tool-use leader.' },
-  { id: 'auto-fastest-quality', key: 'fastest_quality', group: 2, name: 'Fastest quality', order: 'Measured latency, among contenders',
-    desc: 'The fastest measured model among those within 5 points of the best. Never ranks on estimates.' },
+  { id: 'auto-fastest-quality', key: 'fastest_quality', group: 2, name: 'Fastest quality', order: 'Measured latency, among contenders', desc: '' },
   { id: 'auto-fastest', key: 'fastest', group: 2, name: 'Fastest', order: 'Latency',
     desc: 'The lowest latency, full stop — for autocomplete, titles and other short, time-critical calls.' },
   { id: 'auto-cheapest', key: 'cheapest', group: 2, name: 'Cheapest', order: 'Blended list price',
@@ -41,6 +44,15 @@ const MODES: Mode[] = [
   { id: 'auto', key: 'preference', group: 3, name: 'Your saved preference', order: 'As configured',
     desc: 'Whatever you saved in the dashboard: a strategy plus exclusions, cost and latency caps and your own fallback order.' },
 ];
+
+/** A mode's words under the router's live scoring (the snapshot's `scoring`; a snapshot without it is today's). */
+function wordsFor(m: Mode, s: RouterScoring): Mode {
+  if (m.group === 0) {
+    const q = explorerQuality(s);
+    return { ...m, order: q.order, desc: m.id === 'auto-best' ? q.bestDesc : m.desc };
+  }
+  return m.id === 'auto-fastest-quality' ? { ...m, desc: explorerFastestQuality(s) } : m;
+}
 
 const RULES: Array<[string, string, RegExp]> = [
   ['Works on code through tools', 'best_agentic_coding', /works on code through tools/],
@@ -64,6 +76,7 @@ const SPLIT_COLORS = ['var(--lp-accent)', 'var(--lp-good)', 'var(--lp-warn)'];
 
 export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot }) {
   const reduced = useReducedMotion();
+  const scoring = useMemo(() => scoringOf(snapshot.scoring), [snapshot]);
   const available = useMemo(() => MODES.filter(m => snapshot.strategies[m.key]), [snapshot]);
   const starters = useMemo(() => STARTERS.filter(([id]) => available.some(m => m.id === id)), [available]);
   const [all, setAll] = useState(starters.length < 2);
@@ -105,8 +118,9 @@ export default function RouterExplorer({ snapshot }: { snapshot: LandingSnapshot
     return () => clearInterval(t);
   }, [shown, reduced]);
 
-  const mode = available.find(m => m.id === modeId);
-  if (!mode) return null;
+  const found = available.find(m => m.id === modeId);
+  if (!found) return null;
+  const mode = wordsFor(found, scoring);
   const snap: LandingStrategy | null = mode.key === 'match_task' ? snapshot.strategies[taskKey] : snapshot.strategies[mode.key];
   if (!snap) return null;
 

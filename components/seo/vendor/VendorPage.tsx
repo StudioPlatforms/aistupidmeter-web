@@ -118,7 +118,7 @@ const TOC_BASE = [
   { id: 'faq', label: 'FAQ' },
 ];
 
-export default async function VendorPage({ slug }: { slug: string }): Promise<JSX.Element> {
+export default async function VendorPage({ slug }: { slug: string }): Promise<React.JSX.Element> {
   const v: Vendor | undefined = isVendorSlug(slug) ? vendorByKey(slug) : undefined;
   if (!v) notFound();
   const vendor = v as Vendor;

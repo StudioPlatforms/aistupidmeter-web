@@ -89,6 +89,9 @@
 .st .st-card.sc-layout { gap: 10px; padding: 12px 12px 16px; }
 .st .sc-layout .st-card-t { padding: 4px 4px 0; }
 .st .sc-layout .st-card-d { padding: 0 4px; font-size: 13px; }
+/* The name and its Default tag wrap together on a narrow card, so the tick stays at the end of the title line
+   instead of being pushed past the card and the screen (320 px). Laid out as before wherever they fit. */
+.st .sc-layout-name { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
 .st .sc-layout .lbx-sketch { display: block; width: 100%; height: auto; aspect-ratio: 120 / 64; border-radius: 9px; background: var(--lp-sunk); transition: background-color .2s; }
 .st .sc-layout[aria-checked='true'] .lbx-sketch { background: color-mix(in srgb, var(--lp-accent) 9%, var(--lp-card)); }
 .st .sc-layout .lbx-sk { fill: var(--lp-line2); }
@@ -130,6 +133,12 @@
 .st .sc-plan-kv > div { grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr); padding: 11px 0; }
 .st .sc-plan-kv dd b { font-weight: 600; font-variant-numeric: tabular-nums; }
 .st .sc-plan-legacy { grid-column: 1 / -1; }
+
+/* Cancel and refund (the 7-day window of a first subscription): text, then the one action */
+.st .sc-refund .st-pane-body { display: grid; gap: 14px; justify-items: start; }
+.st .sc-refund .st-note { width: 100%; box-sizing: border-box; }
+/* the plan-change confirmation: what is paid today, in display type */
+.st .sc-switch-due { margin: 6px 0 12px; font-family: var(--lp-font-disp) !important; font-size: 30px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--lp-fg); }
 
 /* allowances: one cell per meter, figures in display type */
 .st .sc-meters { display: grid; gap: 22px 36px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }

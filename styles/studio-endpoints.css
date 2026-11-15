@@ -1,0 +1,246 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · ENDPOINTS — "Your endpoints" on /router/providers
+   (components/router/EndpointsPane.tsx, R3). Classes are ep-*, scoped
+   under .st, and use only the --lp-* tokens, so light and dark follow
+   the shell. Rules that refine an st-* class carry that class too, so
+   they win whatever order the bundler puts the stylesheets in.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* The router-key dialog's pieces the pane uses (R5: it also mounts on the workspace pages, which do not
+   load studio-keys.css). Copied as they are there, so the Providers page, which loads both, is unchanged. */
+.st .sk-pad { padding: 18px 22px 22px; }
+.st .sk-note-act { margin-top: 10px; }
+.st .sk-mtitle { display: inline-flex; align-items: center; gap: 12px; }
+.st .sk-steps-head { display: flex; gap: 6px; margin: 0 0 4px; padding: 0; list-style: none; font-size: 12.5px; font-weight: 600; color: var(--lp-fg3); }
+.st .sk-steps-head li { display: inline-flex; align-items: center; gap: 6px; }
+.st .sk-steps-head li + li::before { content: ''; width: 18px; height: 1px; background: var(--lp-line2); }
+.st .sk-steps-head li.is-on { color: var(--lp-accent); }
+.st .sk-steps-head li.is-done { color: var(--lp-good); }
+@media (max-width: 760px) {
+  .st .sk-pad { padding: 16px; }
+}
+
+/* the copyable ids, ep/<slug>/<model>: the one place a code face is used. A short id (a prefix)
+   stays on one line rather than breaking at the hyphen in gpu-box-a; a full model id may be long
+   (hf.co/…), so is-long lets it wrap. */
+.st .ep-id { display: inline-block; max-width: 100%; vertical-align: bottom; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: var(--font-code) !important; font-size: 12.5px; line-height: 1.5; padding: 1px 6px; border-radius: 6px;
+  background: color-mix(in srgb, var(--lp-fg) 7%, transparent); color: var(--lp-fg); }
+.st .ep-id.is-long { display: inline; white-space: normal; overflow: visible; overflow-wrap: anywhere; vertical-align: baseline; }
+
+/* ── the list ──────────────────────────────────────────────────────── */
+.st .ep-notice { padding: 16px 22px; border-bottom: 1px solid var(--lp-line); }
+.st .ep-list { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+
+.st .ep-rows { display: grid; }
+.st .ep-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 14px; row-gap: 12px; align-items: start;
+  padding: 16px 22px; border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.st .ep-row:last-child { border-bottom: 0; }
+.st .ep-row > .st-logo { margin-top: 1px; }
+.st .ep-row-main { min-width: 0; display: grid; gap: 3px; }
+.st .ep-row-t { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.st .ep-name { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .ep-row.is-paused .ep-name { color: var(--lp-fg2); }
+.st .ep-row-meta { font-size: 13px; line-height: 1.45; color: var(--lp-fg3); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.st .ep-row-detail { margin-top: 3px; max-width: 80ch; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); }
+.st .ep-row-detail.is-bad { color: var(--lp-bad); }
+.st .ep-row-end { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+.st .ep-row-act { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ▲▼: the order routing tries endpoints in */
+.st .ep-move { display: inline-flex; flex: none; border: 1px solid var(--lp-line2); border-radius: 8px; overflow: hidden; }
+.st .ep-move button { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: var(--lp-fg2) !important; cursor: pointer; transition: background-color .18s, color .18s; }
+.st .ep-move button + button { border-left: 1px solid var(--lp-line2); }
+.st .ep-move button:hover:not(:disabled) { background: var(--st-hover); color: var(--lp-fg) !important; }
+.st .ep-move button:disabled { opacity: .35; cursor: default; }
+
+/* workspace endpoints shared with this account (read-only) */
+.st .ep-shared { padding: 16px 22px 0; border-top: 1px solid var(--lp-line); }
+.st .ep-shared .st-label { margin-bottom: 4px; }
+.st .ep-shared-note { margin: 0 0 6px; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); }
+.st .ep-shared .ep-rows { margin: 0 -22px; }
+.st .ep-row.is-shared { grid-template-columns: auto minmax(0, 1fr) auto; }
+/* R5: a project member sees only the workspace's group, right under the pane's ruled head */
+.st .ep-pane .st-pane-body > .ep-shared:first-child { border-top: 0; }
+
+/* ── R5: a workspace's or project's servers ───────────────────────── */
+.st .ep-head-acts { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+/* who can use a workspace server, under its meta line */
+.st .ep-row-share { margin: 1px 0 0; font-size: 13px; line-height: 1.45; color: var(--lp-fg2); overflow-wrap: anywhere; }
+/* the ids requests name, each with its copy button */
+.st .ep-ids { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 6px; min-width: 0; }
+.st .ep-ids li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.st .ep-ids .st-copy { height: 26px; padding: 0 10px; font-size: 12px; }
+/* requests in the last 30 days (owner): asked for from the share line, shown under it */
+.st .ep-inline-btn { all: unset; cursor: pointer; font-weight: 600; color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .ep-inline-btn:focus-visible { outline: 2px solid var(--lp-accent) !important; outline-offset: 2px; border-radius: 4px; }
+.st .ep-usage { margin: 2px 0 0; display: grid; gap: 2px; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+.st .ep-usage-people { color: var(--lp-fg3); overflow-wrap: anywhere; }
+/* "Who can use it" in the server dialog (workspace only) */
+.st .ep-share { margin: 0; padding: 14px 0 0; border: 0; border-top: 1px solid var(--lp-line); min-width: 0; display: grid; gap: 12px; }
+.st .ep-share legend { float: left; width: 100%; margin: 0; padding: 0; }
+.st .ep-share legend + * { clear: both; }
+.st .ep-share-opts { display: grid; gap: 10px; }
+.st .ep-share-projects { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 2px 0 2px 30px; }
+.st .ep-share-projects > .st-hint { flex-basis: 100%; margin: 0; }
+.st .st-toggle.ep-pick { align-items: center; gap: 10px; }
+.st .st-toggle.ep-pick .st-check { margin-top: 0; }
+.st .st-toggle.ep-pick b { font-size: 14px; font-weight: 500; }
+.st .st-toggle.ep-share-members { padding-top: 12px; border-top: 1px solid var(--lp-line); }
+/* "Copy from your endpoints" */
+.st .ep-import { border: 1px solid var(--lp-line); border-radius: 14px; overflow: hidden; }
+.st .ep-import .ep-row { padding: 14px 16px; }
+.st .ep-rename { display: grid; gap: 6px; margin-top: 10px; }
+.st .st-toggle.ep-ack.ep-import-ack { margin-top: 10px; padding: 10px 12px; }
+.st .ep-rename .st-hint, .st .ep-rename .st-error { margin: 0; }
+
+/* ── the dialog: connection form ───────────────────────────────────── */
+.st .ep-form { display: grid; gap: 16px; }
+.st .ep-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.st .ep-under { margin-top: -8px; }
+.st .ep-fixed { min-height: 44px; display: flex; align-items: center; margin: 0; }
+.st .ep-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.st .ep-presets .st-chip { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.st .ep-preset-port { color: var(--lp-fg3); font-weight: 500; }
+.st .st-toggle.ep-ack { padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--lp-warn) 35%, var(--lp-line)); border-radius: 12px;
+  background: color-mix(in srgb, var(--lp-warn-bg) 55%, var(--lp-card)); }
+.st .st-toggle.ep-ack.is-error { border-color: var(--lp-bad); }
+.st .st-toggle.ep-ack .st-error { margin-top: 4px; }
+.st .ep-cf { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 7px; }
+.st .ep-cf legend { margin-bottom: 7px; padding: 0; }
+
+/* Advanced: a quiet disclosure, closed by default */
+.st .ep-adv { padding-top: 12px; border-top: 1px solid var(--lp-line); }
+.st .ep-adv-btn { all: unset; display: inline-flex; align-items: center; gap: 9px; min-height: 32px; cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--lp-fg); }
+.st .ep-adv-btn i { width: 7px; height: 7px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .2s var(--lp-ease), margin .2s var(--lp-ease); }
+.st .ep-adv-btn[aria-expanded='true'] i { transform: rotate(-135deg); margin-top: 3px; }
+.st .ep-adv-btn:focus-visible { outline: 2px solid var(--lp-accent) !important; outline-offset: 2px; border-radius: 6px; }
+.st .ep-adv-body { display: grid; gap: 14px; padding-top: 12px; }
+
+/* the dialog's footer strip: each step portals its buttons here (EndpointsPane's Foot) */
+.st .ep-foot { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.st .ep-foot-note { margin-right: auto; font-size: 13px; color: var(--lp-fg2); }
+.st .st-modal-foot:has(> .ep-foot:empty) { display: none; }
+.st .sk-steps-head.ep-stepsbar { margin-bottom: 18px; }
+
+/* ── the dialog: a test, line by line ──────────────────────────────── */
+.st .ep-step-body { display: grid; gap: 16px; min-width: 0; }
+.st .ep-step-body > .st-text { margin: 0; max-width: none; }
+.st .ep-probe { display: grid; gap: 12px; padding: 14px 16px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-sunk); min-width: 0; }
+.st .ep-probe-state { margin: 0; font-size: 13px; font-weight: 600; color: var(--lp-fg2); }
+.st .ep-probe-state.is-passed { color: var(--lp-good); }
+.st .ep-probe-state:is(.is-partial, .is-interrupted) { color: var(--lp-warn); }
+.st .ep-probe-state:is(.is-failed, .is-blocked) { color: var(--lp-bad); }
+.st .ep-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.st .ep-step { display: grid; grid-template-columns: 16px minmax(0, 1fr); column-gap: 10px; align-items: start; font-size: 14px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .ep-step b { font-weight: 600; color: var(--lp-fg); }
+.st .ep-step.is-fail, .st .ep-step.is-fail b { color: var(--lp-bad); }
+.st .ep-step-i { display: block; margin-top: 3px; }
+.st .ep-step-i.is-ok { color: var(--lp-good); }
+.st .ep-step-i.is-warn { color: var(--lp-warn); }
+.st .ep-step-i.is-fail { color: var(--lp-bad); }
+.st .ep-probe-model { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--lp-line); min-width: 0; }
+.st .ep-probe-mt { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .ep-step-wait { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 13.5px; color: var(--lp-fg3); }
+.st .ep-step-wait .st-bars i { width: 12px; }
+
+/* ── the dialog: models ────────────────────────────────────────────── */
+.st .ep-models { gap: 14px; }
+.st .ep-testbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px 24px; }
+.st .ep-testbar .st-hint { margin: 0; max-width: 84ch; }
+.st .ep-testbar .st-btn { flex: none; }
+.st .ep-testrun { display: grid; gap: 12px; }
+.st .ep-testdone { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 10px 14px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-sunk); font-size: 13px; }
+.st .ep-testdone .ep-probe-state { font-size: 13px; }
+.st .ep-linkbtn { all: unset; cursor: pointer; margin-left: auto; font-size: 13px; font-weight: 600; color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .ep-linkbtn:focus-visible { outline: 2px solid var(--lp-accent) !important; outline-offset: 2px; border-radius: 4px; }
+.st .ep-none { margin: 0; }
+.st .st-table-wrap.ep-table-wrap { border: 1px solid var(--lp-line); border-radius: 14px; }
+.st .st-table.ep-table { font-size: 13.5px; }
+.st .st-table.ep-table td { vertical-align: top; }
+.st .st-table.ep-table th small { margin-left: 4px; font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: none; color: var(--lp-fg3); }
+.st .st-table.ep-table tr.is-on td:first-child { box-shadow: inset 3px 0 0 var(--lp-good); }
+.st .ep-c-check { width: 44px; }
+.st .ep-c-check .st-check { margin-top: 9px; }
+.st .ep-c-model { min-width: 250px; }
+.st .ep-c-model .st-tag { margin-left: 2px; vertical-align: 1px; }
+.st .ep-model { margin-right: 6px; font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; line-height: 2.4; }
+.st .ep-idline { display: block; margin: 0 0 4px; font-size: 12.5px; }
+.st .ep-untested { display: block; font-size: 12.5px; color: var(--lp-fg3); }
+.st .ep-lines { list-style: none; margin: 2px 0 0; padding: 0; display: grid; gap: 2px; font-size: 12.5px; line-height: 1.45; color: var(--lp-fg2); }
+.st .ep-lines b { font-weight: 600; color: var(--lp-fg); }
+.st .ep-lines li.is-warn { color: var(--lp-warn); }
+.st .ep-lines li.is-bad, .st .ep-lines li.is-bad b { color: var(--lp-bad); }
+.st .ep-lines code { font-size: 11.5px; white-space: nowrap; }
+.st .ep-mnote { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--lp-sunk); font-size: 12.5px; line-height: 1.5; color: var(--lp-fg2); max-width: 64ch; }
+.st .ep-mnote.is-warn { background: color-mix(in srgb, var(--lp-warn-bg) 70%, var(--lp-card)); color: var(--lp-fg); }
+.st .ep-mnote-act { margin-top: 8px; }
+/* "Let <model id> go to <vendor>": a long id wraps at any character instead of widening the dialog (R6 review S5) */
+.st .ep-mnote-act .st-btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; height: auto; min-height: 32px; }
+.st .ep-rowerr { margin-top: 6px; }
+.st .st-input.ep-num { width: 112px; height: 36px; padding: 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.st .st-input.ep-num.is-price { width: 78px; }
+.st .ep-prices { display: inline-flex; gap: 6px; }
+/* "Use for": the roles, as toggle chips (the checkbox inside is visually hidden, the chip shows its state) */
+.st .ep-c-roles { min-width: 232px; }
+.st .ep-roles { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 3px; }
+.st .st-chip.ep-role { height: 30px; padding: 0 11px; font-size: 12.5px; }
+.st .st-chip.ep-role:focus-within { box-shadow: var(--st-ring); }
+.st .st-chip.ep-role:has(input:disabled) { opacity: .55; cursor: default; }
+.st .ep-c-id { width: 1%; white-space: nowrap; }
+.st .ep-c-id .st-copy { margin-top: 3px; }
+.st .ep-c-id .st-faint { display: inline-block; padding-top: 8px; font-size: 12.5px; }
+
+.st .ep-manual { display: grid; gap: 7px; }
+.st .ep-manual-row { display: flex; gap: 8px; }
+.st .ep-manual-row .st-input { flex: 1 1 auto; max-width: 420px; }
+
+/* ── phones ────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .st .ep-notice { padding: 14px 16px; }
+  .st .ep-row { grid-template-columns: auto minmax(0, 1fr); padding: 14px 16px; column-gap: 12px; }
+  .st .ep-row-end { grid-column: 2; justify-content: flex-start; flex-wrap: wrap; }
+  /* five actions: three to a row, all the same width, rather than one left over on its own */
+  .st .ep-row-act { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .st .ep-row-act .st-btn { width: 100%; height: 40px; padding: 0 8px; }
+  .st .ep-move button { width: 40px; height: 36px; }
+  .st .ep-shared { padding: 14px 16px 0; }
+  .st .ep-shared .ep-rows { margin: 0 -16px; }
+
+  .st .ep-testbar { flex-direction: column; }
+  .st .ep-testbar .st-btn { width: 100%; height: 40px; }
+  .st .ep-probe { padding: 12px 14px; }
+
+  /* the model table becomes one card per model: its name and test results first, then the fields */
+  .st .st-table.ep-table.is-stack tr { display: flex; flex-direction: column; gap: 2px; }
+  .st .st-table.ep-table.is-stack td.ep-c-model { order: -1; padding-bottom: 8px !important; font-weight: 400; }
+  .st .st-table.ep-table.is-stack td { align-items: center; min-width: 0; }
+  .st .st-table.ep-table.is-stack .ep-c-check { width: auto; }
+  .st .st-table.ep-table.is-stack .ep-c-check .st-check { margin-top: 0; width: 22px; height: 22px; }
+  .st .st-table.ep-table tr.is-on td:first-child { box-shadow: none; }
+  .st .st-table.ep-table.is-stack tr.is-on { box-shadow: inset 3px 0 0 var(--lp-good); }
+  .st .ep-c-model, .st .ep-c-id { min-width: 0; }
+  .st .ep-model { line-height: 1.4; }
+  .st .st-input.ep-num { width: 150px; height: 40px; font-size: 16px; }
+  .st .st-input.ep-num.is-price { width: 96px; }
+  /* the two price fields share the cell and shrink with it, so the second never runs past a 320 px screen */
+  .st .ep-prices { display: flex; flex: 0 1 198px; min-width: 0; }
+  .st .ep-prices .st-input.ep-num.is-price { flex: 1 1 0; min-width: 0; width: auto; }
+  .st .st-table.ep-table.is-stack td.ep-c-id { width: auto; }
+  .st .ep-c-id .st-faint { padding-top: 0; }
+  .st .ep-foot-note { flex-basis: 100%; }
+  .st .st-table.ep-table.is-stack td.ep-c-roles { min-width: 0; }
+  .st .st-chip.ep-role { height: 38px; padding: 0 14px; font-size: 13.5px; }
+  .st .ep-ids .st-copy { height: 32px; }
+  .st .ep-share-projects { padding-left: 0; display: grid; gap: 12px; }
+  .st .ep-import .ep-row { padding: 14px; }
+}
+@media (max-width: 560px) {
+  .st .ep-form-row { grid-template-columns: minmax(0, 1fr); }
+  .st .ep-manual-row { flex-direction: column; }
+  .st .ep-manual-row .st-input { max-width: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st .ep-adv-btn i { transition: none; }
+}

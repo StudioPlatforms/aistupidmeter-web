@@ -81,8 +81,10 @@ export default function SubscriptionGuard({ children, feature, requires }: Subsc
             </Link>
             <Link href="/pricing" className="st-btn is-lg">Compare plans</Link>
           </div>
+          {/* The 7-day refund is for a first subscription only, and a plan change is charged at
+              once: an account that already pays is promised nothing it would not get. */}
           <p className="st-hint" style={{ marginTop: 14 }}>
-            Cancel any time · a payment method is collected at checkout, including during a trial
+            {plan === 'free' ? 'Full refund within 7 days of your first subscription · cancel any time' : 'Cancel any time'}
           </p>
         </div>
         <div className="st-lock-side">

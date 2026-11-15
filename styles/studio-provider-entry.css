@@ -1,0 +1,7 @@
+/* The account home's one ruled row into provider accounts (app/account/ProviderEntry.tsx, §2.0).
+   Loaded with that row only, which /account shows from M10: before then nobody fetches it. */
+.st .mp-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 16px 0; border-top: 1px solid var(--lp-line); border-bottom: 1px solid var(--lp-line); color: inherit !important; text-decoration: none !important; }
+.st .mp-entry:hover .mp-entry-t { color: var(--lp-accent); }
+.st .mp-entry-t { font-size: 15px; font-weight: 600; color: var(--lp-fg); transition: color .18s; }
+.st .mp-entry-s { margin-top: 2px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+

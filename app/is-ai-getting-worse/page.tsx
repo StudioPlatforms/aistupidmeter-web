@@ -47,7 +47,7 @@ const TOC = [
 ];
 const num = (id: string) => tocNumber(TOC, id);
 
-export default async function IsAiGettingWorsePage(): Promise<JSX.Element> {
+export default async function IsAiGettingWorsePage(): Promise<React.JSX.Element> {
   const data = await getWorseData();
   const { models, roster, asOf } = data;
   const counts = fleetCounts(models);

@@ -14,9 +14,13 @@ interface ModalProps {
   children?: ReactNode;
 }
 
+/** What Tab can reach inside the dialog. */
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /**
  * Dialog in the landing's card style; a bottom sheet on phones. Escape and the backdrop close it,
- * focus moves into it on open and back to where it was on close, and the page behind stops scrolling.
+ * focus moves into it on open and back to where it was on close, Tab and Shift+Tab stay inside it,
+ * and the page behind stops scrolling.
  *
  * Rendered into the shell root (.st) rather than in place: panes fade in with a transform, and a
  * fixed-position element inside a transformed one is positioned against that element instead of
@@ -34,7 +38,18 @@ export default function Modal({ open, onClose, title, sub, footer, size, childre
   useEffect(() => {
     if (!open) return;
     const before = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close.current(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close.current(); return; }
+      if (e.key !== 'Tab' || !box.current) return;
+      // aria-modal says the page behind is out of reach: keep keyboard focus in the dialog too.
+      const items = Array.from(box.current.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(el => el.getClientRects().length > 0);
+      if (!items.length) { e.preventDefault(); box.current.focus(); return; }
+      const first = items[0];
+      const last = items[items.length - 1];
+      const at = document.activeElement;
+      if (e.shiftKey && (at === first || at === box.current || !box.current.contains(at))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (at === last || !box.current.contains(at))) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', onKey);
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

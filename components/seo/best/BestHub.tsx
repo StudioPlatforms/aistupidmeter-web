@@ -44,7 +44,7 @@ const TOC = [
 ];
 const num = (id: string) => tocNumber(TOC, id);
 
-export default async function BestHub(): Promise<JSX.Element> {
+export default async function BestHub(): Promise<React.JSX.Element> {
   const [boards, price] = await Promise.all([getBoards24h(), getPrice()]);
 
   const FREE = PLANS.free;
@@ -133,7 +133,7 @@ export default async function BestHub(): Promise<JSX.Element> {
     },
     {
       q: 'Can I route each request to the best model automatically?',
-      a: `Yes. The Smart Router is one OpenAI-compatible endpoint with auto-* routing modes: auto-best follows the Combined board, auto-coding, auto-reasoning and auto-tooling follow their boards, the value modes take the most points per measured dollar of one run among models within five points of the best, and auto-fastest-quality the fastest within the same bar. Routing is drift-aware by default, uses your own provider keys and adds zero markup on tokens; Free includes ${freeRequests} routed requests a month. The modes are described in the [router documentation](/router/docs#strategies).`,
+      a: `Yes. The Smart Router is one OpenAI-compatible endpoint with auto-* routing modes: auto-best follows the Combined board, auto-coding, auto-reasoning and auto-tooling follow their boards, the value modes take the most points per measured dollar of one run among models within five points of the best, and auto-fastest-quality one of the fastest within the same bar. Routing is drift-aware by default, uses your own provider keys and adds zero markup on tokens; Free includes ${freeRequests} routed requests a month. The modes are described in the [router documentation](/router/docs#strategies).`,
     },
   ];
 

@@ -1,7 +1,10 @@
 'use client';
 
 /**
- * Accepting a workspace invitation — where the link in the invitation email lands.
+ * Accepting an invitation — where the link in the invitation email lands. Two kinds share it,
+ * because they work the same way: a workspace invitation and a provider-account invitation, each
+ * read from and accepted by its own API (/account/org/invites or /account/provider/invites). The
+ * server page decides the kind from the token (page.tsx); this component never reads the URL for it.
  *
  * The invitation is bound to the address it was sent to: the API accepts it only for an account
  * with that email, so a forwarded link cannot put someone else into the workspace. This page's
@@ -11,10 +14,14 @@
 
 import { useEffect, useState } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { chooseProvider } from '@/lib/provider-account';
 import Link from 'next/link';
 
 interface Invite {
-  workspace: string;
+  /** The workspace's name (workspace invitations) … */
+  workspace?: string;
+  /** … or the provider account (provider invitations). */
+  provider?: { publicId: string; displayName: string; kind?: string };
   invitedBy: string | null;
   role: 'editor' | 'viewer' | string;
   invitedEmail: string;
@@ -22,7 +29,7 @@ interface Invite {
   emailMatches: boolean;
   expired: boolean;
   expiresAt: string;
-  plan: string;
+  plan?: string;
 }
 
 const wrap: React.CSSProperties = { width: '100%', boxSizing: 'border-box', maxWidth: 560, margin: '0 auto', padding: '48px 20px 70px', overflowWrap: 'anywhere' };
@@ -37,9 +44,12 @@ const PLAN_LABEL: Record<string, string> = {
   free: 'Free', pro: 'Pro', developer: 'Developer', teams: 'Teams', enterprise: 'Enterprise', legacy_pro: 'Pro',
 };
 
-export default function InviteClient({ token }: { token: string }) {
+export default function InviteClient({ token, kind = 'workspace' }: { token: string; kind?: 'workspace' | 'provider' }) {
   const { status } = useSession();
+  const provider = kind === 'provider';
   const here = `/account/invite/${encodeURIComponent(token)}`;
+  const api = `/api/account/${provider ? 'provider' : 'org'}/invites/${encodeURIComponent(token)}`;
+  const team = provider ? 'provider account' : 'workspace';
   const [invite, setInvite] = useState<Invite | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [joined, setJoined] = useState<{ workspace: string; role: string } | null>(null);
@@ -47,18 +57,28 @@ export default function InviteClient({ token }: { token: string }) {
 
   useEffect(() => {
     if (status !== 'authenticated') return;
-    fetch(`/api/account/org/invites/${encodeURIComponent(token)}`, { cache: 'no-store' })
+    fetch(api, { cache: 'no-store' })
       .then(r => r.json())
       .then(j => { if (j?.success) setInvite(j.data); else setProblem(j?.message ?? 'This invitation could not be read.'); })
       .catch(() => setProblem('This invitation could not be read right now. Try again in a moment.'));
-  }, [status, token]);
+  }, [status, api]);
 
   const accept = async () => {
     setBusy(true);
     try {
-      const r = await fetch(`/api/account/org/invites/${encodeURIComponent(token)}/accept`, { method: 'POST' });
+      const r = await fetch(`${api}/accept`, { method: 'POST' });
       const j = await r.json().catch(() => ({}));
-      if (j?.success) setJoined({ workspace: j.data.workspace, role: j.data.role });
+      if (j?.success) {
+        const joinedName = provider
+          ? (j.data.provider?.displayName ?? invite?.provider?.displayName ?? '')
+          : (j.data.workspace ?? invite?.workspace ?? '');
+        setJoined({ workspace: joinedName, role: j.data.role });
+        // Open the account just joined on this browser. The sidebar's Provider group arrives with
+        // the next full page load (the button below), not through useSession().update(): that
+        // flips the session to "loading", the account shell swaps layouts and this page would
+        // mount again and read the used invitation as unusable.
+        if (provider && j.data.provider?.publicId) chooseProvider(j.data.provider.publicId);
+      }
       else setProblem(j?.message ?? j?.error ?? 'The invitation could not be accepted.');
     } finally {
       setBusy(false);
@@ -74,7 +94,7 @@ export default function InviteClient({ token }: { token: string }) {
     return (
       <div style={wrap}>
         <div style={card}>
-          <h1 style={{ fontSize: '1.3em', margin: '0 0 10px' }}>You have been invited to a workspace</h1>
+          <h1 style={{ fontSize: '1.3em', margin: '0 0 10px' }}>You have been invited to a {team}</h1>
           <p style={muted}>
             Sign in with the email address the invitation was sent to, or create an account with that
             address. You will come straight back here to accept.
@@ -93,11 +113,19 @@ export default function InviteClient({ token }: { token: string }) {
       <div style={wrap}>
         <div style={card}>
           <h1 style={{ fontSize: '1.3em', margin: '0 0 10px' }}>You joined {joined.workspace}</h1>
-          <p style={muted}>
-            You are {joined.role === 'editor' ? 'an editor' : 'a viewer'} in this workspace.
-            {joined.role === 'editor' && ' Its plan now applies to your account.'}
-          </p>
-          <Link href="/account/team" className="vintage-btn vintage-btn--primary" style={btn}>Open the workspace</Link>
+          {provider ? (
+            <p style={muted}>You are {joined.role === 'admin' ? 'an admin' : 'a viewer'} of this provider account.</p>
+          ) : (
+            <p style={muted}>
+              You are {joined.role === 'editor' ? 'an editor' : 'a viewer'} in this workspace.
+              {joined.role === 'editor' && ' Its plan now applies to your account.'}
+            </p>
+          )}
+          {provider ? (
+            <a href="/account/provider" className="vintage-btn vintage-btn--primary" style={btn}>Open the provider account</a>
+          ) : (
+            <Link href="/account/team" className="vintage-btn vintage-btn--primary" style={btn}>Open the workspace</Link>
+          )}
         </div>
       </div>
     );
@@ -109,7 +137,7 @@ export default function InviteClient({ token }: { token: string }) {
         <div style={card}>
           <h1 style={{ fontSize: '1.3em', margin: '0 0 10px' }}>This invitation cannot be used</h1>
           <p style={muted}>{problem}</p>
-          <Link href="/account/team" className="vintage-btn" style={btn}>Go to your workspace page</Link>
+          <Link href={provider ? '/account' : '/account/team'} className="vintage-btn" style={btn}>{provider ? 'Go to your account' : 'Go to your workspace page'}</Link>
         </div>
       </div>
     );
@@ -119,24 +147,31 @@ export default function InviteClient({ token }: { token: string }) {
     return <div data-page-loading style={{ padding: 60, textAlign: 'center', color: 'var(--phosphor-dim)' }}>Loading…</div>;
   }
 
-  const roleText = invite.role === 'editor'
-    ? `as an editor. Editors use one of the workspace's seats and get its ${PLAN_LABEL[invite.plan] ?? invite.plan} plan.`
-    : 'as a viewer. Viewers do not use a seat.';
+  const teamName = (provider ? invite.provider?.displayName : invite.workspace) ?? '';
+  const roleText = provider
+    ? (invite.role === 'admin'
+        ? 'as an admin. Admins edit the account: its profile, domains and data handling.'
+        : 'as a viewer. Viewers see the account and change nothing.')
+    : invite.role === 'editor'
+      ? `as an editor. Editors use one of the workspace's seats and get its ${PLAN_LABEL[invite.plan ?? ''] ?? invite.plan} plan.`
+      : 'as a viewer. Viewers do not use a seat.';
 
   return (
     <div style={wrap}>
       <div style={card}>
-        <h1 style={{ fontSize: '1.3em', margin: '0 0 10px' }}>Join {invite.workspace}</h1>
+        <h1 style={{ fontSize: '1.3em', margin: '0 0 10px' }}>Join {teamName}</h1>
         <p style={muted}>
           {invite.invitedBy ? <>{invite.invitedBy} invited </> : <>You were invited </>}
           <strong style={{ color: 'var(--phosphor-green)' }}>{invite.invitedEmail}</strong> to
-          the {invite.workspace} workspace {roleText}
+          the {teamName} {team} {roleText}
         </p>
 
         {invite.expired ? (
           <p style={{ ...muted, color: 'var(--red-alert)', marginBottom: 0 }}>
-            This invitation expired on {new Date(invite.expiresAt).toLocaleDateString()}.
-            Ask {invite.invitedBy ?? 'the workspace owner'} to send it again from the workspace page.
+            This invitation expired on {new Date(invite.expiresAt).toLocaleDateString()}.{' '}
+            {provider
+              ? <>Ask {invite.invitedBy ?? 'the account owner'} to send it again from the provider account&rsquo;s team page.</>
+              : <>Ask {invite.invitedBy ?? 'the workspace owner'} to send it again from the workspace page.</>}
           </p>
         ) : !invite.emailMatches ? (
           <>

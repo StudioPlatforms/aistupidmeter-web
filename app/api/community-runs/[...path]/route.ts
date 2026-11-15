@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
+import { backendUrlFor } from '@/lib/proxy-path';
 const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
 /**
@@ -28,7 +29,9 @@ async function proxy(request: NextRequest, path: string[], method: 'GET' | 'POST
   }
   try {
     const url = new URL(request.url);
-    const backendUrl = `${API_URL}/community-runs/${path.map(encodeURIComponent).join('/')}${url.search}`;
+    const backendUrl = backendUrlFor(API_URL, 'community-runs', path, url.search);
+    // A piece that could leave /community-runs/ ("..", an encoded slash, ...) never reaches the API (lib/proxy-path.ts).
+    if (!backendUrl) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const headers: Record<string, string> = { 'x-internal-token': internalToken };
     if (session?.user?.id) headers['x-user-id'] = String(session.user.id);
     const providerKey = request.headers.get('x-user-api-key');
@@ -51,9 +54,11 @@ async function proxy(request: NextRequest, path: string[], method: 'GET' | 'POST
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ path: string[] }> }) {
+  const params = await props.params;
   return proxy(request, params.path, 'GET');
 }
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ path: string[] }> }) {
+  const params = await props.params;
   return proxy(request, params.path, 'POST');
 }

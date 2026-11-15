@@ -24,6 +24,7 @@ import RouterTab from './RouterTab';
 import AccountsTab from './AccountsTab';
 import TrafficTab, { type RecentVisitor, type VisitorStats } from './TrafficTab';
 import ToolsTab from './ToolsTab';
+import ProvidersTab from './ProvidersTab';
 import { clock } from './format';
 import '@/styles/landing.css';
 import '@/styles/studio-account.css';
@@ -36,6 +37,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'accounts', label: 'Accounts' },
   { key: 'traffic', label: 'Traffic' },
   { key: 'tools', label: 'Tools' },
+  { key: 'providers', label: 'Providers' },
 ];
 
 const isTab = (v: string): v is TabKey => TABS.some(t => t.key === v);
@@ -221,6 +223,7 @@ export default function AdminDashboard() {
           {tab === 'tools' && (
             <ToolsTab onUpdateDaily={updateDailyStats} updating={updating} updateNote={updateNote} onRefresh={refresh} refreshing={refreshing} />
           )}
+          {tab === 'providers' && <ProvidersTab />}
         </div>
       </div>
     </>

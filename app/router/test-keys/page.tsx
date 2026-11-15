@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import { PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Note, Tag, Pill, ProviderMark } from '@/components/studio';
+import { ListedHostTest, ListedHostHistory, type LhData } from './ListedHostTest';
 import '@/styles/studio-keys.css';
 
 /**
@@ -116,6 +117,39 @@ export default function TestKeysPage() {
   const [result, setResult] = useState<TestRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  // F7: tests of listed hosts (GET /router/marketplace/tests). Null while the API offers nothing (a 404 for an account the
+  // marketplace does not let in, an older API): the page is then exactly as before.
+  const [lh, setLh] = useState<LhData | null>(null);
+  const [listed, setListed] = useState(false);
+  const [preselect, setPreselect] = useState<string | null>(null);
+  const [wantListed, setWantListed] = useState(false);
+  const listedApplied = useRef(false);
+  const loadLh = useCallback(async (): Promise<LhData | null> => {
+    try {
+      const r = await fetch('/api/router/marketplace/tests', { cache: 'no-store' });
+      const j = r.ok ? await r.json() as LhData : null;
+      const ok = j && Array.isArray(j.listings) && Array.isArray(j.tests) ? j : null;
+      setLh(ok);
+      return ok;
+    } catch { return null; }
+  }, []);
+  useEffect(() => { if (status === 'authenticated') loadLh(); }, [status, loadLh]);
+  // A public page's "Test it with your own key" asks for Listed host (?listed=1) and may name its listing (?listing=<id>).
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const v = q.get('listing');
+      if (v && /^[a-z2-7]{10}$/.test(v)) { setPreselect(v); setWantListed(true); }
+      if (q.get('listed') === '1') setWantListed(true);
+    } catch { /* no preselection */ }
+  }, []);
+  const offersListed = !!lh && lh.enabled && lh.listings.length > 0;
+  // Applied once, when the API first offers a listing: a reload never pulls the visitor back to Listed host (SHOULD-6).
+  useEffect(() => {
+    if (listedApplied.current || !wantListed || !offersListed) return;
+    listedApplied.current = true;
+    setListed(true);
+  }, [wantListed, offersListed]);
 
   const loadHistory = useCallback(async () => {
     try {
@@ -203,10 +237,19 @@ export default function TestKeysPage() {
       />
 
       <div className="st-body">
-        <Note title="Your key is never stored, and your results stay yours">
-          The key is used for this run and discarded. Results are saved to your account only — they never
-          change a public ranking. Your provider bills you directly for whatever the test uses.
-        </Note>
+        {listed ? (
+          <Note title="Your key is kept for this test only, and your result is published with the host's">
+            This test&apos;s copy of your key is stored encrypted and deleted when the test ends. Your score is added to the
+            host&apos;s public rows of user-run tests, with other people&apos;s, under your name only if you ask. It never changes a
+            measurement or a ranking. Your address and browser are kept with the request for 48 hours, for the daily limits. The
+            host bills your own account there for what the test uses.
+          </Note>
+        ) : (
+          <Note title="Your key is never stored, and your results stay yours">
+            The key is used for this run and discarded. Results are saved to your account only — they never
+            change a public ranking. Your provider bills you directly for whatever the test uses.
+          </Note>
+        )}
 
         {error && <Note tone="bad">{error}</Note>}
 
@@ -217,9 +260,9 @@ export default function TestKeysPage() {
               <button
                 key={p.id}
                 type="button"
-                aria-pressed={provider === p.id}
-                onClick={() => { setProvider(p.id); setModels([]); setModel(''); setResult(null); }}
-                className={`st-card${provider === p.id ? ' is-on' : ''}`}
+                aria-pressed={!listed && provider === p.id}
+                onClick={() => { setListed(false); setProvider(p.id); setModels([]); setModel(''); setResult(null); }}
+                className={`st-card${!listed && provider === p.id ? ' is-on' : ''}`}
               >
                 <span className="st-card-t">
                   <ProviderMark provider={p.id} />
@@ -229,10 +272,22 @@ export default function TestKeysPage() {
                 <span className="st-card-d">{p.description}</span>
               </button>
             ))}
+            {offersListed && (
+              <button type="button" aria-pressed={listed} onClick={() => { setListed(true); setResult(null); setError(null); }} className={`st-card${listed ? ' is-on' : ''}`}>
+                <span className="st-card-t">
+                  Listed host
+                  <span className="st-card-tick" aria-hidden="true" />
+                </span>
+                <span className="st-card-d">A model at a host listed on AI Stupid Level, with your own key at that host, on fresh task versions</span>
+              </button>
+            )}
           </div>
         </Pane>
 
+        {listed && lh && offersListed && <ListedHostTest data={lh} reload={loadLh} preselect={preselect} />}
+
         {/* ── 2. Key + model ──────────────────────────────────────────── */}
+        {!listed && <>
         <Pane title={<Step n={2}>Your API key</Step>} delay={0.04}>
           <div className="st-field">
             <label className="st-field-label" htmlFor="sk-test-key">{providerName} API key</label>
@@ -428,69 +483,81 @@ export default function TestKeysPage() {
           </Pane>
         )}
 
+        </>}
+
         {/* ── 5. History ──────────────────────────────────────────────────
             Always flush, so the pane's class never changes after it has faded in (a changed
-            className would drop the reveal's is-in and hide the pane again). */}
-        <Pane
-          title="Your test history"
-          actions={history.length > 0 && <Tag>{history.length} runs</Tag>}
-          ruled={history.length > 0}
-          flush
-          delay={0.04}
-        >
-          {history.length === 0 ? (
-            <div className="sk-pad">
-              <Empty title="No tests yet">
-                Run one above and it will appear here, with what it scored and what it cost.
-              </Empty>
-            </div>
-          ) : (
-            <>
-              {model && modelHistory.length > 1 && (
-                <p className="sk-history-note">
-                  You have tested <strong>{model}</strong> {modelHistory.length} times — scores{' '}
-                  {modelHistory.filter(h => h.score != null).map(h => Math.round(h.score!)).join(', ')}.
-                </p>
-              )}
-              <div className="st-table-wrap">
-                <table className="st-table is-stack sk-history">
-                  <thead>
-                    <tr>
-                      <th>When</th><th>Model</th><th>Test</th>
-                      <th className="is-num">Score</th>
-                      <th className="is-num">vs ours</th>
-                      <th className="is-num">Cost</th>
-                      <th className="is-num">Avg latency</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map(h => {
-                      const delta = h.score != null && h.reference_score != null ? h.score - h.reference_score : null;
-                      return (
-                        <tr key={h.id}>
-                          <td className="is-head sk-when">{when(h.ts)}</td>
-                          <td data-label="Model" className="is-code is-model">{h.model_name}</td>
-                          <td data-label="Test"><Tag>{h.suite}</Tag></td>
-                          <td data-label="Score" className="is-num">
-                            {h.success ? (h.score != null ? <b>{Math.round(h.score)}</b> : <Tag tone="good">Passed</Tag>)
-                              : <Tag tone="bad" title={h.error || ''}>Failed</Tag>}
-                          </td>
-                          <td data-label="vs ours" className="is-num">
-                            {delta === null ? '—' : (
-                              <Tag tone={delta >= 0 ? 'good' : 'warn'}>{delta >= 0 ? '+' : ''}{Math.round(delta)}</Tag>
-                            )}
-                          </td>
-                          <td data-label="Cost" className="is-num">{money(h.est_cost_usd)}</td>
-                          <td data-label="Avg latency" className="is-num">{h.avg_latency_ms ? `${(h.avg_latency_ms / 1000).toFixed(1)}s` : '—'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            className would drop the reveal's is-in and hide the pane again). With Listed host chosen,
+            the tests of listed hosts come first and an empty standard history is left out (its
+            "Run one above" would point at a flow that is not on screen: F7 review web SHOULD-4); the
+            two panes are keyed, so they move instead of mounting again. */}
+        {(() => {
+          const standard = (
+          <Pane
+            key="sk-history"
+            title="Your test history"
+            actions={history.length > 0 && <Tag>{history.length} runs</Tag>}
+            ruled={history.length > 0}
+            flush
+            delay={0.04}
+          >
+            {history.length === 0 ? (
+              <div className="sk-pad">
+                <Empty title="No tests yet">
+                  Run one above and it will appear here, with what it scored and what it cost.
+                </Empty>
               </div>
-            </>
-          )}
-        </Pane>
+            ) : (
+              <>
+                {model && modelHistory.length > 1 && (
+                  <p className="sk-history-note">
+                    You have tested <strong>{model}</strong> {modelHistory.length} times — scores{' '}
+                    {modelHistory.filter(h => h.score != null).map(h => Math.round(h.score!)).join(', ')}.
+                  </p>
+                )}
+                <div className="st-table-wrap">
+                  <table className="st-table is-stack sk-history">
+                    <thead>
+                      <tr>
+                        <th>When</th><th>Model</th><th>Test</th>
+                        <th className="is-num">Score</th>
+                        <th className="is-num">vs ours</th>
+                        <th className="is-num">Cost</th>
+                        <th className="is-num">Avg latency</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map(h => {
+                        const delta = h.score != null && h.reference_score != null ? h.score - h.reference_score : null;
+                        return (
+                          <tr key={h.id}>
+                            <td className="is-head sk-when">{when(h.ts)}</td>
+                            <td data-label="Model" className="is-code is-model">{h.model_name}</td>
+                            <td data-label="Test"><Tag>{h.suite}</Tag></td>
+                            <td data-label="Score" className="is-num">
+                              {h.success ? (h.score != null ? <b>{Math.round(h.score)}</b> : <Tag tone="good">Passed</Tag>)
+                                : <Tag tone="bad" title={h.error || ''}>Failed</Tag>}
+                            </td>
+                            <td data-label="vs ours" className="is-num">
+                              {delta === null ? '—' : (
+                                <Tag tone={delta >= 0 ? 'good' : 'warn'}>{delta >= 0 ? '+' : ''}{Math.round(delta)}</Tag>
+                              )}
+                            </td>
+                            <td data-label="Cost" className="is-num">{money(h.est_cost_usd)}</td>
+                            <td data-label="Avg latency" className="is-num">{h.avg_latency_ms ? `${(h.avg_latency_ms / 1000).toFixed(1)}s` : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </Pane>
+          );
+          const listedHistory = lh && lh.tests.length > 0 ? <ListedHostHistory key="sk-lh-history" tests={lh.tests} onChanged={() => { void loadLh(); }} /> : null;
+          return listed ? [listedHistory, history.length > 0 ? standard : null] : [standard, listedHistory];
+        })()}
       </div>
     </RouterLayout>
   );

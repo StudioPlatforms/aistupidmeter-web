@@ -94,7 +94,7 @@ const LIVE: [ReactNode, ReactNode][] = [
   [<Link key="s" href="/status">Provider status</Link>, 'Whether each provider’s API is answering, checked every 10 minutes from our own account, with only provider-caused downtime counted.'],
 ];
 
-export default function ResearchHubPage(): JSX.Element {
+export default function ResearchHubPage(): React.JSX.Element {
   return (
     <>
       <JsonLd data={ld} />

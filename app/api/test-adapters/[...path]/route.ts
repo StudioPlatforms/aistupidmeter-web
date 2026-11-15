@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
+import { backendUrlFor } from '@/lib/proxy-path';
 const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
 /**
@@ -45,7 +46,9 @@ async function proxy(request: NextRequest, path: string[], method: string) {
 
   try {
     const url = new URL(request.url);
-    const backendUrl = `${API_URL}/test-adapters/${path.join('/')}${url.search}`;
+    const backendUrl = backendUrlFor(API_URL, 'test-adapters', path, url.search);
+    // A piece that could leave /test-adapters/ ("..", an encoded slash, ...) never reaches the API (lib/proxy-path.ts).
+    if (!backendUrl) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     const headers: Record<string, string> = { 'x-internal-token': internalToken };
     if (session?.user?.id) headers['x-user-id'] = session.user.id;
@@ -70,9 +73,11 @@ async function proxy(request: NextRequest, path: string[], method: string) {
   }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ path: string[] }> }) {
+  const params = await props.params;
   return proxy(request, params.path, 'GET');
 }
-export async function POST(request: NextRequest, { params }: { params: { path: string[] } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ path: string[] }> }) {
+  const params = await props.params;
   return proxy(request, params.path, 'POST');
 }

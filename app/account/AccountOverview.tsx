@@ -15,9 +15,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { PLANS, isPlan, isUnlimited, type Plan } from '@/lib/entitlements';
 import { PageHead, Pane, Stats, Stat, CountUp, Loader, Empty, Meter as MeterBar, ProviderMark, Tag } from '@/components/studio';
+
+// The way into provider accounts, loaded only when it is shown (from M10): until then /account
+// fetches neither its code nor its stylesheet.
+const ProviderEntry = dynamic(() => import('./ProviderEntry'));
 
 interface Meter { key: string; label: string; used: number; limit: number; period: string }
 interface Usage {
@@ -32,8 +37,13 @@ interface WatchedModel {
 }
 interface Watchlist { limit: number | null; used: number; scorePeriod?: 'latest' | '24h'; models: WatchedModel[] }
 
-export default function AccountOverview() {
+/**
+ * `providerEntry`: provider accounts are open to everyone (the page reads that on the server), so
+ * the ruled row into them is offered to accounts that are in none yet. Nothing is asked from here.
+ */
+export default function AccountOverview({ providerEntry = false }: { providerEntry?: boolean }) {
   const { data: session, status } = useSession();
+  const showProviderEntry = providerEntry && !(session?.user as any)?.provider;
   const [usage, setUsage] = useState<Usage | null>(null);
   const [watch, setWatch] = useState<Watchlist | null>(null);
   const [loading, setLoading] = useState(true);
@@ -197,6 +207,8 @@ export default function AccountOverview() {
             ))}
           </div>
         </section>
+
+        {showProviderEntry && <ProviderEntry />}
       </div>
     </>
   );

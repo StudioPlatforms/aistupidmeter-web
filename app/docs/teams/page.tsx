@@ -335,7 +335,7 @@ export default function TeamsGuidePage() {
           ['Budget payload', <code key="b">{'{ "project": {id, name}, "workspace": {id, name}, "month", "spendUsd", "limitUsd", "threshold", "budgetMode", "refused", "member"? }'}</code>],
           ['Headers', <span key="h"><code>X-ASL-Event</code>, <code>X-ASL-Timestamp</code> (Unix seconds), <code>X-ASL-Signature</code></span>],
           ['Signature', <span key="s"><code>sha256=</code> plus the hex HMAC-SHA256 of the timestamp, a full stop and the raw body, keyed with the endpoint&apos;s secret.</span>],
-          ['Delivery', 'One attempt with a five-second timeout and no retries; the last result is shown next to each endpoint. Up to 20 endpoints per workspace and 5 per project, HTTPS only, never to private or loopback addresses.'],
+          ['Delivery', 'One attempt with a five-second timeout and no retries; the last result is shown next to each endpoint. Up to 20 endpoints per workspace and 5 per project, HTTPS only, never to private or loopback addresses. Redirects are not followed, so an endpoint that answers with a redirect shows as Failed.'],
         ]} />
         <RdProse>
           <p>Checking a delivery in Node.js:</p>
@@ -352,7 +352,9 @@ export default function TeamsGuidePage() {
               <ul>
                 <li><b>OIDC:</b> sign-in redirect URI <code>{ORIGIN}/api/sso/callback/oidc</code>, scopes
                   <code>openid</code>, <code>email</code> and <code>profile</code>. Copy its issuer URL, client ID
-                  and client secret.</li>
+                  and client secret. Use the issuer exactly as the provider&apos;s discovery document gives it (the{' '}
+                  <code>issuer</code> field of <code>&lt;issuer&gt;/.well-known/openid-configuration</code>): saving
+                  checks that the two match.</li>
                 <li><b>SAML 2.0:</b> assertion consumer service (reply) URL <code>{ORIGIN}/api/sso/callback/saml</code>,
                   entity ID (audience) <code>{ORIGIN}/saml/metadata</code> — providers that import metadata can use
                   that URL — and the email address as the Name ID. Sign the assertion. Copy the sign-on URL and the
@@ -373,7 +375,7 @@ export default function TeamsGuidePage() {
         </RdProse>
         <RdFacts rows={[
           ['Okta', <span key="o">An OIDC web app. The issuer is your authorization server, for example <code>https://acme.okta.com/oauth2/default</code>.</span>],
-          ['Microsoft Entra ID', <span key="m">Register an app with a Web redirect URI and add a client secret. The issuer is <code>https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</code>. Add the optional <code>email</code> claim to the ID token (Token configuration).</span>],
+          ['Microsoft Entra ID', <span key="m">Register an app with a Web redirect URI and add a client secret. The issuer is <code>https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</code>, with the tenant ID rather than the domain name. Add the optional <code>email</code> claim to the ID token (Token configuration).</span>],
           ['Google Workspace', <span key="g">An OAuth client of type Web application in Google Cloud. The issuer is <code>https://accounts.google.com</code>.</span>],
         ]} />
         <RdProse>

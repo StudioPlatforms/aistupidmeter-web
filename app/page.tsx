@@ -118,7 +118,7 @@ export default async function HomePage() {
   // a cookie from an earlier visit silently became a new account's choice and it never saw the
   // chooser). The cookie still decides which layout the chooser starts on.
   const initialLayout = savedLayout(Number((session.user as any).id));
-  const suggestedLayout = toBoardLayout(cookies().get(LAYOUT_COOKIE)?.value);
+  const suggestedLayout = toBoardLayout((await cookies()).get(LAYOUT_COOKIE)?.value);
 
   const ranked = models
     .filter((m) => m && m.name)

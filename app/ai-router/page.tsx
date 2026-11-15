@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdRows, RdCode, RdFinal, tocNumber } from '@/components/landing/Reading';
 import { getLandingSnapshot } from '@/components/landing/data';
+import { aiRouterTieSentence, scoringOf } from '@/lib/router-scoring';
 import { CtaRow, LeaderboardCta, RouterCta } from '@/components/seo/Cta';
 import JsonLd from '@/components/seo/JsonLd';
 import { AsOf } from '@/components/seo/Verdict';
@@ -59,8 +60,10 @@ const TOC = [
 ];
 const num = (id: string) => tocNumber(TOC, id);
 
-export default async function AiRouterPage(): Promise<JSX.Element> {
+export default async function AiRouterPage(): Promise<React.JSX.Element> {
   const [snapshot, roster] = await Promise.all([getLandingSnapshot(), getRoster()]);
+  // How the router scores right now (API A1, the landing snapshot's `scoring`): the tie sentence follows its band.
+  const scoring = scoringOf(snapshot?.scoring);
   const slugs = new Map(roster.map((m) => [m.name, m.slug]));
   const perVendor = VENDORS.map((v) => ({ v, count: modelsOfVendor(roster, v.key).length })).filter((x) => x.count > 0);
   const modelCount = snapshot?.modelCount || roster.length;
@@ -239,7 +242,7 @@ export default async function AiRouterPage(): Promise<JSX.Element> {
               <code>auto-coding</code>, <code>auto-reasoning</code>, <code>auto-tooling</code> and <code>auto-best</code> rank on the
               boards. <code>auto-value</code> and <code>auto-fastest-quality</code> choose among the models within{' '}
               {VALUE_FLOOR_POINTS} points of the best, then by cost or speed. <code>auto-task</code> reads each request and picks the
-              board itself. A statistical tie goes to your tie-break, cheapest per task by default.
+              board itself. {aiRouterTieSentence(scoring)}
             </>],
             ['Drift-aware', 'A model whose drift detector has fired on the suite your mode relies on, or that has an open canary incident, moves behind the healthy ones. The routing reason names any model passed over.'],
             ['Fallbacks and a circuit breaker', `Up to ${MAX_FALLBACKS} fallbacks on every request, your own order first. A model that fails ${CIRCUIT_FAILURES} times in a row is skipped for ${CIRCUIT_COOLDOWN_S} seconds and probed before it returns.`],

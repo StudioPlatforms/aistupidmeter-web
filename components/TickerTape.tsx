@@ -18,7 +18,7 @@ const TickerTape = React.memo(function TickerTape({ items }: { items: string[] }
   }, [items]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number>(undefined);
   const positionRef = useRef(0);
 
   useEffect(() => {

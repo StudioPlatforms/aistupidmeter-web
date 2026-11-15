@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { marketplacePublicOpen } from '@/lib/marketplace-open';
 
 /**
  * Dynamic Open Graph card — the image X, Telegram, Slack, Discord and LinkedIn
@@ -787,9 +788,56 @@ function alertCard(models: ModelRow[], degradations: any[]) {
   );
 }
 
+// ── Phase 3 §4.8: a provider's and an entry's share card, decided before the fleet fetch (rev: S13) ──
+// Public answers only (never a staff preview): before the opening the API answers with no data and the card is
+// the fallback. Text only from the API's DTO; no score before a day's mean is published.
+
+const MP_SLUG = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
+
+/** The card's DTO: nothing is fetched while the public gate is closed, and a made-up slug's 404 is neither logged nor cached (M5 review SHOULD-3). */
+async function marketplaceJSON(path: string): Promise<any | null> {
+  if ((await marketplacePublicOpen()) === 'closed') return null;
+  try {
+    const res = await fetch(`${API_BASE}${path}`, { headers: { 'User-Agent': 'aistupidlevel-og', Accept: 'application/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS), next: { revalidate: 60 } });
+    return res.ok ? await res.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+async function marketplaceCard(type: 'provider' | 'entry', slug: string) {
+  const [provider, entry] = slug.split('/');
+  if (!MP_SLUG.test(provider || '') || (type === 'entry' && !MP_SLUG.test(entry || ''))) return fallbackCard();
+  const json = await marketplaceJSON(type === 'entry' ? `/marketplace/public/providers/${provider}/${entry}` : `/marketplace/public/providers/${provider}`);
+  const d = json?.success && json?.data ? json.data : null;
+  if (!d) return fallbackCard();
+  const name = String(d.provider?.displayName || '').slice(0, 40);
+  const title = type === 'entry' ? String(d.entry?.label || '').slice(0, 90) : name;
+  const entries = Array.isArray(d.entries) ? d.entries : [];
+  const price = (n: unknown) => `$${Number(n ?? 0).toFixed(2)}`;
+  const line = type === 'entry'
+    ? `${d.entry?.measurement?.state === 'measured' ? 'Measured by AI Stupid Level' : 'Listed · not measured yet'} · ${price(d.entry?.price?.inPerMTok)} in / ${price(d.entry?.price?.outPerMTok)} out per 1M`
+    : `${entries.length} model${entries.length === 1 ? '' : 's'} listed on AI Stupid Level`;
+  return png(
+    <Frame>
+      <Header />
+      <Card>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center', padding: 48 }}>
+          <div style={{ display: 'flex', fontSize: 20, color: INK_DIM }}>{type === 'entry' ? `Hosted by ${name}` : 'Inference provider'}</div>
+          <div style={{ display: 'flex', marginTop: 12, fontSize: 46, fontWeight: 500, color: INK, letterSpacing: -0.6 }}>{title}</div>
+          <div style={{ display: 'flex', marginTop: 18, fontSize: 22, color: INK_DIM }}>{line}</div>
+        </div>
+      </Card>
+      <Footer text="aistupidlevel.info/inference-providers" />
+    </Frame>
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const type = (new URL(request.url).searchParams.get('type') || 'rankings').toLowerCase();
+    const params = new URL(request.url).searchParams;
+    const type = (params.get('type') || 'rankings').toLowerCase();
+    if (type === 'provider' || type === 'entry') return await marketplaceCard(type, String(params.get('slug') || '').toLowerCase().slice(0, 140));
 
     // 'alert' is the only card that needs the degradations feed, so only it pays
     // for the second request.

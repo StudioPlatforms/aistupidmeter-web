@@ -2327,7 +2327,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
     'terminal-text--red';
 
   // Helper function to render dynamic metric display with rich information
-  const renderDynamicMetric = (model: any): JSX.Element => {
+  const renderDynamicMetric = (model: any): React.JSX.Element => {
     // Debug logging removed for production performance
     
     // STABLE KEY: Use deterministic key based on model data, not random values
@@ -4927,7 +4927,7 @@ export default function Dashboard({ initialLayout = null, suggestedLayout = null
           <div className="sb-pf-price">
             {/* API monitoring needs the routing plan (lib/capabilities 'api-monitoring'), not Pro. */}
             <b>{monthly(ROUTER_PLAN)}<span>{planName(ROUTER_PLAN)}</span></b>
-            <small>Free trial · cancel anytime</small>
+            <small>Full refund within 7 days of your first subscription · cancel any time</small>
           </div>
         </div>
       </Modal>

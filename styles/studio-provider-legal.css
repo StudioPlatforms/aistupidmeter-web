@@ -1,0 +1,30 @@
+/* The provider console's "Agreement & notices" (Phase 3 plan §2.10, §2.15) and the admin's decision forms (§10.4). */
+
+.mp-legal-tabs { margin-bottom: 18px; }
+.mp-legal-list { list-style: none; margin: 0; padding: 0; }
+.mp-legal-list li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 12px 18px; border-bottom: 1px solid var(--lp-line, #e3e6ea); min-width: 0; }
+.mp-legal-list.is-notices li, .mp-legal-list li:has(.mp-notice-body) { display: grid; justify-content: stretch; }
+.mp-legal-list li.is-new { box-shadow: inset 3px 0 0 var(--lp-accent, #1a73e8); }
+.mp-notice-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; min-width: 0; }
+.mp-notice-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.55; color: var(--lp-fg2, #3c4043); }
+.mp-notice-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mp-muted { color: var(--lp-fg2, #5f6368); font-size: 13px; }
+/* The text's SHA-256 is 64 characters with no break: it wraps inside its pane instead of widening the page. */
+.mp-muted code { overflow-wrap: anywhere; }
+.mp-accept, .mp-appeal, .mp-complaint { display: grid; gap: 12px; max-width: 640px; }
+.mp-accept .st-check, .mp-admin-form .st-check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.mp-agreement-text { font-size: 14.5px; line-height: 1.6; max-height: 60vh; overflow: auto; padding-right: 6px; }
+.mp-agreement-text .mp-ag-annex { font-size: 18px; margin: 26px 0 6px; }
+.mp-agreement-text .mp-ag-h { font-size: 15.5px; margin: 18px 0 4px; }
+.mp-agreement-text p, .mp-agreement-text li { overflow-wrap: anywhere; }
+
+.mp-admin-decisions { display: grid; gap: 14px; margin-top: 12px; }
+.mp-admin-form { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--lp-line, #e3e6ea); border-radius: 8px; min-width: 0; }
+.mp-admin-inline { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mp-admin-inline .st-input { max-width: 220px; }
+@media (max-width: 640px) {
+  .mp-legal-list li { padding: 12px; }
+  .mp-admin-inline .st-input { max-width: 100%; }
+}
+.mp-admin-offer { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--lp-line, #e3e6ea); border-radius: 8px; min-width: 0; overflow-wrap: anywhere; }
+.mp-admin-offer p { margin: 0; }

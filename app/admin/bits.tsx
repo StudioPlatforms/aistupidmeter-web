@@ -36,6 +36,11 @@ const KIND_LABEL: Record<AttentionItem['kind'], string> = {
   unlinked: 'No account',
   trial_ending: 'Trial ending',
   legacy_anniversary: '12 months at $4.99',
+  refund_window: 'Refund window',
+  refund_unfinished: 'Refund not finished',
+  refund_failed: 'Refund failed',
+  upgrade_pending: 'Plan change unpaid',
+  paid_start_trial: 'Sale not charged',
 };
 
 /** Billing problems and dates that need a decision, worst first. */
@@ -64,4 +69,4 @@ export function EmptyRow({ cols, children }: { cols: number; children: ReactNode
   return <tr><td colSpan={cols} className="ad-empty-cell">{children}</td></tr>;
 }
 
-export type TabKey = 'overview' | 'billing' | 'router' | 'accounts' | 'traffic' | 'tools';
+export type TabKey = 'overview' | 'billing' | 'router' | 'accounts' | 'traffic' | 'tools' | 'providers';

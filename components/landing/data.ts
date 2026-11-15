@@ -92,7 +92,7 @@ export async function getVisitTotal(): Promise<number | null> {
 export interface TopBoard { key: 'coding' | 'reasoning' | 'tooling'; rows: Array<{ name: string; displayName: string; vendor: string; value: number }> }
 export interface TopFive { mode: 'live24h' | 'measured'; rolling?: boolean; windowDays?: number; from?: string; to?: string; boards: TopBoard[] }
 
-/** Real test runs count as live when the newest one is this recent. */
+/** Test runs count as live when the newest one is this recent. */
 const LIVE_WINDOW_MS = 26 * 3600 * 1000;
 
 /** Which leaderboard sort feeds each board's per-suite score. */
@@ -122,11 +122,11 @@ async function fetchLeaderboardBoards(period: string, revalidate: number): Promi
 
 /**
  * The landing's top five per board.
- * - Rolling (synthetic) mode: the 30-day leaderboard boards — the exact composite scores and order
+ * - Rolling mode: the 30-day leaderboard boards — the exact composite scores and order
  *   the dashboard's 1-month view shows, so the preview and the dashboard never disagree. (Pass rate
  *   lives in the price panel below, which is a cost comparison, not a leaderboard.)
- * - Real mode: the 24-hour leaderboard while fresh runs are being recorded; otherwise the newest
- *   measured window from the price snapshot, dated (coding as pass rate).
+ * - Fixed-window mode: the 24-hour leaderboard while fresh runs are being recorded; otherwise the
+ *   newest dated window from the price snapshot (coding as pass rate).
  */
 export async function getTopFive(price: PriceSnapshot | null): Promise<TopFive | null> {
   if (price?.rolling) {

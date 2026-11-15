@@ -123,7 +123,7 @@ function toolProse(key: WorseVendorKey, v: Vendor): ReactNode {
   }
 }
 
-export default async function WorsePage({ vendor: key }: { vendor: WorseVendorKey }): Promise<JSX.Element> {
+export default async function WorsePage({ vendor: key }: { vendor: WorseVendorKey }): Promise<React.JSX.Element> {
   const vendor = worseVendor(key);
   const copy = WORSE_COPY[key];
   const { name } = copy;

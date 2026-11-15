@@ -10,6 +10,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return worseMetadata('anthropic');
 }
 
-export default async function Page(): Promise<JSX.Element> {
+export default async function Page(): Promise<React.JSX.Element> {
   return WorsePage({ vendor: 'anthropic' });
 }

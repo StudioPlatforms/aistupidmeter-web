@@ -1,19 +1,19 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
 import { SsoForm } from './SsoForm';
-import AuthShell from '@/components/auth/AuthShell';
 
 export const metadata: Metadata = {
   title: 'Single sign-on',
   robots: { index: false, follow: false },
 };
 
+/**
+ * Dynamic, so SsoForm's useSearchParams needs no Suspense boundary, and it deliberately has none:
+ * React 19 streams a finished boundary after the page shell once enough HTML has gone out, so a slow
+ * connection painted its "Loading…" fallback before the form. Without one the form is in the first
+ * paint, as it was on Next 14.
+ */
 export const dynamic = 'force-dynamic';
 
 export default function SsoPage() {
-  return (
-    <Suspense fallback={<AuthShell mode="signin"><p className="au-busy" role="status">Loading…</p></AuthShell>}>
-      <SsoForm />
-    </Suspense>
-  );
+  return <SsoForm />;
 }

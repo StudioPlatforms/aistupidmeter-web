@@ -62,7 +62,7 @@ const PRICING_LD = graphLd([
 export default function PricingPage() {
   // Which plans can actually be bought right now. A plan whose Stripe Price is
   // not configured must not show a working buy button: the alternative is a
-  // customer clicking "Start free trial" and landing on an error, or worse being
+  // customer clicking "Get <plan>" and landing on an error, or worse being
   // charged a price the page never displayed.
   const buyable = (['pro', 'developer', 'teams'] as SellablePlan[])
     .filter(p => priceIdFor(p, 'monthly') || priceIdFor(p, 'annual'));

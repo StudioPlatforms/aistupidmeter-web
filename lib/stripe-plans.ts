@@ -1,31 +1,36 @@
 /**
- * Which Stripe Price backs which plan.
+ * Which Stripe Price backs which plan, and how a subscription starts.
  *
- * WHAT CHANGED AND WHY
- * --------------------
- * Checkout used to hard-code a single `STRIPE_PRICE_ID` with
- * `trial_period_days: 7` written into the code. That made the price and the
- * trial length deployment artefacts: changing either meant a code change, a
- * build, and a restart of a live site.
+ * PAID START. There is no trial: Checkout charges the first period before the plan starts.
+ * Checkout runs in subscription mode, cards only, so a completed session means the money was
+ * taken, never a promise to pay later. In place of a trial an account's FIRST subscription gets
+ * a 7-day refund window: within REFUND_DAYS of a subscription whose checkout offered it (`asl_refund: '7d'`),
+ * Cancel and refund on /account/billing ends the plan at once and refunds every payment on it
+ * (lib/paid-start.ts). Checkout offers it only when the account has never subscribed before,
+ * trial or paid (isFirstSubscription).
  *
- * Now the plan ladder maps to named env vars, and the trial length is read off
- * the Stripe Price itself at checkout time (`recurring.trial_period_days`). Set
- * the trial in the Stripe dashboard and it takes effect on the next checkout —
- * no deploy — and each plan can carry a different length.
+ * The Prices still carry `recurring.trial_period_days` (7/7/14). It is ignored: Checkout has no
+ * `trial_from_plan`, so a session only gets a trial when the code passes one, and none is passed.
+ * Prices cannot be edited, and new Prices are not needed: swapping the env ids would also stop
+ * the webhook recognising existing subscriptions.
  *
- * A CARD IS ALWAYS COLLECTED. Stripe's default for a Checkout Session is to
- * collect a payment method even during a trial; you have to opt *out* with
- * `payment_method_collection: 'if_required'`. We never pass that. The old
- * `/router` overlay promised "NO CREDIT CARD", which was never true — Checkout
- * asked for one anyway — and that copy has been removed.
+ * Subscriptions that began with a trial before this release keep their trial and convert as
+ * promised; every trial path in the webhook stays for them.
  *
- * `legacy_pro` has no entry on purpose: existing subscribers keep the Stripe
- * subscription they already have, at the price they already pay. Nothing in the
- * new ladder should ever create or migrate one.
+ * The plan ladder maps to named env vars (`STRIPE_PRICE_{PRO,DEV,TEAMS}_{MONTHLY,ANNUAL}`).
+ * `legacy_pro` has no entry on purpose: existing subscribers keep the Stripe subscription they
+ * already have, at the price they already pay. Nothing in the new ladder should ever create or
+ * migrate one.
  */
+import type Stripe from 'stripe';
 import type { Plan } from '@/lib/entitlements';
 
 export type Interval = 'monthly' | 'annual';
+
+/** Stamped on every subscription Checkout starts paid (`metadata.asl_start`); trials never carry it. */
+export const PAID_START = 'paid_v1';
+/** How long after a subscription starts its refund window stays open, when the checkout offered one. */
+export const REFUND_DAYS = 7;
 
 /** Plans a customer can buy through self-serve checkout. */
 export type SellablePlan = Extract<Plan, 'pro' | 'developer' | 'teams'>;
@@ -108,4 +113,21 @@ export function planForPriceId(priceId: string | null | undefined): Plan | null 
     return 'legacy_pro';
   }
   return null;
+}
+
+/**
+ * Which plan did this subscription actually buy?
+ *
+ * Read off the Price on the subscription's first line item. Falls back to the plan recorded in
+ * checkout metadata, then to 'pro'. Getting this wrong means selling someone Teams and granting
+ * them Pro, so it is resolved from the money rather than from anything the browser sent.
+ */
+export function planForSubscription(subscription: Pick<Stripe.Subscription, 'items' | 'metadata'>): string {
+  const priceId = subscription.items?.data?.[0]?.price?.id;
+  const fromPrice = planForPriceId(priceId);
+  if (fromPrice) return fromPrice;
+  const fromMetadata = subscription.metadata?.plan;
+  if (fromMetadata) return fromMetadata;
+  console.warn(`[stripe] could not map price ${priceId} to a plan; defaulting to pro`);
+  return 'pro';
 }

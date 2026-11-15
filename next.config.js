@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Lets a deploy build into another folder while the live server keeps serving .next, then
-  // swap the two (/root/admin/deploy-web.sh): seconds of restart instead of minutes of 502s,
+  // swap the two (the deploy's web script): seconds of restart instead of minutes of 502s,
   // which Google records as server errors. Unset, this is Next's own default.
   distDir: process.env.NEXT_DIST_DIR || '.next',
+  // The app's own folder, as Next 14 used. Next 15 otherwise guesses a workspace root from the
+  // lockfiles above it and warns on every build.
+  outputFileTracingRoot: __dirname,
   webpack: (config, { isServer }) => {
     // Exclude Node.js modules from client bundle
     if (!isServer) {
@@ -26,11 +29,25 @@ const nextConfig = {
     return config;
   },
   // Ensure server-only modules stay server-side.
-  // In Next 14 this lives under `experimental`; at the top level it is ignored
-  // and the server warns "Unrecognized key(s)" on every boot.
+  // Next 15 moved this out of `experimental` (it was experimental.serverComponentsExternalPackages
+  // in Next 14, where the top-level key was ignored).
+  serverExternalPackages: ['better-sqlite3', 'bcryptjs'],
+
   experimental: {
-    serverComponentsExternalPackages: ['better-sqlite3', 'bcryptjs'],
+    // Next 15 stopped reusing a dynamic page from the client-side router cache (Next 14 kept it
+    // for 30 seconds). Kept at 30 s so in-app navigation behaves exactly as it did on Next 14.
+    staleTimes: { dynamic: 30 },
   },
+
+  // Next 15 streams the metadata of a dynamic page (title, description, canonical, robots, Open
+  // Graph) into the <body> for every visitor not on its short crawler list, Googlebot and the AI
+  // crawlers included. Matching every user agent keeps it in the <head> for everyone, as Next 14
+  // rendered it.
+  htmlLimitedBots: /.*/,
+
+  // No page uses the image optimizer, so it stays off: next/image renders a plain <img>, and
+  // /_next/image is not served.
+  images: { unoptimized: true },
 
   /**
    * Account surfaces moved out of /router/*.
@@ -88,6 +105,19 @@ const nextConfig = {
       // Googlebot asks for this misspelling now and then.
       { source: '/sitemaps.xml', destination: '/sitemap.xml', permanent: true },
     ];
+  },
+
+  /**
+   * Phase 3 M8 (plan §8.6): the Smart Router's public signing keys at the address hosts verify against. The file is
+   * served by app/api/router-keys (a proxy of the API's GET /marketplace/public/router-keys), before any page is
+   * matched; nginx passes /.well-known/ to Next like any other path.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: '/.well-known/asl-router-keys.json', destination: '/api/router-keys' },
+      ],
+    };
   },
 
   compiler: {

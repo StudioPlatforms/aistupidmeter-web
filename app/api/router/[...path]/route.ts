@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 
+import { backendUrlFor } from '@/lib/proxy-path';
+import { clientIp } from '@/lib/ip-rate-limit';
 // Use internal backend URL for server-side requests
 const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
@@ -14,8 +16,22 @@ const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
  * nginx must NOT have an /api/router/ location — if it proxies straight to
  * port 4000 it bypasses this route, and the API sees a browser-supplied
  * x-user-id with no token and rejects it.
+ *
+ * Every answer goes out with nosniff, the sandboxing CSP and no-store, as the
+ * account proxy's pass-through does (app/api/account/[...path]/route.ts, M3
+ * security review SHOULD-3): it is served on this site's origin to a signed-in
+ * browser, so it never relies on the API's own headers for that. Only headers
+ * are set; the status and the body are passed on as they are.
  */
-async function proxyRequest(
+async function proxyRequest(request: NextRequest, path: string[], method: string) {
+  const res = await forwardRequest(request, path, method);
+  res.headers.set('X-Content-Type-Options', 'nosniff');
+  res.headers.set('Content-Security-Policy', "default-src 'none'; sandbox");
+  res.headers.set('Cache-Control', 'no-store');
+  return res;
+}
+
+async function forwardRequest(
   request: NextRequest,
   path: string[],
   method: string
@@ -40,7 +56,9 @@ async function proxyRequest(
 
   try {
     const url = new URL(request.url);
-    const backendUrl = `${API_URL}/router/${path.join('/')}${url.search}`;
+    const backendUrl = backendUrlFor(API_URL, 'router', path, url.search);
+    // A piece that could leave /router/ ("..", an encoded slash, ...) never reaches the API (lib/proxy-path.ts).
+    if (!backendUrl) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     console.log('[API Proxy] Request:', {
       method,
@@ -53,6 +71,13 @@ async function proxyRequest(
       'x-user-id': session.user.id,
       'x-internal-token': internalToken,
     };
+    // User-run tests of listed hosts (Phase 4 F7): their limits hold across accounts, and one of the links between two
+    // accounts is the address they test from, so these paths alone carry the address and agent this proxy vouches for
+    // (as the account proxy does). Every other /router/* request is sent exactly as before.
+    if (path[0] === 'marketplace' && path[1] === 'tests') {
+      headers['x-asl-client-ip'] = clientIp(request);
+      headers['x-asl-client-ua'] = (request.headers.get('user-agent') ?? '').replace(/[^\x20-\x7e]/g, '').slice(0, 400);
+    }
 
     let body: string | undefined;
     if (method !== 'GET' && method !== 'HEAD') {
@@ -127,35 +152,40 @@ async function proxyRequest(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return proxyRequest(request, params.path, 'GET');
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return proxyRequest(request, params.path, 'POST');
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return proxyRequest(request, params.path, 'PUT');
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return proxyRequest(request, params.path, 'DELETE');
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  props: { params: Promise<{ path: string[] }> }
 ) {
+  const params = await props.params;
   return proxyRequest(request, params.path, 'PATCH');
 }

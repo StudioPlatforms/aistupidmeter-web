@@ -5,13 +5,17 @@
  *  - Charged twice. An account with two live subscriptions keeps the dearer one (the one in use
  *    when they cost the same) and the other is cancelled at once. Nothing is refunded
  *    automatically, and there is no email. When the dearer one is not the one the account
- *    uses, nothing is done: the admin dashboard shows it for a person to sort out.
+ *    uses, nothing is done: the admin dashboard shows it for a person to sort out. Nor is a paid
+ *    start in its first 7 days (2026-11-14): it was charged at checkout and promised its refund
+ *    window, so cancelling it unrefunded would keep money for a plan the account never gets; a
+ *    person refunds and cancels it (the dashboard lists it as charged twice).
  *  - A renewal that fails. The customer is emailed, once per unpaid invoice, that the
  *    subscription will be cancelled if the payment keeps failing. Stripe retries, then cancels.
  *  - A subscription that ends unpaid. The account moves to Free and the customer is emailed that
  *    there is a problem with their billing. The webhook does this as it happens; the watch
- *    catches any cancellation the webhook missed (account 168 kept its plan unpaid for three
- *    and a half months that way).
+ *    catches any cancellation the webhook missed (an account whose plan stayed active while
+ *    unpaid), and moves the account again, without a second email, if a late Stripe event
+ *    links it to the ended subscription once more.
  *  - Legacy $4.99 (changed 2026-10-29: these move to the current price instead of ending).
  *    Twelve months after a subscriber's first subscription, the subscription moves to the current
  *    Pro price, $12 a month. The customer is emailed from 37 days before the 12-month mark, and
@@ -22,21 +26,33 @@
  *    The email's cancel link ends the subscription at the close of the period already paid for.
  *    The emails go only with LEGACY_PRICE_CHANGE=on (the owner approves the wording first); a dry
  *    run shows who would get one.
+ *  - Paid start (2026-11-13; lib/paid-start.ts). Every new subscription is paid at checkout, and
+ *    an account's refund within 7 days ends its plan at once. The watch finishes a refund that
+ *    was asked for in time but did not complete (rule 5), and grants and confirms a paid
+ *    subscription whose webhook events never arrived (rule 6).
+ *  - Plan changes are paid at once (app/api/stripe/change-plan). One whose payment has not gone
+ *    through stays pending; after 24 hours the watch voids its invoice, which ends it (rule 7).
+ *    Stripe's own expiry (about 23 hours) usually gets there first; this is the safety net.
  *
  * The API worker calls POST /api/internal/billing-watch every six hours. Every action and
  * email is recorded in billing_notices, one per kind and Stripe object, so a rerun never
  * repeats one; an email that fails to send is not recorded and is tried again next run.
  */
 import Stripe from 'stripe';
-import { openIdentityDb } from '@/lib/identity-db';
 import { PLANS, ownPlanFor, type Plan } from '@/lib/entitlements';
 import { cancelSubscription, downgradeToFree, findUserById, moveLegacyToPro } from '@/lib/db-client';
 import { syncDataApiTier } from '@/lib/data-api-tier';
 import { recordActivation } from '@/lib/activation';
 import { stripeSnapshot, type StripeSubscriptionRecord } from '@/lib/admin-stripe';
-import { priceIdFor } from '@/lib/stripe-plans';
+import { REFUND_DAYS, priceIdFor } from '@/lib/stripe-plans';
 import { PREVIEW_SUBSCRIPTION, cancelLink } from '@/lib/cancel-link';
 import { sendLegacyPriceChangeEmail, sendPaymentFailedEmail, sendSubscriptionCancelledUnpaidEmail } from '@/lib/email-service';
+import { hasNotice, once, recentNotices, withNotices, type NoticeKind, type WatchAction } from '@/lib/billing-notices';
+import { activatePaidStart, finishRefund } from '@/lib/paid-start';
+
+// The log's helpers live in lib/billing-notices.ts (shared with lib/paid-start.ts); these names
+// stay importable from here.
+export { once, recentNotices, type NoticeKind, type WatchAction };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-09-30.clover' });
 
@@ -56,23 +72,6 @@ const SWITCH_LEAD_MS = 2 * DAY;
 /** Our own accounts and the demo account: never billed, never emailed by this. */
 const DEMO_ACCOUNT_ID = 1360;
 const INTERNAL_ROLES = new Set(['admin', 'superadmin', 'system']);
-
-export type NoticeKind =
-  | 'duplicate_cancelled' | 'payment_failed' | 'downgraded' | 'cancelled_unpaid'
-  | 'legacy_price_notice' | 'legacy_price_changed' | 'legacy_now_pro' | 'cancelled_from_email'
-  // Before 2026-10-29 a $4.99 subscription ended at 12 months; these remain in the log.
-  | 'legacy_end_scheduled' | 'legacy_ended' | 'legacy_end_reverted';
-
-export interface WatchAction {
-  kind: NoticeKind;
-  userId: number | null;
-  email: string | null;
-  /** The Stripe object it is about (a subscription or invoice id), or user:<id> for per-account notices. */
-  ref: string;
-  detail: string;
-  done: boolean;
-  error?: string;
-}
 
 interface Account {
   id: number;
@@ -111,56 +110,6 @@ function renewalOnOrAfter(periodEnd: string, anchor: string, notBefore: number):
     at = new Date(Date.UTC(year, month, Math.min(a.getUTCDate(), lastDay), a.getUTCHours(), a.getUTCMinutes(), a.getUTCSeconds()));
   }
   return at.toISOString();
-}
-
-function withNotices<T>(fn: (db: ReturnType<typeof openIdentityDb>) => T): T {
-  const db = openIdentityDb();
-  try {
-    // user_id cascades with the account, so account deletion removes these with everything else.
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS billing_notices (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER REFERENCES router_users(id) ON DELETE CASCADE,
-        kind TEXT NOT NULL,
-        ref TEXT NOT NULL,
-        detail TEXT,
-        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-        UNIQUE (kind, ref)
-      )
-    `);
-    return fn(db);
-  } finally {
-    db.close();
-  }
-}
-
-/** The most recent notices, newest first, for the admin dashboard. */
-export function recentNotices(limit = 40): Array<{ createdAt: string; kind: NoticeKind; userId: number | null; ref: string; detail: string | null }> {
-  return withNotices(db => db.prepare(`
-    SELECT created_at AS createdAt, kind, user_id AS userId, ref, detail
-      FROM billing_notices ORDER BY id DESC LIMIT ?
-  `).all(limit) as Array<{ createdAt: string; kind: NoticeKind; userId: number | null; ref: string; detail: string | null }>);
-}
-
-type Outcome = void | { success: boolean; error?: string };
-
-/**
- * Do something once per (kind, ref): skipped when already recorded, only described when dry,
- * and recorded only when it worked (an email that did not send is tried again next run).
- */
-async function once(a: Omit<WatchAction, 'done'>, run: () => Promise<Outcome>, dryRun: boolean): Promise<WatchAction | null> {
-  const done = withNotices(db => !!db.prepare('SELECT 1 FROM billing_notices WHERE kind = ? AND ref = ?').get(a.kind, a.ref));
-  if (done) return null;
-  if (dryRun) return { ...a, done: false };
-  try {
-    const out = await run();
-    if (out && !out.success) return { ...a, done: false, error: out.error || 'not sent' };
-    withNotices(db => db.prepare('INSERT OR IGNORE INTO billing_notices (user_id, kind, ref, detail) VALUES (?, ?, ?, ?)')
-      .run(a.userId, a.kind, a.ref, a.detail));
-    return { ...a, done: true };
-  } catch (err) {
-    return { ...a, done: false, error: err instanceof Error ? err.message : String(err) };
-  }
 }
 
 /** Email about a failed renewal, once per invoice. Used by the watch and by the invoice.payment_failed webhook. */
@@ -227,7 +176,8 @@ export async function runBillingWatch({ dryRun = false } = {}): Promise<{ at: st
   // 1. Charged twice: keep the dearer subscription (the one in use on a tie), cancel the rest.
   const liveByOwner = new Map<number, typeof subs>();
   for (const x of subs) {
-    if (!x.owner || !LIVE.has(x.s.status) || x.s.cancelAt) continue;
+    // An unpaid checkout (3D Secure abandoned, a decline) is not a second charge: it never paid.
+    if (!x.owner || !LIVE.has(x.s.status) || x.s.status === 'incomplete' || x.s.cancelAt) continue;
     liveByOwner.set(x.owner.id, [...(liveByOwner.get(x.owner.id) ?? []), x]);
   }
   const cancelled = new Set<string>();
@@ -239,6 +189,9 @@ export async function runBillingWatch({ dryRun = false } = {}): Promise<{ at: st
     const keep = ranked[0];
     if (keep.s.id !== owner.stripe_subscription_id) continue;   // left for a person: see the dashboard
     for (const x of ranked.slice(1)) {
+      // A paid start was charged at checkout and promised its 7-day refund: cancelled unrefunded, the
+      // account would have paid for a plan it never gets. Left for a person to refund and cancel.
+      if (x.s.paidStart && now - Date.parse(x.s.startedAt) <= REFUND_DAYS * DAY) continue;
       const a = await once(
         {
           kind: 'duplicate_cancelled', userId: owner.id, email: owner.email, ref: x.s.id,
@@ -280,8 +233,25 @@ export async function runBillingWatch({ dryRun = false } = {}): Promise<{ at: st
       },
       dryRun,
     );
+    if (!moved) {
+      // Moved to Free for this subscription before, and linked to it again since: a Stripe event
+      // from before it ended, delivered or retried late. Free again, every time; the log and the
+      // customer already have it, so no second notice or email.
+      const again: WatchAction = {
+        kind: 'downgraded', userId: acc.id, email: acc.email, ref: s.id,
+        detail: `Linked again to ${s.id}, which Stripe ended (a late event); ${PLANS[plan].label} → Free again`, done: false,
+      };
+      if (!dryRun) {
+        downgradeToFree(acc.id);
+        syncDataApiTier(acc.id);
+        console.warn(`[billing-watch] account ${acc.id} was linked again to ended ${s.id}; moved to Free again`);
+        again.done = true;
+      }
+      push(again);
+      continue;
+    }
     push(moved);
-    if (s.cancelReason === 'payment_failed' && (dryRun || moved?.done)) {
+    if (s.cancelReason === 'payment_failed' && (dryRun || moved.done)) {
       push(await notifyCancelledUnpaid(acc, s.id, plan, dryRun));
     }
   }
@@ -354,6 +324,93 @@ export async function runBillingWatch({ dryRun = false } = {}): Promise<{ at: st
           trial_from_plan: false,
         });
       },
+      dryRun,
+    ));
+  }
+
+  // 5. Cancel and refund asked for in time but not finished (a step failed): finish it. Stripe's
+  // side is idempotent, so a refund already made is not made again; once it is recorded, only
+  // the customer's email is left to retry.
+  for (const x of subs) {
+    const s = x.s;
+    if (!s.refundRequestedAt || !s.metaUserId) continue;
+    const owner = byId.get(s.metaUserId);
+    if (!owner || isInternal(owner)) continue;
+    const refunded = hasNotice('refunded_in_window', s.id);
+    if (refunded && hasNotice('refund_confirmed', s.id)) continue;
+    const a: WatchAction = {
+      kind: refunded ? 'refund_confirmed' : 'refunded_in_window', userId: owner.id, email: owner.email, ref: s.id,
+      detail: refunded
+        ? 'Refunded and ended; the plan-change credit or the refund email still to do; finishing them'
+        : `Refund asked for ${s.refundRequestedAt.slice(0, 16).replace('T', ' ')}Z and not finished; finishing it`,
+      done: false,
+    };
+    if (dryRun) { push(a); continue; }
+    try {
+      const out = await finishRefund(owner.id, s.id);
+      push({ ...a, done: refunded ? out.emailed === true : true, ...(refunded && out.emailed === false ? { error: 'not sent' } : {}) });
+    } catch (err) {
+      push({ ...a, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  // 6. A paid subscription the account does not have yet, or never confirmed (its webhook events
+  // were missed): grant the plan and send the confirmation. Only while it is new; never one the
+  // duplicate rule has just cancelled, nor over another live subscription the account uses.
+  for (const x of subs) {
+    const s = x.s;
+    if (!s.paidStart || s.status !== 'active' || s.cancelAt || !s.metaUserId || cancelled.has(s.id)) continue;
+    if (now - Date.parse(s.startedAt) > REFUND_DAYS * DAY) continue;
+    const owner = byId.get(s.metaUserId);
+    if (!owner || isInternal(owner)) continue;
+    const linked = owner.stripe_subscription_id === s.id;
+    if (linked && hasNotice('purchase_confirmed', s.id)) continue;
+    const other = !linked && owner.stripe_subscription_id ? subById.get(owner.stripe_subscription_id) : undefined;
+    if (other && LIVE.has(other.status) && other.status !== 'incomplete' && !other.cancelAt) continue;   // a duplicate: rule 1 / a person
+    if (dryRun) {
+      push({
+        kind: linked ? 'purchase_confirmed' : 'granted_late', userId: owner.id, email: owner.email, ref: s.id,
+        detail: linked ? 'Paid subscription never confirmed; emailing the confirmation' : `Paid ${s.plan ?? 'plan'} subscription not on the account; granting it`,
+        done: false,
+      });
+      continue;
+    }
+    try {
+      const res = await activatePaidStart(owner.id, await stripe.subscriptions.retrieve(s.id));
+      if (res.granted) {
+        push(await once(
+          { kind: 'granted_late', userId: owner.id, email: owner.email, ref: s.id, detail: `${PLANS[(s.plan ?? 'pro') as Plan]?.label ?? s.plan} granted by the watch: its paid subscription's webhook events never arrived` },
+          async () => {},
+          false,
+        ));
+      }
+      if (res.emailed !== null) {
+        push({ kind: 'purchase_confirmed', userId: owner.id, email: owner.email, ref: s.id, detail: 'Emailed the subscription confirmation', done: res.emailed, ...(res.emailed ? {} : { error: 'not sent' }) });
+      }
+    } catch (err) {
+      push({ kind: 'granted_late', userId: owner.id, email: owner.email, ref: s.id, detail: 'Could not activate the paid subscription', done: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
+  // 7. A plan change still unpaid after 24 hours: void its invoice, so Stripe discards the change
+  // and nothing more is collected for it. The plan never changed, so the account stays as it is.
+  for (const x of subs) {
+    const s = x.s;
+    if (!s.pendingUpdate || !s.latestInvoiceId || !x.owner || ENDED.has(s.status)) continue;
+    let inv: Stripe.Invoice;
+    try {
+      inv = await stripe.invoices.retrieve(s.latestInvoiceId);
+    } catch {
+      continue;
+    }
+    if (inv.status !== 'open' || inv.billing_reason !== 'subscription_update' || !inv.id || now - inv.created * 1000 < DAY) continue;
+    const to = s.pendingUpdate.plan ? PLANS[s.pendingUpdate.plan].label : 'another plan';
+    push(await once(
+      {
+        kind: 'upgrade_voided', userId: x.owner.id, email: x.owner.email, ref: inv.id,
+        detail: `Change of ${s.id} to ${to} unpaid for 24 hours: invoice ${inv.id} (${money(inv.amount_due ?? 0)}) voided; the plan stays as it was`,
+      },
+      async () => { await stripe.invoices.voidInvoice(inv.id!); },
       dryRun,
     ));
   }

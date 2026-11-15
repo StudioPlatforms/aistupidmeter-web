@@ -8,7 +8,11 @@ import { LeaderboardCta, WatchCta } from '@/components/seo/Cta';
 import { Rich } from '@/components/seo/pair/Faq';
 import { DRIFT_SUITES, detectorState, listJoin, numWord, type DetectorState } from '@/components/seo/worse/worse-data';
 import ModelDetailClient from './ModelDetailClient';
-import { isNumericId } from '@/lib/model-slug';
+import { isNumericId, slugifyModelName } from '@/lib/model-slug';
+import OpenModelPage from '@/components/marketplace/OpenModelPage';
+import HostedBy from '@/components/marketplace/HostedBy';
+import UserTests from '@/components/marketplace/UserTests';
+import { fleetHostsRead, marketplaceRead, userTestsRead, type OpenModelPageDTO } from '@/lib/marketplace-public';
 import { BOARD_KEYS, standingOnBoard, type BoardKey, type Boards, type Standing } from '@/lib/boards-core';
 import { lpBody, lpDisplay } from '@/lib/fonts';
 import {
@@ -114,11 +118,23 @@ function modelDescription(name: string, vendor: string): string {
   return candidates.find((c) => c.length <= DESC_MAX) ?? clampDesc(candidates[candidates.length - 1]);
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   if (isVendorSlug(params.id)) return vendorMetadata(params.id.toLowerCase());
   const roster = await getRoster();
   const model = findModel(roster, params.id);
-  if (!model) return { title: { absolute: `Model not found${TITLE_SUFFIX}` }, robots: { index: false, follow: true } };
+  if (!model) {
+    const om = roster.length ? await openModelFor(params.id) : null;
+    if (om) {
+      return pageMeta({
+        title: `${om.data.openModel.name} providers: benchmarks, prices & speed`.slice(0, 60),
+        description: `Every listed host of ${om.data.openModel.name} (${om.data.openModel.maker}): prices per million tokens, context and how AI Stupid Level tests each host.`.slice(0, 155),
+        path: `/models/${om.canonical}`,
+        noindex: om.data.noindex || om.preview,
+      });
+    }
+    return { title: { absolute: `Model not found${TITLE_SUFFIX}` }, robots: { index: false, follow: true } };
+  }
 
   const name = model.displayName;
   const vendor = vendorLabelOf(vendorByKey(model.vendor), model.vendor);
@@ -141,9 +157,28 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   });
 }
 
+
+/* ───────────────────────── the open-model branch (Phase 3 §7.5) ───────────────────────── */
+
+/**
+ * An open model outside the fleet: asked only after the fleet roster (non-empty) and the retired-model redirects
+ * did not match, so a fleet model always wins its slug and a retired slug still redirects (next.config.js
+ * redirects run before this page at all). The canonical form is the web's own slug of the parameter.
+ */
+async function openModelFor(param: string) {
+  const canonical = slugifyModelName(param);
+  if (!/^[a-z][a-z0-9-]{1,63}$/.test(canonical)) return null;
+  const r = await marketplaceRead<OpenModelPageDTO>(`/marketplace/public/open-models/${canonical}`, [`mp:openmodel:${canonical}`, 'mp:directory']);
+  if (r.kind !== 'ok') return null;
+  // F7: the user-run tests of its hosts (asked only for a page that exists and has hosts).
+  const ut = r.data.hosts.length ? await userTestsRead({ openModel: canonical }).catch(() => null) : null;
+  return { canonical, data: r.data, preview: r.preview, userTests: ut && ut.kind === 'ok' ? ut.data : null };
+}
+
 /* ───────────────────────── page ───────────────────────── */
 
-export default async function ModelDetailPage({ params }: { params: { id: string } }) {
+export default async function ModelDetailPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   // The six vendor pages share this segment and are decided before any model lookup.
   if (isVendorSlug(params.id)) {
     if (params.id !== params.id.toLowerCase()) permanentRedirect(`/models/${params.id.toLowerCase()}`);
@@ -174,6 +209,12 @@ export default async function ModelDetailPage({ params }: { params: { id: string
     // A retired model's old numeric address goes to its vendor's page instead of a 404.
     const retired = await retiredModelTarget(params.id);
     if (retired) permanentRedirect(retired);
+    // Phase 3 §7.5: an open model outside the fleet, only now (the roster is not empty here).
+    const om = await openModelFor(params.id);
+    if (om) {
+      if (params.id !== om.canonical) permanentRedirect(`/models/${om.canonical}`);
+      return <OpenModelPage data={om.data} preview={om.preview} userTests={om.userTests} />;
+    }
     notFound();
   }
   const m = model as SeoModel;
@@ -189,7 +230,10 @@ export default async function ModelDetailPage({ params }: { params: { id: string
 
   // The free 24-hour boards, the drift signature and the price snapshot (for the suites' task
   // counts): the same three feeds for every visitor, search engines included.
-  const [boards24, drift, price] = await Promise.all([getBoards24h(), getDriftSignature(m.id), getPrice()]);
+  const [boards24, drift, price, hosted] = await Promise.all([getBoards24h(), getDriftSignature(m.id), getPrice(), fleetHostsRead(m.numericId).catch(() => null)]);
+  // F7: the user-run tests of those hosts, asked only when the Hosted-by pane has hosts (as its own read decided).
+  const tested = hosted && hosted.kind === 'ok' && hosted.data.hosts.length ? await userTestsRead({ fleetModel: m.numericId }).catch(() => null) : null;
+  const testedPane = tested && tested.kind === 'ok' ? <UserTests data={tested.data} scope="hosts" framed /> : null;
 
   const standing = boards24 ? standingsOf(boards24.boards, m.id) : null;
   const related = relatedModels(m, roster, boards24);
@@ -234,6 +278,12 @@ export default async function ModelDetailPage({ params }: { params: { id: string
         initialName={m.name}
         initialDisplayName={m.displayName}
         initialVendor={m.vendor || 'AI'}
+        hostedBy={hosted && hosted.kind === 'ok' && hosted.data.hosts.length
+          ? <HostedBy hosts={hosted.data.hosts} comparable={hosted.data.comparable} title="Hosted by other providers" staffPreview={hosted.preview}
+              suites={hosted.data.suites ?? null} chart={hosted.data.openModels[0] ? { slug: hosted.data.openModels[0].slug } : null}
+              official={hosted.data.official ?? null} calibrated={hosted.data.calibrated ?? null} framed />
+          : null}
+        testedBy={testedPane}
       />
       <ModelSeoContent
         name={name}

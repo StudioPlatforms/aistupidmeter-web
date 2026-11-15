@@ -23,8 +23,9 @@ const MINIMUM: Plan = REQUIRED_PLAN.calibration;
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { modelId: string } }
+  props: { params: Promise<{ modelId: string }> }
 ) {
+  const params = await props.params;
   const session = await auth();
 
   if (!session?.user) {

@@ -1,15 +1,24 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import { apiClient } from '@/lib/api-client';
-import type { UserPreferences, RoutingStrategyId, PreferencesPreview, PreviewCandidate, TieBreak } from '@/lib/api-client';
+import { apiClient, ApiRequestError, endpointEntryLabel, isEndpointEntry, isModelSource } from '@/lib/api-client';
+import type {
+  UserPreferences, RoutingStrategyId, PreferencesPreview, PreviewCandidate, PreviewChainEntry, PreviewEndpoint, TieBreak,
+  ModelSource, EndpointList, ListedHost,
+} from '@/lib/api-client';
 import { PageHead, Pane, Loader, Note, Tag, ProviderMark, RankList, previewToSnap, useModelNames } from '@/components/studio';
 import { scoreLabel } from '@/components/landing/util';
 import { addKeyHref, providerList, routerProvider } from '@/lib/router-providers';
+import { SCORING_TODAY, fastestQualityCard, scoringOf, tieBreakDesc, tieHint, tiePaneSub, type RouterScoring } from '@/lib/router-scoring';
+import {
+  ADAPTIVE_DEFAULTS, MATCH, NO_FACTS, OWN_RULES_NOTE, PAGE_LEAD, ROUTER_SCORE_V2, STRATEGY_SUB, adaptiveFactsOf, adaptiveOf, conversationLine,
+  hasAdaptive, matchedLine, matchingApplies, scopeNote, splitNote, tieHintAdaptive, toolNamesOf, type AdaptiveFacts,
+} from '@/lib/router-adaptive';
+import { MatchBlock, Rich, SAMPLE_EMPTY, SampleInputs, ScopeControl, SwitchingPane, type SampleState } from '@/components/router/AdaptiveSettings';
 import '@/styles/studio-router.css';
 
 /**
@@ -21,6 +30,27 @@ import '@/styles/studio-router.css';
  * pipeline on the unsaved settings and spends nothing — so the page shows what the next request
  * will actually go to before anything is saved. The preview is drawn as the landing page's
  * animated ranking (RankList): change a setting and the models slide to their new places.
+ *
+ * Model source (R4, staff only; plan "Private endpoints" §3 R4 "Web", §6.2, D45) decides where
+ * models come from: All connected, Prefer my endpoints or Only my endpoints. It is the one control
+ * for that. The other panes keep their jobs and say how the source changes them: under Only the
+ * cloud-only panes (Providers and models, ties, the traffic split, the fallback order) step aside,
+ * and the stored exclusions come back on a switch. The pane appears only when GET
+ * /router/preferences carries `modelSource` (the API's way of saying it supports it), and then
+ * when GET /router/endpoints answers 200, or whenever the saved source is not All, so a user can
+ * always switch back. A save that sent a Model source counts as saved only when the PUT echoes it.
+ *
+ * Router release A2 (adaptive-routing plan §5.2; staff first): when GET /router/preferences carries the four A2
+ * settings, the page adds Match each request (under the Best overall and Best value cards), Apply this strategy to
+ * (under the cards), the Model switching pane (after Routing strategy) and the preview's sample request, and words its
+ * lead, the strategy pane, the tie-break hint and the split note for them (lib/router-adaptive). A stored "Match each
+ * request" strategy then comes back as Best overall with matching on, so its card leaves "Your own rules". Without the
+ * settings every pane is as before and nothing new is sent.
+ *
+ * Listed hosts (Phase 3 M8, plan §2.17, §8.2): when GET /router/marketplace answers 200 with hosts the account
+ * connected, "Providers and models" gains a "Listed providers" group with a "Use in routing" toggle per host (saved
+ * at once, on the connection), and Model source is shown with Prefer available even without an endpoint of the
+ * account's own: under Prefer the measured models of the listed hosts it connected come after its own endpoints.
  */
 
 type Strategy = {
@@ -57,6 +87,7 @@ const GROUPS: Array<{ title: string; note: string; items: Strategy[] }> = [
     title: 'Speed and stability',
     note: 'The first two keep the 5-point quality bar; the last two do not.',
     items: [
+      // Its desc and basis follow the router's live scoring (lib/router-scoring fastestQualityCard); these are v1's.
       { id: 'fastest_quality', name: 'Fastest good model', desc: 'The fastest of the near-top models, on measured latency only.', basis: 'Measured latency, among models within 5 points of your best', modelId: 'auto-fastest-quality' },
       { id: 'best_consistent', name: 'Most consistent', desc: 'The near-top model whose scores swing least from run to run.', basis: 'Spread of the coding score over recent runs', modelId: 'auto-consistent' },
       { id: 'fastest', name: 'Fastest response', desc: 'Lowest response time, with no quality bar.', basis: 'Benchmark latency over the last 7 days', modelId: 'auto-fastest' },
@@ -85,10 +116,11 @@ const DEFAULTS: UserPreferences = {
 /** The strategies whose pick a tie-break can settle (match_task resolves to them per request). */
 const TIE_STRATEGIES = new Set<RoutingStrategyId>(['best_overall', 'best_coding', 'best_reasoning', 'best_tooling', 'match_task']);
 
-const TIE_BREAKS: Array<{ id: TieBreak; label: string; desc: string }> = [
-  { id: 'cheaper', label: 'Cheaper', desc: 'The one that cost least per task in our measurements. The same quality as far as the tests can tell, for less.' },
-  { id: 'faster', label: 'Faster', desc: 'The one with the lowest measured latency on the same benchmark tasks.' },
-  { id: 'highest', label: 'Highest score', desc: 'The one with the highest average score, even when its lead is smaller than the measurement can confirm.' },
+/** Each one's description follows the router's live scoring (lib/router-scoring tieBreakDesc). */
+const TIE_BREAKS: Array<{ id: TieBreak; label: string }> = [
+  { id: 'cheaper', label: 'Cheaper' },
+  { id: 'faster', label: 'Faster' },
+  { id: 'highest', label: 'Highest score' },
 ];
 
 const STATUS_TEXT: Record<PreviewCandidate['status'], string> = {
@@ -96,10 +128,84 @@ const STATUS_TEXT: Record<PreviewCandidate['status'], string> = {
   over_latency: 'over your latency limit', no_tools: 'no tool calling', no_forced_tools: 'cannot force a tool call',
 };
 
+// ── Model source (R4) ─────────────────────────────────────────────────────────────────────────
+
+const SOURCE_NAME: Record<ModelSource, string> = {
+  all: 'All connected', prefer_endpoints: 'Prefer my endpoints', only_endpoints: 'Only my endpoints',
+};
+
+/** The three choices, one row each; the selected one is explained in full under the list (SourceExplanation). */
+const SOURCES: Array<{ id: ModelSource; short: string; danger?: string }> = [
+  { id: 'all', short: 'Benchmarked cloud models. Your endpoints answer when a request names them.' },
+  { id: 'prefer_endpoints', short: 'Your endpoints first, then benchmarked cloud models.' },
+  { id: 'only_endpoints', short: 'Your endpoints and nothing else.', danger: 'No built-in provider is ever called for your personal keys.' },
+];
+
+/** Prefer's line for an account with a listed host connected (M8). */
+const LISTED_PREFER_SHORT = 'Your endpoints first, then measured models of the listed hosts you connected, then benchmarked cloud models.';
+
+/** §6.2 "Endpoint statuses in the preview". STATUS_TEXT above stays cloud-only. */
+const ENDPOINT_STATUS_TEXT: Record<string, string> = {
+  eligible: 'can be used', paused: 'paused', needs_test: 'needs a new test', blocked: 'blocked address', auth_failed: 'key refused',
+  endpoint_down: 'not answering', busy: 'at its limit', no_tools: 'no tool calling', context_too_small: 'context too small for this prompt',
+  over_cost: 'over your cost limit', over_latency: 'over your latency limit', over_plan_limit: 'over your plan’s endpoint limit',
+  gone: 'no longer available', quarantined: 'paused after a router crash',
+};
+
+/** GET /router/endpoints, read only when the API advertises Model source. */
+type EndpointsState =
+  | { kind: 'idle' }
+  | { kind: 'loading' }
+  | { kind: 'ok'; list: EndpointList }
+  /** 404: endpoints are not switched on for this account. */
+  | { kind: 'off' }
+  /** 503: the server's endpoint code is not available right now. */
+  | { kind: 'unavailable' }
+  | { kind: 'error' };
+
+/** A save that sent a Model source which the PUT did not echo (D45). */
+interface SourceNotice { echo: ModelSource | null; sourceChanged: boolean; otherSaved: boolean }
+
 const fmtUsd = (n: number) => (n >= 1 ? `$${n.toFixed(2)}` : n >= 0.1 ? `$${n.toFixed(2)}` : `$${n.toFixed(3)}`);
 const fmtSec = (ms: number | null) => (ms == null ? '—' : ms < 10_000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms / 1000)} s`);
 const norm = (p: UserPreferences): UserPreferences => ({ ...DEFAULTS, ...p, fallbackOrder: p.fallbackOrder ?? [], trafficSplit: p.trafficSplit ?? [] });
+/**
+ * This page's own edits (each setting where `mine` differs from `base`, the version the page read) on top of
+ * `fresh`, the settings stored now. Used after a 409 (R4b): a setting changed elsewhere and not here shows its
+ * stored value, so a later save does not quietly put back what this page read.
+ */
+const rebase = (mine: UserPreferences, base: UserPreferences, fresh: UserPreferences): UserPreferences => {
+  const m = norm(mine) as unknown as Record<string, unknown>;
+  const b = norm(base) as unknown as Record<string, unknown>;
+  const out = { ...norm(fresh) } as unknown as Record<string, unknown>;
+  for (const k of Object.keys(m)) if (JSON.stringify(m[k]) !== JSON.stringify(b[k])) out[k] = m[k];
+  return out as unknown as UserPreferences;
+};
 const plural = (n: number, word: string) => (n ? `${n} ${word}${n === 1 ? '' : 's'}` : '');
+
+/**
+ * The preview's sample fields once the A2 settings are there (POST /router/preferences/preview): the prompt and its
+ * tools while Match each request applies to requests sent as auto, and the conversation it continues, which Model
+ * switching re-checks. Under Only my endpoints, neither (both panes are hidden there). Only what the page shows is sent.
+ */
+function sampleFor(prefs: UserPreferences, prompt: string, sample: SampleState): {
+  samplePrompt?: string; sampleHasTools?: boolean; sampleToolNames?: string[];
+  sampleConversationModel?: string | null; sampleTurnKind?: 'new_message' | 'tool_result';
+} {
+  if (prefs.modelSource === 'only_endpoints') return {};
+  return {
+    ...(matchingApplies(prefs) ? { samplePrompt: prompt, sampleHasTools: sample.hasTools, sampleToolNames: sample.hasTools ? toolNamesOf(sample.toolNames) : [] } : {}),
+    sampleConversationModel: sample.conversationModel || null,
+    sampleTurnKind: sample.conversationModel ? sample.turnKind : 'new_message',
+  };
+}
+
+/** Declared price per 1M tokens for an endpoint model ("price not declared" counts as $0). */
+function declaredPrice(e: PreviewEndpoint): string {
+  if (e.priceInPerMTok == null && e.priceOutPerMTok == null) return 'price not declared';
+  const usd = (n: number | null) => (!n ? '$0' : fmtUsd(n));
+  return `${usd(e.priceInPerMTok)} in / ${usd(e.priceOutPerMTok)} out per 1M`;
+}
 
 /** Model id → display name, falling back to the id while names load (or for an unlisted model). */
 type NameOf = (model: string) => string;
@@ -140,28 +246,99 @@ function Preferences() {
   // the exclusion list, the fallback picker and the split editor never go empty under the user.
   const [candidates, setCandidates] = useState<PreviewCandidate[]>([]);
   const [keyed, setKeyed] = useState<string[] | null>(null);
+  // Model source (R4): the account's endpoints, read only when the API advertises the setting.
+  const [endpoints, setEndpoints] = useState<EndpointsState>({ kind: 'idle' });
+  // Listed hosts the account connected (M8): [] while unknown and for every account the marketplace is not open to.
+  const [listedHosts, setListedHosts] = useState<ListedHost[]>([]);
+  const [listedMsg, setListedMsg] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null);
+  const [listedBusy, setListedBusy] = useState<string | null>(null);
+  // A save whose Model source the API did not echo (D45); shown in the Model source pane.
+  const [sourceNotice, setSourceNotice] = useState<SourceNotice | null>(null);
+  // A save refused because the source was changed elsewhere since this page read it (409
+  // model_source_changed, R4b): the API's own message.
+  const [conflict, setConflict] = useState<string | null>(null);
+  // The newest preview's word on whether endpoint routing is paused for this account (`endpointsPaused`,
+  // R4 API 58add09: the kill switch, the flag or a runtime that did not load), which GET /router/endpoints
+  // does not show for the kill switch. An older answer says it only through Only's endpoints_disabled.
+  const [pausedNow, setPausedNow] = useState(false);
+  // How the router scores right now (API A1: GET /router/preferences `scoring`), which the tie pane's words follow.
+  const [scoring, setScoring] = useState<RouterScoring>(SCORING_TODAY);
+  // A2's facts from the same answer (the drift exit, the account's move-cost example, its last 7 days): not settings.
+  const [facts, setFacts] = useState<AdaptiveFacts>(NO_FACTS);
+  // The preview's sample request beyond its prompt (A2): tools, and the conversation it continues.
+  const [sample, setSample] = useState<SampleState>(SAMPLE_EMPTY);
   const previewSeq = useRef(0);
   const names = useModelNames();
   const nameOf: NameOf = useCallback(m => names[m] ?? m, [names]);
 
+  const loadEndpoints = useCallback(async () => {
+    setEndpoints({ kind: 'loading' });
+    try {
+      setEndpoints({ kind: 'ok', list: await apiClient.getEndpoints() });
+    } catch (err) {
+      const code = err instanceof ApiRequestError ? err.status : 0;
+      setEndpoints({ kind: code === 404 ? 'off' : code === 503 ? 'unavailable' : 'error' });
+    }
+  }, []);
+
+  const loadListed = useCallback(async () => {
+    try {
+      const r = await apiClient.getListedHosts();
+      setListedHosts((Array.isArray(r.hosts) ? r.hosts : []).filter(h => h.connection));
+    } catch {
+      setListedHosts([]);   // 404 (not offered), or unreadable: the page is as it is without listed hosts
+    }
+  }, []);
+
+  const toggleListed = useCallback(async (h: ListedHost, on: boolean) => {
+    setListedBusy(h.slug);
+    setListedMsg(null);
+    try {
+      const r = await apiClient.updateListedHost(h.slug, { useInRouting: on });
+      setListedHosts(l => l.map(x => (x.slug === h.slug ? (r.host ?? { ...x, connection: x.connection ? { ...x.connection, useInRouting: on } : null }) : x)));
+      setListedMsg({ tone: 'good', text: on ? `${h.displayName} is used in routing again.` : `${h.displayName} is no longer used in routing. Requests that name its models still reach it.` });
+    } catch (err) {
+      setListedMsg({ tone: 'bad', text: err instanceof Error ? err.message : 'Not saved. Try again.' });
+    } finally {
+      setListedBusy(null);
+    }
+  }, []);
+
+  /**
+   * The saved preferences, as the page keeps them: a Model source it does not know is dropped, so a save never
+   * sends it back. The router's `scoring` (A1) is the API's state, not a setting: it is kept apart, never saved.
+   */
+  const readSaved = useCallback(async (): Promise<UserPreferences> => {
+    const { scoring: live, driftExit, switchCostExample, routedLast7d, ...saved } = await apiClient.getPreferences();
+    setScoring(scoringOf(live));
+    setFacts(adaptiveFactsOf({ driftExit, switchCostExample, routedLast7d }));
+    const p = norm(saved);
+    if (!isModelSource(p.modelSource)) delete p.modelSource;
+    return p;
+  }, []);
+
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const p = norm(await apiClient.getPreferences());
+      const p = await readSaved();
       // best_creative is routed as best_overall since 2026-10-05; the API already returns that.
       setSaved(p);
       setPrefs(p);
+      // The API advertises Model source by sending it (D45); only then do the account's endpoints matter here.
+      if (p.modelSource) void loadEndpoints();
+      else setEndpoints({ kind: 'idle' });
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Could not load your preferences.');
     }
-  }, []);
+  }, [readSaved, loadEndpoints]);
 
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.id) {
       apiClient.setUserId(session.user.id);
       load();
+      void loadListed();
     }
-  }, [status, session, load]);
+  }, [status, session, load, loadListed]);
 
   // Live preview of the unsaved settings, debounced.
   useEffect(() => {
@@ -170,13 +347,18 @@ function Preferences() {
     setPreviewing(true);
     const t = setTimeout(async () => {
       try {
-        const r = await apiClient.previewPreferences({ ...prefs, samplePrompt: prefs.routingStrategy === 'match_task' ? samplePrompt : undefined });
+        // A2: the sample request goes with the settings it tests (sampleFor); before A2, today's body exactly.
+        const r = await apiClient.previewPreferences(hasAdaptive(prefs)
+          ? { ...prefs, ...sampleFor(prefs, samplePrompt, sample) }
+          : { ...prefs, samplePrompt: prefs.routingStrategy === 'match_task' ? samplePrompt : undefined });
         if (seq === previewSeq.current) {
           setPreview(r);
-          const details = r.ok ? r.details : r.details;
-          if (details?.candidates?.length) setCandidates(details.candidates);
-          if (r.ok) setKeyed(r.providers);
-          else if (r.error === 'no_provider_keys') setKeyed([]);
+          if (r.details?.candidates?.length) setCandidates(r.details.candidates);
+          // Under Only my endpoints no cloud model is considered, so that preview says nothing about provider keys.
+          if (r.ok && r.modelSource !== 'only_endpoints' && Array.isArray(r.providers)) setKeyed(r.providers);
+          else if (!r.ok && r.error === 'no_provider_keys') setKeyed([]);
+          if (typeof r.endpointsPaused === 'boolean') setPausedNow(r.endpointsPaused);
+          else if (!r.ok && r.error === 'endpoints_disabled') setPausedNow(true);
         }
       } catch (err) {
         if (seq === previewSeq.current) setPreview({ ok: false, error: 'no_candidates', message: err instanceof Error ? err.message : 'Preview unavailable.' });
@@ -185,7 +367,7 @@ function Preferences() {
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [prefs, samplePrompt]);
+  }, [prefs, samplePrompt, sample]);
 
   const dirty = useMemo(() => !!prefs && !!saved && JSON.stringify(norm(prefs)) !== JSON.stringify(norm(saved)), [prefs, saved]);
   const modelNames = useMemo(() => [...candidates].sort((a, b) => b.score - a.score).map(c => c.model), [candidates]);
@@ -199,7 +381,12 @@ function Preferences() {
 
   const validation = useMemo(() => {
     if (!prefs) return null;
-    if (prefs.routingStrategy === 'custom_split' && !(prefs.trafficSplit || []).length) return 'Add at least one model to your traffic split.';
+    if (prefs.routingStrategy === 'custom_split' && !(prefs.trafficSplit || []).length) {
+      // Under Only my endpoints the split editor is not shown (the split names cloud models).
+      return prefs.modelSource === 'only_endpoints'
+        ? 'Your traffic split is empty. Choose another strategy, or add models to the split under another Model source.'
+        : 'Add at least one model to your traffic split.';
+    }
     if ((prefs.trafficSplit || []).some(x => !(x.weight >= 1 && x.weight <= 100))) return 'Each weight must be between 1 and 100.';
     if (prefs.maxCostPer1kTokens !== null && !(prefs.maxCostPer1kTokens > 0)) return 'Set a maximum cost above $0, or turn the limit off.';
     if (prefs.maxLatencyMs !== null && !(prefs.maxLatencyMs >= 100)) return 'Set a maximum latency of at least 0.1 s, or turn the limit off.';
@@ -207,16 +394,75 @@ function Preferences() {
   }, [prefs]);
 
   const save = async () => {
-    if (!prefs || validation) return;
+    if (!prefs || !saved || validation) return;
     setSaving(true);
     setSaveError(null);
+    setSourceNotice(null);
+    setConflict(null);
+    const sent = prefs.modelSource;
+    // R4b: the source changes only by compare-and-set. `saved.modelSource` is the source this page last
+    // read or had echoed (D45), sent on every save; a stale page gets 409 instead of undoing a newer choice.
+    const from = saved.modelSource;
     try {
-      await apiClient.updatePreferences({ ...prefs, requireStreaming: false });
-      setSaved(prefs);
+      const r = await apiClient.updatePreferences({ ...prefs, requireStreaming: false, ...(from ? { modelSourceFrom: from } : {}) });
+      const echo = isModelSource(r?.modelSource) ? r.modelSource : null;
+      if (sent !== undefined && echo !== sent) {
+        // D45: the API answers with the Model source it stored. No echo means a server without the
+        // setting, which saves the other fields and ignores this one; any other echo means it kept
+        // another value. Either way it is not reported as saved: say so, and show what was stored.
+        setSourceNotice({
+          echo,
+          sourceChanged: sent !== saved.modelSource,
+          otherSaved: JSON.stringify(norm({ ...prefs, modelSource: saved.modelSource })) !== JSON.stringify(norm(saved)),
+        });
+        try {
+          const p = await readSaved();
+          setSaved(p);
+          setPrefs(p);
+        } catch {
+          const kept = { ...prefs, modelSource: echo ?? saved.modelSource };
+          setSaved(kept);
+          setPrefs(kept);
+        }
+        return;
+      }
+      // A2: the PUT answers with the stored settings where the features apply. The page keeps what was stored; with no
+      // echo for settings it sent (the features no longer apply), it reads the preferences again, without the panes.
+      if (hasAdaptive(prefs)) {
+        const stored = adaptiveOf(r);
+        if (!stored) {
+          try { const p = await readSaved(); setSaved(p); setPrefs(p); } catch { setSaved(prefs); }
+        } else {
+          const kept = { ...prefs, ...stored };
+          setSaved(kept);
+          if (JSON.stringify(norm(kept)) !== JSON.stringify(norm(prefs))) setPrefs(kept);
+        }
+      } else {
+        setSaved(prefs);
+      }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2500);
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Could not save your preferences.');
+      if (err instanceof ApiRequestError && err.status === 409 && err.error === 'model_source_changed') {
+        // The source was changed elsewhere (another tab or device). Nothing was saved, or in a rare race
+        // the other settings but not the source; the API's message says which. Show it, read the stored
+        // settings again and take their source as current, with this page's other edits kept on top, so a
+        // new save is an informed one.
+        setConflict(err.message || 'Model source was changed elsewhere since this page loaded. Nothing was saved. Reload to see the current settings, then save again.');
+        const current = isModelSource(err.body.modelSource) ? err.body.modelSource : undefined;
+        try {
+          const p = await readSaved();
+          setSaved(p);
+          setPrefs({ ...rebase(prefs, saved, p), modelSource: p.modelSource });
+        } catch {
+          setSaved({ ...saved, modelSource: current ?? saved.modelSource });
+          setPrefs({ ...prefs, modelSource: current ?? saved.modelSource });
+        }
+        return;
+      }
+      setSaveError(saveErrorText(err));
+      // A refusal about endpoints may mean they changed since the page loaded: read them again.
+      if (err instanceof ApiRequestError && ['no_endpoints', 'endpoints_disabled', 'plan_required'].includes(err.error ?? '')) void loadEndpoints();
     } finally {
       setSaving(false);
     }
@@ -246,16 +492,66 @@ function Preferences() {
 
   const set = (patch: Partial<UserPreferences>) => setPrefs({ ...prefs, ...patch });
   const strategy = ALL.find(s => s.id === prefs.routingStrategy) || ALL[0];
+  // A2 (plan §5.2): the API sent the four settings, so the features apply to this account.
+  const a2 = hasAdaptive(saved);
   const excludedCount = prefs.excludedProviders.length + prefs.excludedModels.length;
+
+  // ── Model source (R4) ──
+  // The saved value is the API's capability flag (D45); the unsaved one drives the rest of the page.
+  const savedSource: ModelSource | null = saved?.modelSource ?? null;
+  const source: ModelSource | null = savedSource ? prefs.modelSource ?? savedSource : null;
+  const only = source === 'only_endpoints';
+  const prefer = source === 'prefer_endpoints';
+  const epList = endpoints.kind === 'ok' ? endpoints.list : null;
+  // Why only All connected can be chosen: endpoints off for this account or on the server, a plan
+  // without them, or not known yet. Switching to All is never blocked (§2.5).
+  const lock: 'paused' | 'plan' | 'unknown' | null = !savedSource ? null
+    : endpoints.kind === 'off' || endpoints.kind === 'unavailable' ? 'paused'
+    : epList ? (epList.limits.max === 0 ? 'plan' : null)
+    : 'unknown';
+  // Endpoints with a model a request can be routed to: on, within the plan, a tested model turned on.
+  // From R5 a workspace server shared with members counts too: Prefer and Only use it (contract §5).
+  const usableEndpoints = epList
+    ? [...epList.endpoints, ...epList.shared].filter(e => e.active && !e.overPlanLimit && (e.enabledModelCount ?? 0) > 0 && e.healthState !== 'quarantined')
+    : [];
+  // M8: connected listed hosts the router may use under Prefer (in use, not paused).
+  const listedInUse = listedHosts.filter(h => h.connection && h.connection.useInRouting && h.connection.state !== 'paused');
+  const listedPrefer = listedInUse.length > 0;
+  const showSource = (!!savedSource && (endpoints.kind === 'ok' || savedSource !== 'all' || listedHosts.length > 0)) || !!sourceNotice;
+  // Prefer with listed hosts and no endpoints offered to the account: nothing is paused, the listed hosts answer first.
+  const banner: 'paused' | 'plan' | null = !savedSource || savedSource === 'all' ? null
+    : savedSource === 'prefer_endpoints' && listedPrefer && (endpoints.kind === 'off' || lock === 'plan') ? null
+    : lock === 'paused' || pausedNow ? 'paused'
+    : lock === 'plan' ? 'plan'
+    : null;
+  const sourceDisabled = (id: ModelSource) => id !== 'all' && !(id === 'prefer_endpoints' && listedPrefer) && (lock !== null || usableEndpoints.length === 0);
+  const sourceHint: ReactNode = !savedSource || banner ? null
+    : listedPrefer && usableEndpoints.length === 0 ? 'Prefer my endpoints uses the listed hosts you connected. Only my endpoints needs an endpoint of your own.'
+    : lock === 'plan' ? 'Your own endpoints are included in Pro and above.'
+    : lock === 'unknown'
+      ? (endpoints.kind === 'error'
+          ? <>Your endpoints could not be read, so only All connected can be chosen right now. <button type="button" className="sr-linkbtn" onClick={() => void loadEndpoints()}>Try again</button></>
+          : 'Checking your endpoints…')
+      : usableEndpoints.length === 0 ? <>Add and test an endpoint on <Link href="/router/providers">Providers</Link> first.</> : null;
+  const noneReady = only && !banner && lock === null && (usableEndpoints.length === 0
+    || (!!preview && !preview.ok && (preview.error === 'no_endpoints' || preview.error === 'endpoints_unavailable')));
+  const sharedWorkspace = (epList?.shared.length ?? 0) > 0;
+  // Provider keys matter unless Only my endpoints is chosen, and "nothing can be routed" holds only
+  // while the preview finds nothing (under All with fallback on, or Prefer, endpoints may answer).
+  // An account with a listed host connected can already route requests that name its models (M8): not "nothing".
+  const needKeyNote = keyedProviders !== null && keyedProviders.length === 0 && !only && !(preview && preview.ok) && listedHosts.length === 0;
 
   return (
     <>
       <PageHead
         kicker="Smart Router"
         title="Routing preferences"
-        lead={HEAD_LEAD}
+        lead={a2 ? <Rich text={PAGE_LEAD} /> : HEAD_LEAD}
         actions={<>
-          <button type="button" onClick={() => setPrefs(norm(DEFAULTS))} className="st-btn" disabled={saving}>Reset to defaults</button>
+          {/* Reset keeps the Model source (§2.5): DEFAULTS has none, and Model source has its own control. The A2
+              settings, when the API sent them, go back to theirs (plan §5.5). */}
+          <button type="button" onClick={() => setPrefs({ ...norm(DEFAULTS), modelSource: prefs.modelSource, ...(a2 ? ADAPTIVE_DEFAULTS : {}) })} className="st-btn" disabled={saving}
+            title={savedSource ? 'Resets routing settings. Model source is not changed.' : undefined}>Reset to defaults</button>
           <button type="button" onClick={save} disabled={saving || !dirty || !!validation} className="st-btn is-primary">
             {saving ? 'Saving…' : justSaved ? 'Saved' : 'Save changes'}
           </button>
@@ -264,7 +560,8 @@ function Preferences() {
 
       <div className="st-body sr-prefs">
         {saveError && <Note tone="bad" title="Not saved">{saveError}</Note>}
-        {keyedProviders !== null && keyedProviders.length === 0 && (
+        {conflict && <Note tone="warn" title="Model source changed elsewhere">{conflict}</Note>}
+        {needKeyNote && (
           <Note tone="warn" title="Add a provider key first">
             These settings decide among the models your provider keys can reach, and you have not added one yet, so nothing
             can be routed. You can still choose your settings now: they apply as soon as you add a key.
@@ -277,18 +574,48 @@ function Preferences() {
         <div className="sr-pgrid">
           <aside className="sr-pside" aria-label="Live preview">
             <PreviewPanel preview={preview} previewing={previewing} strategy={strategy} dirty={dirty}
-              samplePrompt={samplePrompt} onSamplePrompt={setSamplePrompt} names={names} nameOf={nameOf} />
+              samplePrompt={samplePrompt} onSamplePrompt={setSamplePrompt} names={names} nameOf={nameOf}
+              source={source} fallbackOn={prefs.fallbackEnabled} paused={pausedNow}
+              adaptive={a2 ? { matching: matchingApplies(prefs), sample, onSample: setSample, models: modelNames, scoring } : null} />
           </aside>
 
           <div className="sr-pmain">
+            {/* Model source (R4): where models come from. First, because every pane below depends on it. */}
+            {showSource && (
+              <SourcePane
+                value={source}
+                savedSource={savedSource}
+                onPick={id => set({ modelSource: id })}
+                isDisabled={sourceDisabled}
+                banner={banner}
+                hint={sourceHint}
+                noneReady={noneReady}
+                notice={sourceNotice}
+                sharedWorkspace={sharedWorkspace}
+                listed={listedHosts.length > 0}
+              />
+            )}
+
             {/* Strategy */}
-            <Pane title="Routing strategy" sub={<>Used for <code className="st-ic">model: &quot;auto&quot;</code>. Any request can pick another by sending its model id.</>} ruled>
+            <Pane title="Routing strategy" sub={a2 ? STRATEGY_SUB : <>Used for <code className="st-ic">model: &quot;auto&quot;</code>. Any request can pick another by sending its model id.</>} ruled>
+              {(only || prefer) && (
+                <div className="sr-src-strat">
+                  <Note>
+                    {only
+                      ? <>Your endpoints are not benchmarked. Quality and value strategies use your endpoint order and what you tagged each model for (Use for, on Providers); Lowest list price uses your declared prices; Fastest uses the latency measured on your own requests.</>
+                      : <>Your endpoints come first and are not benchmarked: quality and value strategies keep your endpoint order and what you tagged each model for, Lowest list price uses your declared prices, and Fastest the latency measured on your own requests. The cloud models after them are ranked as each strategy below describes.</>}
+                  </Note>
+                </div>
+              )}
               {GROUPS.map(g => (
                 <div key={g.title} className="sr-group">
                   <h3 className="sr-group-t">{g.title}</h3>
-                  <p className="sr-group-n">{g.note}</p>
+                  {/* The group notes and "Ranks on" lines describe benchmark rankings, which Only my endpoints never uses. */}
+                  {!only && <p className="sr-group-n">{a2 && g.items.some(s => s.id === 'match_task') ? OWN_RULES_NOTE : g.note}</p>}
                   <div className="st-cards" style={{ '--min': '230px' } as CSSProperties}>
-                    {g.items.map(s => {
+                    {/* A2: Match each request is the toggle under Best value, so its card is not offered twice. */}
+                    {g.items.filter(item => !(a2 && item.id === 'match_task')).map(item => {
+                      const s = item.id === 'fastest_quality' ? { ...item, ...fastestQualityCard(scoring) } : item;
                       const active = prefs.routingStrategy === s.id;
                       return (
                         <button type="button" key={s.id} aria-pressed={active}
@@ -300,28 +627,50 @@ function Preferences() {
                             <span className="st-card-tick" aria-hidden="true" />
                           </span>
                           <span className="st-card-d">{s.desc}</span>
-                          <span className="sr-strat-basis">Ranks on: {s.basis}</span>
+                          {!only && <span className="sr-strat-basis">Ranks on: {s.basis}</span>}
                           <span className="sr-strat-id">Per request: <code>{s.modelId}</code></span>
                         </button>
                       );
                     })}
                   </div>
+                  {/* Under Only the split editor is hidden, so the split's one sentence (splitRule) goes where its card is. */}
+                  {only && g.items.some(s => s.id === 'custom_split') && prefs.routingStrategy === 'custom_split' && preview?.splitRule?.text && (
+                    <p className="sr-note-line sr-split-src is-only">{preview.splitRule.text}</p>
+                  )}
+                  {/* A2: Match each request under the Best overall and Best value cards; under Only my endpoints, one line instead. */}
+                  {a2 && g.items.some(s => s.id === 'best_value') && (only
+                    ? <p className="sr-note-line sr-match-off">{MATCH.onlyEndpoints}</p>
+                    : <MatchBlock on={prefs.requestMatching === true} strategy={prefs.routingStrategy} scope={prefs.strategyScope === 'all' ? 'all' : 'auto'}
+                        tieBreak={prefs.tieBreak ?? 'cheaper'} onChange={on => set({ requestMatching: on })} />)}
                 </div>
               ))}
+              {/* A2: which requests follow this page, under the cards. */}
+              {a2 && (
+                <ScopeControl value={prefs.strategyScope === 'all' ? 'all' : 'auto'} note={scopeNote(prefs.strategyScope === 'all' ? 'all' : 'auto', facts.routedLast7d)}
+                  onChange={v => set({ strategyScope: v })} />
+              )}
             </Pane>
 
-            <TieBreakPane prefs={prefs} set={set} />
+            {/* A2: Model switching, after Routing strategy; hidden under Only my endpoints (the line above says why). */}
+            {a2 && !only && (
+              <SwitchingPane value={prefs.modelSwitching ?? 'conversation'} cap={prefs.switchCostCapUsd === undefined ? ADAPTIVE_DEFAULTS.switchCostCapUsd : prefs.switchCostCapUsd}
+                matching={prefs.requestMatching === true} facts={facts} nameOf={nameOf}
+                onSwitching={v => set({ modelSwitching: v })} onCap={v => set({ switchCostCapUsd: v })} />
+            )}
 
-            {prefs.routingStrategy === 'custom_split' && (
+            {/* Ties, the traffic split and the fallback order are about cloud models: not shown under Only (§6.2). */}
+            {!only && <TieBreakPane prefs={prefs} set={set} scoring={scoring} a2={a2} />}
+
+            {!only && prefs.routingStrategy === 'custom_split' && (
               <SplitEditor prefs={prefs} set={set} modelNames={modelNames} candidates={candidates} nameOf={nameOf}
-                split={preview ? (preview.ok ? preview.details.split : preview.details?.split) : undefined} />
+                split={preview?.details?.split} rule={preview?.splitRule?.text} />
             )}
 
             {/* Limits */}
             <Pane title="Limits">
               <div className="sr-stack">
-                <LimitCost prefs={prefs} set={set} candidates={candidates} />
-                <LimitLatency prefs={prefs} set={set} candidates={candidates} />
+                <LimitCost prefs={prefs} set={set} candidates={candidates} source={source} />
+                <LimitLatency prefs={prefs} set={set} candidates={candidates} source={source} />
                 <label className="st-toggle">
                   <input type="checkbox" className="st-check" checked={prefs.requireToolCalling}
                     onChange={e => set({ requireToolCalling: e.target.checked })} />
@@ -330,7 +679,7 @@ function Preferences() {
                     <span>Requests that offer tools already go only to models that can use them.</span>
                   </span>
                 </label>
-                {prefs.routingStrategy === 'custom_split' && <p className="sr-note-line">Cost and latency limits do not apply to models you list in your traffic split.</p>}
+                {!only && prefs.routingStrategy === 'custom_split' && <p className="sr-note-line">Cost and latency limits do not apply to models you list in your traffic split.</p>}
               </div>
             </Pane>
 
@@ -341,6 +690,10 @@ function Preferences() {
                 ? `${[plural(prefs.excludedProviders.length, 'provider'), plural(prefs.excludedModels.length, 'model')].filter(Boolean).join(', ')} excluded`
                 : 'Nothing excluded'}
             >
+              {only ? (
+                // §6.2: replaced under Only. The API keeps the list (the tombstone holds the real one aside, §2.5).
+                <p className="st-text sr-src-kept">Cloud providers are not used for your personal keys (Only my endpoints). Your exclusions are kept and come back if you switch.</p>
+              ) : (<>
               <p className="st-label sr-sublabel">Providers</p>
               <div className="sr-chips">
                 {PROVIDERS.map(p => {
@@ -373,6 +726,8 @@ function Preferences() {
                 {noKeyProviders.length > 0 && keyedProviders && keyedProviders.length > 0
                   ? <>The router only uses providers you have a key for. With no key yet for {providerList(noKeyProviders)}, their models are skipped: add a key to include them. </>
                   : <>The router only uses providers you have added a key for. Click one to exclude it. </>}
+                {/* Said once, here, where the exclusions are (Model source does not repeat it). */}
+                {savedSource && <>Exclusions apply to cloud models, under All connected and Prefer my endpoints alike. </>}
                 <Link href="/router/providers">Manage provider keys</Link>.
               </p>
               <p className="st-label sr-sublabel">Models</p>
@@ -422,28 +777,42 @@ function Preferences() {
                   </>
                 );
               })()}
+              {listedHosts.length > 0 && (
+                <ListedGroup hosts={listedHosts} busy={listedBusy} msg={listedMsg} prefer={prefer} onToggle={(h, on) => void toggleListed(h, on)} />
+              )}
+              </>)}
             </Pane>
 
-            {/* Fallbacks */}
+            {/* Fallbacks. The same toggle drives endpoint failover under Only (§6.2), so it is worded for endpoints there. */}
             <Pane title="When a model fails">
               <div className="sr-stack">
                 <label className="st-toggle">
                   <input type="checkbox" className="st-check" checked={prefs.fallbackEnabled}
                     onChange={e => set({ fallbackEnabled: e.target.checked })} />
-                  <span>
-                    <b>Try other models automatically</b>
-                    <span>If the chosen model fails before answering, the next one is tried, preferring a different provider. Off: the request fails with that model&apos;s error.</span>
-                  </span>
+                  {only ? (
+                    <span>
+                      <b>Try other endpoints automatically</b>
+                      <span>If the chosen endpoint fails before answering, the next one in your order is tried. Off: the request fails with that endpoint&apos;s error.</span>
+                    </span>
+                  ) : (
+                    <span>
+                      <b>Try other models automatically</b>
+                      <span>If the chosen model fails before answering, the next one is tried, preferring a different provider. Off: the request fails with that model&apos;s error.</span>
+                    </span>
+                  )}
                 </label>
-                {prefs.fallbackEnabled && <FallbackOrder prefs={prefs} set={set} modelNames={modelNames} candidates={candidates} nameOf={nameOf} />}
-                <label className="st-toggle">
-                  <input type="checkbox" className="st-check" checked={prefs.avoidDrifting !== false}
-                    onChange={e => set({ avoidDrifting: e.target.checked })} />
-                  <span>
-                    <b>Avoid models with an active drift alert</b>
-                    <span>A model our drift detectors flag as degrading on the skill your strategy uses, or whose hourly canary is failing, goes behind every unflagged model. It is never removed: if every option is flagged, the best of them is used and the routing reason says so.</span>
-                  </span>
-                </label>
+                {!only && prefs.fallbackEnabled && <FallbackOrder prefs={prefs} set={set} modelNames={modelNames} candidates={candidates} nameOf={nameOf} />}
+                {/* Drift alerts belong to benchmarked cloud models; under Only the toggle has nothing to act on. Its value is kept. */}
+                {!only && (
+                  <label className="st-toggle">
+                    <input type="checkbox" className="st-check" checked={prefs.avoidDrifting !== false}
+                      onChange={e => set({ avoidDrifting: e.target.checked })} />
+                    <span>
+                      <b>Avoid models with an active drift alert</b>
+                      <span>A model our drift detectors flag as degrading on the skill your strategy uses, or whose hourly canary is failing, goes behind every unflagged model. It is never removed: if every option is flagged, the best of them is used and the routing reason says so.</span>
+                    </span>
+                  </label>
+                )}
               </div>
             </Pane>
           </div>
@@ -452,11 +821,9 @@ function Preferences() {
         <div className="st-savebar">
           {validation ? <span className="sr-warn" role="alert">{validation}</span>
             : preview && !preview.ok && !previewing
-              ? <span className="sr-warn" role="status">
-                  {preview.error === 'no_provider_keys'
-                    ? 'No provider key yet: these settings apply once you add one.'
-                    : `With these settings, requests sent as "auto" are refused: no model qualifies (the preview says why).${dirty ? ' You can still save.' : ''}`}
-                </span>
+              ? <span className="sr-warn" role="status">{saveBarWarning(preview.error, dirty)}</span>
+              : conflict ? <span className="sr-warn" role="status">{conflict.split('. ')[0].replace(/\.?$/, '.')}</span>
+              : sourceNotice ? <span className="sr-warn" role="status">{sourceNotice.echo ? `Model source stays ${SOURCE_NAME[sourceNotice.echo]}.` : 'Model source is not available on this server yet.'}</span>
               : dirty ? <span>You have unsaved changes.</span> : <span>All changes saved.</span>}
           <button type="button" onClick={() => prefs && saved && setPrefs(saved)} className="st-btn" disabled={!dirty || saving}>Discard changes</button>
           <button type="button" onClick={save} disabled={saving || !dirty || !!validation} className="st-btn is-primary">
@@ -468,13 +835,296 @@ function Preferences() {
   );
 }
 
-function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSamplePrompt, names, nameOf }: {
+/** The sticky save bar's line when the preview finds nothing to route to. */
+function saveBarWarning(error: Extract<PreferencesPreview, { ok: false }>['error'], dirty: boolean): string {
+  const still = dirty ? ' You can still save.' : '';
+  switch (error) {
+    case 'no_provider_keys': return 'No provider key yet: these settings apply once you add one.';
+    case 'no_endpoints':
+    case 'no_endpoint_can_serve':
+    case 'endpoints_unavailable':
+      return `With these settings, requests sent as "auto" fail: none of your endpoints can take them (the preview says why).${still}`;
+    case 'endpoints_disabled': return `With these settings, requests fail: private endpoints are paused on AI Stupid Level.${still}`;
+    case 'plan_required': return `With these settings, requests fail: your plan does not include private endpoints.${still}`;
+    default: return `With these settings, requests sent as "auto" are refused: no model qualifies (the preview says why).${still}`;
+  }
+}
+
+/** A refused save, in a sentence: the API's own message when it sends one (§3 R4 PUT errors). */
+function saveErrorText(err: unknown): string {
+  if (err instanceof ApiRequestError) {
+    if (err.message && !/^Request failed with status \d+$/.test(err.message)) return err.message;
+    switch (err.error) {
+      case 'no_endpoints': return 'Add and test an endpoint before choosing Prefer or Only my endpoints.';
+      case 'endpoints_disabled': return 'Private endpoints are paused on AI Stupid Level, so only All connected can be chosen right now.';
+      case 'plan_required': return 'Your plan does not include private endpoints, so only All connected can be chosen.';
+    }
+  }
+  return err instanceof Error && err.message ? err.message : 'Could not save your preferences.';
+}
+
+/** D45: a save whose Model source was not echoed. "Your other changes" were stored by the same PUT. */
+function sourceNoticeText(n: SourceNotice): string {
+  const others = n.otherSaved ? ' Your other changes were saved.' : '';
+  if (n.echo) return `Model source was not changed: the server kept ${SOURCE_NAME[n.echo]}.${others}`;
+  if (!n.sourceChanged) return `Model source is not available on this server yet.${others}`;
+  return n.otherSaved
+    ? 'Model source is not available on this server yet, so it was not changed. Your other changes were saved.'
+    : 'Model source is not available on this server yet. Nothing was changed.';
+}
+
+/**
+ * "Listed providers" under Providers and models (M8, plan §2.17): the hosts the account connected, each with a "Use in
+ * routing" toggle (on by default), saved at once on the connection. Off: automatic routing skips the host; requests
+ * that name one of its models still reach it.
+ */
+function ListedGroup({ hosts, busy, msg, prefer, onToggle }: {
+  hosts: ListedHost[]; busy: string | null; msg: { tone: 'good' | 'bad'; text: string } | null; prefer: boolean;
+  onToggle: (h: ListedHost, on: boolean) => void;
+}) {
+  return (
+    <div className="sr-listed">
+      <p className="st-label sr-sublabel">Listed providers</p>
+      <div className="sr-stack">
+        {hosts.map(h => (
+          <label key={h.slug} className="st-toggle">
+            <input type="checkbox" className="st-check" checked={!!h.connection?.useInRouting} disabled={busy === h.slug || h.connection?.state === 'paused'}
+              onChange={e => onToggle(h, e.target.checked)} />
+            <span>
+              <b>{h.displayName} · Use in routing</b>
+              <span>{h.measured} of {h.total} {h.total === 1 ? 'model' : 'models'} measured. Only measured models are chosen automatically, and only
+                when Model source is Prefer my endpoints; any of its models can be named, for example <code className="st-ic">{h.models[0]?.id ?? `mp/${h.slug}/<model>`}</code>.</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {msg && <p className={`st-hint ${msg.tone === 'bad' ? 'sr-warn' : ''}`} role="status">{msg.text}</p>}
+      <p className="st-hint">
+        {prefer ? 'Saved as you switch it. ' : 'Saved as you switch it; it applies when Model source is Prefer my endpoints. '}
+        <Link href="/router/providers#listed-providers">Manage listed hosts</Link>.
+      </p>
+    </div>
+  );
+}
+
+/** §6.2 banners: the saved source is not All, and only All can be chosen now. */
+function sourceBanner(kind: 'paused' | 'plan', saved: ModelSource): ReactNode {
+  if (saved === 'only_endpoints') {
+    return kind === 'paused'
+      ? <>Private endpoints are paused on AI Stupid Level. Model source is still Only my endpoints, so requests fail with <code className="st-ic">endpoints_disabled</code> until endpoints are back or you switch to All connected.</>
+      : <>Your plan no longer includes private endpoints. Model source is still Only my endpoints, so requests fail with <code className="st-ic">plan_required</code> until you <Link href="/account/billing">upgrade</Link> or switch to All connected.</>;
+  }
+  // Prefer behaves like All in both cases (§5.3): nothing fails, the endpoints are just skipped.
+  return kind === 'paused'
+    ? 'Private endpoints are paused on AI Stupid Level. Model source is still Prefer my endpoints, so requests go to benchmarked cloud models, as under All connected, until endpoints are back.'
+    : 'Your plan no longer includes private endpoints. Model source is still Prefer my endpoints, so requests go to benchmarked cloud models, as under All connected.';
+}
+
+/** The selected source in full (§6.2 card copy, worded for what R4 does). */
+function SourceExplanation({ id, sharedWorkspace, listed = false }: { id: ModelSource; sharedWorkspace: boolean; listed?: boolean }) {
+  if (id === 'all') {
+    return (
+      <p>
+        Benchmarked cloud models first, ranked on their benchmark scores. Your own endpoints answer when a request names one of their
+        models, as <code className="st-ic">ep/&lt;prefix&gt;/&lt;model&gt;</code>. When Try other models automatically is on, up to two of
+        them are also tried as a last resort when no cloud model can answer.{sharedWorkspace ? ' Servers your workspace shares are used only when you name them.' : ''}
+      </p>
+    );
+  }
+  if (id === 'prefer_endpoints') {
+    return (
+      <p>
+        Your endpoints first, in your order{sharedWorkspace ? ', including servers your workspace shares with members' : ''}.{listed
+          ? <> Then the measured models of the listed hosts you connected and use in routing, ordered by their measured scores; a listed host&rsquo;s
+            model that is not measured yet answers only when a request names it (<code className="st-ic">mp/&lt;host&gt;/&lt;model&gt;</code>).</> : null}{' '}
+        If none of them can take a request, it goes to the best-ranked cloud model. If one fails, the next {listed ? 'one' : 'endpoint'} and then the cloud
+        models are tried when Try other models automatically is on. The <code className="st-ic">X-AISM-Provider</code> header says which one answered.
+      </p>
+    );
+  }
+  return (
+    <>
+      <p>
+        Strict: no request made with your personal router keys is ever sent to a built-in provider (OpenAI, Anthropic, Google, DeepSeek,
+        Kimi, GLM or xAI). Requests go only to the servers you added. If one of them is itself a gateway, such as OpenRouter or Azure, that
+        service decides where the request goes next.
+      </p>
+      <p>
+        If every endpoint is down, or none can take a request (no tool calling, prompt too long), the request fails with an error that names
+        each endpoint and why. <code className="st-ic">/v1/messages</code>, <code className="st-ic">/v1/messages/count_tokens</code> and{' '}
+        <code className="st-ic">/v1/embeddings</code> stop working for your personal router keys, because only built-in providers serve them.
+      </p>
+      {/* The scope of Only (R4 routing review S1; the API's dossier §7 item 7, word for word). */}
+      <p>
+        Applies to requests made with your personal router keys. Project keys you hold follow their project’s rules and may still use your
+        provider keys if the project allows it.
+      </p>
+    </>
+  );
+}
+
+/**
+ * Model source (R4): the one place that decides where models come from. Three cards, the chosen
+ * one explained under them. Prefer and Only can be chosen only with an endpoint ready and endpoints
+ * available to the account; All can always be chosen, so a saved Prefer or Only can always be undone.
+ */
+function SourcePane({ value, savedSource, onPick, isDisabled, banner, hint, noneReady, notice, sharedWorkspace, listed = false }: {
+  value: ModelSource | null; savedSource: ModelSource | null; onPick: (id: ModelSource) => void; isDisabled: (id: ModelSource) => boolean;
+  banner: 'paused' | 'plan' | null; hint: ReactNode; noneReady: boolean; notice: SourceNotice | null; sharedWorkspace: boolean;
+  /** M8: the account connected a listed host, so Prefer covers listed hosts too. */
+  listed?: boolean;
+}) {
+  return (
+    <Pane title="Model source" sub="Which models requests made with your personal router keys may use. Project keys follow their project’s own routing rules.">
+      <div className="sr-src">
+        {notice && <Note tone="warn">{sourceNoticeText(notice)}</Note>}
+        {value && savedSource && (
+          <>
+            {banner && <Note tone={savedSource === 'only_endpoints' ? 'bad' : 'warn'}>{sourceBanner(banner, savedSource)}</Note>}
+            {/* One bordered list, a row per choice: the settings column is too narrow for three cards side by side. */}
+            <div className="sr-src-list" role="radiogroup" aria-label="Model source">
+              {SOURCES.map(s => (
+                <button type="button" role="radio" key={s.id} aria-checked={value === s.id} disabled={isDisabled(s.id)}
+                  className="sr-src-opt" onClick={() => onPick(s.id)}>
+                  <span className="sr-src-tick" aria-hidden="true" />
+                  <span className="sr-src-txt">
+                    <b>{SOURCE_NAME[s.id]}</b>
+                    <span>{listed && s.id === 'prefer_endpoints' ? LISTED_PREFER_SHORT : s.short}{s.danger && <> <em className="sr-src-danger">{s.danger}</em></>}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            {hint && <p className="st-hint sr-src-hint">{hint}</p>}
+            {noneReady && <Note tone="bad">None of your endpoints is ready, so every request made with your personal keys would fail.</Note>}
+            <div className="sr-src-desc"><SourceExplanation id={value} sharedWorkspace={sharedWorkspace} listed={listed} /></div>
+            <p className="sr-note-line">Testing a provider key on the Providers page still calls that provider, whichever source you choose.</p>
+          </>
+        )}
+      </div>
+    </Pane>
+  );
+}
+
+/** What the preview found when nothing can be routed to (§6.2 PreviewPanel copy for the endpoint codes). */
+function PreviewFailure({ preview }: { preview: Extract<PreferencesPreview, { ok: false }> }) {
+  switch (preview.error) {
+    case 'no_provider_keys':
+      return (
+        <>
+          <p><b>Add a provider key first:</b> the router calls models with your own keys.</p>
+          <Link href="/router/providers" className="st-btn is-primary is-sm">Add a key</Link>
+        </>
+      );
+    case 'no_endpoints':
+      return (
+        <>
+          <p><b>No endpoint is ready,</b> so requests would fail with <code className="st-ic">no_endpoints</code>.</p>
+          <Link href="/router/providers" className="st-btn is-primary is-sm">Add an endpoint</Link>
+        </>
+      );
+    case 'no_endpoint_can_serve': {
+      const out = (preview.endpoints ?? []).filter(e => e.status !== 'eligible');
+      return (
+        <p>
+          <b>None of your endpoints can take this request:</b>{' '}
+          {out.length
+            ? `${out.map(e => `${e.name} · ${e.model} — ${e.reason || ENDPOINT_STATUS_TEXT[e.status] || e.status}`).join('; ')}.`
+            : preview.message}
+        </p>
+      );
+    }
+    case 'endpoints_unavailable': {
+      // The API previews a busy or key-refused set as endpoints_unavailable too; a request would get
+      // 429 endpoints_busy or 400 endpoint_key_rejected then (§5.3), so the code named follows the set.
+      const live = (preview.endpoints ?? []).filter(e => e.status !== 'needs_test' && e.status !== 'over_plan_limit');
+      const all = (st: string) => live.length > 0 && live.every(e => e.status === st);
+      return all('busy')
+        ? <p><b>Right now every endpoint is at its limit,</b> so requests would get 429 <code className="st-ic">endpoints_busy</code>. No cloud model is tried.</p>
+        : all('auth_failed')
+          ? <p><b>Every endpoint refuses its key,</b> so requests would get 400 <code className="st-ic">endpoint_key_rejected</code>. No cloud model is tried.</p>
+          : <p><b>Right now every endpoint is unavailable,</b> so requests would get 503 <code className="st-ic">endpoints_unavailable</code>. No cloud model is tried.</p>;
+    }
+    // The API's own texts for these two (dossier §7 item 7, S1): scoped to your personal keys.
+    case 'endpoints_disabled':
+      return <p><b>Private endpoints are paused on AI Stupid Level.</b> Requests made with your personal keys would fail with 503 <code className="st-ic">endpoints_disabled</code>; no cloud model is tried.</p>;
+    case 'plan_required':
+      return <p><b>Your plan does not include private endpoints,</b> so requests made with your personal keys would fail with 403 <code className="st-ic">plan_required</code>. No cloud model is tried.</p>;
+    default:
+      return <p><b>No model can be used with these settings.</b> {preview.message}</p>;
+  }
+}
+
+/** "Your endpoints" in the preview: under the ranking, never inside it (§6.2), each with what it would do now. */
+function EndpointRows({ endpoints, source, fallbackOn, paused }: {
+  endpoints: PreviewEndpoint[]; source: ModelSource | null; fallbackOn: boolean;
+  /** Endpoint routing is paused for this account (the preview's endpointsPaused). */
+  paused: boolean;
+}) {
+  const shown = endpoints.slice(0, 8);
+  const note = paused ? 'Not used while private endpoints are paused on AI Stupid Level.'
+    : source === 'only_endpoints' ? 'Requests go only to these, in this order.'
+    : source === 'prefer_endpoints' ? 'Tried before cloud models, in this order.'
+    : fallbackOn ? 'Used when a request names one, and up to two as a last resort when no cloud model can answer.'
+    : 'Used when a request names one.';
+  return (
+    <div className="sr-eps">
+      <p className="st-label"><span>Your endpoints</span><span>not benchmarked</span></p>
+      <p className="sr-eps-note">{note}</p>
+      <ul className="sr-eps-list">
+        {shown.map(e => {
+          // The API's clause leads: for exactly the endpoints the previewed chain tries, where each is in
+          // the order and why ("first in your order", "you tagged it for coding"); for an unusable one, why it
+          // is skipped. A usable one with no clause is one the chain does not try (R4 API 58add09).
+          const ok = e.status === 'eligible';
+          const tried = ok && !!e.reason;
+          const lead = e.reason || (ok
+            ? (paused ? 'not used while private endpoints are paused' : 'can be used; not tried with these settings')
+            : ENDPOINT_STATUS_TEXT[e.status] ?? String(e.status));
+          const price = /price you declared|no price declared/.test(lead) ? '' : ` · ${declaredPrice(e)}`;
+          const lat = e.latencyP50Ms != null && e.latencySamples >= 5 && !/latency measured/.test(lead) ? ` · p50 ${fmtSec(e.latencyP50Ms)}` : '';
+          return (
+            <li key={e.id}>
+              <ProviderMark provider="endpoint" size="sm" />
+              <span className="sr-eps-m">
+                <b>{e.name} · {e.model}</b>
+                <small><span className={!ok ? 'sr-eps-out' : tried ? 'sr-eps-ok' : undefined}>{lead}</span>{price}{lat}</small>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      {endpoints.length > shown.length && <p className="sr-eps-more">and {endpoints.length - shown.length} more</p>}
+    </div>
+  );
+}
+
+function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSamplePrompt, names, nameOf, source, fallbackOn, paused, adaptive }: {
   preview: PreferencesPreview | null; previewing: boolean; strategy: Strategy; dirty: boolean;
   samplePrompt: string; onSamplePrompt: (s: string) => void; names: Record<string, string>; nameOf: NameOf;
+  source: ModelSource | null; fallbackOn: boolean; paused: boolean;
+  /**
+   * A2 (plan §5.2), null without its settings: whether Match each request applies to requests sent as auto (the sample
+   * box shows then, not only for the old Match each request strategy), the sample request beyond its prompt, the models
+   * a conversation can continue on, and how the router scores (the score label under v2).
+   */
+  adaptive: { matching: boolean; sample: SampleState; onSample: (s: SampleState) => void; models: string[]; scoring: RouterScoring } | null;
 }) {
+  const only = source === 'only_endpoints';
+  // A2: the conversation inputs whenever Model switching can act on the preview (not under Only my endpoints).
+  const showConversation = !!adaptive && !only;
+  const showPrompt = adaptive ? adaptive.matching && !only : strategy.id === 'match_task';
   // The landing's animated ranking, fed with this caller's own preview: pick, fallbacks, the rest.
-  const view = useMemo(() => previewToSnap(preview, names), [preview, names]);
+  // It ranks cloud models, so Only my endpoints has none (§6.2).
+  const view = useMemo(() => (only ? null : previewToSnap(preview, names)), [only, preview, names]);
   const stateText = previewing ? 'Updating…' : dirty ? 'Preview of your unsaved settings' : 'With your saved settings';
+  const eps = preview?.endpoints ?? [];
+  /** One step of the routing order: a cloud model as before, an endpoint by its name and model. */
+  const step = (e: PreviewChainEntry & { score?: number | null }, pick: boolean) => (isEndpointEntry(e)
+    ? { name: endpointEntryLabel(e, preview?.endpoints), sub: 'your endpoint · not benchmarked' }
+    : {
+        name: nameOf(e.model),
+        sub: `${PROVIDER_LABEL[e.provider] || e.provider}${pick && e.score ? ` · score ${e.score.toFixed(1)}` : ''}${!pick && /your (fallback order|traffic split)/.test(e.reasoning) ? ' · your choice' : ''}`,
+      });
   return (
     <Pane
       title="Where your next request goes"
@@ -482,13 +1132,17 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
       tone="accent"
       reveal={false}
     >
-      {strategy.id === 'match_task' && (
+      {showPrompt && (
         <div className="st-field sr-sample">
           <label className="st-field-label" htmlFor="rp-sample">Try a request</label>
           <textarea id="rp-sample" className="st-textarea" rows={2} maxLength={4000}
             placeholder="Paste a prompt to see which strategy and model it would get, e.g. “Fix this TypeError in my React component”"
             value={samplePrompt} onChange={e => onSamplePrompt(e.target.value)} />
         </div>
+      )}
+      {adaptive && (showPrompt || showConversation) && (
+        <SampleInputs value={adaptive.sample} onChange={adaptive.onSample} showMatch={showPrompt} showConversation={showConversation}
+          models={adaptive.models} nameOf={nameOf} />
       )}
       {!preview ? (
         <>
@@ -497,59 +1151,73 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
         </>
       ) : !preview.ok ? (
         <>
-          <div className="sr-pv-empty" aria-live="polite">
-            {preview.error === 'no_provider_keys'
-              ? <>
-                  <p><b>Add a provider key first:</b> the router calls models with your own keys.</p>
-                  <Link href="/router/providers" className="st-btn is-primary is-sm">Add a key</Link>
-                </>
-              : <p><b>No model can be used with these settings.</b> {preview.message}</p>}
-          </div>
+          <div className="sr-pv-empty" aria-live="polite"><PreviewFailure preview={preview} /></div>
           {view && view.snap.rows.length > 0 && (
             <div className={`sr-rank${previewing ? ' is-busy' : ''}`}>
               <p className="st-label"><span>Every model, and why it is out</span><span>{scoreLabel(view.snap.effectiveStrategy, view.kind)}</span></p>
               <RankList rows={view.snap.rows} kind={view.kind} winLabel="your pick" />
             </div>
           )}
+          {/* Each endpoint's state explains no_endpoints and endpoints_unavailable; no_endpoint_can_serve already lists them. */}
+          {eps.length > 0 && (preview.error === 'no_endpoints' || preview.error === 'endpoints_unavailable') && (
+            <EndpointRows endpoints={eps} source={source} fallbackOn={fallbackOn} paused={paused} />
+          )}
         </>
       ) : (
         <>
           <div aria-live="polite">
-            {preview.details.taskRule && (
-              <p className="sr-rule">This request reads as a <b>{preview.details.taskRule}</b>, so it uses <b>{ALL.find(s => s.id === preview.details.effectiveStrategy)?.name || preview.details.effectiveStrategy}</b>.</p>
+            {adaptive ? (() => {
+              // A2: the benchmark Match each request chose, and what Model switching does in the sample's conversation.
+              const matched = matchedLine(preview.details);
+              const conv = conversationLine(preview.details?.conversation, nameOf);
+              return <>{matched && <p className="sr-rule">{matched}</p>}{conv && <p className="sr-rule">{conv}</p>}</>;
+            })() : preview.details?.taskRule && (
+              <p className="sr-rule">This request reads as a <b>{preview.details.taskRule}</b>, so it uses <b>{ALL.find(s => s.id === preview.details?.effectiveStrategy)?.name || preview.details.effectiveStrategy}</b>.</p>
             )}
             <ol className="sr-chain" aria-label="Routing order">
-              <li className="is-pick">
-                <span className="sr-chain-k">First choice</span>
-                <span className="sr-chain-m" title={preview.primary.model}>
-                  <b>{nameOf(preview.primary.model)}</b>
-                  <small>{PROVIDER_LABEL[preview.primary.provider] || preview.primary.provider}{preview.primary.score ? ` · score ${preview.primary.score.toFixed(1)}` : ''}</small>
-                </span>
-              </li>
-              {preview.fallbacks.map((f, i) => (
-                <li key={f.model}>
-                  <span className="sr-chain-k">{i === 0 ? 'If it fails' : 'Then'}</span>
-                  <span className="sr-chain-m" title={f.model}>
-                    <b>{nameOf(f.model)}</b>
-                    <small>{PROVIDER_LABEL[f.provider] || f.provider}{/your (fallback order|traffic split)/.test(f.reasoning) ? ' · your choice' : ''}</small>
-                  </span>
-                </li>
-              ))}
+              {(() => {
+                const s = step(preview.primary, true);
+                return (
+                  <li className="is-pick">
+                    <span className="sr-chain-k">First choice</span>
+                    <span className="sr-chain-m" title={preview.primary.model}><b>{s.name}</b><small>{s.sub}</small></span>
+                  </li>
+                );
+              })()}
+              {preview.fallbacks.map((f, i) => {
+                const s = step(f, false);
+                // Under All connected an endpoint is only ever a last resort (D27).
+                const label = source === 'all' && isEndpointEntry(f) && !isEndpointEntry(preview.primary) ? 'Last resort' : i === 0 ? 'If it fails' : 'Then';
+                return (
+                  <li key={f.model}>
+                    <span className="sr-chain-k">{label}</span>
+                    <span className="sr-chain-m" title={f.model}><b>{s.name}</b><small>{s.sub}</small></span>
+                  </li>
+                );
+              })}
               {preview.fallbacks.length === 0 && (
                 <li className="is-none">
                   <span className="sr-chain-k">If it fails</span>
-                  <span className="sr-chain-m"><small>The request fails: automatic fallback is off.</small></span>
+                  <span className="sr-chain-m"><small>
+                    {!fallbackOn ? 'The request fails: automatic fallback is off.'
+                      : only ? 'No other endpoint can take it, so the request fails with this one’s error.'
+                      : 'No other model qualifies, so the request fails with this one’s error.'}
+                  </small></span>
                 </li>
               )}
             </ol>
           </div>
-          {view && (
+          {/* R4b sends details with no candidates for an endpoint-only chain: no ranking to show then. */}
+          {view && view.snap.rows.length > 0 && (
             <div className={`sr-rank${previewing ? ' is-busy' : ''}`}>
-              <p className="st-label"><span>Ranking for your settings</span><span>{scoreLabel(view.snap.effectiveStrategy, view.kind)}</span></p>
+              <p className="st-label"><span>{source === 'prefer_endpoints' ? 'Cloud ranking' : 'Ranking for your settings'}</span><span>{scoreLabel(view.snap.effectiveStrategy, view.kind)}</span></p>
               <RankList rows={view.snap.rows} kind={view.kind} winLabel="your pick" />
+              {/* A2 under estimator v2 (plan §2.9): the router's score is not the leaderboard's latest single result. */}
+              {adaptive?.scoring.estimator === 'v2' && view.kind === 'score' && <p className="sr-note-line sr-score-note">{ROUTER_SCORE_V2}</p>}
             </div>
           )}
-          {preview.details.split && preview.details.split.length > 0 && (() => {
+          {eps.length > 0 && <EndpointRows endpoints={eps} source={source} fallbackOn={fallbackOn} paused={paused} />}
+          {preview.details?.split && preview.details.split.length > 0 && (() => {
             // The router draws only among the split's usable models, so a skipped model's traffic
             // goes to the others in proportion to their weights.
             const split = preview.details.split;
@@ -558,11 +1226,17 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
             const liveTotal = live.reduce((a, x) => a + x.weight, 0);
             const shares = (rows: typeof split, total: number) =>
               rows.map(x => `${nameOf(x.model)} ${total ? Math.round((x.weight / total) * 100) : 0}%`).join(' · ');
+            // Under Prefer my endpoints an endpoint goes first and the split shares out the cloud models after it.
+            const afterEndpoints = isEndpointEntry(preview.primary);
             return (
               <p className="sr-split-note">
                 {skipped.length === 0
-                  ? <>Split: {shares(split, split.reduce((a, x) => a + x.weight, 0))}. The first choice above changes from request to request in these proportions.</>
-                  : <>Skipped from your split: {skipped.map(x => `${nameOf(x.model)} (${x.reason || 'unavailable'})`).join(', ')}. Until that changes, requests go {shares(live, liveTotal)}.</>}
+                  ? afterEndpoints
+                    ? <>Cloud split: {shares(split, split.reduce((a, x) => a + x.weight, 0))}.</>
+                    : adaptive
+                      ? <>{splitNote(shares(split, split.reduce((a, x) => a + x.weight, 0)))}</>
+                      : <>Split: {shares(split, split.reduce((a, x) => a + x.weight, 0))}. The first choice above changes from request to request in these proportions.</>
+                  : <>Skipped from your split: {skipped.map(x => `${nameOf(x.model)} (${x.reason || 'unavailable'})`).join(', ')}. Until that changes, {afterEndpoints ? 'cloud ' : ''}requests go {shares(live, liveTotal)}.</>}
               </p>
             );
           })()}
@@ -576,26 +1250,26 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
   );
 }
 
-function TieBreakPane({ prefs, set }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void }) {
+function TieBreakPane({ prefs, set, scoring, a2 }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; scoring: RouterScoring; a2: boolean }) {
   const current = TIE_BREAKS.find(t => t.id === (prefs.tieBreak ?? 'cheaper')) ?? TIE_BREAKS[0];
   const applies = TIE_STRATEGIES.has(prefs.routingStrategy);
   return (
-    <Pane title="When models are tied"
-      sub="Models rank on the average of their last five measured runs. Two models are tied when the gap between them is smaller than the measurement can confirm (95%), the same rule the leaderboard's “=” ranks use.">
+    <Pane title="When models are tied" sub={tiePaneSub(scoring)}>
       <div className="sr-stack">
         <div className="st-seg is-scroll" role="group" aria-label="When models are tied, use">
           {TIE_BREAKS.map(t => (
             <button type="button" key={t.id} aria-pressed={current.id === t.id} onClick={() => set({ tieBreak: t.id })}>{t.label}</button>
           ))}
         </div>
-        <p className="st-hint">{current.desc} A conversation stays on the model that answered it, and a model you were already routed to stays while it is still tied, so the pick does not change with every new run.</p>
+        {/* A2: within a conversation Model switching decides (plan §5.2); before it, a conversation stays on its model. */}
+        <p className="st-hint">{`${tieBreakDesc(current.id, scoring)} ${a2 ? tieHintAdaptive(current.id) : tieHint(current.id, scoring)}`}</p>
         {!applies && <p className="sr-note-line">Your current strategy orders models by something else, so this applies only to requests that ask for a Best quality strategy (auto-best, auto-coding, auto-reasoning, auto-tooling) or match it.</p>}
       </div>
     </Pane>
   );
 }
 
-function LimitCost({ prefs, set, candidates }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; candidates: PreviewCandidate[] }) {
+function LimitCost({ prefs, set, candidates, source }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; candidates: PreviewCandidate[]; source: ModelSource | null }) {
   // The API's limit is the average of input and output price per 1K tokens; prices are quoted
   // per million everywhere else, so the page shows and takes it per million.
   const on = prefs.maxCostPer1kTokens !== null;
@@ -604,6 +1278,12 @@ function LimitCost({ prefs, set, candidates }: { prefs: UserPreferences; set: (p
   const fit = usable.filter(c => !on || c.costPer1kBlended <= prefs.maxCostPer1kTokens!).length;
   const prices = usable.map(c => c.costPer1kBlended * 1000).sort((a, b) => a - b);
   const median = prices.length ? prices[Math.floor(prices.length / 2)] : 5;
+  // The same limit filters endpoint models by their declared price (§5.1 over_cost); the cloud counts below do not apply under Only.
+  const what = source === 'only_endpoints'
+    ? 'Average of an endpoint model’s declared input and output price, per million tokens. A model with no declared price is never filtered out.'
+    : source === 'prefer_endpoints'
+      ? 'Average of a model’s input and output price, per million tokens: the list price for cloud models, your declared price for your endpoints (a model with no declared price is never filtered out).'
+      : <>Average of a model&apos;s input and output list price, per million tokens.</>;
   return (
     <div>
       <label className="st-toggle">
@@ -611,7 +1291,7 @@ function LimitCost({ prefs, set, candidates }: { prefs: UserPreferences; set: (p
           onChange={e => set({ maxCostPer1kTokens: e.target.checked ? Math.max(0.0001, Math.ceil(median * 100) / 100 / 1000) : null })} />
         <span>
           <b>Maximum price</b>
-          <span>Average of a model&apos;s input and output list price, per million tokens.</span>
+          <span>{what}</span>
         </span>
       </label>
       {on && (
@@ -621,19 +1301,25 @@ function LimitCost({ prefs, set, candidates }: { prefs: UserPreferences; set: (p
             aria-label="Maximum price per million tokens"
             onChange={e => set({ maxCostPer1kTokens: (parseFloat(e.target.value) || 0) / 1000 })} />
           <span>per 1M tokens</span>
-          {usable.length > 0 && <span className="sr-fit">{fit} of {usable.length} usable models fit{prices.length ? ` (they range ${fmtUsd(prices[0])}–${fmtUsd(prices[prices.length - 1])})` : ''}</span>}
+          {source !== 'only_endpoints' && usable.length > 0 && <span className="sr-fit">{fit} of {usable.length} usable {source === 'prefer_endpoints' ? 'cloud ' : ''}models fit{prices.length ? ` (they range ${fmtUsd(prices[0])}–${fmtUsd(prices[prices.length - 1])})` : ''}</span>}
         </div>
       )}
     </div>
   );
 }
 
-function LimitLatency({ prefs, set, candidates }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; candidates: PreviewCandidate[] }) {
+function LimitLatency({ prefs, set, candidates, source }: { prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; candidates: PreviewCandidate[]; source: ModelSource | null }) {
   const on = prefs.maxLatencyMs !== null;
   const usable = candidates.filter(c => c.status !== 'no_key' && c.status !== 'excluded' && c.latencyMs != null);
   const lat = usable.map(c => c.latencyMs!).sort((a, b) => a - b);
   const median = lat.length ? lat[Math.floor(lat.length / 2)] : 10_000;
   const fit = usable.filter(c => !on || c.latencyMs! <= prefs.maxLatencyMs!).length;
+  // Endpoint models are filtered on the median measured on this account's own requests, from 5 of them (§5.1 over_latency).
+  const what = source === 'only_endpoints'
+    ? 'The median measured on your own requests to each endpoint model over the last 24 hours. A model with fewer than 5 requests is never filtered out.'
+    : source === 'prefer_endpoints'
+      ? 'For cloud models, the median of the last 7 days of benchmark runs, blended with what the router observes; for your endpoints, the median measured on your own requests (from 5 requests). Reasoning models often take 10–60 s on hard tasks.'
+      : 'The median of the last 7 days of benchmark runs, blended with what the router observes. Reasoning models often take 10–60 s on hard tasks.';
   return (
     <div>
       <label className="st-toggle">
@@ -642,7 +1328,7 @@ function LimitLatency({ prefs, set, candidates }: { prefs: UserPreferences; set:
           onChange={e => set({ maxLatencyMs: e.target.checked ? Math.ceil(median / 1000) * 1000 : null })} />
         <span>
           <b>Maximum response time</b>
-          <span>The median of the last 7 days of benchmark runs, blended with what the router observes. Reasoning models often take 10–60 s on hard tasks.</span>
+          <span>{what}</span>
         </span>
       </label>
       {on && (
@@ -651,17 +1337,19 @@ function LimitLatency({ prefs, set, candidates }: { prefs: UserPreferences; set:
             aria-label="Maximum response time in seconds"
             onChange={e => set({ maxLatencyMs: Math.round((parseFloat(e.target.value) || 0) * 1000) })} />
           <span>seconds</span>
-          {usable.length > 0 && <span className="sr-fit">{fit} of {usable.length} usable models fit (fastest {fmtSec(lat[0])}, median {fmtSec(median)})</span>}
+          {source !== 'only_endpoints' && usable.length > 0 && <span className="sr-fit">{fit} of {usable.length} usable {source === 'prefer_endpoints' ? 'cloud ' : ''}models fit (fastest {fmtSec(lat[0])}, median {fmtSec(median)})</span>}
         </div>
       )}
     </div>
   );
 }
 
-function SplitEditor({ prefs, set, modelNames, candidates, split, nameOf }: {
+function SplitEditor({ prefs, set, modelNames, candidates, split, nameOf, rule }: {
   prefs: UserPreferences; set: (p: Partial<UserPreferences>) => void; modelNames: string[]; candidates: PreviewCandidate[];
   split?: Array<{ model: string; weight: number; share: number; usable: boolean; reason?: string }>;
   nameOf: NameOf;
+  /** How the split combines with the Model source, in the API's words (the preview's splitRule, R4). */
+  rule?: string;
 }) {
   const rows = prefs.trafficSplit || [];
   const total = rows.reduce((a, r) => a + (r.weight || 0), 0);
@@ -670,6 +1358,7 @@ function SplitEditor({ prefs, set, modelNames, candidates, split, nameOf }: {
     set({ trafficSplit: rows.map((r, k) => (k === i ? { ...r, ...patch } : r)) });
   return (
     <Pane title="Your traffic split" sub="Up to 10 models" reveal={false}>
+      {rule && <p className="sr-note-line sr-split-src">{rule}</p>}
       {rows.length === 0 && <p className="st-hint sr-split-empty">Add the models to split traffic between, and how much each should get.</p>}
       {rows.length > 0 && total > 0 && (
         <div className="sr-splitbar" aria-hidden="true">

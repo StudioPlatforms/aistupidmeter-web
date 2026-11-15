@@ -65,7 +65,8 @@ const Shield = () => (
  * conditions — a fixed-scope first purchase only works if nothing about it is vague. The form
  * (AssessmentClient) stores the request and continues to Stripe Checkout (lib/assessment.ts).
  */
-export default function AssessmentPage({ searchParams }: { searchParams?: { cancelled?: string } }) {
+export default async function AssessmentPage(props: { searchParams?: Promise<{ cancelled?: string }> }) {
+  const searchParams = await props.searchParams;
   return (
     <SubpageLayout>
       <JsonLd data={ASSESSMENT_LD} />

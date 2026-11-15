@@ -8,6 +8,7 @@ import { AsOf } from '@/components/seo/Verdict';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { boardVerdict, companyOf } from '@/components/seo/best/best-data';
 import { LEADERBOARD_TOP_N } from '@/components/seo/leaderboard/leaderboard-config';
+import LeaderboardHosted from '@/components/seo/leaderboard/LeaderboardHosted';
 import { CADENCE, OPENNESS, TIES_RULE } from '@/components/seo/best/best-config';
 import { PLANS } from '@/lib/entitlements';
 import type { BoardKey } from '@/lib/boards-core';
@@ -23,6 +24,8 @@ import '@/styles/seo.css';
  * LEADERBOARD_TOP_N places of each 24-hour board, with the leaderboard's own places and statistical
  * ties (lib/boards-core), and links every model to its page. Nothing is typed: every name, place,
  * score and count is read from /dashboard/boards?period=24h at render time. ISR, no auth().
+ * M9 (Phase 3 plan §7.1, MD21, rev: S13): each board's hosted rows are fetched in the browser
+ * (LeaderboardHosted), so the 900 s revalidate below stays and the server's top 10 is the fleet's alone.
  */
 
 export const revalidate = 900;
@@ -172,6 +175,7 @@ export default async function LeaderboardPage() {
                 <>
                   <ScoreTable rows={rows} caption={`The first ${rows.length} places on the ${boardLabel(b.key)} board, last 24 hours`} />
                   {asOf && <AsOf>{asOf} · places with statistical ties; “=” marks a shared place</AsOf>}
+                  <LeaderboardHosted board={b.key} />
                 </>
               ) : (
                 <RdProse><p>The board is not answering at the moment; the places are on the <Link href="/">full leaderboard</Link>.</p></RdProse>

@@ -5,7 +5,9 @@
  * Smart Router request its keys made — never the prompt text. Both filter by person.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Pane, Loader, Tag } from '@/components/studio';
+import { Pane, Loader, Tag, useModelNames } from '@/components/studio';
+import ModelChangesPane from '@/components/router/ModelChanges';
+import { PROBE_KEY } from '@/lib/model-changes';
 import { wsApi, money, ms, dateTime, ACTION_WORDS, providerLabel } from '../ws';
 import type { ProjectData } from './types';
 
@@ -24,12 +26,26 @@ function describe(c: Change): string {
     return `${verb}${keys.length ? `: ${keys.join(', ')}` : ''}`;
   }
   if (c.action === 'project.member_added' && c.detail?.role) return `${verb}${target} as ${c.detail.role}`;
+  // R5: reordering the project's servers is recorded against "Server order", not one server.
+  if (c.action === 'endpoint.updated' && c.targetType === 'endpoints') return 'changed the order of the servers';
   if (c.action === 'alert.model_regression' && c.detail?.finding) return `${verb}${target}: ${c.detail.finding}`;
   return `${verb}${target}`;
 }
 
 export default function ActivityTab({ d }: { d: ProjectData }) {
-  const [view, setView] = useState<'changes' | 'requests'>('changes');
+  const [view, setView] = useState<'changes' | 'requests' | 'model-changes'>('changes');
+  // Router release AW3: the project keys' model changes, the same pane as /router's. ?view=model-changes opens it (the
+  // personal pane's pointer); an API without the route (404) hides the choice. The probe names a key no project has
+  // (PROBE_KEY): the route answers an empty list without reading any request, so opening the tab costs the router nothing.
+  const [modelChanges, setModelChanges] = useState(true);
+  const names = useModelNames();
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'model-changes') setView('model-changes');
+    let alive = true;
+    wsApi(`/projects/${d.project.id}/model-changes?key=${PROBE_KEY}&limit=1`).then(r => { if (alive && r.status === 404) { setModelChanges(false); setView(v => (v === 'model-changes' ? 'changes' : v)); } });
+    return () => { alive = false; };
+  }, [d.project.id]);
+  const noModelChanges = useCallback(() => { setModelChanges(false); setView(v => (v === 'model-changes' ? 'changes' : v)); }, []);
   const [person, setPerson] = useState<number | ''>('');
   const [outcome, setOutcome] = useState<'' | 'ok' | 'failed'>('');
   const [changes, setChanges] = useState<Change[] | null>(null);
@@ -48,7 +64,7 @@ export default function ActivityTab({ d }: { d: ProjectData }) {
     if (r.ok && r.data) { setReqs(prev => before && prev ? [...prev, ...r.data!.rows] : r.data!.rows); setCursor(r.data.nextCursor); setOwnOnly(r.data.ownOnly); }
   }, [d.project.id, person, outcome]);
 
-  useEffect(() => { setCursor(null); if (view === 'changes') loadChanges(); else loadReqs(); }, [view, loadChanges, loadReqs]);
+  useEffect(() => { setCursor(null); if (view === 'changes') loadChanges(); else if (view === 'requests') loadReqs(); }, [view, loadChanges, loadReqs]);
 
   const csv = `/api/account/org/projects/${d.project.id}/requests?format=csv${person ? `&member=${person}` : ''}${outcome ? `&status=${outcome}` : ''}`;
 
@@ -58,8 +74,9 @@ export default function ActivityTab({ d }: { d: ProjectData }) {
         <div className="st-seg" role="group" aria-label="Show">
           <button type="button" aria-pressed={view === 'changes'} onClick={() => setView('changes')}>Changes</button>
           <button type="button" aria-pressed={view === 'requests'} onClick={() => setView('requests')}>Requests</button>
+          {modelChanges && <button type="button" aria-pressed={view === 'model-changes'} onClick={() => setView('model-changes')}>Model changes</button>}
         </div>
-        <div className="sw-filters">
+        {view !== 'model-changes' && <div className="sw-filters">
           <label className="st-field">
             <span className="st-field-label">Person</span>
             <select className="st-select" value={person} onChange={e => setPerson(e.target.value ? Number(e.target.value) : '')}>
@@ -75,8 +92,10 @@ export default function ActivityTab({ d }: { d: ProjectData }) {
               </select>
             </label>
           )}
-        </div>
+        </div>}
       </div>
+
+      {view === 'model-changes' && <ModelChangesPane names={names} project={d.project.id} onUnavailable={noModelChanges} />}
 
       {view === 'changes' && (
         <Pane

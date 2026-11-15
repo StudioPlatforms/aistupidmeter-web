@@ -78,7 +78,7 @@ const STRATEGIES: Array<{ id: string; strategy: string; use: string }> = [
   { id: 'auto-value-reasoning', strategy: 'Best value: reasoning', use: 'Most reasoning points per dollar among near-top models' },
   { id: 'auto-value-tooling', strategy: 'Best value: tool use', use: 'Most tool-use points per dollar among near-top models' },
   { id: 'auto-consistent', strategy: 'Most consistent', use: 'Steadiest near-top model, answers vary least day to day' },
-  { id: 'auto-fastest-quality', strategy: 'Fastest good model', use: 'Fastest model within 5 points of the best' },
+  { id: 'auto-fastest-quality', strategy: 'Fastest good model', use: 'One of the fastest models within 5 points of the best' },
   { id: 'auto-cheapest', strategy: 'Lowest price', use: 'Lowest list price per token, no quality bar' },
   { id: 'auto-fastest', strategy: 'Lowest latency', use: 'Interactive apps, chatbots, quick queries' },
 ];

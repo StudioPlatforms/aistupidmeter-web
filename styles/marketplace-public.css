@@ -1,0 +1,134 @@
+/* The marketplace's public pages (Phase 3 plan §4.5–§4.7): provider, entry and open-model pages, the agreement,
+   the report form. Built on the reading pages' tokens (landing.css); no motion, no new colours. */
+
+.mp-staff-banner { position: sticky; top: 0; z-index: 80; padding: 8px 16px; text-align: center; font-size: 13.5px; font-weight: 600;
+  background: var(--lp-accent-bg, #e8f0fe); color: var(--lp-fg, #202124); border-bottom: 1px solid var(--lp-line, #e3e6ea); }
+.mp-staff-chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--lp-line, #e3e6ea); margin: 0 0 8px; }
+
+.mp-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* F6c (F5b re-verification §6): a long provider name wraps inside the hero's buttons instead of running past the screen,
+   where the hero's overflow cut it ("Use F5 Host With A Rather Long Trading Na…"); the reading pages' wrapping button, as
+   app/models/[id]'s about card has it. A label that fits keeps its one-line 54 px button. */
+.lp .mp-actions .lp-btn { max-width: 100%; height: auto; min-height: 54px; padding-block: 12px; white-space: normal; overflow-wrap: anywhere; text-align: center; line-height: 1.3; }
+.mp-provider-aside { display: grid; gap: 14px; justify-items: start; }
+.mp-tags { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.mp-tags li { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--lp-line, #e3e6ea); color: var(--lp-fg2, #3c4043); }
+.mp-tags li.is-warn, .mp-chip.is-warn { border-color: #f9ab00; }
+.mp-live { margin: 0; font-size: 13.5px; color: var(--lp-fg2, #3c4043); }
+
+.mp-table-wrap { overflow-x: auto; max-width: 100%; }
+.mp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.mp-table th, .mp-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--lp-line, #e3e6ea); vertical-align: top; }
+.mp-table th { font-size: 12.5px; font-weight: 600; color: var(--lp-fg2, #3c4043); white-space: nowrap; }
+.mp-chip { display: inline-block; margin-left: 6px; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--lp-line, #e3e6ea); }
+.mp-caption { font-size: 13px; color: var(--lp-fg2, #3c4043); }
+.mp-muted { color: var(--lp-fg2, #5f6368); font-size: 13px; }
+
+.mp-host-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.mp-host-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 0; border-bottom: 1px solid var(--lp-line, #e3e6ea); min-width: 0; }
+.mp-host-main { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.mp-host-cta { margin-left: auto; font-size: 13.5px; }
+.mp-hosted { margin: 24px 0; }
+.mp-hosted h2 { font-size: 18px; margin: 0 0 8px; }
+
+.mp-page-foot { display: grid; gap: 10px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--lp-line, #e3e6ea); font-size: 14px; }
+.mp-page-foot p { margin: 0; }
+.mp-router-cta { color: var(--lp-fg2, #3c4043); }
+
+.mp-report-btn { justify-self: start; background: none; border: 0; padding: 0; color: var(--lp-accent, #1a73e8); font: inherit; cursor: pointer; text-decoration: underline; }
+.mp-report { display: grid; gap: 10px; max-width: 560px; padding: 16px; border: 1px solid var(--lp-line, #e3e6ea); border-radius: 8px; background: var(--lp-card, #fff); }
+.mp-report label { display: grid; gap: 4px; font-size: 13.5px; }
+.mp-report input, .mp-report select, .mp-report textarea { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--lp-line2, #cfd4da); border-radius: 6px; background: var(--lp-bg, #fff); color: inherit; min-width: 0; max-width: 100%; }
+.mp-report-check { display: flex !important; grid-template-columns: none; align-items: flex-start; gap: 8px; }
+.mp-report-hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.mp-report-actions { display: flex; gap: 10px; }
+.mp-report-actions button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--lp-line2, #cfd4da); background: var(--lp-accent, #1a73e8); color: #fff; cursor: pointer; }
+.mp-report-actions button.is-quiet { background: transparent; color: inherit; }
+.mp-report-err { color: #d93025; margin: 0; }
+.mp-report-note, .mp-report-done { font-size: 13px; color: var(--lp-fg2, #5f6368); margin: 0; }
+
+.mp-agreement-text { font-size: 15px; line-height: 1.6; }
+.mp-agreement-text .mp-ag-annex { font-size: 20px; margin: 32px 0 8px; }
+.mp-agreement-text .mp-ag-h { font-size: 16.5px; margin: 22px 0 6px; }
+.mp-agreement-text .mp-ag-h3 { font-size: 15px; margin: 14px 0 4px; }
+.mp-agreement-text p, .mp-agreement-text li { overflow-wrap: anywhere; }
+.mp-confirm { display: grid; gap: 14px; justify-items: start; }
+
+@media (max-width: 640px) {
+  .mp-table thead { display: none; }
+  .mp-table, .mp-table tbody, .mp-table tr, .mp-table td { display: block; width: 100%; }
+  .mp-table tr { border-bottom: 1px solid var(--lp-line, #e3e6ea); padding: 8px 0; }
+  .mp-table td { border: 0; padding: 3px 0; }
+  .mp-table td[data-label]::before { content: attr(data-label) ': '; color: var(--lp-fg2, #5f6368); font-size: 12.5px; }
+  .mp-host-cta { margin-left: 0; }
+}
+
+/* M6b: a listing's published measurement (components/marketplace/MeasuredScores.tsx) */
+.mp-scores { margin: 0 0 20px; min-width: 0; }
+.mp-scores-t { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+.mp-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin: 12px 0; }
+.mp-kv div { min-width: 0; }
+.mp-kv dt { font-size: 12.5px; color: var(--lp-fg2, #3c4043); }
+.mp-kv dd { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }
+
+/* Offers (Phase 3 M8, §4.5 block 7): a plain list, never inside a score block */
+.mp-offers { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.mp-offers li { padding: 12px 0; border-bottom: 1px solid var(--lp-line, #e3e6ea); min-width: 0; overflow-wrap: anywhere; }
+.mp-offers li p { margin: 0 0 4px; }
+.mp-offers li p:last-child { margin-bottom: 0; }
+/* M10 (design D-A1, D-A2): the official API's reference row and each host's line beside it on a fleet model's page. */
+.mp-host-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-host-line { flex-basis: 100%; min-width: 0; overflow-wrap: anywhere; }
+/* F5 restyle: the fleet model page's "Hosted by other providers" card (HostedBy `framed`): a studio Pane like the page's
+   other sections; its rows inside the card's edges (the router pages' list rows), the host's name as a row title, "Use in
+   the Smart Router" a small button, the captions in the pane's foot at about 70 characters a line (36em). Colours are the theme's tokens. */
+.st .mp-hosted-pane .mp-staff-chip { margin: 6px 0 0; }
+.st .mp-host-list.is-framed li { padding: 14px 22px; column-gap: 14px; }
+.st .mp-host-list.is-framed li:last-child { border-bottom: 0; }
+.st .mp-host-list.is-framed .mp-host-main a { font-size: 14.5px; font-weight: 600; color: var(--lp-fg) !important; text-decoration: none !important; }
+.st .mp-host-list.is-framed .mp-host-main a:hover { color: var(--lp-accent) !important; }
+.st .mp-host-list.is-framed .mp-host-official .mp-host-cta { font-size: 13.5px; font-weight: 600; color: var(--lp-accent) !important; text-decoration: none !important; }
+.st .mp-hosted-foot { display: grid; gap: 8px; }
+.st .mp-hosted-foot .mp-caption { margin: 0; max-width: 36em; font-size: 13px; line-height: 1.55; color: var(--lp-fg2); }
+.st .mp-hosted-foot .mp-caption a { font-weight: 600; color: var(--lp-accent) !important; text-decoration: none !important; }
+.st .mp-hosted-foot .mp-caption a:hover { text-decoration: underline !important; }
+/* the per-host chart's own card right below it: the page's gap between cards, not the section's inner margin as well;
+   F5b (web review MINOR-6): with the studio pane's radius, border and padding (the open-model page's chart unchanged). */
+.st .mp-hosted-pane + .mp-hl { margin-top: 0; border-radius: 18px; border-color: var(--lp-line); padding: 18px 22px 22px; }
+@media (max-width: 760px) {
+  .st .mp-host-list.is-framed li { padding: 12px 16px; }
+  /* F5b (web review SHOULD-1, SHOULD-2): on a phone the row reads name, price, line, then its 40 px button. */
+  .st .mp-host-list.is-framed .mp-host-cta.st-btn { order: 1; margin-left: 0; height: 40px; padding: 0 14px; }
+  /* F6's fix round (F5b re-verification MINOR-2): the official row's "See its score" link is a 40 px tap target too. */
+  .st .mp-host-list.is-framed .mp-host-official .mp-host-cta { display: inline-flex; align-items: center; min-height: 40px; }
+  .st .mp-hosted-pane + .mp-hl { border-radius: 16px; padding: 16px; }
+}
+/* F7 (Phase 3 §7.7, Phase 4 §6.4): user-run tests of listed hosts. The reading pages' plain section (`.mp-ut`): the
+   honesty note first, then one row per host and suite; the fleet model page's studio Pane (`.mp-ut-pane`, UserTests
+   `framed`): the same rows inside the card's edges, as the Hosted-by card's. Colours are the theme's tokens. */
+.mp-ut { display: grid; gap: 10px; }
+.mp-ut-lead { margin: 0; font-size: 14px; line-height: 1.55; color: var(--lp-fg2, #3c4043); max-width: 40em; }
+.mp-ut-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.mp-ut-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding: 12px 0; border-bottom: 1px solid var(--lp-line, #e3e6ea); min-width: 0; overflow-wrap: anywhere; }
+.mp-ut-host { display: inline-flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; }
+.mp-ut-suite { font-weight: 600; }
+.mp-ut-med b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.mp-ut-own { flex-basis: 100%; }
+.mp-ut-cta { font-weight: 600; }
+.lp .mp-ut a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.lp .mp-ut a:hover { text-decoration-thickness: 2px; }
+.st .mp-ut-note { padding: 18px 22px; border-bottom: 1px solid var(--lp-line); }
+.st .mp-ut-note .st-note { margin: 0; }
+.st .mp-ut-empty { padding: 18px 22px 22px; }
+.st .mp-ut-list.is-framed li { padding: 14px 22px; column-gap: 14px; }
+.st .mp-ut-list.is-framed li:last-child { border-bottom: 0; }
+.st .mp-ut-list.is-framed .mp-ut-host a { font-size: 14.5px; font-weight: 600; color: var(--lp-fg) !important; text-decoration: none !important; }
+.st .mp-ut-list.is-framed .mp-ut-host a:hover { color: var(--lp-accent) !important; }
+.st .mp-ut-list.is-framed .mp-ut-suite { font-size: 14.5px; }
+@media (max-width: 760px) {
+  .st .mp-ut-pane .st-pane-act .st-btn { min-height: 36px; }
+  .st .mp-ut-note { padding: 14px 16px; }
+  .st .mp-ut-empty { padding: 16px; }
+  .st .mp-ut-list.is-framed li { padding: 12px 16px; }
+  .mp-ut-list li a, .mp-ut-cta { display: inline-flex; align-items: center; min-height: 40px; }
+}

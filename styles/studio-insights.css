@@ -123,6 +123,13 @@
 .st .st-table td.sa-bad { color: var(--lp-bad) !important; font-weight: 600; }
 .st .st-table td.sa-when { white-space: nowrap; }
 .st .sa-unit { display: none; }
+/* Recent requests: what a request asked for, under its model, as the workspace Requests view words it;
+   then "Why this model" (components/router/WhyThisModel) on a row of its own, read with the request above it. */
+.st .st-table .sa-asked { display: block; margin-top: 2px; font-size: 12.5px; font-weight: 400; color: var(--lp-fg3); white-space: normal; overflow-wrap: anywhere; }
+.st .st-table.sa-log tr.has-why > td { border-bottom: 0 !important; padding-bottom: 4px; }
+.st .st-table.sa-log tr.sa-why-row > td { padding-top: 0; padding-bottom: 12px; }
+.st .st-table.sa-log tr.has-why:hover + tr.sa-why-row > td,
+.st .st-table.sa-log tr.has-why:has(+ tr.sa-why-row:hover) > td { background: color-mix(in srgb, var(--lp-fg) 3%, transparent) !important; }
 .st .sa-prompt { margin: 0; max-width: 46ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
 @media (max-width: 760px) {
   .st .st-table.is-stack.sa-log tr { display: flex; flex-wrap: wrap; align-items: center; row-gap: 5px; padding: 13px 16px; }
@@ -137,6 +144,11 @@
   .st .st-table.is-stack.sa-log td.sa-c-meta { order: 4; flex: none; margin-right: 14px; font-size: 12.5px; line-height: 1.5; color: var(--lp-fg2); }
   .st .st-table.is-stack.sa-log td.sa-c-meta:last-child { margin-right: 0; }
   .st .st-table.is-stack.sa-log .sa-unit { display: inline; }
+  .st .st-table.is-stack.sa-log td.sa-c-head .sa-asked { font-size: 12.5px; font-weight: 400; white-space: normal; }
+  .st .st-table.is-stack.sa-log tr.has-why { border-bottom: 0; padding-bottom: 2px; }
+  .st .st-table.is-stack.sa-log tr.sa-why-row { padding-top: 0; padding-bottom: 8px; }
+  .st .st-table.is-stack.sa-log tr.sa-why-row::after { content: none; }
+  .st .st-table.is-stack.sa-log tr.sa-why-row > td { flex: 1 1 100%; min-width: 0; }
   .st .sa-prompt { max-width: none; -webkit-line-clamp: 3; font-size: 13.5px; color: var(--lp-fg); }
 }
 
@@ -241,4 +253,14 @@
 /* ── reduced motion ───────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .st .sa-bar i, .st .sa-meter i, .st .sa-stale, .st .sa-bh .sa-bh-body, .st .sa-bh .bh-table summary::before { transition: none; }
+}
+
+/* Recent requests, AW2: the benchmark each request was ranked on (a column of its own) and Model switching's Kept or
+   Switched beside the model. On phones the column is one more item of the meta line, so it says what it is. */
+.st .st-table .sa-conv { display: inline-block; margin-left: 6px; vertical-align: 1px; }
+.st .st-table .sa-ranked-k { display: none; }
+@media (max-width: 760px) {
+  .st .st-table .sa-ranked-k { display: inline; }
+  /* The model cell is one ellipsised line on phones: the tag goes under the name, as "asked for" does. */
+  .st .st-table.is-stack.sa-log td.sa-c-head .sa-conv { display: block; margin: 4px 0 0; }
 }

@@ -21,7 +21,8 @@ const longDate = (iso: string) =>
  * Where the cancel link in the $4.99 → $12 email lands (lib/cancel-link.ts). Opening it changes
  * nothing; the button posts to /api/billing/cancel, which comes back here with the result.
  */
-export default async function CancelSubscriptionPage({ searchParams }: { searchParams: Params }) {
+export default async function CancelSubscriptionPage(props: { searchParams: Promise<Params> }) {
+  const searchParams = await props.searchParams;
   const link = readCancelLink(searchParams);
   const done = searchParams.done === '1';
   let st: CancelLinkState = { state: 'invalid' };

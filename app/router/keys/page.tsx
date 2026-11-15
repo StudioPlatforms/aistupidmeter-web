@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import RouterLayout from '@/components/RouterLayout';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import { apiClient } from '@/lib/api-client';
-import type { UniversalKey } from '@/lib/api-client';
+import { apiClient, isModelSource, setupOf } from '@/lib/api-client';
+import { modelChangesServed } from '@/lib/model-changes';
+import type { ModelSource, UniversalKey } from '@/lib/api-client';
 import { CC_SWITCH_APPS, ccSwitchProviderLink } from '@/lib/cc-switch';
 import { providerList } from '@/lib/router-providers';
 import ProviderKeyForm, { savedKeyNote, type SavedProviderKey } from '@/components/router/ProviderKeyForm';
@@ -157,7 +158,7 @@ const VIRTUAL_MODELS = [
   { id: 'auto-value-reasoning', desc: 'Best value on the reasoning benchmark' },
   { id: 'auto-value-tooling', desc: 'Best value on the tool-use benchmark' },
   { id: 'auto-consistent', desc: 'Steadiest near-top model' },
-  { id: 'auto-fastest-quality', desc: 'Fastest model near the top' },
+  { id: 'auto-fastest-quality', desc: 'One of the fastest models near the top' },
   { id: 'auto-task', desc: 'Coding, reasoning or tool use, judged from each request' },
   { id: 'auto-split', desc: 'Your own weighted traffic split (Preferences)' },
   { id: 'auto-cheapest', desc: 'Lowest list price, no quality bar' },
@@ -205,8 +206,24 @@ export default function RouterKeysPage() {
   // providers with a WORKING key (GET /router/keys setup); null = not known yet.
   const [providers, setProviders] = useState<string[] | null>(null);
   const providerCount = providers === null ? null : providers.length;
+  // Whether the keys can answer anything live, as the API decides it (setup.waitingForProviderKey):
+  // from R3 an account whose own endpoint models are set up is not waiting, though it has no provider
+  // key. null = not said; then no provider key means waiting, as before.
+  const [waitingSaid, setWaitingSaid] = useState<boolean | null>(null);
+  const waiting: boolean | null = waitingSaid ?? (providerCount === null ? null : providerCount === 0);
+  // Requests that name its endpoint models work; automatic routing waits for a provider key.
+  const endpointsOnly = waiting === false && providerCount === 0;
+  // An endpoint model id for the "Try it" request of such an account (null: the placeholder).
+  const [epExample, setEpExample] = useState<string | null>(null);
+  // From R4 (Model source), automatic requests of such an account reach its endpoints too: under
+  // Prefer or Only my endpoints, and under All connected with fallback on as a last resort of at most
+  // two (plan D27). null: an API without the setting, or All with fallback off, where R3's wording
+  // holds (automatic routing waits for a provider key).
+  const [autoVia, setAutoVia] = useState<{ source: ModelSource; how: 'source' | 'last_resort' } | null>(null);
   // The models a request can name right now, best first (the router's own ranking table).
   const [lineup, setLineup] = useState<Array<{ name: string; provider: string }>>([]);
+  // Router release AW3: the "Model changes" links show while the API serves the pane (an API rolled back answers 404).
+  const [modelChanges, setModelChanges] = useState(true);
   const nameField = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -214,6 +231,7 @@ export default function RouterKeysPage() {
       apiClient.setUserId(session.user.id);
       fetchKeys();
       apiClient.getAvailableModels().then(r => setLineup((r.models || []).map(m => ({ name: m.name, provider: m.provider })))).catch(() => setLineup([]));
+      modelChangesServed().then(setModelChanges);
     } else if (status === 'unauthenticated') {
       setError('User authentication required');
       setLoading(false);
@@ -242,8 +260,13 @@ export default function RouterKeysPage() {
       setError(null);
       const response = await apiClient.getUniversalKeys();
       setKeys(response.keys);
-      if (response.setup) setProviders(response.setup.providers);
-      else apiClient.getProviderKeys().then(r => setProviders((r.keys || []).filter(k => k.isActive).map(k => k.provider))).catch(() => setProviders(null));
+      if (response.setup) {
+        setProviders(response.setup.providers);
+        setWaitingSaid(setupOf(response.setup).waiting);
+      } else {
+        setWaitingSaid(null);
+        apiClient.getProviderKeys().then(r => setProviders((r.keys || []).filter(k => k.isActive).map(k => k.provider))).catch(() => setProviders(null));
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load keys');
     } finally {
@@ -251,11 +274,14 @@ export default function RouterKeysPage() {
     }
   };
 
-  /** Without a working provider key the dialog starts with adding one (the owner's rule, 2026-11-10). */
+  /**
+   * A key that could answer nothing starts the dialog with adding a provider key (the owner's rule,
+   * 2026-11-10). An account whose endpoint models are set up goes straight to naming the key.
+   */
   const openCreate = () => {
     setCreateError(null);
     setAddedProvider(null);
-    setStep(providerCount === 0 ? 'provider' : 'name');
+    setStep(waiting === true ? 'provider' : 'name');
     setShowCreateModal(true);
   };
 
@@ -268,6 +294,7 @@ export default function RouterKeysPage() {
       setCreatedKey(response.key);
       setStep('created');
       if (response.providers) setProviders(response.providers);
+      if (typeof response.waitingForProviderKey === 'boolean') setWaitingSaid(response.waitingForProviderKey);
       await fetchKeys();
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'The key could not be created. Try again.');
@@ -296,7 +323,41 @@ export default function RouterKeysPage() {
     setStep('name');
   };
 
+  useEffect(() => {
+    if (!endpointsOnly) return;
+    let alive = true;
+    apiClient.getPreferences()
+      .then(p => {
+        if (!alive || !isModelSource(p.modelSource)) return;
+        const how = p.modelSource !== 'all' ? 'source' : p.fallbackEnabled !== false ? 'last_resort' : null;
+        setAutoVia(how ? { source: p.modelSource, how } : null);
+      })
+      .catch(() => { /* R3 wording stays */ });
+    return () => { alive = false; };
+  }, [endpointsOnly]);
+  const sourceName = autoVia?.source === 'only_endpoints' ? 'Only my endpoints' : 'Prefer my endpoints';
+
+  // The created key's "Try it" request for an account that routes only its own endpoint models:
+  // "auto" would be refused for want of a provider key, so it names one of those models.
+  useEffect(() => {
+    if (step !== 'created' || !endpointsOnly || epExample) return;
+    let alive = true;
+    (async () => {
+      try {
+        const list = await apiClient.getEndpoints();
+        const ep = list.endpoints.find(e => e.active && !e.overPlanLimit && (e.enabledModelCount ?? 0) > 0);
+        if (!ep) return;
+        const view = await apiClient.getEndpoint(ep.id);
+        const m = view.models.find(x => x.enabled);
+        if (alive && m) setEpExample(`ep/${ep.slug}/${m.model}`);
+      } catch { /* the placeholder stays */ }
+    })();
+    return () => { alive = false; };
+  }, [step, endpointsOnly, epExample]);
+
   const activeKeysCount = keys.filter(k => !k.revoked).length;
+  // The request in "Try it": JSON-quoted, and safe inside the shell's single quotes.
+  const tryModel = JSON.stringify(endpointsOnly ? (epExample ?? 'ep/<prefix>/<model>') : 'auto').replace(/'/g, "'\\''");
   const revokedCount = keys.filter(k => k.revoked).length;
   const workspace = (session?.user as any)?.workspace;
 
@@ -324,7 +385,39 @@ export default function RouterKeysPage() {
             </Note>
           )}
 
-          {providerCount === 0 && (
+          {endpointsOnly && autoVia?.how === 'source' && (
+            <Note title="Your endpoints answer automatic requests">
+              Model source is {sourceName}, so your personal router {activeKeysCount === 1 ? 'key sends' : 'keys send'} automatic requests
+              (<code className="st-ic">auto</code> and the <code className="st-ic">auto-*</code> modes) to your endpoints, as well as requests
+              that name one of their models (<code className="st-ic">ep/&lt;prefix&gt;/&lt;model&gt;</code>).
+              {autoVia.source === 'prefer_endpoints' && <> Add a provider key so a benchmarked cloud model can answer when none of them can.</>}
+              <div className="sk-note-act">
+                {autoVia.source === 'prefer_endpoints' && <Link href="/router/providers" className="st-btn is-sm">Add a provider key</Link>}
+                <Link href="/router/preferences" className="st-btn is-sm">Routing preferences</Link>
+              </div>
+            </Note>
+          )}
+
+          {endpointsOnly && autoVia?.how !== 'source' && (
+            <Note title={autoVia?.how === 'last_resort' ? 'Add a provider key for benchmarked models' : 'Automatic routing needs a provider key'}>
+              Your router {activeKeysCount === 1 ? 'key answers' : 'keys answer'} requests that name one of your endpoint models
+              (<code className="st-ic">ep/&lt;prefix&gt;/&lt;model&gt;</code>; the ids are under Provider keys, Your endpoints).{' '}
+              {autoVia?.how === 'last_resort' ? (
+                <>Until you add a provider key, automatic requests (<code className="st-ic">auto</code> and the <code className="st-ic">auto-*</code> modes)
+                  go to at most two of them as a last resort. With one, they go first to the benchmarked cloud model measuring best, which the
+                  router calls with your own OpenAI, Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key.</>
+              ) : (
+                <>Automatic routing (<code className="st-ic">auto</code> and the <code className="st-ic">auto-*</code> modes) chooses among benchmarked
+                  cloud models, which the router calls with your own OpenAI, Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key, so it
+                  starts once you add one.</>
+              )}
+              <div className="sk-note-act">
+                <Link href="/router/providers" className="st-btn is-sm">Add a provider key</Link>
+              </div>
+            </Note>
+          )}
+
+          {waiting === true && (
             <Note
               tone="warn"
               title={activeKeysCount > 0
@@ -368,11 +461,11 @@ export default function RouterKeysPage() {
                   title="No Smart Router keys"
                   actions={
                     <button type="button" className="st-btn is-primary" onClick={openCreate}>
-                      {providerCount === 0 ? 'Get started' : 'Create first key'} <span className="st-ar" aria-hidden="true">→</span>
+                      {waiting === true ? 'Get started' : 'Create first key'} <span className="st-ar" aria-hidden="true">→</span>
                     </button>
                   }
                 >
-                  {providerCount === 0
+                  {waiting === true
                     ? 'Two steps: add a key from a provider you use, then create the router key your apps send requests with.'
                     : 'Create your first SR key to start routing prompts to the best-performing model.'}
                 </Empty>
@@ -415,8 +508,10 @@ export default function RouterKeysPage() {
                           <td data-label="Created" className="is-dim">{day(key.createdAt)}</td>
                           <td data-label="Last used" className="is-dim">{key.lastUsedAt ? day(key.lastUsedAt) : '—'}</td>
                           <td data-label="Status">
+                            {/* The API's own status for the key when it sends one (it counts endpoint models). */}
                             {key.revoked ? <Pill>Revoked</Pill>
-                              : providerCount === 0 ? <span title="Live requests are refused until you add a provider key; sandbox requests work."><Pill tone="warn">Needs a provider key</Pill></span>
+                              : (key.status ? key.status === 'waiting_for_provider_key' : waiting === true)
+                                ? <span title="Live requests are refused until you add a provider key; sandbox requests work."><Pill tone="warn">Needs a provider key</Pill></span>
                               : <Pill tone="good">Active</Pill>}
                           </td>
                           <td className="sk-key-act">
@@ -425,6 +520,12 @@ export default function RouterKeysPage() {
                                 <Link href={`/router/monitoring?key=${key.id}&tab=activity`} className="st-btn is-sm">
                                   View activity <span className="st-ar" aria-hidden="true">→</span>
                                 </Link>
+                                {/* Router release AW3: this key's model changes on the dashboard, on every plan. */}
+                                {modelChanges && (
+                                  <Link href={`/router?key=${key.id}#model-changes`} className="st-btn is-sm">
+                                    Model changes
+                                  </Link>
+                                )}
                                 <button type="button" className="st-btn is-sm is-danger sk-quiet" onClick={() => handleRevokeKey(key.id)}>
                                   Revoke
                                 </button>
@@ -600,14 +701,20 @@ export default function RouterKeysPage() {
           sub={step === 'provider'
             ? 'The router sends your requests to models with your own provider key, and the provider bills you directly. Add one, then name your router key.'
             : step === 'name'
-              ? (providerCount === 0
+              ? (waiting === true
                   ? 'No provider key yet: this key will answer sandbox requests only until you add one.'
-                  : `Routes through your ${providers && providers.length ? providerList(providers) : 'connected'} ${providers && providers.length === 1 ? 'key' : 'keys'}.`)
+                  : endpointsOnly
+                    ? autoVia?.how === 'source'
+                      ? 'It answers requests that name your endpoint models, and automatic requests go to your endpoints too.'
+                      : autoVia?.how === 'last_resort'
+                        ? 'It answers requests that name your endpoint models; until you add a provider key, automatic requests go to at most two of them.'
+                        : 'It answers requests that name your endpoint models; automatic routing starts once you add a provider key.'
+                    : `Routes through your ${providers && providers.length ? providerList(providers) : 'connected'} ${providers && providers.length === 1 ? 'key' : 'keys'}.`)
               : undefined}
           footer={
             step === 'provider' ? undefined
             : step === 'created' ? (
-              providerCount === 0 ? (
+              waiting === true ? (
                 <>
                   <button type="button" className="st-btn" onClick={closeCreate}>Later</button>
                   <Link href="/router/providers" className="st-btn is-primary">Add a provider key <span className="st-ar" aria-hidden="true">→</span></Link>
@@ -636,7 +743,7 @@ export default function RouterKeysPage() {
             <div className="sk-about">
               <ProviderKeyForm
                 connected={providers ?? []}
-                onSaved={s => { setAddedProvider(s); setProviders(s.providers ?? [s.provider]); setStep('name'); }}
+                onSaved={s => { setAddedProvider(s); setProviders(s.providers ?? [s.provider]); setWaitingSaid(false); setStep('name'); }}
                 onCancel={closeCreate}
               />
               <button type="button" className="sk-skip" onClick={() => setStep('name')}>
@@ -651,7 +758,7 @@ export default function RouterKeysPage() {
                 const t = savedKeyNote(addedProvider);
                 return <Note tone={t.tone} title={t.title}>{addedProvider.message}</Note>;
               })()}
-              {providerCount === 0 && (
+              {waiting === true && (
                 <Note tone="warn" title="Sandbox only until you add a provider key">
                   Requests with the <code className="st-ic">X-ASL-Sandbox: true</code> header will route for real and return a mock
                   answer. Live requests are refused with a message saying a provider key is missing, until you add one under
@@ -691,14 +798,19 @@ export default function RouterKeysPage() {
               <div className="sk-secret-field">
                 <span className="st-field-label">Try it</span>
                 <p className="st-hint">
-                  {providerCount === 0
+                  {waiting === true
                     ? 'A sandbox request: real routing, a mock answer, nothing spent.'
-                    : <>Send <code className="st-ic">model: &quot;auto&quot;</code> and the router picks the best model your keys reach; the response headers say which and why.</>}
+                    : endpointsOnly
+                      ? `${epExample ? 'A request to one of your endpoint models.' : 'Name one of your endpoint models: its id is under Provider keys, Your endpoints.'} ${
+                          autoVia?.how === 'source' ? '"auto" goes to your endpoints too.'
+                          : autoVia?.how === 'last_resort' ? '"auto" reaches at most two of them as a last resort until you add a provider key.'
+                          : 'Automatic routing ("auto") starts once you add a provider key.'}`
+                      : <>Send <code className="st-ic">model: &quot;auto&quot;</code> and the router picks the best model your keys reach; the response headers say which and why.</>}
                 </p>
                 <CodeBlock samples={[{
                   label: 'cURL',
                   lang: 'bash' as const,
-                  code: `curl https://aistupidlevel.info/v1/chat/completions \\\n  -H "Authorization: Bearer ${createdKey}" \\\n  -H "Content-Type: application/json" \\${providerCount === 0 ? '\n  -H "X-ASL-Sandbox: true" \\' : ''}\n  -d '{"model": "auto", "messages": [{"role": "user", "content": "Hello!"}]}'`,
+                  code: `curl https://aistupidlevel.info/v1/chat/completions \\\n  -H "Authorization: Bearer ${createdKey}" \\\n  -H "Content-Type: application/json" \\${waiting === true ? '\n  -H "X-ASL-Sandbox: true" \\' : ''}\n  -d '{"model": ${tryModel}, "messages": [{"role": "user", "content": "Hello!"}]}'`,
                 }]} />
               </div>
               <div className="sk-ccswitch">
@@ -713,7 +825,15 @@ export default function RouterKeysPage() {
                   ))}
                 </div>
               </div>
-              {providerCount === 0 && (
+              {endpointsOnly && autoVia?.how !== 'source' && (
+                <Note title="Automatic routing needs a provider key">
+                  This key already answers requests that name your endpoint models
+                  {autoVia?.how === 'last_resort' ? ', and automatic requests reach at most two of them as a last resort' : ''}. Add an OpenAI,
+                  Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key when you want automatic routing (<code className="st-ic">auto</code> and the{' '}
+                  <code className="st-ic">auto-*</code> modes){autoVia?.how === 'last_resort' ? ' to choose among benchmarked cloud models' : ''}.
+                </Note>
+              )}
+              {waiting === true && (
                 <Note title="Next: add a provider key">
                   This key routes through your own provider keys, and you haven&rsquo;t added one yet. Add an OpenAI,
                   Anthropic, Google, DeepSeek, Moonshot AI or Z.ai key and your requests start routing; until then live requests

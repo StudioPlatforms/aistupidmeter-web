@@ -81,7 +81,7 @@ export const STRATEGIES: Array<{ id: string; label: string; help: string }> = [
   { id: 'best_value_reasoning', label: 'Best value for reasoning', help: 'Cheapest within 5 points of the best reasoning score.' },
   { id: 'best_value_tooling', label: 'Best value for tool use', help: 'Cheapest within 5 points of the best tool-use score.' },
   { id: 'best_consistent', label: 'Most consistent', help: 'Smallest run-to-run spread among the leaders.' },
-  { id: 'fastest_quality', label: 'Fastest good model', help: 'Lowest measured latency among the leaders.' },
+  { id: 'fastest_quality', label: 'Fastest good model', help: 'One of the lowest measured latencies among the leaders.' },
   { id: 'cheapest', label: 'Cheapest', help: 'Lowest price, whatever the score.' },
   { id: 'fastest', label: 'Fastest', help: 'Lowest measured latency, whatever the score.' },
   { id: 'match_task', label: 'Match each request', help: 'Coding, reasoning or tool use, decided per request from its content.' },
@@ -93,7 +93,12 @@ export const PROVIDERS: Array<{ id: string; label: string }> = [
   { id: 'openai', label: 'OpenAI' }, { id: 'anthropic', label: 'Anthropic' }, { id: 'google', label: 'Google' },
   { id: 'deepseek', label: 'DeepSeek' }, { id: 'kimi', label: 'Kimi' }, { id: 'glm', label: 'GLM (Z.ai)' },
 ];
-export const providerLabel = (id: string) => PROVIDERS.find(p => p.id === id)?.label ?? id;
+/**
+ * A provider's name. A workspace's or project's own server (R5) answers as "endpoint" in a preview and
+ * is recorded as "ep:<id>" in request rows: both read "Your server".
+ */
+export const providerLabel = (id: string) =>
+  PROVIDERS.find(p => p.id === id)?.label ?? (id === 'endpoint' || id.startsWith('ep:') ? 'Your server' : id);
 
 export const ROLE_LABEL: Record<string, string> = { owner: 'Owner', editor: 'Editor', viewer: 'Viewer', manager: 'Manager', member: 'Member' };
 
@@ -136,4 +141,11 @@ export const ACTION_WORDS: Record<string, string> = {
   'member.cap_warning': 'reported 80% of the monthly cap for',
   'member.cap_reached': 'reported the monthly cap reached for',
   'alert.model_regression': 'sent a change alert for',
+  // R5: a workspace's or project's own servers (targets read "Name (host)")
+  'endpoint.added': 'added the server',
+  'endpoint.imported': 'copied in the server',
+  'endpoint.updated': 'changed the server',
+  'endpoint.shared': 'changed who can use the server',
+  'endpoint.probed': 'tested the server',
+  'endpoint.removed': 'removed the server',
 };

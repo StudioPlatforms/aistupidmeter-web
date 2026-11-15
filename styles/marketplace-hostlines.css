@@ -1,0 +1,56 @@
+/* The per-host chart (components/marketplace/HostLines.tsx; Phase 3 plan §7.6). The six host colours were validated
+   on the site's own surfaces (light #ffffff, dark #292a2d; worst adjacent CVD ΔE 9.1 / 8.4): in light mode aqua,
+   yellow and magenta are under 3:1, so the direct labels (in text ink) and the Table view carry the values. Green and
+   red are the status colours and are never a host's. */
+.mp-hl {
+  --hl-1: #2a78d6; --hl-2: #eb6834; --hl-3: #1baf7a; --hl-4: #eda100; --hl-5: #e87ba4; --hl-6: #6250d6;
+  --hl-other: #b0b5bb; --hl-vendor: #80868b; --hl-surface: #ffffff;
+  --hl-ink: #202124; --hl-ink2: #5f6368; --hl-ink3: #70757a; --hl-line: #eceff1; --hl-line2: #cfd4da; --hl-sunk: #f6f8fc; --hl-accent: #1a73e8;
+  min-width: 0; margin: 18px 0 0; padding: 16px; border: 1px solid var(--hl-line2); border-radius: 14px; background: var(--hl-surface); color: var(--hl-ink);
+}
+[data-theme="dark"] .mp-hl {
+  --hl-1: #3987e5; --hl-2: #d95926; --hl-3: #199e70; --hl-4: #c98500; --hl-5: #d55181; --hl-6: #9085e9;
+  --hl-other: #6f747a; --hl-vendor: #9aa0a6; --hl-surface: #292a2d;
+  --hl-ink: #e8eaed; --hl-ink2: #bdc1c6; --hl-ink3: #9aa0a6; --hl-line: #34363a; --hl-line2: #4a4d52; --hl-sunk: #202124; --hl-accent: #8ab4f8;
+}
+.mp-hl-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.mp-hl-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--hl-ink); }
+.mp-hl-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.mp-hl-select { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--hl-ink2); }
+.mp-hl-select select { height: 32px; padding: 0 8px; border: 1px solid var(--hl-line2); border-radius: 8px; background: var(--hl-surface); color: var(--hl-ink); font: inherit; }
+.mp-hl-seg { display: inline-flex; border: 1px solid var(--hl-line2); border-radius: 999px; padding: 2px; }
+.mp-hl-seg button, .mp-hl-tablebtn { height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: var(--hl-ink2); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.mp-hl-seg button[aria-pressed='true'] { background: var(--hl-ink); color: var(--hl-surface); }
+.mp-hl-tablebtn { border: 1px solid var(--hl-line2); }
+.mp-hl-tablebtn[aria-pressed='true'] { border-color: var(--hl-accent); color: var(--hl-accent); }
+.mp-hl-note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--hl-ink3); }
+.mp-hl-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 0; padding: 0; }
+.mp-hl-chip { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; border: 1px solid var(--hl-line2); border-radius: 999px; background: var(--hl-surface); }
+.mp-hl-chip.is-on { border-color: var(--hl-accent); }
+.mp-hl-chip.is-hidden { opacity: .5; }
+.mp-hl-chip-b { display: inline-flex; align-items: center; gap: 6px; min-width: 0; height: 28px; padding: 0 6px 0 9px; border: 0; background: transparent; color: var(--hl-ink); font: inherit; font-size: 12.5px; cursor: pointer; }
+.mp-hl-chip-b span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-hl-chip-b small { color: var(--hl-ink3); }
+.mp-hl-chip-x { width: 26px; height: 28px; border: 0; border-left: 1px solid var(--hl-line); background: transparent; color: var(--hl-ink3); font-size: 14px; cursor: pointer; border-radius: 0 999px 999px 0; }
+.mp-hl-chip.is-vendor .mp-hl-chip-b { cursor: default; padding-right: 10px; }
+.mp-hl-swatch { flex: none; }
+.mp-hl-chart { margin-top: 10px; min-width: 0; }
+.mp-hl-label-t { font-size: 11.5px; font-weight: 600; }
+.mp-hl-tip { padding: 8px 10px; border: 1px solid var(--hl-line2); border-radius: 10px; background: var(--hl-surface); box-shadow: 0 2px 10px rgba(0,0,0,.12); font-size: 12.5px; color: var(--hl-ink); max-width: 260px; }
+.mp-hl-tip-d { font-weight: 700; margin-bottom: 4px; }
+.mp-hl-tip-r { line-height: 1.45; }
+.mp-hl-tip-r small { color: var(--hl-ink3); }
+.mp-hl-tip-r.is-vendor b { color: var(--hl-ink2); }
+.mp-hl-tablewrap { margin-top: 10px; max-width: 100%; overflow-x: auto; }
+.mp-hl-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.mp-hl-table caption { text-align: left; padding: 0 0 6px; color: var(--hl-ink3); }
+.mp-hl-table th, .mp-hl-table td { padding: 6px 8px; border-bottom: 1px solid var(--hl-line); text-align: right; white-space: nowrap; }
+.mp-hl-table th:first-child { text-align: left; }
+.mp-hl-table small { color: var(--hl-ink3); }
+.mp-hl-picker { margin-top: 10px; font-size: 12.5px; color: var(--hl-ink2); }
+.mp-hl-picker ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.mp-hl-picker label { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 480px) {
+  .mp-hl { padding: 12px; }
+  .mp-hl-label-t { font-size: 10.5px; }
+}

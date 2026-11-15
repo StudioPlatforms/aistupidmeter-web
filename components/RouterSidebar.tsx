@@ -11,6 +11,8 @@ import { THEMES, chooseTheme } from '@/lib/theme-config';
 interface NavItem {
   label: string;
   href: string;
+  /** What the phone top bar says on this page, when the label alone would be ambiguous there. */
+  here?: string;
 }
 
 interface NavGroup {
@@ -32,6 +34,7 @@ function toggleTheme() {
  * pages without a nav entry of their own (a project, a forum thread, an invite) take their parent's.
  */
 const SECTIONS: Array<[RegExp, string]> = [
+  [/^\/account\/provider(\/|$)/, 'Provider'],
   [/^\/account\/(team|security)(\/|$)/, 'Team'],
   [/^\/account\/data-keys(\/|$)/, 'Data API'],
   [/^\/account\/invite(\/|$)/, 'Team'],
@@ -48,9 +51,16 @@ export function sectionFor(pathname: string | null): string | null {
   return SECTIONS.find(([re]) => re.test(pathname))?.[1] ?? null;
 }
 
+/** The provider section's pages that its "Profile" entry stands for (they share a section bar). */
+const PROVIDER_PROFILE_PAGES = /^\/account\/provider\/(profile|domains|logo|data)(\/|$)/;
+/** "Agreement & notices" stands for both halves of that section (Phase 3 §2.15). */
+const PROVIDER_LEGAL_PAGES = /^\/account\/provider\/(agreement|notices)(\/|$)/;
+
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
   if (pathname === href) return true;
+  if (href === '/account/provider/profile') return PROVIDER_PROFILE_PAGES.test(pathname);
+  if (href === '/account/provider/agreement') return PROVIDER_LEGAL_PAGES.test(pathname);
   // Pages under a nav entry (a project, a forum thread) keep that entry lit.
   return (href === '/account/team' || href === '/router/forum') && pathname.startsWith(`${href}/`);
 }
@@ -75,6 +85,9 @@ export default function RouterSidebar() {
   const workspace = (session?.user as any)?.workspace as { role: string; name: string } | null | undefined;
   const hasTeam = isUnlimited(projects) || projects >= 1 || !!workspace;
   const hasGovernance = planMeets(plan, REQUIRED_PLAN.governance) && (!workspace || workspace.role === 'owner');
+  // Members of a provider account only, and only while the API has provider accounts switched on
+  // for this account (lib/provider-membership.ts): for everyone else the session says null.
+  const provider = (session?.user as any)?.provider as { role: string; name: string } | null | undefined;
 
   /**
    * Grouped rather than one flat list of twelve.
@@ -114,6 +127,16 @@ export default function RouterSidebar() {
         ...(hasTeam ? [{ label: 'Team', items: [
           { label: 'Workspace', href: '/account/team' },
           ...(hasGovernance ? [{ label: 'Security', href: '/account/security' }] : []),
+        ] }] : []),
+        ...(provider ? [{ label: 'Provider', items: [
+          { label: 'Overview', href: '/account/provider', here: 'Provider' },
+          { label: 'Endpoints', href: '/account/provider/endpoints', here: 'Provider endpoints' },
+          { label: 'Models', href: '/account/provider/models', here: 'Provider models' },
+          { label: 'Benchmarks', href: '/account/provider/benchmarks', here: 'Provider benchmarks' },
+          { label: 'Router & offers', href: '/account/provider/router', here: 'Provider router' },
+          { label: 'Profile', href: '/account/provider/profile', here: 'Provider profile' },
+          { label: 'Agreement & notices', href: '/account/provider/agreement', here: 'Provider agreement' },
+          { label: 'Team', href: '/account/provider/team', here: 'Provider team' },
         ] }] : []),
         { label: 'Account', items: [
           { label: 'Settings', href: '/account/settings' },
@@ -167,7 +190,8 @@ export default function RouterSidebar() {
   const displayName = session?.user?.name || session?.user?.email || 'User';
   const showEmail = session?.user?.name && session?.user?.email && session.user.name !== session.user.email;
   const nameInitial = displayName.charAt(0).toUpperCase();
-  const here = groups.flatMap(g => g.items).find(i => isActive(pathname, i.href))?.label ?? sectionFor(pathname) ?? 'Account';
+  const current = groups.flatMap(g => g.items).find(i => isActive(pathname, i.href));
+  const here = (current ? current.here ?? current.label : null) ?? sectionFor(pathname) ?? 'Account';
 
   const brand = (
     <a className="st-brand" href="/" aria-label="AI Stupid Level — leaderboard">

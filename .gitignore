@@ -13,6 +13,7 @@ dist/
 build/
 .out/
 .next/
+/.next-*/
 .next-cache/
 .vercel/
 .turbo/
@@ -31,7 +32,8 @@ logs/
 # Databases / data
 *.sqlite
 *.db
-data/
+# Root-level only: an unanchored data/ also hid app routes named data (app/account/provider/data).
+/data/
 **/*.db
 **/*.sqlite
 

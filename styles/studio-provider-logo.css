@@ -1,0 +1,44 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · PROVIDER LOGO — the logo uploader (/account/provider/logo):
+   the drop zone, the preview layout, the live mark. Loaded with that
+   page only (app/account/provider/logo/LogoClient.tsx); the previews
+   themselves are styles/studio-logo.css, shared with the admin review.
+   Builds on studio-provider.css. Scoped under .st, --lp-* tokens only.
+   ═══════════════════════════════════════════════════════════════════ */
+/* The drop zone: the whole box is the file input's label, so a click anywhere opens the picker. */
+.st .mp-drop { position: relative; display: grid; justify-items: center; gap: 6px; padding: 26px 20px 22px; border: 1.5px dashed var(--lp-line2); border-radius: 14px; background: var(--lp-sunk); text-align: center; cursor: pointer; transition: border-color .15s ease, background-color .15s ease; }
+.st .mp-drop:hover, .st .mp-drop.is-over { border-color: var(--lp-accent); background: var(--lp-win-bg); }
+.st .mp-drop:focus-within { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
+.st .mp-drop.is-busy { cursor: progress; opacity: .75; }
+.st .mp-drop-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); }
+.st .mp-drop-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--lp-accent-bg); color: var(--lp-accent); margin-bottom: 4px; }
+.st .mp-drop-t { font-size: 15px; font-weight: 600; color: var(--lp-fg); }
+.st .mp-drop-s { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .mp-drop-btn { margin-top: 8px; pointer-events: none; }
+.st .mp-drop-err { margin: 12px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-bad); overflow-wrap: anywhere; }
+.st .mp-drop-hint { margin: 12px 0 0; }
+.st .mp-drop + .st-note, .st .st-note + .mp-drop { margin-top: 12px; }
+/* A refusal can name what the file holds (up to 40 characters, a viewBox up to 60) with no space in it. */
+.st .mp-logo-why { overflow-wrap: anywhere; }
+/* the previews: the strips, then the share card's tile beside them on wide panes */
+.st .mp-logo-wait .st-loader { padding: 22px 12px 10px; }
+.st .mp-logo-previews { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; }
+.st .mp-logo-note { margin: 12px 0 0; }
+.st .mp-logo-h { margin: 20px 0 8px; }
+.st .mp-logo-checks { padding-top: 4px; padding-bottom: 8px; }
+.st .mp-logo-checks .mp-lc { border-top: 0; }
+.st .mp-logo-checks .mp-lc-row:last-child { border-bottom: 0; }
+.st .mp-safe-toggle { align-items: center; gap: 8px; }
+.st .mp-safe-toggle .st-check { margin-top: 0; }
+.st .mp-safe-toggle .mp-safe-text { margin-top: 0; font-size: 13.5px; color: var(--lp-fg2); white-space: nowrap; }
+/* the live mark: the 64 px tile and what it says */
+.st .mp-live { display: flex; align-items: center; gap: 16px; }
+.st .mp-live .sw-quiet { margin: 0; }
+@media (max-width: 1100px) {
+  .st .mp-logo-previews { grid-template-columns: minmax(0, 1fr); }
+  .st .mp-logo-previews .mp-lp-large { justify-items: start; }
+}
+@media (max-width: 760px) {
+  .st .mp-drop { padding: 22px 14px 18px; }
+  .st .mp-drop-btn { height: 40px; }
+}

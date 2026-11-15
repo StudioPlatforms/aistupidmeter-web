@@ -32,8 +32,9 @@ function getRecentActivity(userId: number) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  props: { params: Promise<{ username: string }> }
 ) {
+  const params = await props.params;
   try {
     const { username } = params;
 

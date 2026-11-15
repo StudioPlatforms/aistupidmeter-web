@@ -26,7 +26,8 @@ function resolve(request: NextRequest, id: string) {
   return { auth, member, memberId };
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const r = resolve(request, params.id);
   if ('error' in r) return r.error;
   return scimJson(toScimUser(r.member, APP_URL));
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  * acknowledged without change rather than rejected, because a directory that
  * gets a 400 for an attribute it always sends will mark the whole sync failed.
  */
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const r = resolve(request, params.id);
   if ('error' in r) return r.error;
 
@@ -76,7 +78,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 /** PUT — full replace. Only `active` is meaningful to us. */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const r = resolve(request, params.id);
   if ('error' in r) return r.error;
 
@@ -101,7 +104,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
  * membership history, and a re-hire should be one flag away from working again.
  * The response is the 204 the specification asks for, so the directory is happy.
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const r = resolve(request, params.id);
   if ('error' in r) return r.error;
 

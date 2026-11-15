@@ -2,19 +2,34 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { redirectToPath, signInPath } from '@/lib/safe-redirect';
 import { SESSION_HINT_COOKIE } from '@/lib/session-hint';
+import { goneKey, isGone } from '@/lib/marketplace-gone';
 
 /**
  * Simple cookie-based middleware for NextAuth v5
  * Edge Runtime compatible - no database access
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Get NextAuth v5 (Auth.js) session token from cookies
   // Note: v5 renamed cookies from 'next-auth.*' to 'authjs.*'
   const sessionToken = request.cookies.get('authjs.session-token') ||
                        request.cookies.get('__Secure-authjs.session-token');
 
   const isLoggedIn = !!sessionToken;
+  // Phase 3 §4.8: a provider or entry page (or its badge) delisted for cause answers 410 at once, and one delisted
+  // for another reason after 90 days. App Router pages cannot answer 410, so the set (lib/marketplace-gone.ts, at
+  // most 60 s old) is checked here, only for those two prefixes.
+  if (goneKey(request.nextUrl.pathname) && (await isGone(request.nextUrl.pathname))) {
+    return withSessionHint(request, goneResponse(), isLoggedIn);
+  }
   return withSessionHint(request, route(request, isLoggedIn), isLoggedIn);
+}
+
+/** The content is removed: a short page, noindex, never cached. */
+function goneResponse(): NextResponse {
+  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gone</title></head>'
+    + '<body style="font-family:system-ui,sans-serif;margin:15vh auto;max-width:36rem;padding:0 16px;color:#202124"><h1 style="font-size:22px">This page is gone</h1>'
+    + '<p>This listing was removed from AI Stupid Level.</p><p><a href="/inference-providers">Inference providers</a></p></body></html>';
+  return new NextResponse(html, { status: 410, headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex', 'Cache-Control': 'no-store' } });
 }
 
 /**
@@ -90,8 +105,15 @@ function route(request: NextRequest, isLoggedIn: boolean): NextResponse {
   // used. Signed-out visitors clicking "Pro" were therefore sent to
   // https://localhost:3000/auth/signin, a dead link everywhere but this server.
   // See lib/safe-redirect.ts for why the origin is rebuilt from config.
+  //
+  // The callback is the path AND its query, so a signed-out visitor keeps
+  // ?add=openai, ?host=<slug> or ?create=1 through sign-in (Phase 3 critique
+  // B3, item 5; before, only the path survived). Next has already stripped its
+  // own internal parameters (_rsc and the like) from nextUrl at this point.
+  // signInPath applies the sign-in page's own rule to it and falls back to the
+  // bare path when the query would make it unsafe.
   if (pathname.startsWith('/router') && !isLoggedIn) {
-    return redirectToPath(request, signInPath(pathname));
+    return redirectToPath(request, signInPath(pathname + request.nextUrl.search, pathname));
   }
   
   return NextResponse.next();

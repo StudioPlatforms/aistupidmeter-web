@@ -61,7 +61,11 @@
 .ad-ext:hover { text-decoration: underline !important; text-underline-offset: 3px; }
 .ad-int { color: var(--lp-accent) !important; font-weight: 600; text-decoration: none !important; }
 @media (max-width: 1180px) { .ad-hide-md { display: none; } }
-@media (max-width: 760px) { .ad-hide-sm { display: none; } }
+@media (max-width: 760px) {
+  .ad-hide-sm { display: none; }
+  /* F6c: a review-queue item's kind wraps on a phone instead of being cut ("Integrity no…" at 320 px). */
+  .ad-acct-e.ad-queue-kind { white-space: normal; overflow-wrap: anywhere; }
+}
 
 /* ── needs attention ────────────────────────────────────────────────── */
 .ad-att { margin: 0; padding: 0; list-style: none; }
@@ -129,3 +133,96 @@
   .ad-tool { flex-wrap: wrap; }
   .ad-acct { max-width: 220px; }
 }
+
+/* ── Providers tab (app/admin/ProvidersTab.tsx): names that open the read-only detail, its lists ── */
+.st button.mp-admin-open { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; text-align: left; color: var(--lp-fg) !important; cursor: pointer; }
+.st button.mp-admin-open:hover { color: var(--lp-accent) !important; }
+.st .mp-admin-detail { display: grid; gap: 6px; }
+.st .mp-admin-h { margin: 14px 0 4px; }
+.st .mp-admin-list { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--lp-line); }
+.st .mp-admin-list li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--lp-line); font-size: 13.5px; overflow-wrap: anywhere; }
+/* M9b: a case's owner-email line under its summary; Confirm's retraction choice on one line that wraps */
+.st .mp-admin-mail { display: block; margin-top: 2px; font-size: 12.5px; }
+.st .mp-admin-retract { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.st .mp-admin-retract legend { width: 100%; padding: 0; }
+.st .mp-admin-retract .st-input { width: auto; max-width: 100%; }
+/* the provider's logo uploads (app/admin/LogoReview.tsx): one ruled row each, the newest open */
+.st .mp-admin-logos { display: grid; border-top: 1px solid var(--lp-line); }
+.st details.mp-admin-logo { border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.st .mp-admin-logo > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 10px 0; list-style: none; cursor: pointer; font-size: 13.5px; }
+.st .mp-admin-logo > summary::-webkit-details-marker { display: none; }
+.st .mp-admin-logo > summary::before { content: ''; width: 7px; height: 7px; border-right: 1.5px solid var(--lp-fg3); border-bottom: 1.5px solid var(--lp-fg3); transform: rotate(-45deg); margin-right: 2px; }
+.st .mp-admin-logo[open] > summary::before { transform: rotate(45deg); }
+.st .mp-admin-logo-when { font-weight: 600; color: var(--lp-fg); }
+.st .mp-admin-logo-body { display: grid; gap: 12px; padding: 2px 0 16px; min-width: 0; }
+.st .mp-admin-logo-none { margin: 0; font-size: 13.5px; }
+/* A refusal can name what the file holds (up to 40 characters, a viewBox up to 60) with no space in it. */
+.st .mp-admin-logo-why { overflow-wrap: anywhere; }
+.st .mp-admin-logo-kv dt { white-space: nowrap; }
+/* M4: the open-model registry's form and an internal account's attested hosts. */
+.st .mp-admin-om { display: grid; gap: 10px; border-top: 1px solid var(--lp-line); }
+.st .mp-admin-om-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.st .mp-admin-attest { display: flex; gap: 8px; margin-top: 8px; }
+.st .mp-admin-attest .st-input { flex: 1; min-width: 0; }
+@media (max-width: 760px) { .st .mp-admin-om-grid { grid-template-columns: minmax(0, 1fr); } }
+/* M7: an integrity case's evidence (app/admin/IntegrityCases.tsx), wrapped inside the dialog at any width. */
+.st .mp-admin-pre { margin: 0; padding: 10px 12px; max-width: 100%; overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12.5px; background: var(--lp-bg2, transparent); border: 1px solid var(--lp-line); border-radius: 6px; }
+
+/* The Calibration pane (app/admin/CalibrationPane.tsx; F4, restyled in F5 to the router pages' panes): its lists sit in
+   the pane body's padding; each row is what it is on the left (a faint second line for its date or state) and its
+   decisions as small buttons in one column on the right; a campaign's enrolments are indented rows of their own under
+   it. On a phone a row's buttons go under its text. */
+.st .mp-cal > :first-child { margin-top: 0; }
+.st .mp-cal > .st-note { margin-bottom: 10px; }
+.st .mp-cal .mp-admin-h { margin: 22px 0 8px; }
+.st .mp-cal > .mp-admin-h:first-child { margin-top: 0; }
+.st .mp-cal-list { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--lp-line); }
+.st .mp-cal-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; row-gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--lp-line); min-width: 0; font-size: 13.5px; line-height: 1.5; }
+.st .mp-cal-main { min-width: 0; color: var(--lp-fg); overflow-wrap: anywhere; }
+/* F6c (F6b web review MINOR-1): an empty row's words on the row's own span stay faint, as the Calibration pane's nested
+   span does (.mp-cal-main's colour beat .st-faint: "No integrity cases.", "No note to decide." and the Spot checks rows). */
+.st .mp-cal-main.st-faint { color: var(--lp-fg3); }
+/* F6c (MINOR-4): a list heading that takes the focus after a decision shows the ring only for the keyboard; so does a
+   refused case decision's message at the top of the case's dialog. */
+.st .mp-admin-h[tabindex="-1"]:focus:not(:focus-visible), .st .mp-case-err:focus:not(:focus-visible) { outline: none; }
+.st .mp-case-err { margin-bottom: 16px; border-radius: 14px; }
+.st .mp-cal-sub { display: block; margin-top: 2px; font-size: 12.5px; }
+.st .mp-cal-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.st .mp-cal-acts .st-btn { white-space: nowrap; }
+.st .mp-cal-enrol { grid-column: 1 / -1; display: grid; margin: 0; padding: 0 0 0 16px; list-style: none; border-left: 2px solid var(--lp-line); }
+.st .mp-cal-enrol > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 16px; row-gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--lp-line); font-size: 13px; line-height: 1.45; min-width: 0; }
+.st .mp-cal-enrol > li:last-child { border-bottom: 0; }
+.st .mp-cal > .mp-cal-list:last-child > .mp-cal-row:last-child { border-bottom: 0; }
+/* A decision's consequence, said in its dialog above the reason (F4 review S4's Keep in, Exclude). F5b (web review
+   MINOR-2): the decision form's own spacing (/admin does not load the team pages' sw-stack). */
+.st .mp-cal-note { margin: 0; font-size: 13.5px; line-height: 1.5; }
+.st .mp-cal-form { display: grid; gap: 14px; min-width: 0; }
+@media (max-width: 760px) {
+  .st .mp-cal-row, .st .mp-cal-enrol > li { grid-template-columns: minmax(0, 1fr); }
+  .st .mp-cal-acts { justify-content: flex-start; }
+  .st .mp-cal-enrol { padding-left: 12px; }
+  /* F5b (web review SHOULD-1): row actions are tap targets of 40 px on a phone, as the router pages' row actions. */
+  .st .mp-cal-acts .st-btn.is-sm { height: 40px; padding: 0 14px; }
+}
+
+/* The Integrity cases and Spot checks panes (app/admin/IntegrityCases.tsx; F6), in the Calibration pane's rows (above):
+   a case's number and kind as the row's title, its summary and email line faint under it, its pills and its Open button
+   on the right (under the text on a phone, 40 px tall there). A case's dialog and its forms stack with the studio gap
+   (the Calibration pane's form class, mp-cal-form; sw-stack is not loaded on /admin); each form starts 16 px under the
+   one before it, as a section head does (F6 units review MINOR-5); on a phone each form's action and the retraction
+   choice are 40 px tap targets (MINOR-4). */
+.st .mp-case-title { font-weight: 600; color: var(--lp-fg); }
+.st .mp-case-pills { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12.5px; }
+.st .mp-cal > .mp-case-list:first-child { border-top: 0; }   /* right under the pane head's rule: one rule, not two */
+.st .mp-admin-detail > .mp-cal-form { margin-top: 16px; }
+.st .mp-admin-detail > .mp-cal-form > p { margin: 0; }
+@media (max-width: 760px) {
+  .st .mp-admin-detail > .mp-cal-form .st-btn.is-sm { height: 40px; padding: 0 14px; }
+  .st .mp-admin-retract label { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding-right: 6px; }
+  .st .mp-admin-retract input[type="radio"] { width: 18px; height: 18px; margin: 0; }
+}
+/* The User-run tests pane (app/admin/UserTestsPane.tsx; F7): the Calibration pane's rows; the decision dialog's fields
+   apart (web MINOR-4). On a phone its Hide… and Show again… are the Calibration pane's 40 px row actions (above): F6b
+   (F6r re-check web MINOR-1) drops F7's own 36 px rule, which came later in the file and lowered them. */
+.st .mp-ut-form { display: grid; gap: 14px; }
+.st .mp-ut-signals { margin: 0 0 14px; }

@@ -171,6 +171,23 @@
 .st .sr-why { margin-top: 18px; padding: 13px 15px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); }
 .st .sr-why .st-label { margin-bottom: 6px; }
 .st .sr-why p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--lp-fg2); overflow-wrap: anywhere; }
+/* The same block for one past request (components/router/WhyThisModel): folded under its label until
+   opened; open, the reason sits in the block's frame below the label. */
+.st details.sr-why.is-fold { margin-top: 4px; padding: 0; border: 0; border-radius: 0; background: none; min-width: 0; }
+.st .sr-why.is-fold > summary { display: inline-flex; align-items: center; justify-content: flex-start; gap: 8px; min-height: 28px; margin: 0; padding: 0 4px 0 0; border-radius: 6px; cursor: pointer; list-style: none; user-select: none; }
+.st .sr-why.is-fold > summary::-webkit-details-marker { display: none; }
+.st .sr-why.is-fold > summary::after { content: ''; flex: none; width: 6px; height: 6px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .2s var(--lp-ease); }
+.st .sr-why.is-fold[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.st .sr-why.is-fold > summary:hover { color: var(--lp-fg2); }
+.st .sr-why.is-fold > summary:focus-visible { outline: none; box-shadow: var(--st-ring); }
+.st .sr-why.is-fold > p { margin-top: 6px; padding: 11px 14px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); }
+/* Recent activity: under the request's text and cost, as wide as both. What the request asked for leads
+   its line, and the line wraps rather than cut off the rest. */
+.st .sr-act .st-row > .sr-why { grid-column: 2 / -1; }
+.st .sr-act .st-row-s.sr-asked { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .st .sr-why.is-fold > summary { min-height: 36px; }
+}
 .st .sr-pv-empty { display: grid; gap: 14px; justify-items: start; font-size: 14px; line-height: 1.6; color: var(--lp-fg2); }
 .st .sr-pv-empty b { color: var(--lp-fg); font-weight: 600; }
 .st .sr-skel { display: grid; gap: 7px; margin-top: 4px; }
@@ -247,6 +264,11 @@
   .st .sr-prefs .st-savebar .st-btn { flex: 1 1 0; height: 44px; }
   .st .sr-inline, .st .sr-fb { margin-left: 0; }
   .st .sr-chips .st-chip { height: 40px; padding: 0 14px; }
+  /* "When models are tied": the segmented control spans the pane and its segments share the width, as the model
+     page's segmented controls do on phones, so all three labels fit at 320 px (a 6 px side padding is the floor;
+     the free width is shared out on top of it) and each segment is a 36 px tap target. */
+  .st .sr-prefs .sr-stack > .st-seg { display: flex; width: 100%; }
+  .st .sr-prefs .sr-stack > .st-seg button { flex: 1 0 auto; height: 36px; padding: 0 6px; }
   .st .sr-fb-item { grid-template-columns: 18px auto minmax(0, 1fr); row-gap: 8px; padding: 10px 12px; }
   .st .sr-fb-act { grid-column: 1 / -1; justify-content: flex-end; }
   .st .sr-fb-act .st-btn { height: 40px; min-width: 48px; }
@@ -260,7 +282,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .st .sr-stats, .st .sr-rank, .st .sr-splitbar span, .st .sr-go .st-card-t .st-ar { transition: none; }
+  .st .sr-stats, .st .sr-rank, .st .sr-splitbar span, .st .sr-go .st-card-t .st-ar, .st .sr-why.is-fold > summary::after { transition: none; }
   .st .sr-dash .st-up .st-meter i { transition-delay: 0s; }
 }
 
@@ -282,3 +304,136 @@
 /* Action row under a note (as on the keys pages), and one line per key problem on the overview. */
 .st .sk-note-act { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
 .st .sr-keyprob { display: block; }
+
+/* ═══ Model source (R4, Preferences) ═════════════════════════════════
+   The choice as one radio list (the chosen source explained in prose
+   under it), its notes, and "Your endpoints" in the preview. Only the
+   --lp-* tokens, so light and dark follow the shell. */
+.st .sr-src { display: grid; gap: 16px; min-width: 0; }
+.st .sr-src > .st-note { margin: 0; }
+/* the choice: one bordered list, a row per source (the chosen row tinted, with the accent edge) */
+.st .sr-src-list { display: grid; border: 1px solid var(--lp-line); border-radius: 14px; overflow: hidden; background: var(--lp-card); }
+.st .sr-src-opt { all: unset; box-sizing: border-box; display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 12px; align-items: start;
+  width: 100%; min-height: 44px; padding: 13px 16px; border-top: 1px solid var(--lp-line); cursor: pointer; text-align: left; transition: background-color .18s; }
+.st .sr-src-opt:first-child { border-top: 0; }
+.st .sr-src-opt:hover:not(:disabled) { background: var(--st-hover); }
+.st .sr-src-opt[aria-checked='true'] { background: var(--lp-win-bg); box-shadow: inset 3px 0 0 var(--lp-accent); }
+.st .sr-src-opt:disabled { cursor: not-allowed; }
+.st .sr-src-opt:disabled > span { opacity: .5; }
+.st .sr-src-opt:focus-visible { outline: 2px solid var(--lp-accent) !important; outline-offset: -2px; }
+.st .sr-src-tick { width: 18px; height: 18px; margin-top: 1px; border-radius: 50%; border: 1.5px solid var(--lp-line2); display: grid; place-items: center; box-sizing: border-box; }
+.st .sr-src-opt[aria-checked='true'] .sr-src-tick { border-color: var(--lp-accent); background: var(--lp-accent); }
+.st .sr-src-opt[aria-checked='true'] .sr-src-tick::after { content: ''; width: 7px; height: 3.5px; margin-top: -2px; border-left: 2px solid var(--lp-on-accent); border-bottom: 2px solid var(--lp-on-accent); transform: rotate(-45deg); }
+.st .sr-src-txt { min-width: 0; display: grid; gap: 2px; }
+.st .sr-src-txt b { font-size: 14.5px; font-weight: 600; line-height: 1.35; color: var(--lp-fg); }
+.st .sr-src-txt > span { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sr-src-danger { font-style: normal; font-weight: 600; color: var(--lp-bad); }
+.st .sr-src-hint { margin: -6px 0 0; }
+.st .sr-src-hint a { font-weight: 600; }
+.st .sr-src-desc { display: grid; gap: 8px; max-width: 78ch; }
+.st .sr-src-desc p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--lp-fg2); }
+/* a header or path never breaks at its hyphen or slash (all are short enough for a 320px phone) */
+.st .sr-src-desc code { white-space: nowrap; overflow-wrap: normal; }
+.st .sr-src-strat { margin-bottom: 20px; }
+.st .sr-src-kept { margin: 0; }
+.st .sr-split-src { margin: 0 0 14px; }
+.st .sr-split-src.is-only { margin: 12px 0 0; }
+/* a button that reads as a link, inside a sentence */
+.st .sr-linkbtn { all: unset; cursor: pointer; font-weight: 600; color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+.st .sr-linkbtn:focus-visible { outline: 2px solid var(--lp-accent) !important; outline-offset: 2px; border-radius: 4px; }
+
+/* "Your endpoints" in the preview: under the ranking, never inside it */
+.st .sr-eps { margin-top: 20px; }
+.st .sr-eps .st-label { margin-bottom: 4px; }
+.st .sr-eps-note { margin: 0 0 8px; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sr-eps-list { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--lp-line); }
+.st .sr-eps-list li { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: start; padding: 9px 0; border-bottom: 1px solid var(--lp-line); }
+.st .sr-eps-list .st-logo { width: 22px; height: 22px; border-radius: 6px; margin-top: 1px; }
+.st .sr-eps-m { min-width: 0; }
+.st .sr-eps-m b { display: block; font-size: 13.5px; font-weight: 600; line-height: 1.35; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .sr-eps-m small { display: block; margin-top: 1px; font-size: 12.5px; line-height: 1.45; color: var(--lp-fg3); }
+.st .sr-eps-ok { color: var(--lp-good); font-weight: 600; }
+.st .sr-eps-out { color: var(--lp-warn); font-weight: 600; }
+.st .sr-eps-more { margin: 8px 0 0; font-size: 12.5px; color: var(--lp-fg3); }
+@media (max-width: 760px) {
+  .st .sr-src-opt { padding: 13px 14px; }
+}
+
+/* Routing preferences, router release A2 (components/router/AdaptiveSettings; shown only when the API sends the
+   settings). Match each request sits under the Best value cards, in the pane's card style; Apply this strategy to
+   is the tie-break pane's segmented control with the chosen option's words under it; Model switching reuses the
+   Model source list (sr-src). */
+.st .sr-match { display: grid; gap: 10px; margin-top: 16px; padding: 14px 16px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); }
+.st .sr-match p { margin: 0; }
+.st .sr-match-body { display: grid; gap: 6px; margin-left: 30px; max-width: 78ch; }
+.st .sr-match.is-inert .st-toggle { cursor: not-allowed; }
+.st .sr-match.is-inert .st-toggle > span { opacity: .6; }
+.st .sr-match-off { margin-top: 14px; }
+.st .sr-scope { display: grid; gap: 10px; justify-items: start; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--lp-line); }
+.st .sr-scope > .st-label { margin: 0; }
+.st .sr-scope p { margin: 0; max-width: 78ch; }
+.st .sr-switch .sr-src-txt b .st-tag { margin-left: 4px; vertical-align: 2px; }
+.st .sr-switch-cost { display: grid; gap: 10px; }
+.st .sr-switch-cost p { margin: 0; }
+.st .sr-switch-cap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sr-switch > .sr-note-line { max-width: 78ch; }
+.st .sr-sample-more { display: grid; gap: 12px; margin: -4px 0 16px; }
+.st .sr-sample-conv { display: grid; gap: 12px; }
+.st .sr-sample-tools b { font-size: 13.5px; }
+.st .sr-score-note { margin-top: 10px; }
+@media (max-width: 760px) {
+  .st .sr-match { padding: 12px 14px; }
+  .st .sr-match-body { margin-left: 0; }
+  /* Apply this strategy to: the two choices share the pane's width and their words wrap inside them, 36 px or taller. */
+  .st .sr-prefs .sr-scope { justify-items: stretch; }
+  .st .sr-prefs .sr-scope > .st-seg { display: flex; width: 100%; border-radius: 22px; }
+  .st .sr-prefs .sr-scope > .st-seg button { flex: 1 1 0; min-width: 0; height: auto; min-height: 36px; padding: 6px 10px; border-radius: 18px; white-space: normal; line-height: 1.25; }
+  /* The cost limits: one row across the line (four short labels fit at 320 px), 36 px segments. */
+  .st .sr-switch-cap > .st-seg { display: flex; flex-wrap: nowrap; width: 100%; }
+  .st .sr-switch-cap > .st-seg button { flex: 1 1 auto; height: 36px; padding: 0 8px; }
+}
+
+/* Listed providers under Providers and models (Phase 3 M8) */
+.st .sr-listed { margin-top: 18px; display: grid; gap: 8px; }
+.st .sr-listed .st-toggle b { overflow-wrap: anywhere; }
+
+/* ── model changes (router release AW3): components/router/ModelChanges.tsx ──
+   One change: the summary line (st-row), then a disclosure holding the requests before and after as Recent activity
+   shows them (ActivityRow in st-rows sr-act). The meta line wraps; model ids ellipsize in the title, with `title`. */
+.st .sr-mc .st-pane-act { flex: 0 1 300px; min-width: 0; }
+.st .sr-mc-key { width: 100%; }
+.st .sr-mc-key .st-field-label { font-size: 12.5px; color: var(--lp-fg3); font-weight: 600; }
+.st .sr-mc-list { display: grid; }
+.st .sr-mc-item { border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.st .sr-mc-item:last-child { border-bottom: 0; }
+.st .sr-mc-item > .st-row { border-bottom: 0; }
+.st .sr-mc-item > .st-row:hover { background: none; }
+.st .sr-mc-meta { white-space: normal; overflow-wrap: anywhere; }
+/* Layer 2 (AW4, on the API's router release A1d): why the pick changed, in one sentence that wraps, never ellipsized. */
+.st .sr-mc-cause { white-space: normal; overflow-wrap: anywhere; color: var(--lp-fg2); line-height: 1.45; }
+.st details.sr-mc-why { margin: -4px 22px 14px calc(22px + 28px + 14px); min-width: 0; }
+.st .sr-mc-why > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; margin: 0; padding: 0 4px 0 0; border-radius: 6px; cursor: pointer; list-style: none; user-select: none; }
+.st .sr-mc-why > summary::-webkit-details-marker { display: none; }
+.st .sr-mc-why > summary::after { content: ''; flex: none; width: 6px; height: 6px; margin-top: -3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); transition: transform .2s var(--lp-ease); }
+.st .sr-mc-why[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.st .sr-mc-why > summary:hover { color: var(--lp-fg2); }
+.st .sr-mc-why > summary:focus-visible { outline: none; box-shadow: var(--st-ring); }
+.st .sr-mc-why > .st-rows { margin-top: 8px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); overflow: hidden; }
+.st .sr-mc-why .st-row { padding: 10px 14px; }
+.st .sr-mc-label { margin: 10px 14px 0; font-size: 12px; line-height: 1.45; color: var(--lp-fg3); overflow-wrap: anywhere; }
+.st .sr-mc-lines { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; line-height: 1.6; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .sr-mc-line { margin: 0; font-size: 14px; line-height: 1.6; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .sr-mc-foot { display: grid; gap: 8px; justify-items: start; }
+.st .sr-mc-foot > .st-btn { margin-top: 2px; }
+@media (max-width: 760px) {
+  .st .sr-mc .st-pane-act { flex: 1 1 100%; }
+  /* The kind's tag goes under the change on a phone, so the models' names keep the row's width. */
+  .st .sr-mc-item > .st-row { grid-template-columns: auto minmax(0, 1fr); row-gap: 6px; }
+  .st .sr-mc-item > .st-row > .st-row-end { grid-column: 2; justify-content: flex-start; }
+  .st details.sr-mc-why { margin: -2px 16px 12px; }
+  .st .sr-mc-why > summary { min-height: 36px; }
+  .st .sr-mc-why .st-row { padding: 10px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st .sr-mc-why > summary::after { transition: none; }
+}

@@ -19,7 +19,8 @@ export const dynamic = 'force-dynamic';
 
 const intro = (d: string): CSSProperties => ({ '--d': d } as CSSProperties);
 
-export default async function AssessmentConfirmed({ searchParams }: { searchParams?: { session_id?: string } }) {
+export default async function AssessmentConfirmed(props: { searchParams?: Promise<{ session_id?: string }> }) {
+  const searchParams = await props.searchParams;
   const sessionId = searchParams?.session_id ?? '';
   let result: Awaited<ReturnType<typeof confirmAssessmentSession>> | null = null;
   if (/^cs_(live|test)_[A-Za-z0-9]+$/.test(sessionId)) {

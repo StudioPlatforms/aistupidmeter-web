@@ -70,7 +70,9 @@ function CategoryBadge({ category }: { category: string | null }) {
 }
 
 /** A model id as its display name when the public model list knows it, else the id itself. */
-function ModelName({ id, names }: { id: string; names: Record<string, string> }) {
+function ModelName({ id, names, label }: { id: string; names: Record<string, string>; label?: string }) {
+  // M8: a listed host's row carries "<Host> · <model> (listed host)" (the API's providerLabel), shown over its mp/ id.
+  if (label) return <span className="sa-name" title={id}>{label}</span>;
   return names[id] ? <span className="sa-name" title={id}>{names[id]}</span> : <span className="sa-id">{id}</span>;
 }
 
@@ -426,7 +428,7 @@ function MonitoringPageContent() {
                           {activity.map(a => (
                             <tr key={a.id}>
                               <td className="sa-c-end" data-label="Status">{a.success ? <Tag tone="good">OK</Tag> : <Tag tone="bad">Failed</Tag>}</td>
-                              <td className="sa-c-head" data-label="Model"><ModelName id={a.model} names={names} /></td>
+                              <td className="sa-c-head" data-label="Model"><ModelName id={a.model} names={names} label={a.providerLabel} /></td>
                               <td className="sa-c-meta" data-label="Category"><CategoryBadge category={a.category} /></td>
                               <td className="sa-c-meta is-num" data-label="Tokens">{(a.tokensIn + a.tokensOut).toLocaleString()}<span className="sa-unit"> tokens</span></td>
                               <td className="sa-c-meta is-num" data-label="Cost">${a.cost}</td>
@@ -572,7 +574,7 @@ function MonitoringPageContent() {
                                 <td className="sa-c-head" data-label="Key">{p.keyName}</td>
                                 <td className="sa-c-meta" data-label="Category"><CategoryBadge category={p.category} /></td>
                                 <td className="sa-c-wide" data-label="Prompt preview"><p className="sa-prompt" title={p.promptPreview}>{p.promptPreview}</p></td>
-                                <td className="sa-c-meta" data-label="Model"><ModelName id={p.model} names={names} /></td>
+                                <td className="sa-c-meta" data-label="Model"><ModelName id={p.model} names={names} label={p.providerLabel} /></td>
                                 <td className="sa-c-meta is-num" data-label="Cost">${p.cost}</td>
                                 <td className="sa-c-end is-num is-dim sa-when" data-label="Time" title={new Date(p.timestamp).toLocaleString()}>{when(p.timestamp)}</td>
                               </tr>

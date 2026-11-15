@@ -81,7 +81,7 @@ const TOC = [
 ];
 const num = (id: string) => tocNumber(TOC, id);
 
-export default async function AiDegradationTrackerPage(): Promise<JSX.Element> {
+export default async function AiDegradationTrackerPage(): Promise<React.JSX.Element> {
   const data = await getTrackerData();
   const c = trackerCounts(data);
   const stamp = data.asOf ? utcStamp(data.asOf) : null;

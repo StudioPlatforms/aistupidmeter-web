@@ -617,12 +617,25 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-js .lp-up.is-in { opacity: 1; transform: none; }
 
 /* ── responsive ── */
-/* Seven links fit from 1280px; narrower, the last one (Investors) is left to the footer and the phone menu. */
+/* The header's eight links all fit from 1440px. Narrower, links leave in a fixed order so that
+   Providers and Investors stay in view down to 1180px: Drift (an anchor on this page) below 1440px,
+   Methodology as well below 1280px. Below 1180px the first five show, as before. Providers and
+   Investors stay in the phone menu and the footer at every width.
+   From 1180px to 1439px the links sit closer: at 1280px the seven need it to stay on one line, with
+   room left for a 17px Windows scrollbar (measured with CDP). */
+@media (max-width: 1439px) {
+  .lp-links a { padding-inline: 10px; }
+  .lp-links a:nth-child(2) { display: none; }
+}
 @media (max-width: 1279px) {
-  .lp-links a:nth-child(n+7) { display: none; }
+  .lp-links a:nth-child(6) { display: none; }
+}
+@media (max-width: 1179px) {
+  .lp-links a { padding-inline: 12px; }
+  .lp-links a:nth-child(2) { display: block; }
+  .lp-links a:nth-child(n+6) { display: none; }
 }
 @media (max-width: 1180px) {
-  .lp-links a:nth-child(n+6) { display: none; }
   .lp-hero-row { grid-template-columns: minmax(0, 1fr); }
   .lp-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 44px; border-bottom: 1px solid var(--lp-line); }
   .lp-facts > div { grid-template-columns: minmax(0, 1fr); row-gap: 10px; border-bottom: 0; padding: 22px 22px 22px 0; align-items: start; }

@@ -11,7 +11,7 @@
  * bypasses it.
  */
 import Stripe from 'stripe';
-import { planForPriceId } from '@/lib/stripe-plans';
+import { REFUND_DAYS, planForPriceId } from '@/lib/stripe-plans';
 import { isPlan, type Plan } from '@/lib/entitlements';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-09-30.clover' });
@@ -43,6 +43,16 @@ export interface StripeSubscriptionRecord {
   discounted: boolean;
   latestInvoiceId: string | null;
   invoice?: { attempts: number; nextAttemptAt: string | null; amountDue: number };
+  /** Started paid by Checkout (metadata asl_start, from 2026-11-13; lib/paid-start.ts). */
+  paidStart: boolean;
+  /** When its 7-day refund window closes, if its checkout offered one. */
+  refundUntil: string | null;
+  /** Cancel and refund asked for (metadata asl_refund_requested_at). */
+  refundRequestedAt: string | null;
+  /** A plan change waiting for its payment (change-plan, pending_if_incomplete). */
+  pendingUpdate: { expiresAt: string | null; plan: Plan | null } | null;
+  /** What its latest invoice collected, read only while its refund window is open. */
+  paidCents?: number;
 }
 
 export interface StripeSnapshot {
@@ -103,6 +113,12 @@ function record(s: Stripe.Subscription): StripeSubscriptionRecord {
     cancelReason: raw.cancellation_details?.reason ?? null,
     discounted: Array.isArray(raw.discounts) ? raw.discounts.length > 0 : !!raw.discount,
     latestInvoiceId: typeof s.latest_invoice === 'string' ? s.latest_invoice : s.latest_invoice?.id ?? null,
+    paidStart: !!s.metadata?.asl_start,
+    refundUntil: s.metadata?.asl_refund === '7d' && typeof raw.start_date === 'number' ? iso(raw.start_date + REFUND_DAYS * 86_400) : null,
+    refundRequestedAt: s.metadata?.asl_refund_requested_at || null,
+    pendingUpdate: raw.pending_update
+      ? { expiresAt: iso(raw.pending_update.expires_at), plan: planForPriceId(raw.pending_update.subscription_items?.[0]?.price?.id) }
+      : null,
   };
 }
 
@@ -111,6 +127,17 @@ async function load(): Promise<StripeSnapshot> {
   for await (const s of stripe.subscriptions.list({ status: 'all', limit: 100, expand: ['data.customer'] })) {
     subscriptions.push(record(s));
   }
+
+  // A paid start inside its refund window: what it collected, for the admin's "refundable" line.
+  const nowIso = new Date().toISOString();
+  await Promise.all(subscriptions
+    .filter(s => s.status === 'active' && s.refundUntil && s.refundUntil > nowIso && s.latestInvoiceId)
+    .map(async s => {
+      try {
+        const inv = await stripe.invoices.retrieve(s.latestInvoiceId!);
+        s.paidCents = inv.status === 'paid' ? inv.amount_paid ?? 0 : 0;
+      } catch { /* the row shows the list price */ }
+    }));
 
   // A charge that failed: how many times Stripe has tried and when it tries next.
   await Promise.all(subscriptions

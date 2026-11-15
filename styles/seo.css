@@ -66,3 +66,9 @@
   .lp .seo-bars { grid-template-columns: repeat(48, minmax(0, 1fr)); }
   .lp .seo-bars i:nth-child(-n+120) { display: none; }
 }
+
+/* M9: /leaderboard's hosted rows (components/seo/leaderboard/LeaderboardHosted.tsx), fetched in the browser. */
+.lp .lp-hosted { margin-top: 18px; }
+.lp .lp-hosted .seo-table tr.is-paused td { opacity: .58; }
+.lp .lp-hosted .lp-hosted-name { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.lp .lp-hosted .seo-table-note { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--lp-fg3); }

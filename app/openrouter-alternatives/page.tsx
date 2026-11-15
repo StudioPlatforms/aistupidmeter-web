@@ -57,7 +57,7 @@ const TOC = [
 ];
 const num = (id: string) => tocNumber(TOC, id);
 
-export default async function OpenRouterAlternativesPage(): Promise<JSX.Element> {
+export default async function OpenRouterAlternativesPage(): Promise<React.JSX.Element> {
   const roster = await getRoster();
   const providerCount = VENDORS.filter((v) => modelsOfVendor(roster, v.key).length > 0).length;
   const asl = aslEntry(providerCount, roster.length);

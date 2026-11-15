@@ -134,7 +134,7 @@ export function aslEntry(providerCount: number, modelCount: number): RouterEntry
     name: 'AI Stupid Level Smart Router',
     url: '/router',
     what: `An AI router with an OpenAI-compatible endpoint and a native Anthropic Messages endpoint, in front of ${reach}, all tested on the same tasks on the same schedule.`,
-    picks: `Its ${MODE_COUNT} auto-* modes rank on the public benchmark boards for coding, reasoning, tool use or all three, re-tested ${CADENCE}, or on response time, price or a split you set. Statistical ties go to your tie-break, cheapest per task by default. The value modes pick within ${VALUE_FLOOR_POINTS} points of the best, then the lowest cost of a scored run. A model whose drift detector has fired, or that has an open canary incident, moves behind the healthy ones, and every response names the model and why it won.`,
+    picks: `Its ${MODE_COUNT} auto-* modes rank on the public benchmark boards for coding, reasoning, tool use or all three, re-tested ${CADENCE}, or on response time, price or a split you set. Statistical ties go to your tie-break, cost per task by default. The value modes pick within ${VALUE_FLOOR_POINTS} points of the best, then the lowest cost of a scored run. A model whose drift detector has fired, or that has an open canary incident, moves behind the healthy ones, and every response names the model and why it won.`,
     hosting: 'Hosted. Requests go to each provider with your own key; nothing is resold.',
     pricing: `No markup on tokens: providers bill you directly at their own list price. Free: ${FREE_ROUTER}. ${PAID_ROUTER}. Past an allowance, ${CREDITS}.`,
     keys: `Always your own provider keys, stored encrypted with ${KEY_CIPHER}, at every volume.`,

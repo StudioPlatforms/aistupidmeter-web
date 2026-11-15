@@ -1,5 +1,6 @@
 import { slugifyModelName } from './model-slug';
 import { statisticalRanks } from './board-ranks';
+import { mergeHosted, type HostedFields } from './board-merge';
 
 export { statisticalRanks };
 
@@ -23,6 +24,10 @@ export { statisticalRanks };
  *                (never "coding only", which read as if only coding were community-funded).
  *   other      — not ranked for any other reason (stale, too few suites); the API's
  *                staleReason says why.
+ *   hosted     — M9 (Phase 3 plan §7.1): models served by independent inference providers, measured with
+ *                our tests through each host's own API (GET /api/marketplace/boards/<period>, merged by
+ *                lib/board-merge.ts). Ranked among themselves; they join the ranked group only under the
+ *                published criteria, which no row meets in Phase 3. Never called "community".
  */
 
 export type BoardKey = 'combined' | 'coding' | 'reasoning' | 'tooling';
@@ -75,6 +80,12 @@ export interface BoardRow {
   note: string | null;
   /** For an unranked row: the date of the measurement shown ("24 Sep") or "not ranked" (Combined). */
   when: string | null;
+  /** M9: a hosted row's host, open model, entry page, and whether it joined the main ranking or is paused (§7.1). */
+  host?: HostedFields['host'];
+  openModel?: HostedFields['openModel'];
+  href?: string;
+  joined?: boolean;
+  paused?: boolean;
 }
 
 export interface Board {
@@ -83,6 +94,8 @@ export interface Board {
   ranked: BoardRow[];
   community: BoardRow[];
   other: BoardRow[];
+  /** M9: models hosted by independent providers, ranked among themselves (empty while none is shown). */
+  hosted: BoardRow[];
   /** How many models share first place. */
   tiedForFirst: number;
 }
@@ -122,7 +135,7 @@ export function buildBoard(key: BoardKey, raw: any[]): Board {
   const counts = new Map<number, number>();
   ranks.forEach((r) => counts.set(r, (counts.get(r) ?? 0) + 1));
 
-  const board: Board = { key, title: BOARD_TITLE[key], ranked: [], community: [], other: [], tiedForFirst: counts.get(1) ?? 0 };
+  const board: Board = { key, title: BOARD_TITLE[key], ranked: [], community: [], other: [], hosted: [], tiedForFirst: counts.get(1) ?? 0 };
   let position = 0;
   for (const m of raw) {
     const score = typeof m.currentScore === 'number' ? m.currentScore : null;
@@ -132,7 +145,7 @@ export function buildBoard(key: BoardKey, raw: any[]): Board {
       ...m,
       community,
       label: m.displayName || m.name,
-      vendor: vendorName(m.provider),
+      vendor: m.host && typeof m.host.name === 'string' ? m.host.name : vendorName(m.provider),
       slug: slugifyModelName(m.name) || String(m.id),
       score,
       note: null as string | null,
@@ -157,16 +170,61 @@ export function buildBoard(key: BoardKey, raw: any[]): Board {
   return board;
 }
 
-/** All four boards from a /dashboard/boards payload. */
-export function buildBoards(data: Record<string, any[]>): Boards {
+/**
+ * The hosted group of one board (§7.1): the API's order (score, the statistical tie broken by price, then the name),
+ * ranked among themselves with the board's statisticalRanks. Paused, under-review and not-yet-rankable rows keep their
+ * place after the ranked ones with rank "–" (paused ones greyed).
+ */
+export function buildHostedGroup(key: BoardKey, raw: any[]): BoardRow[] {
+  const rankable = raw.filter((m) => m.rankable !== false && m.paused !== true && typeof m.currentScore === 'number');
+  const ranks = statisticalRanks(rankable, true);
+  const counts = new Map<number, number>();
+  ranks.forEach((r) => counts.set(r, (counts.get(r) ?? 0) + 1));
+  let position = 0;
+  return raw.map((m) => {
+    const score = typeof m.currentScore === 'number' ? m.currentScore : null;
+    const base = {
+      ...m,
+      community: [],
+      label: m.displayName || m.name,
+      vendor: m.host && typeof m.host.name === 'string' ? m.host.name : vendorName(m.provider),
+      slug: slugifyModelName(m.name) || String(m.id),
+      score,
+      note: null as string | null,
+      when: null as string | null,
+      rank: null as number | null,
+      rankText: '–',
+      top: false,
+    } as BoardRow;
+    if (rankable.includes(m)) {
+      position++;
+      const r = ranks.get(String(m.id)) ?? position;
+      const tied = (counts.get(r) ?? 0) > 1;
+      return { ...base, rank: r, rankText: `${tied ? '=' : ''}${r}`, note: shortCoverage(m.coverage) };
+    }
+    return { ...base, when: m.paused ? 'paused' : score === null ? 'no data' : 'not ranked' };
+  });
+}
+
+/** One board with its hosted rows (M9): joined rows merged into the fleet's order, the others as the hosted group. */
+export function buildBoardWithHosted(key: BoardKey, rawFleet: any[], rawHosted: unknown): Board {
+  const m = mergeHosted(rawFleet, rawHosted);
+  const board = buildBoard(key, m.fleet);
+  board.hosted = buildHostedGroup(key, m.hosted);
+  return board;
+}
+
+/** All four boards from a /dashboard/boards payload (and, M9, the boards' hosted rows). */
+export function buildBoards(data: Record<string, any[]>, hosted?: Record<string, unknown> | null): Boards {
   const out = {} as Boards;
-  for (const k of BOARD_KEYS) out[k] = buildBoard(k, Array.isArray(data?.[k]) ? data[k] : []);
+  for (const k of BOARD_KEYS) out[k] = buildBoardWithHosted(k, Array.isArray(data?.[k]) ? data[k] : [], hosted?.[k]);
   return out;
 }
 
 /** A model's place on one board: ranked (with its rank among the ranked), community-funded, or neither. */
 export type Standing =
   | { kind: 'ranked'; row: BoardRow; rankedCount: number; tied: boolean }
+  | { kind: 'hosted'; row: BoardRow }
   | { kind: 'community'; row: BoardRow }
   | { kind: 'other'; row: BoardRow }
   | { kind: 'absent' };
@@ -178,6 +236,8 @@ export function standingOnBoard(board: Board, id: string): Standing {
   if (c) return { kind: 'community', row: c };
   const o = board.other.find((x) => x.id === id);
   if (o) return { kind: 'other', row: o };
+  const h = board.hosted.find((x) => x.id === id);
+  if (h) return { kind: 'hosted', row: h };
   return { kind: 'absent' };
 }
 

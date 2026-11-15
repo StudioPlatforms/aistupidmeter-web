@@ -1,15 +1,34 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { BOARD_KEYS, buildBoard, type BoardKey, type Boards } from './boards-core';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { BOARD_KEYS, buildBoardWithHosted, type BoardKey, type Boards } from './boards-core';
 
 export * from './boards-core';
 
 const API_BASE = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
 const REFRESH_MS = 5 * 60 * 1000;
+const HOSTED_PERIODS = new Set(['latest', '24h', '7d', '1m']);
+
+/**
+ * M9 (Phase 3 plan §7.1, MD21): the boards' hosted rows, through the web's public proxy (≤ 60 s cache, no identity),
+ * next to /dashboard/boards. Any failure, the kill switches and the staff phase all read as "no hosted rows": the
+ * fleet boards never wait for, or break on, this fetch.
+ */
+export async function fetchHostedBoards(period: string): Promise<Record<string, unknown[]> | null> {
+  if (!HOSTED_PERIODS.has(period)) return null;
+  try {
+    const r = await fetch(`/api/marketplace/boards/${period}`, { signal: AbortSignal.timeout(8_000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && j.success && j.data && typeof j.data === 'object' ? (j.data as Record<string, unknown[]>) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function useBoards(period: string, enabled = true) {
-  const [boards, setBoards] = useState<Boards | null>(null);
+  const [fleet, setFleet] = useState<Record<string, any[]> | null>(null);
+  const [hosted, setHosted] = useState<Record<string, unknown[]> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const seq = useRef(0);
@@ -20,14 +39,14 @@ export function useBoards(period: string, enabled = true) {
     const load = async () => {
       const mine = ++seq.current;
       setLoading(true);
+      // The hosted rows on their own: they arrive when they arrive and never hold up the fleet's boards.
+      fetchHostedBoards(period).then((h) => { if (!cancelled && mine === seq.current) setHosted(h); });
       try {
         const r = await fetch(`${API_BASE}/dashboard/boards?period=${encodeURIComponent(period)}`);
         const j = await r.json();
         if (cancelled || mine !== seq.current) return;
         if (!j?.success || !j.data) throw new Error('bad response');
-        const next = {} as Boards;
-        for (const k of BOARD_KEYS) next[k] = buildBoard(k, Array.isArray(j.data[k]) ? j.data[k] : []);
-        setBoards(next);
+        setFleet(j.data);
         setError(false);
       } catch {
         if (!cancelled && mine === seq.current) setError(true);
@@ -40,6 +59,13 @@ export function useBoards(period: string, enabled = true) {
     return () => { cancelled = true; clearInterval(t); };
   }, [period, enabled]);
 
+  const boards = useMemo(() => {
+    if (!fleet) return null;
+    const next = {} as Boards;
+    for (const k of BOARD_KEYS) next[k] = buildBoardWithHosted(k, Array.isArray(fleet[k]) ? fleet[k] : [], hosted?.[k]);
+    return next;
+  }, [fleet, hosted]);
+
   return { boards, loading, error };
 }
 
@@ -49,6 +75,9 @@ export function standingOn(boards: Boards, k: BoardKey, id: string): { v: string
   if (r) return { v: r.rankText, sub: `score ${r.score}`, ranked: true };
   const c = boards[k].community.find((x) => x.id === id);
   if (c) return { v: '—', sub: k === 'combined' ? 'not ranked' : `${c.score} on ${c.when}`, ranked: false };
+  // M9: a hosted row's place among the hosted rows only (it is not in the main ranking).
+  const h = boards[k].hosted.find((x) => x.id === id);
+  if (h) return { v: h.rank === null ? '—' : h.rankText, sub: h.score === null ? 'hosted · no score' : `hosted · score ${h.score}`, ranked: false };
   return { v: '—', sub: 'not ranked', ranked: false };
 }
 

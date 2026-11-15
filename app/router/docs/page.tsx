@@ -88,7 +88,7 @@ const STRATEGIES: Array<{ id: string; cat: string; desc: string }> = [
   { id: 'auto-coding', cat: 'Coding', desc: 'Best for code generation, debugging, refactoring' },
   { id: 'auto-reasoning', cat: 'Reasoning', desc: 'Best for complex analysis, math, logic' },
   { id: 'auto-consistent', cat: 'Consistency', desc: 'Among models within 5 points of the best one you can use, the one whose score swings least from run to run' },
-  { id: 'auto-fastest-quality', cat: 'Speed', desc: 'Among models within 5 points of the best one you can use, the fastest (measured latency) — auto-fastest has no quality bar' },
+  { id: 'auto-fastest-quality', cat: 'Speed', desc: 'Among models within 5 points of the best one you can use, one of the fastest (measured latency) — auto-fastest has no quality bar' },
   { id: 'auto-creative', cat: 'Legacy', desc: 'Still accepted and routed as auto-best — there is no creative-writing benchmark' },
   { id: 'auto-cheapest', cat: 'Cost', desc: 'Lowest list price per token among your providers — no quality bar' },
   { id: 'auto-value', cat: 'Value', desc: 'Most combined-score points per measured dollar, among models within 5 points of the best one you can use' },
@@ -99,7 +99,7 @@ const STRATEGIES: Array<{ id: string; cat: string; desc: string }> = [
   { id: 'auto-fastest', cat: 'Speed', desc: 'Lowest latency response time' },
   { id: 'auto-tooling', cat: 'Tool use', desc: 'Best at calling tools correctly — scored on our tool-calling suite' },
   { id: 'auto-agentic', cat: 'Tool use', desc: 'Alias for auto-tooling; "agentic" is what most tools call it' },
-  { id: 'auto-best', cat: 'Overall', desc: 'Best combined score regardless of category; among statistically tied leaders, your tie-break decides (the cheaper by default)' },
+  { id: 'auto-best', cat: 'Overall', desc: 'Best combined score regardless of category; among statistically tied leaders, your tie-break decides (cost per task by default)' },
 ];
 
 const ERRORS: Array<{ http: number; type: string; code: string; desc: string }> = [
@@ -714,8 +714,26 @@ function useSectionInView(ids: string[]) {
   return { active, jump };
 }
 
+/**
+ * Whether this visitor can use listed hosts' `mp/` ids (Phase 3 M8): the signed-in account's GET /router/marketplace
+ * answers 200, or the public provider directory is open. Until then (a staff preview) the paragraph is not on the page,
+ * so the reference never describes what a reader cannot use.
+ */
+function useListedHostsShown(): boolean {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    let live = true;
+    fetch('/api/router/marketplace', { cache: 'no-store' }).then(r => { if (live && r.ok) setShown(true); }).catch(() => {});
+    fetch('/api/marketplace/providers').then(r => (r.ok ? r.json() : null))
+      .then(j => { if (live && j?.success === true && j.data != null && j.unavailable !== true) setShown(true); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+  return shown;
+}
+
 export default function DocsPage() {
   const { active, jump } = useSectionInView(SECTION_IDS);
+  const listedShown = useListedHostsShown();
   const chipsRef = useRef<HTMLElement>(null);
 
   // Keep the active chip in view in the sideways row (scrolls the row only, never the page).
@@ -945,13 +963,25 @@ export default function DocsPage() {
                       <strong>Direct pin routing:</strong> Send any real model ID (<C>GET /v1/models</C> lists them all) to bypass the strategy
                       router and forward directly to that provider.
                     </p>
+                    {listedShown && (
+                      <p>
+                        <strong>Listed hosts (<C>mp/</C> ids):</strong> a model of an independent host listed on AI Stupid Level is named{' '}
+                        <C>mp/&lt;host&gt;/&lt;model&gt;</C>, for example <C>mp/together/deepseek-v4-pro</C>. It needs your own key at that host, added under
+                        Listed providers on the <Link href="/router/providers">Providers</Link> page; the request goes to the host with your key, and the host
+                        bills you. <C>GET /v1/models</C> lists the ones your keys reach. Automatic routing chooses a listed host&apos;s model only once it is
+                        measured, and only when Model source in Preferences is Prefer my endpoints. <C>/v1/messages</C> does not serve <C>mp/</C> ids: use{' '}
+                        <C>/v1/chat/completions</C>.
+                      </p>
+                    )}
+                    {/* True however the router scores right now (lib/router-scoring: the estimate and the tie band
+                        can change without a web release, and this page has no API answer to word itself on). */}
                     <p>
-                      <strong>How the best model is chosen:</strong> every model ranks on the average of its last five scored benchmark runs, never on
+                      <strong>How the best model is chosen:</strong> every model ranks on an average of its recent scored benchmark runs, never on
                       a single run. When the leaders are closer than the test can tell apart (within 1.96 times their combined standard error, the
-                      same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among them: the one that
-                      cost least per task in our runs (the default), the fastest, or the highest score. A model you were already routed to stays
-                      while it is still tied, and a conversation stays on the model that answered it, so the pick does not change with every new run.
-                      Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
+                      same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among the leaders by
+                      cost per task in our runs (the default), by speed or by score. A conversation stays on the model that answered it, and with
+                      the cheaper or faster tie-break a model you were already routed to stays while it is still close to the leader, so the pick
+                      does not change with every new run. Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
                     </p>
                     <p>
                       <strong>Near-top strategies</strong> (<C>auto-value*</C>, <C>auto-consistent</C>, <C>auto-fastest-quality</C>) only choose among models

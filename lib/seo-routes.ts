@@ -48,6 +48,7 @@ export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/docs/teams', file: 'app/docs/teams/page.tsx', changeFrequency: 'monthly', priority: 0.6, family: 'core' },
   { path: '/assessment', file: 'app/assessment/page.tsx', changeFrequency: 'monthly', priority: 0.6, family: 'core' },
   { path: '/contact', file: 'app/contact/page.tsx', changeFrequency: 'yearly', priority: 0.4, family: 'core' },
+  { path: '/inference-providers', file: 'app/inference-providers/page.tsx', changeFrequency: 'monthly', priority: 0.5, family: 'core' },
   { path: '/investors', file: 'app/investors/page.tsx', changeFrequency: 'monthly', priority: 0.5, family: 'core' },
   { path: '/privacy', file: 'app/privacy/page.tsx', changeFrequency: 'yearly', priority: 0.3, family: 'core' },
   { path: '/terms', file: 'app/terms/page.tsx', changeFrequency: 'yearly', priority: 0.3, family: 'core' },
@@ -176,8 +177,36 @@ export function pairRoutes(roster: SeoModel[], boards: SeoBoards | null): Sitema
 export const integrationRoutes = (tools: string[] = ROUTER_INTEGRATIONS): SitemapEntry[] =>
   tools.map((t): SitemapEntry => ({ url: `${SITE}/router/integrations/${t}`, changeFrequency: 'monthly', priority: 0.6 }));
 
+/**
+ * The indexable marketplace pages (Phase 3 plan §4.8, rev: S13), from the API's public directory: a provider page
+ * once one of its listings is measured, a measured entry page, an open-model page with a measured host. Pages that
+ * are noindex (not measured yet, delisted, a staff preview) are never in the sitemap. Empty before the opening.
+ */
+export interface MarketplaceDirectoryRow { slug: string; measured: boolean; measuredEntries?: string[]; openModels?: string[] }
+/**
+ * The provider terms pages (Phase 3 plan §4.8 "Sitemap", M10): listed only once provider accounts are open to everyone
+ * (`termsOpen`: the API's status route says sign-up is open, ASL_MARKETPLACE=on). Until then they are the site's 404
+ * for the public, and the closed directory answers an empty list, so the directory alone cannot tell.
+ */
+export const PROVIDER_TERMS_PAGES: readonly string[] = Object.freeze([
+  '/inference-providers/agreement', '/inference-providers/ranking-criteria', '/inference-providers/logo-standards', '/inference-providers/router-signature',
+]);
+export function marketplaceRoutes(directory: MarketplaceDirectoryRow[] | null, termsOpen = false): SitemapEntry[] {
+  const out: SitemapEntry[] = termsOpen ? PROVIDER_TERMS_PAGES.map(path => ({ url: `${SITE}${path}`, changeFrequency: 'monthly' as const, priority: 0.4 })) : [];
+  if (!directory) return out;
+  const models = new Set<string>();
+  for (const p of directory) {
+    if (!p.measured || !/^[a-z0-9-]{1,64}$/.test(p.slug)) continue;
+    out.push({ url: `${SITE}/inference-providers/${p.slug}`, changeFrequency: 'daily', priority: 0.6 });
+    for (const e of p.measuredEntries ?? []) if (/^\/inference-providers\/[a-z0-9-]+\/[a-z0-9-]+$/.test(e)) out.push({ url: `${SITE}${e}`, changeFrequency: 'daily', priority: 0.5 });
+    for (const m of p.openModels ?? []) models.add(m);
+  }
+  for (const m of Array.from(models)) if (/^[a-z][a-z0-9-]{1,63}$/.test(m)) out.push({ url: `${SITE}/models/${m}`, changeFrequency: 'daily', priority: 0.6 });
+  return out;
+}
+
 /** Every sitemap entry, in family order, each URL once. Works with an empty roster and null boards. */
-export function allRoutes(roster: SeoModel[], boards: SeoBoards | null): SitemapEntry[] {
+export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, directory: MarketplaceDirectoryRow[] | null = null, termsOpen = false): SitemapEntry[] {
   const all = [
     ...staticRoutes(),
     ...bestRoutes(),
@@ -188,6 +217,7 @@ export function allRoutes(roster: SeoModel[], boards: SeoBoards | null): Sitemap
     ...integrationRoutes(),
     ...modelRoutes(roster, boards),
     ...pairRoutes(roster, boards),
+    ...marketplaceRoutes(directory, termsOpen),
   ];
   const seen = new Set<string>();
   return all.filter((e) => (seen.has(e.url) ? false : (seen.add(e.url), true)));

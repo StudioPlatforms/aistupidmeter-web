@@ -9,6 +9,8 @@ import JsonLd from '@/components/seo/JsonLd';
 import { AsOf } from '@/components/seo/Verdict';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { ClusterTags } from '@/components/seo/routers/RouterBlocks';
+import { routerPageSnapshot } from '@/components/seo/router/live-reasoning';
+import { landingFastestQualityRow, landingFaqScoring, landingLeadScoring, landingTieRow, scoringOf, type RouterScoring } from '@/lib/router-scoring';
 import { PLANS, ROUTER_CREDITS, type Plan } from '@/lib/entitlements';
 import { monthly, planName, priceNumber } from '@/lib/pricing-display';
 import { ORG_ID, SITE, breadcrumbLd, faqLd, graphLd, isoDay, utcStamp, webPageLd } from '@/lib/seo';
@@ -69,14 +71,18 @@ const VALUE_FLOOR_POINTS = 5;
 /** apps/api/src/router/lib/circuit-breaker.ts FAILURE_THRESHOLD and COOLDOWN_MS. */
 const CIRCUIT_FAILURES = 5;
 const CIRCUIT_COOLDOWN_S = 60;
-/** apps/api/src/router/selector/estimates.ts RUNS: a quality mode ranks on the mean of a model’s last five scored runs (a tie needs MIN_RUNS_FOR_TIE = 3 of them). */
-const RUNS_AVERAGED = 5;
-/** apps/api/src/router/selector/index.ts addLatencyData: the median of the last 7 days of benchmark runs. */
-const LATENCY_WINDOW_DAYS = 7;
+/*
+ * How a quality mode's score is estimated and which tied leaders a tie-break chooses among follow the router's
+ * live scoring, which the landing snapshot reports from the API's A1 release (lib/router-scoring: until then,
+ * and whenever the snapshot does not say, today's rule, a mean of the newest five results and every tied leader).
+ */
+/*
+ * The API's selector: a model's latency is the
+ * median of its most recent week of benchmark runs, and a value mode's cost the mean cost of its
+ * most recent priced runs. The modes table names those runs, not a number of calendar days.
+ */
 /** apps/api/src/router/selector/index.ts: best_consistent's spread is read over the last 14 days. */
 const SPREAD_WINDOW_DAYS = 14;
-/** apps/api/src/router/selector/index.ts: a value mode's cost is the mean of one run's cost over 30 days. */
-const COST_WINDOW_DAYS = 30;
 /** apps/api/src/router/selector/production-signals.ts SIGNAL_WINDOW_DAYS. */
 const FEEDBACK_DAYS = 14;
 /** apps/api/src/router/proxy/index.ts ROUTER_BODY_LIMIT. */
@@ -91,29 +97,6 @@ const n = (x: number) => x.toLocaleString('en-US');
 const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
 const word = (x: number): string => WORDS[x] ?? n(x);
 
-/**
- * The router's own reasoning strings (apps/api/src/router/selector/index.ts generateReasoningMessage)
- * say "Ranked #1 of N", "over its last 5 measured runs" and "per measured task". The owner's copy
- * rules keep "#1" and "measured" (of scores) off the marketing pages, so the live block shows the
- * same facts in the boards' words. The API text is unchanged; only this page's rendering of it.
- */
-const scrubReasoning = (t: string): string => t
-  .replace(/Ranked #1 of/g, 'Ranked first of')
-  .replace(/\bmeasured runs\b/g, 'scored runs')
-  .replace(/\bper measured task\b/g, 'per task')
-  .replace(/\bper measured dollar\b/g, 'per dollar')
-  .replace(/\bLast measured\b/g, 'Last run');
-
-function scrubSnapshot(snapshot: LandingSnapshot): LandingSnapshot {
-  const strategies: LandingSnapshot['strategies'] = {};
-  for (const k of Object.keys(snapshot.strategies)) {
-    const st = snapshot.strategies[k];
-    strategies[k] = st
-      ? { ...st, primary: { ...st.primary, reasoning: scrubReasoning(st.primary.reasoning) }, rows: st.rows.map((r) => (r.note ? { ...r, note: scrubReasoning(r.note) } : r)) }
-      : st;
-  }
-  return { ...snapshot, strategies };
-}
 /** The owner's free-tier sentence, with every number read from the plan table. */
 const FREE_TIER = `Free account: every ranking over 24 hours, 7 days and ${FREE.historyDays} days, a ${FREE.watchedModels}-model watchlist with email alerts, ${n(FREE.routerRequestsPerMonth)} routed requests a month and a Data API key. No card.`;
 
@@ -129,12 +112,13 @@ const MODES: Mode[] = [
   { id: 'auto-coding', ranks: 'The Coding board: repository bug fixes graded by running the project’s own tests, every four hours.', more: { label: 'Best LLM for coding', href: '/best-llm-for-coding' } },
   { id: 'auto-reasoning', ranks: 'The Reasoning board: long, multi-turn working sessions, daily.', more: { label: 'Best LLM for reasoning', href: '/best-llm-for-reasoning' } },
   { id: 'auto-tooling', ranks: 'The Tool use board: sandboxed agent tasks with real tools, daily.', more: { label: 'Best AI model for agents', href: '/best-ai-model-for-agents' } },
-  { id: 'auto-value', ranks: `Among models within ${VALUE_FLOOR_POINTS} points of the best Combined score, the most points per dollar of one coding run, averaged over ${COST_WINDOW_DAYS} days. Not list price: what the run cost that model.`, more: { label: 'Best value AI model', href: '/best-value-ai-model' } },
+  { id: 'auto-value', ranks: `Among models within ${VALUE_FLOOR_POINTS} points of the best Combined score, the most points per dollar of one coding run, with each model’s cost from its most recent priced runs. Not list price: what the run cost that model.`, more: { label: 'Best value AI model', href: '/best-value-ai-model' } },
   { id: 'auto-value-coding', ranks: `The same rule on the Coding board: within ${VALUE_FLOOR_POINTS} points of the best, then points per dollar of one coding run.`, more: DOCS_MODES },
   { id: 'auto-value-reasoning', ranks: `Within ${VALUE_FLOOR_POINTS} points of the best Reasoning score, then points per dollar of one reasoning session.`, more: DOCS_MODES },
   { id: 'auto-value-tooling', ranks: `Within ${VALUE_FLOOR_POINTS} points of the best Tool use score, then points per dollar of one tool-use session.`, more: DOCS_MODES },
-  { id: 'auto-fastest-quality', ranks: `Within ${VALUE_FLOOR_POINTS} points of the best Combined score, then the lowest median response time over the last ${LATENCY_WINDOW_DAYS} days of benchmark runs.`, more: { label: 'Fastest AI model', href: '/fastest-ai-model' } },
-  { id: 'auto-fastest', ranks: `The lowest response time outright: the ${LATENCY_WINDOW_DAYS}-day median of benchmark runs, blended with what production observed.`, more: DOCS_MODES },
+  // Its rule follows the router's live estimator (lib/router-scoring landingFastestQualityRow), filled in at render.
+  { id: 'auto-fastest-quality', ranks: '', more: { label: 'Fastest AI model', href: '/fastest-ai-model' } },
+  { id: 'auto-fastest', ranks: 'The lowest response time outright: the median of each model’s most recent week of benchmark runs, blended with what production observed.', more: DOCS_MODES },
   { id: 'auto-cheapest', ranks: 'The lowest list price per token, input and output averaged.', more: DOCS_MODES },
   { id: 'auto-consistent', ranks: `Within ${VALUE_FLOOR_POINTS} points of the best, then the smallest run-to-run spread of the coding score over the last ${SPREAD_WINDOW_DAYS} days.`, more: DOCS_MODES },
   { id: 'auto-task', ranks: 'Decided per request from what it contains: code worked on through tools goes to coding and tool use together; other tools to tool use; design, planning or a long session to reasoning; large or demanding code to coding; other code to value for coding; long text to best overall; everything else to best value.', more: DOCS_MODES },
@@ -201,10 +185,12 @@ interface FaqContext {
   interval: number | null;
   /** Models on the leaderboard, by vendor, from /api/models; empty when the roster did not load. */
   perVendor: Array<{ v: Vendor; count: number }>;
+  /** How the router scores right now, from the landing snapshot. */
+  scoring: RouterScoring;
 }
 
 /** The visible Q&As; the same strings feed the FAQPage structured data, so the two cannot disagree. */
-function buildFaq({ interval, perVendor }: FaqContext): FaqItem[] {
+function buildFaq({ interval, perVendor, scoring }: FaqContext): FaqItem[] {
   const total = perVendor.reduce((s, x) => s + x.count, 0);
   const vendorLinks = VENDORS.map((v) => `[${vendorMention(v)}](${v.modelsPath})`);
   const families = `${vendorLinks.slice(0, -1).join(', ')} and ${vendorLinks[vendorLinks.length - 1]}`;
@@ -213,6 +199,7 @@ function buildFaq({ interval, perVendor }: FaqContext): FaqItem[] {
     ? `Every model on the [leaderboard](/): ${total} models from ${perVendor.length} providers as this page was rendered (${counts}), each with its own page under its vendor: ${families}.`
     : `Every model on the [leaderboard](/), from ${families}, each with its own page under its vendor.`;
   const probe = interval ? `every ${interval} minutes` : 'on a fixed schedule';
+  const how = landingFaqScoring(scoring);
   return [
     {
       q: 'What is an LLM router?',
@@ -220,7 +207,7 @@ function buildFaq({ interval, perVendor }: FaqContext): FaqItem[] {
     },
     {
       q: 'How does the Smart Router choose a model?',
-      a: `Each mode names a suite and a rule: auto-coding ranks on the Coding board, auto-reasoning on Reasoning, auto-tooling on Tool use, auto-best on the Combined score (coding 50%, reasoning 25%, tool use 25%). A quality mode uses the average of a model’s last ${RUNS_AVERAGED} scored runs, never one run. Leaders closer than 1.96 times their combined standard error are a statistical tie, and your tie-break decides: cheapest per task by default, or fastest, or highest. The auto-value modes choose among models within ${VALUE_FLOOR_POINTS} points of the best and take the most points per dollar of one scored run; auto-fastest-quality takes the lowest median response time among them. Drift-aware routing then moves any model with a fired Page-Hinkley detector or an open canary incident behind the healthy ones. The X-AISM-Reasoning header on every response says which rule won. The full table is on this page under [how it decides](/router#how).`,
+      a: `Each mode names a suite and a rule: auto-coding ranks on the Coding board, auto-reasoning on Reasoning, auto-tooling on Tool use, auto-best on the Combined score (coding 50%, reasoning 25%, tool use 25%). ${how.average} ${how.tie} The auto-value modes choose among models within ${VALUE_FLOOR_POINTS} points of the best and take the most points per dollar of one scored run; ${how.fastestQuality} Drift-aware routing then moves any model with a fired Page-Hinkley detector or an open canary incident behind the healthy ones. The X-AISM-Reasoning header on every response says which rule won. The full table is on this page under [how it decides](/router#how).`,
     },
     {
       q: 'Do you mark up tokens?',
@@ -249,8 +236,8 @@ function buildFaq({ interval, perVendor }: FaqContext): FaqItem[] {
   ];
 }
 
-export default async function RouterLanding({ snapshot: raw }: { snapshot: LandingSnapshot | null }): Promise<JSX.Element> {
-  const snapshot = raw ? scrubSnapshot(raw) : null;
+export default async function RouterLanding({ snapshot: raw }: { snapshot: LandingSnapshot | null }): Promise<React.JSX.Element> {
+  const snapshot = raw ? routerPageSnapshot(raw) : null;
   const [roster, providers] = await Promise.all([getRoster(), getProviders()]);
   const interval = providers?.meta.checkIntervalMinutes ?? null;
   const perVendor = VENDORS.map((v) => ({ v, count: modelsOfVendor(roster, v.key).length })).filter((x) => x.count > 0);
@@ -261,7 +248,8 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
       })
     : [];
   const providerCount = snapshot?.providerCount || perVendor.length;
-  const faq = buildFaq({ interval, perVendor });
+  const scoring = scoringOf(raw?.scoring);
+  const faq = buildFaq({ interval, perVendor, scoring });
 
   const ld = graphLd([
     breadcrumbLd([{ name: 'Home', path: '/' }, { name: 'Smart Router', path: ROUTER_PATH }]),
@@ -382,7 +370,7 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
           id="how"
           n={num('how')}
           title="How does the Smart Router decide which model to use?"
-          lead={`Each auto-* mode names a benchmark suite and a rule. A quality mode ranks on the average of a model’s last ${RUNS_AVERAGED} scored runs of that suite, never on one run; the near-top modes choose among the models within ${VALUE_FLOOR_POINTS} points of the best one you can use, so a cheaper, faster or steadier pick is never a much weaker one. The boards are the same ones the leaderboard shows.`}
+          lead={`Each auto-* mode names a benchmark suite and a rule. ${landingLeadScoring(scoring)}; the near-top modes choose among the models within ${VALUE_FLOOR_POINTS} points of the best one you can use, so a cheaper, faster or steadier pick is never a much weaker one. The boards are the same ones the leaderboard shows.`}
         >
           <div className="rd-table-wrap lp-up">
             <table className="rd-table rtl-modes">
@@ -394,7 +382,7 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
                 {MODES.map((m) => (
                   <tr key={m.id}>
                     <th scope="row"><code>{m.id}</code></th>
-                    <td>{m.ranks}</td>
+                    <td>{m.id === 'auto-fastest-quality' ? landingFastestQualityRow(scoring, VALUE_FLOOR_POINTS) : m.ranks}</td>
                     <td className="rtl-board"><Link href={m.more.href}>{m.more.label}</Link></td>
                   </tr>
                 ))}
@@ -403,11 +391,7 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
           </div>
           <RdRows rows={[
             ['Statistical ties, your tie-break', <>
-              When the leaders are closer than 1.96 times their combined standard error, the test behind the leaderboard’s
-              &ldquo;=&rdquo; places, they are tied, and your tie-break in Preferences decides: the one that cost least per task in
-              our runs (the default), the fastest, or the highest average. A model you were already routed to stays while it
-              is still tied, and a conversation stays on the model that answered it, so the pick does not change with every
-              new run. The rule is on the <Link href="/methodology#ranks">methodology page</Link>.
+              {`${landingTieRow(scoring)} The rule is on the `}<Link href="/methodology#ranks">methodology page</Link>.
             </>],
             ['Drift-aware by default', <>
               A model whose Page-Hinkley detector (a CUSUM-family test) has fired on the suite your mode relies on, or that has an

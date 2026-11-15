@@ -22,8 +22,9 @@ const VALID_SUITES = new Set(['hourly', 'tooling', 'deep']);
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { modelId: string } }
+  props: { params: Promise<{ modelId: string }> }
 ) {
+  const params = await props.params;
   const session = await auth();
 
   if (!session?.user) {

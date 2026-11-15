@@ -79,12 +79,12 @@ export const MODES: Record<ModeId, Mode> = {
   'auto-coding': { id: 'auto-coding', label: 'Coding', desc: 'Best for code generation, debugging, refactoring', board: 'coding' },
   'auto-reasoning': { id: 'auto-reasoning', label: 'Reasoning', desc: 'Best for complex analysis, math, logic', board: 'reasoning' },
   'auto-tooling': { id: 'auto-tooling', label: 'Tool use', desc: 'Best at calling tools correctly — scored on our tool-calling suite', board: 'tooling' },
-  'auto-best': { id: 'auto-best', label: 'Overall', desc: 'Best combined score regardless of category; among statistically tied leaders, your tie-break decides (the cheaper by default)', board: 'combined' },
+  'auto-best': { id: 'auto-best', label: 'Overall', desc: 'Best combined score regardless of category; among statistically tied leaders, your tie-break decides (cost per task by default)', board: 'combined' },
   'auto-value': { id: 'auto-value', label: 'Value', desc: 'Most combined-score points per measured dollar, among models within 5 points of the best one you can use' },
   'auto-value-coding': { id: 'auto-value-coding', label: 'Value', desc: 'Most coding points per dollar (measured cost of a coding run), near-top models only' },
   'auto-value-reasoning': { id: 'auto-value-reasoning', label: 'Value', desc: 'Most reasoning points per dollar (measured cost of a reasoning run), near-top models only' },
   'auto-value-tooling': { id: 'auto-value-tooling', label: 'Value', desc: 'Most tool-use points per dollar (measured cost of a tool-use run), near-top models only' },
-  'auto-fastest-quality': { id: 'auto-fastest-quality', label: 'Speed', desc: 'Among models within 5 points of the best one you can use, the fastest (measured latency) — auto-fastest has no quality bar' },
+  'auto-fastest-quality': { id: 'auto-fastest-quality', label: 'Speed', desc: 'Among models within 5 points of the best one you can use, one of the fastest (measured latency) — auto-fastest has no quality bar' },
   'auto-consistent': { id: 'auto-consistent', label: 'Consistency', desc: 'Among models within 5 points of the best one you can use, the one whose score swings least from run to run' },
 };
 
@@ -174,7 +174,7 @@ const STEP_PROVIDERS: Step = {
 
 /** What a visitor gets from an OpenAI-compatible tool on the router (docs: Virtual models, Response headers; help: FAQ). */
 export const GETS_ROUTED: [string, Rich][] = [
-  ['Routing on benchmark results', 'A routing mode as the model name sends each request to the model placing highest on the relevant board — coding, reasoning or tool use — ranked on the average of its last five benchmark runs, never a single run. Statistically tied leaders are split by your tie-break preference, the cheaper measured cost per task by default. Drift-aware routing moves a model whose drift detector has fired for that skill behind every unflagged model.'],
+  ['Routing on benchmark results', 'A routing mode as the model name sends each request to the model placing highest on the relevant board — coding, reasoning or tool use — ranked on an average of its recent benchmark runs, never a single run. Statistically tied leaders are split by your tie-break preference: measured cost per task by default. Drift-aware routing moves a model whose drift detector has fired for that skill behind every unflagged model.'],
   ['Your own provider keys', 'You pay OpenAI, Anthropic, Google, DeepSeek, Moonshot AI (Kimi) or Z.ai (GLM) directly for tokens. Provider keys are encrypted at rest (AES-256-GCM) and never shown again.'],
   ['No token markup', `The router adds nothing to token prices. Free includes ${n(FREE.routerRequestsPerMonth)} routed requests a month, and only successful requests count.`],
   ['The model that answered, every time', 'Every response carries `X-AISM-Model` and `X-AISM-Reasoning`: which model answered and why, including any fallback. If the chosen model fails before answering, the router tries your own fallback order, then up to 2 automatic fallbacks from different providers.'],
@@ -1086,7 +1086,7 @@ API Key:  ${KEY_PLACEHOLDER}`,
     modes: ['auto-best', 'auto-value', 'auto-reasoning', 'auto-fastest-quality'],
     caveats: [
       '`fetch: true` fills the menu from `GET /v1/models`, which needs a valid `aism_` key; the `default` list shows the routing modes first.',
-      'Conversation titles use `auto-fastest-quality`: the fastest model among those within 5 points of the best one you can use.',
+      'Conversation titles use `auto-fastest-quality`: one of the fastest models among those within 5 points of the best one you can use.',
       'Embeddings for RAG go through `POST /v1/embeddings`, which requires an active OpenAI provider key.',
       'Text only: a request with images, audio or files gets a `400 unsupported_content`.',
     ],
@@ -1097,7 +1097,7 @@ API Key:  ${KEY_PLACEHOLDER}`,
       },
       {
         q: 'Why auto-fastest-quality for titles?',
-        a: 'A title is a short, cheap request, and `auto-fastest-quality` picks the fastest model among those within 5 points of the best one you can use, so titles come back quickly without dropping to a weak model. The chat itself uses whichever mode you choose in the menu.',
+        a: 'A title is a short, cheap request, and `auto-fastest-quality` picks one of the fastest models among those within 5 points of the best one you can use, so titles come back quickly without dropping to a weak model. The chat itself uses whichever mode you choose in the menu.',
       },
       COST_FAQ,
       {

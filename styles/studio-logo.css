@@ -1,0 +1,63 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · LOGO — a provider's mark as the site draws it: the preview
+   strips, the share-card tile, a hosted board row and the check rows.
+   Used by the logo uploader (/account/provider/logo) and the admin's
+   logo review (Providers tab). components/marketplace/LogoPreview.tsx.
+
+   Every image is a server-rendered PNG on a white tile (HostLogo, styled
+   inline). The two strips carry fixed grounds — the light theme's canvas
+   and the dark theme's — and each sets the hairline its theme uses, so
+   both read the same in either theme. Prefixes mp-lp-, mp-lc-. No motion.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── the strips: light ground, dark ground ───────────────────────── */
+.st .mp-lp-strips { display: grid; gap: 12px; min-width: 0; }
+.st .mp-lp-strip { margin: 0; padding: 14px 16px 10px; border-radius: 14px; min-width: 0; }
+.st .mp-lp-strip.is-light { --lp-line: #e3e6ea; background: #f6f8fc; border: 1px solid #e3e6ea; color: #5f6368; }
+.st .mp-lp-strip.is-dark { --lp-line: #3c4043; background: #202124; border: 1px solid #3c4043; color: #9aa0a6; }
+.st .mp-lp-tiles { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; }
+.st .mp-lp-cell { display: grid; justify-items: center; gap: 6px; min-width: 44px; }
+.st .mp-lp-slot { display: grid; place-items: center; }
+.st .mp-lp-cap { font-size: 11.5px; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.st .mp-lp-strip .mp-lp-cap { color: inherit; }
+.st .mp-lp-ground { margin-top: 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ── the share card's tile ───────────────────────────────────────── */
+.st .mp-lp-large { margin: 0; display: grid; justify-items: center; align-content: start; gap: 8px; }
+.st .mp-lp-large .mp-lp-cap { color: var(--lp-fg3); }
+
+/* ── the safe area: the 1/16 band of clear space around the mark ─── */
+/* Padding in % follows the mark box's width, so 6.25% is 1/16 of the side; the mask keeps the band only. */
+.st .mp-lp-safe { position: absolute; inset: 0; box-sizing: border-box; padding: 6.25%; pointer-events: none;
+  background: rgba(26, 115, 232, .3);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+/* …and the edge of the area the mark may fill. */
+.st .mp-lp-safe-line { position: absolute; inset: 6.25%; box-sizing: border-box; border: 1px dashed rgba(26, 115, 232, .9); pointer-events: none; }
+
+/* ── a hosted board row ──────────────────────────────────────────── */
+.st .mp-lp-row { display: grid; grid-template-columns: 22px 26px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); min-width: 0; }
+.st .mp-lp-rank { font-size: 13px; font-weight: 600; color: var(--lp-fg3); text-align: center; font-variant-numeric: tabular-nums; }
+.st .mp-lp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; font-weight: 600; color: var(--lp-fg); }
+.st .mp-lp-by { font-weight: 500; color: var(--lp-fg2); }
+
+/* ── the checks: ruled rows, a mark, the check, its number ───────── */
+.st .mp-lc { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--lp-line); }
+.st .mp-lc-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; row-gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.st .mp-lc-mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--lp-line2); color: var(--lp-fg3); }
+.st .mp-lc-mark svg { width: 11px; height: 11px; }
+.st .mp-lc-row.is-ok .mp-lc-mark { border-color: var(--lp-good); background: var(--lp-good); color: var(--lp-on-accent); }
+.st .mp-lc-row.is-bad .mp-lc-mark { border-color: var(--lp-bad); color: var(--lp-bad); }
+.st .mp-lc-row.is-review .mp-lc-mark { border-color: var(--lp-warn); color: var(--lp-warn); }
+.st .mp-lc-t { font-size: 14px; font-weight: 600; line-height: 1.4; color: var(--lp-fg); min-width: 0; }
+.st .mp-lc-d { font-size: 13px; line-height: 1.45; color: var(--lp-fg2); text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.st .mp-lc-row.is-bad .mp-lc-d { color: var(--lp-bad); }
+.st .mp-lc-row.is-review .mp-lc-d { color: var(--lp-warn); }
+.st .mp-lc-empty { margin: 0; font-size: 13.5px; color: var(--lp-fg3); }
+@media (max-width: 760px) {
+  .st .mp-lc-row { grid-template-columns: 22px minmax(0, 1fr); }
+  .st .mp-lc-d { grid-column: 2; text-align: left; }
+  .st .mp-lp-strip { padding: 12px 12px 8px; }
+  .st .mp-lp-tiles { gap: 10px 12px; }
+  .st .mp-lp-hb { display: none; }
+}

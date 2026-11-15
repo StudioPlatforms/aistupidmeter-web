@@ -14,7 +14,7 @@ export interface TourStep {
   eyebrow: string;
   title: string;
   body: string[];
-  icon: JSX.Element;
+  icon: React.JSX.Element;
 }
 
 interface TourModalProps {

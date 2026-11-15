@@ -14,6 +14,8 @@ export type ActivationEvent =
   | 'checkout_started'
   | 'subscription_started'
   | 'subscription_cancelled'
+  // Cancel and refund within the 7-day window (lib/paid-start.ts), from 2026-11-13.
+  | 'subscription_refunded'
   | 'digest_sent'
   | 'api_key_created'
   | 'first_routed_request';

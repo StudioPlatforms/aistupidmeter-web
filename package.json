@@ -8,29 +8,33 @@
     "start": "next start"
   },
   "dependencies": {
-    "@auth/core": "^0.40.0",
-    "@auth/drizzle-adapter": "^1.10.0",
+    "@auth/core": "^0.41.3",
+    "@auth/drizzle-adapter": "^1.11.3",
     "@node-saml/node-saml": "^5.1.0",
     "@stripe/stripe-js": "^8.0.0",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/nodemailer": "^7.0.2",
+    "@types/nodemailer": "^8.0.2",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.10.0",
-    "drizzle-orm": "^0.44.6",
-    "next": "^14.0.0",
-    "next-auth": "^5.0.0-beta.29",
-    "nodemailer": "^6.10.1",
+    "drizzle-orm": "^0.45.4",
+    "next": "^15.5.29",
+    "next-auth": "^5.0.0-beta.32",
+    "nodemailer": "^9.1.1",
     "pixelarticons": "^1.8.1",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
+    "react": "^19.2.9",
+    "react-dom": "^19.2.9",
     "recharts": "^2.0.0",
     "stripe": "^19.1.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
     "typescript": "^5.0.0"
+  },
+  "overrides": {
+    "nodemailer": "$nodemailer",
+    "postcss": "^8.5.32"
   }
 }

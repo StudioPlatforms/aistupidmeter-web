@@ -1,0 +1,83 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · ENDPOINT HEALTH — an endpoint's health over time (R6):
+   components/router/EndpointHealth.tsx (the Health dialog) and
+   components/router/NameConflictBanner.tsx (the Providers page
+   banner). Classes are eh-*, scoped under .st, on the --lp-* tokens,
+   so light and dark follow the shell. No animation.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.st .eh-body { gap: 20px; }
+/* a refresh keeps the last answer on screen, dimmed, rather than a loader */
+.st .eh-body.is-stale { opacity: .6; }
+/* the tiles' numbers wrap (value, then "of N") rather than being cut with an ellipsis on a phone */
+.st .eh-body .st-stat-v { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; }
+.st .eh-body .st-stat-v small { white-space: nowrap; }
+.st .eh-sec { display: grid; gap: 10px; min-width: 0; }
+.st .eh-sec > .st-label { margin-bottom: 0; }
+.st .eh-sec > .st-label > span { font-weight: 500; letter-spacing: .04em; text-transform: none; }
+.st .eh-none, .st .eh-note { margin: 0; }
+
+/* ── the strip: one bar per bucket, oldest left ─────────────────────────
+   Height steps with severity and the colour follows, so the bars never
+   rely on colour alone (green and red are close for red-green colour
+   blindness): no requests a tick, no failures short, under 10% failed
+   taller, 10% or more taller still, all failed full height. */
+/* position: the hidden table view (.st-sr is absolutely positioned) stays inside the scrolling dialog body
+   instead of stretching the sheet around it */
+.st .eh-chart { position: relative; display: grid; gap: 8px; min-width: 0; }
+.st .eh-bars { display: grid; grid-template-columns: repeat(var(--n, 48), minmax(0, 1fr)); gap: 2px; height: 40px; align-items: end;
+  border-bottom: 1px solid var(--lp-line2); cursor: default; touch-action: manipulation; }
+.st .eh-bars:focus { outline: none; }
+.st .eh-bars:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 5px; border-radius: 4px; }
+.st .eh-bar { display: flex; align-items: flex-end; height: 100%; min-width: 0; }
+.st .eh-bar i { display: block; width: 100%; border-radius: 2px 2px 0 0; }
+.st .eh-bar.is-none i { height: 3px; background: color-mix(in srgb, var(--lp-fg) 16%, transparent); }
+.st .eh-bar.is-ok i { height: 35%; background: var(--lp-good); }
+.st .eh-bar.is-few i { height: 55%; background: color-mix(in srgb, var(--lp-warn) 60%, var(--lp-good)); }
+.st .eh-bar.is-some i { height: 75%; background: var(--lp-warn); }
+.st .eh-bar.is-all i { height: 100%; background: var(--lp-bad); }
+/* the bar being read stays; the others step back */
+.st .eh-bars.has-sel .eh-bar:not(.is-sel) i { opacity: .32; }
+.st .eh-axis { display: flex; justify-content: space-between; font-size: 11.5px; line-height: 1.3; color: var(--lp-fg3); }
+.st .eh-readout { margin: 0; min-height: 1.5em; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+.st .eh-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; line-height: 1.4; color: var(--lp-fg2); }
+.st .eh-legend li { display: inline-flex; align-items: baseline; gap: 7px; }
+.st .eh-key { display: inline-block; width: 6px; border-radius: 1.5px 1.5px 0 0; }
+.st .eh-key.is-none { height: 3px; background: color-mix(in srgb, var(--lp-fg) 16%, transparent); }
+.st .eh-key.is-ok { height: 5px; background: var(--lp-good); }
+.st .eh-key.is-few { height: 7px; background: color-mix(in srgb, var(--lp-warn) 60%, var(--lp-good)); }
+.st .eh-key.is-some { height: 9px; background: var(--lp-warn); }
+.st .eh-key.is-all { height: 11px; background: var(--lp-bad); }
+
+/* ── recent failures ─────────────────────────────────────────────────── */
+.st .st-table-wrap.eh-table-wrap { border: 1px solid var(--lp-line); border-radius: 14px; }
+.st .st-table.eh-table { font-size: 13.5px; }
+.st .st-table.eh-table :is(td.eh-when, td.eh-src) { white-space: nowrap; }
+.st .st-table.eh-table td.eh-model { max-width: 220px; overflow-wrap: anywhere; }
+
+/* ── the Providers page banner: claimed names a cloud model now also has ─ */
+.st .eh-banner { min-width: 0; }
+.st .eh-conflicts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.st .eh-conflicts li { min-width: 0; }
+.st .eh-conflicts li + li { padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--lp-warn) 25%, var(--lp-line)); }
+.st .eh-conflict-t { margin: 0; overflow-wrap: anywhere; }
+.st .eh-act { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px; }
+.st .eh-act .st-btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; height: auto; min-height: 32px; }
+.st .eh-more { margin-top: 10px; }
+.st .eh-done { margin: 0 0 8px; }
+.st .eh-done:focus { outline: none; }
+.st .eh-done:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; border-radius: 4px; }
+
+/* an endpoint row the banner jumped to (EndpointsPane gives rows the id endpoint-<public id>) */
+.st .ep-row[id] { scroll-margin-top: 96px; scroll-margin-bottom: 24px; }
+.st .ep-row[id]:focus { outline: none; }
+.st .ep-row[data-jumped]:focus { box-shadow: inset 3px 0 0 var(--lp-accent); background: color-mix(in srgb, var(--lp-accent) 5%, transparent); }
+
+@media (max-width: 760px) {
+  .st .eh-body { gap: 16px; }
+  .st .st-table.eh-table td.eh-model { max-width: none; }
+  .st .st-table.eh-table.is-stack td.is-empty { display: none; }
+}
+@media (max-width: 420px) {
+  .st .eh-bars { gap: 1px; }
+}

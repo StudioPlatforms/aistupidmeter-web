@@ -95,7 +95,7 @@ const ld = graphLd([
   faqLd(FAQ),
 ]);
 
-export default function DriftDetectorFalseAlarmPage(): JSX.Element {
+export default function DriftDetectorFalseAlarmPage(): React.JSX.Element {
   return (
     <>
       <JsonLd data={ld} />

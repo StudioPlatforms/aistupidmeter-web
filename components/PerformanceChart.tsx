@@ -61,7 +61,7 @@ interface PerformanceChartProps {
  * Charts mount on view so their draw-in is seen, and skip it for reduced motion. Pass
  * `active = false` while the element is not rendered yet (data still loading).
  */
-export function useChartReveal(ref: RefObject<Element>, active = true): { inView: boolean; reduced: boolean } {
+export function useChartReveal(ref: RefObject<Element | null>, active = true): { inView: boolean; reduced: boolean } {
   const [inView, setInView] = useState(false);
   const [reduced, setReduced] = useState(false);
   useEffect(() => {

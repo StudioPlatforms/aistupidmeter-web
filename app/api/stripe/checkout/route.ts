@@ -7,41 +7,14 @@ import { recordActivation } from '@/lib/activation';
 import { findUserById } from '@/lib/db-client';
 import { ownPlanFor } from '@/lib/entitlements';
 import {
-  isSellablePlan, isInterval, priceIdFor,
+  isSellablePlan, isInterval, priceIdFor, PAID_START,
   type SellablePlan, type Interval,
 } from '@/lib/stripe-plans';
+import { isFirstSubscription, submitMessage } from '@/lib/paid-start';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
 });
-
-/**
- * Trial length comes from the Stripe Price, not from this file.
- *
- * `Price.recurring.trial_period_days` is set in the Stripe dashboard, so the
- * trial can be changed — or given a different length per plan — without a
- * deploy. We read it and pass it through explicitly rather than assuming
- * Checkout inherits it, which makes the behaviour identical either way.
- *
- * Cached briefly: checkout is not hot, but there is no reason to re-fetch the
- * same Price on every click.
- */
-const trialCache = new Map<string, { days: number | null; at: number }>();
-const TRIAL_TTL_MS = 5 * 60_000;
-
-async function trialDaysFor(priceId: string): Promise<number | null> {
-  const hit = trialCache.get(priceId);
-  if (hit && Date.now() - hit.at < TRIAL_TTL_MS) return hit.days;
-  try {
-    const price = await stripe.prices.retrieve(priceId);
-    const days = price.recurring?.trial_period_days ?? null;
-    trialCache.set(priceId, { days, at: Date.now() });
-    return days;
-  } catch (err) {
-    console.error('[Stripe checkout] could not read trial from price', priceId, err);
-    return null; // No trial rather than a wrong one.
-  }
-}
 
 function resolveSelection(searchParams: URLSearchParams, body?: Record<string, unknown>) {
   const rawPlan = body?.plan ?? searchParams.get('plan') ?? 'pro';
@@ -91,6 +64,8 @@ async function liveOffer(code: string, priceId: string): Promise<string | null> 
   }
 }
 
+const TOS_MESSAGE = 'I agree to the [Terms](https://aistupidlevel.info/terms) and ask you to start my plan now.';
+
 async function buildSession(
   plan: SellablePlan, interval: Interval, userId: string, userEmail: string, cancelPath: string,
   existingCustomerId?: string | null, from?: string | null, offer?: string | null,
@@ -100,14 +75,18 @@ async function buildSession(
     throw Object.assign(new Error(`No Stripe price configured for ${plan}/${interval}`), { code: 'unconfigured' });
   }
 
-  const [trialDays, promotionCode] = await Promise.all([
-    trialDaysFor(priceId),
-    offer ? liveOffer(offer, priceId) : Promise.resolve(null),
-  ]);
+  // The 7-day refund is for an account's first subscription (owner, 2026-11-13; lib/paid-start.ts):
+  // nobody who has subscribed before, trial or paid, is offered it, and Checkout's text says which applies.
+  const refundWindow = await isFirstSubscription(Number(userId), existingCustomerId);
+  const promotionCode = offer ? await liveOffer(offer, priceId) : null;
   recordActivation(Number(userId), 'checkout_started', plan, {
-    interval, trialDays, ...(from ? { from } : {}), ...(offer ? { offer, offerApplied: !!promotionCode } : {}),
+    interval, start: 'paid', refundWindow, ...(from ? { from } : {}), ...(offer ? { offer, offerApplied: !!promotionCode } : {}),
   });
 
+  const metadata = { userId, plan, interval, asl_start: PAID_START, asl_refund: refundWindow ? '7d' : 'none' };
+  // Only with the lawyer's wording approved and the Terms URL set in Stripe's Public details:
+  // Stripe refuses a session that asks for consent without one.
+  const tosConsent = process.env.CHECKOUT_TOS_CONSENT === 'on';
   return stripe.checkout.sessions.create({
     mode: 'subscription',
     // One or the other — Stripe rejects both together. Reusing the known
@@ -115,22 +94,19 @@ async function buildSession(
     // record instead of creating a parallel one keyed off the same address.
     ...(existingCustomerId ? { customer: existingCustomerId } : { customer_email: userEmail }),
     line_items: [{ price: priceId, quantity: 1 }],
+    // Cards only, so a completed session always means the money was taken: no method that
+    // settles days later, after the plan has started.
+    payment_method_types: ['card'],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL}/router?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${cancelPath}`,
-    metadata: { userId, plan, interval },
-    subscription_data: {
-      // Only send a trial when the Price actually defines one.
-      ...(trialDays ? { trial_period_days: trialDays } : {}),
-      metadata: { userId, plan, interval },
-      trial_settings: {
-        end_behavior: {
-          // A card is always collected (we never pass payment_method_collection,
-          // and Stripe's default is to collect), so this should never fire. It
-          // is set so the failure mode is defined rather than undefined.
-          missing_payment_method: 'cancel',
-        },
-      },
+    metadata,
+    // No trial_period_days, trial_end or trial_settings: Checkout charges the first period now.
+    subscription_data: { metadata },
+    custom_text: {
+      submit: { message: submitMessage(interval, refundWindow) },
+      ...(tosConsent ? { terms_of_service_acceptance: { message: TOS_MESSAGE } } : {}),
     },
+    ...(tosConsent ? { consent_collection: { terms_of_service: 'required' as const } } : {}),
     // A live offer is applied outright; otherwise the buyer may type a code. Stripe rejects both.
     ...(promotionCode ? { discounts: [{ promotion_code: promotionCode }] } : { allow_promotion_codes: true }),
   });
@@ -172,7 +148,7 @@ export async function GET(request: NextRequest) {
 
     const session = await auth();
     if (!session?.user?.id || !session?.user?.email) {
-      // Someone who picked a plan before having an account (every "Start free trial" on the
+      // Someone who picked a plan before having an account (every "Get <plan>" on the
       // landing page and /pricing for a visitor) makes one, then comes straight back here with
       // the same plan. Sign-up, the confirmation email and sign-in all carry callbackUrl. This
       // used to send them to /auth/signin with nothing, so after signing up they landed on the

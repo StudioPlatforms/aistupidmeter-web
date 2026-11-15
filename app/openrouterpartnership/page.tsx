@@ -78,7 +78,7 @@ export default function OpenRouterPartnershipPage() {
         <RdFacts rows={[
           ['Continuous measurement', 'Coding, reasoning and tool-use benchmarks re-run on a fixed schedule across 24 models from OpenAI, Anthropic, Google, DeepSeek, Moonshot and Z.ai, with an hourly canary on top.'],
           ['Drift awareness', 'Each model is compared with its own history. When a model gets worse behind the same name, it loses rank and traffic moves away from it.'],
-          ['Cost awareness', 'When the leading models are statistically tied, the cheapest one wins by default. Quality holds and cost falls.'],
+          ['Cost awareness', 'When the leading models are statistically tied, cost is the default tie-break. Quality holds and cost falls.'],
           ['Explainable picks', 'Every decision comes with a one-line reason that names the measurement behind it.'],
         ]} />
       </RdSection>
@@ -99,10 +99,10 @@ export default function OpenRouterPartnershipPage() {
 
       <RdSection id="variants" n={n('variants')} title="Router variants we can offer">
         <RdFacts rows={[
-          ['Coding', 'Best measured on coding tasks.'],
+          ['Coding', 'Best on coding tasks.'],
           ['Reasoning', 'Best on multi-step reasoning.'],
           ['Agents', 'Best on tool use.'],
-          ['Value', 'Cheapest among the statistically tied leaders.'],
+          ['Value', 'The statistically tied leaders, with cost as the tie-break.'],
         ]} />
       </RdSection>
 

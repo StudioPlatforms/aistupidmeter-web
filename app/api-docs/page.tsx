@@ -187,7 +187,8 @@ export default function ApiDocsPage() {
         </RdProse>
       </RdSection>
 
-      <RdSection id="endpoints" n={num('endpoints')} title="Endpoints">
+      <RdSection id="endpoints" n={num('endpoints')} title="Endpoints"
+        lead="The Data API covers the models we benchmark through their makers' own APIs. Models hosted by independent inference providers are not part of it.">
         <ul className="da-eps lp-up">
           {ENDPOINTS.map((e) => {
             const [method, path] = e.path.split(' ');

@@ -5,12 +5,22 @@ import { sendContactNotification, sendContactAcknowledgement } from '@/lib/email
 import { findUserByEmail } from '@/lib/db-client';
 import { planFor } from '@/lib/entitlements';
 import { clientIp } from '@/lib/ip-rate-limit';
+import { refuseMailForm } from '@/lib/mail-form-guard';
+import { validateEmail } from '@/lib/password';
+
+/** The site's own pages: a browser always sends Origin on this POST, and nothing else may submit the form. */
+const ORIGINS = new Set(['https://aistupidlevel.info', 'https://www.aistupidlevel.info']);
+
+/** A single-line field: no control characters (CR, LF, NUL…), so nothing can break out into a mail header. */
+const oneLine = (v: unknown, max: number): string | null =>
+  String(v ?? '').replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max) || null;
 
 export const dynamic = 'force-dynamic';
 
 // The form's own topics (app/contact/ContactClient.tsx). One missing here is filed as 'general':
 // custom-benchmark was, from the day it was added to the form until 2026-11-02.
-const TOPICS = new Set(['general', 'enterprise', 'sales', 'custom-benchmark', 'support', 'security', 'press', 'investment']);
+// Every topic also needs its label in lib/email-service.ts (TOPIC_LABEL), or the mail shows the raw id.
+const TOPICS = new Set(['general', 'enterprise', 'sales', 'custom-benchmark', 'support', 'security', 'press', 'provider', 'investment']);
 
 /**
  * Rate limit by IP, in process.
@@ -43,6 +53,30 @@ function rateLimited(ip: string): boolean {
 }
 
 /**
+ * A cap across all senders. The per-address limit above does nothing against a sender that rotates
+ * addresses (Tor, proxies), so at most GLOBAL_MAX messages an hour are taken from everyone together,
+ * and at most ACK_MAX acknowledgements are mailed: the acknowledgement goes to an address typed into
+ * the form, so without a cap the form could be used to mail strangers.
+ */
+const GLOBAL_MAX = 30;
+const ACK_MAX = 10;
+let accepted: number[] = [];
+let acknowledged: number[] = [];
+function underCap(list: number[], max: number): { ok: boolean; kept: number[] } {
+  const now = Date.now();
+  const kept = list.filter(t => now - t < RATE_WINDOW_MS);
+  if (kept.length >= max) return { ok: false, kept };
+  kept.push(now);
+  return { ok: true, kept };
+}
+
+/** Reserved names that never receive mail (RFC 2606, RFC 6761): only tests and scripts type them. */
+function reservedDomain(email: string): boolean {
+  const domain = email.split('@')[1] ?? '';
+  return /^(example\.(com|net|org)|[^@]*\.(example|test|invalid|localhost))$/i.test(domain) || /(^|\.)example\.(com|net|org)$/i.test(domain);
+}
+
+/**
  * Public contact form.
  *
  * Storage happens first and mail second, on purpose. Postfix runs on this same
@@ -53,6 +87,12 @@ function rateLimited(ip: string): boolean {
  */
 export async function POST(request: NextRequest) {
   try {
+    const refused = await refuseMailForm(request, 'contact');
+    if (refused) return refused;
+    if (!ORIGINS.has(request.headers.get('origin') ?? '')) {
+      return NextResponse.json({ success: false, error: 'forbidden' }, { status: 403 });
+    }
+
     const ip = clientIp(request);
     if (rateLimited(ip)) {
       return NextResponse.json(
@@ -72,13 +112,16 @@ export async function POST(request: NextRequest) {
     }
 
     const email = String(body.email ?? session?.user?.email ?? '').trim().toLowerCase();
-    const name = String(body.name ?? '').trim().slice(0, 120) || null;
-    const company = String(body.company ?? '').trim().slice(0, 160) || null;
+    const name = oneLine(body.name, 120);
+    const company = oneLine(body.company, 160);
     const topicRaw = String(body.topic ?? 'general').trim();
     const topic = TOPICS.has(topicRaw) ? topicRaw : 'general';
     const message = String(body.message ?? '').trim();
 
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    if (!validateEmail(email)) {
+      return NextResponse.json({ success: false, error: 'A valid email address is required.' }, { status: 400 });
+    }
+    if (reservedDomain(email)) {
       return NextResponse.json({ success: false, error: 'A valid email address is required.' }, { status: 400 });
     }
     if (message.length < 10) {
@@ -91,6 +134,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'That is longer than this form accepts. Email us directly instead.' },
         { status: 400 }
+      );
+    }
+
+    const cap = underCap(accepted, GLOBAL_MAX);
+    accepted = cap.kept;
+    if (!cap.ok) {
+      console.warn(`[contact] global cap of ${GLOBAL_MAX}/h reached; refused ${ip}`);
+      return NextResponse.json(
+        { success: false, error: 'busy', message: 'We are receiving an unusual number of messages. Please try again in an hour, or email us directly.' },
+        { status: 429 }
       );
     }
 
@@ -125,7 +178,10 @@ export async function POST(request: NextRequest) {
 
     // The acknowledgement is a courtesy; failing to send it must not fail the
     // request, because the message is already safely recorded.
-    void sendContactAcknowledgement(email, name);
+    const ack = underCap(acknowledged, ACK_MAX);
+    acknowledged = ack.kept;
+    if (ack.ok) void sendContactAcknowledgement(email, name);
+    else console.warn(`[contact] #${id}: acknowledgement cap of ${ACK_MAX}/h reached; none sent`);
 
     console.log(`[contact] #${id} from ${email} (${topic})`);
     return NextResponse.json({ success: true, data: { id } });

@@ -816,3 +816,36 @@
   .st .sl-simple-lead { font-size: 15px; }
   .st .sl-simple-name .sl-name { white-space: normal; }
 }
+/* Below 390 px the board's one column took the tab strip's full width (363 px) and pushed every row, score
+   column included, past the screen. There it now fits the screen: the strip scrolls in its own box (is-scroll).
+   From 390 px up nothing changes. */
+@media (max-width: 389px) {
+  .st .sl-simple { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── M9: the hosted group (Phase 3 plan §7.1, §7.2) ──────────────────────────────────────────── */
+/* One line, never two: "hosted by " drops first in a narrow cell (HostedName), then an ellipsis. */
+.st .sl-hname { position: relative; display: block; min-width: 0; max-width: 100%; overflow: hidden; }
+.st .sl-hname-t { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st .sl-hname-probe { position: absolute; left: 0; top: 0; visibility: hidden; white-space: nowrap; pointer-events: none; }
+.st .sl-simple-name .sl-name .sl-hname-t { white-space: nowrap; }
+/* The group's list may never widen past its card: one shrinkable column, so a long hosted name shortens instead. */
+.st .sl-hosted .sl-crows { grid-template-columns: minmax(0, 1fr); }
+.st .sl-hosted .sl-crow .sl-rank { flex: none; min-width: 24px; }
+.st .sl-hosted .sl-crow .sl-name { flex: 1 1 auto; }
+/* Paused and under-review rows are greyed, with rank "–" (§7.1). */
+.st .sl-hrow.is-paused, .st .sl-trow.is-paused, .st .sl-tcard.is-paused, .st .sl-crow2.is-paused,
+.st .sl-rl-row.is-paused, .st .sl-simple-row.is-paused { opacity: .58; }
+.st .sl-hosted-links { margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--lp-fg3); }
+.st .sl-hosted-links a { color: var(--lp-accent) !important; font-weight: 600; text-decoration: none; }
+.st .sl-hosted-links a:hover { text-decoration: underline; }
+.st .sl-hosted-links.is-inline { display: inline; margin: 0; font-weight: 500; }
+.st .sl-hosted-note { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-sunk);
+  font-size: 12.5px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sl-hosted-note p { margin: 0; }
+.st .sl-hosted-note b { color: var(--lp-fg); }
+.st .sl-rl-hosted { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.st .sl-simple-hosted { padding: 14px 16px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-sunk); min-width: 0; }
+.st .sl-simple-hosted h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--lp-fg); }
+.st .sl-simple-hosted > p { margin: 4px 0 10px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.st .sl-simple-hosted .sl-simple-list { margin: 0; }

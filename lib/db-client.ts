@@ -269,7 +269,12 @@ export function updateStripeCustomerId(userId: number, customerId: string): void
 }
 
 /**
- * Start user's trial period
+ * Link the account to a new subscription and give it the subscription's plan.
+ *
+ * Two callers: a subscription that began with a trial (trialEndsAtIso set; Checkout sessions
+ * opened before 2026-11-13 can still create one), and a paid start (lib/paid-start.ts:
+ * trialEndsAtIso null, status 'active'), which records no trial and clears any earlier trial end.
+ * The name is historical.
  */
 export function startUserTrial(
   userId: number,
@@ -282,9 +287,8 @@ export function startUserTrial(
   const db = getDb();
   try {
     // The trial window comes from Stripe (subscription.trial_end), not from a
-    // hard-coded 7 days here. Stripe owns the trial length so it can be changed
-    // per Price in the dashboard without a deploy; if the subscription carries
-    // no trial, none is recorded.
+    // hard-coded 7 days here; if the subscription carries no trial (every paid
+    // start), none is recorded.
     db.prepare(`
       UPDATE router_users SET
         stripe_customer_id = ?,

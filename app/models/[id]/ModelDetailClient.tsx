@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -179,6 +179,13 @@ interface ModelDetailClientProps {
   initialName: string;
   initialDisplayName?: string | null;
   initialVendor: string;
+  /** The "Hosted by other providers" pane (Phase 3 §7.5), rendered on the server after the main chart; none for most models. */
+  hostedBy?: ReactNode;
+  /**
+   * F7: runs people made with their own key at those hosts, rendered on the server; shown with the other runs people made
+   * with their own keys, after the model's own panels (F7 review web MINOR-9). None unless the API shows them.
+   */
+  testedBy?: ReactNode;
 }
 
 export default function ModelDetailClient({
@@ -187,6 +194,8 @@ export default function ModelDetailClient({
   initialName,
   initialDisplayName,
   initialVendor,
+  hostedBy,
+  testedBy,
 }: ModelDetailClientProps) {
   const router = useRouter();
 
@@ -659,6 +668,8 @@ export default function ModelDetailClient({
           onSwitchPeriod={choosePeriod}
         />
 
+        {hostedBy}
+
         {/* Where each suite's detector stands — armed with its statistic, or still warming up (free) */}
         <ModelDetailDriftStatus modelId={modelId} focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null} />
 
@@ -738,6 +749,7 @@ export default function ModelDetailClient({
           modelName={modelDetails.name}
           publishedScore={currentScore}
         />
+        {testedBy}
 
         {/* Two-column: Quick Stats + Pricing */}
         <div className="st-grid is-stretch sm-info">

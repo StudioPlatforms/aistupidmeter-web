@@ -1,0 +1,100 @@
+/* ═══════════════════════════════════════════════════════════════════
+   STUDIO · PROVIDER — the provider account pages (/account/provider/*):
+   overview checklist, the kind chooser, the page-address preview, the
+   section bar of Profile · Domains · Logo · Data handling. Class prefix mp-.
+   The logo uploader's own rules are in studio-provider-logo.css.
+
+   Builds on styles/studio.css and styles/studio-team.css (the provider
+   team and domain pages reuse the workspace's sw-* pieces as they are).
+   Scoped under .st, --lp-* tokens only, so dark mode follows the shell.
+   No motion of its own.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── section bar: tabs on wide screens, a select on phones ────────── */
+.st .mp-secnav { display: block; }
+.st .mp-secnav-select { display: none; }
+@media (max-width: 760px) {
+  .st .mp-secnav-tabs { display: none; }
+  .st .mp-secnav-select { display: grid; }
+}
+
+/* ── overview checklist: ruled rows, a state mark, one action ─────── */
+.st .mp-checks { display: grid; }
+.st .mp-check { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; column-gap: 14px; row-gap: 8px; padding: 14px 22px; border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.st .mp-check:last-child { border-bottom: 0; }
+.st .mp-check-main { min-width: 0; }
+.st .mp-check-t { font-size: 14.5px; font-weight: 600; line-height: 1.4; color: var(--lp-fg); }
+.st .mp-check-s { margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .mp-check.is-blocked .mp-check-s { color: var(--lp-bad); }
+.st .mp-check.is-muted .mp-check-t { color: var(--lp-fg3); font-weight: 500; }
+.st .mp-check-end { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.st .mp-mark { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; flex: none; border: 1.5px solid var(--lp-line2); color: var(--lp-fg3); }
+.st .mp-mark svg { width: 12px; height: 12px; }
+.st .mp-mark.is-done { border-color: var(--lp-good); background: var(--lp-good); color: var(--lp-on-accent); }
+.st .mp-mark.is-blocked { border-color: var(--lp-bad); color: var(--lp-bad); }
+.st .mp-mark.is-na { border-style: dashed; }
+@media (max-width: 760px) {
+  .st .mp-check { grid-template-columns: 22px minmax(0, 1fr); padding: 14px 16px; }
+  .st .mp-check-end { grid-column: 2; justify-content: flex-start; }
+  .st .mp-check-end:empty { display: none; }
+  .st .mp-check-end .st-btn.is-quiet { border-color: var(--lp-line2); }
+  /* F6c (F5b re-verification §6): the Overview's buttons are tap targets of 40 px on a phone (the checklist's Review and
+     each step's action, Edit the profile, Team, Start again), as the Models rows' (studio-provider-models.css). */
+  .st .mp-checks .mp-check-end .st-btn.is-sm, .st .mp-ov-acts .st-btn.is-sm { height: 40px; padding: 0 14px; }
+}
+
+/* ── the kind chooser on /account/provider/new ───────────────────── */
+.st .mp-kinds { --min: 260px; }
+.st .st-card.mp-kind { flex-direction: row; align-items: flex-start; gap: 12px; padding: 16px 18px; }
+.st .st-card.mp-kind .st-check { margin-top: 2px; }
+.st .st-card.mp-kind:has(input:checked) { border-color: var(--lp-accent); background: var(--lp-win-bg); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lp-accent) 12%, transparent); }
+.st .st-card.mp-kind:focus-within { border-color: var(--lp-accent); }
+.st .mp-kind-text { display: grid; gap: 4px; min-width: 0; }
+
+/* ── the page address under the slug field ───────────────────────── */
+.st .mp-url { font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); overflow-wrap: anywhere; }
+.st .mp-url b { color: var(--lp-fg); font-weight: 600; }
+
+/* ── a form split into titled parts (profile, data handling) ───────── */
+.st .mp-form { display: grid; gap: 22px; }
+.st .mp-part { display: grid; gap: 16px; }
+.st .mp-part + .mp-part { padding-top: 22px; border-top: 1px solid var(--lp-line); }
+.st .mp-part-h { display: grid; gap: 4px; }
+.st .mp-part-t { font-size: 15px; font-weight: 600; color: var(--lp-fg); }
+.st .mp-part-s { font-size: 13.5px; line-height: 1.55; color: var(--lp-fg2); max-width: 80ch; }
+/* a question with its answers (data handling): the legend, then the choices */
+.st .mp-q-body { display: grid; gap: 12px; }
+.st .mp-form > .mp-q + .mp-q, .st .mp-form > .mp-q + .mp-part { padding-top: 22px; border-top: 1px solid var(--lp-line); }
+.st .mp-switch { min-width: 220px; }
+/* a saved link whose host is not on a verified domain yet */
+.st .mp-warn { font-size: 12.5px; line-height: 1.5; color: var(--lp-warn); }
+.st .mp-warn a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
+.st .mp-count { font-size: 12.5px; color: var(--lp-fg3); font-variant-numeric: tabular-nums; }
+.st .mp-count.is-bad { color: var(--lp-bad); }
+.st .mp-radios { display: flex; flex-wrap: wrap; gap: 8px; }
+.st .mp-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.st .mp-inline .st-input { width: 110px; }
+
+/* ── a domain in the list: name and state, its record, its actions ── */
+.st .mp-domains { display: grid; }
+.st .mp-domain { display: grid; gap: 10px; padding: 16px 22px 18px; border-bottom: 1px solid var(--lp-line); min-width: 0; }
+.st .mp-domain:last-child { border-bottom: 0; }
+.st .mp-domain-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+.st .mp-domain-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.st .mp-domain-name .sw-t { font-size: 15px; }
+.st .mp-domain .sw-dns { margin: 2px 0 0; }
+.st .mp-domain .sw-verify { margin-top: 2px; }
+@media (max-width: 760px) {
+  .st .mp-domain { padding: 14px 16px 16px; }
+  .st .mp-domain-line .sw-acts { width: 100%; justify-content: stretch; }
+  .st .mp-domain-line .sw-acts .st-btn { flex: 1 1 0; height: 40px; }
+  /* a text-only button reads as a button once it stretches across the row */
+  .st .mp-domain-line .sw-acts .st-btn.is-quiet { border-color: var(--lp-line2); }
+}
+/* side lists whose terms must not break mid-word ("Single sign-on") on wide screens */
+@media (min-width: 761px) { .st .mp-kv dt { white-space: nowrap; } }
+
+/* the owner's "Close the provider account", folded away under the account's facts */
+.st details.mp-close { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--lp-line); }
+.st .mp-close > summary { color: var(--lp-bad); }
+.st .mp-close > form { margin-top: 14px; }

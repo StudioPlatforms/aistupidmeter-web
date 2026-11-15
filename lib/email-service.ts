@@ -276,11 +276,35 @@ export async function sendWelcomeEmail(email: string, name?: string | null, veri
   );
 }
 
-/** Sent on checkout.session.completed. */
+/**
+ * Sent once a subscription starts. Two variants:
+ *
+ *  - paid (opts.paid; every subscription since 2026-11-13, lib/paid-start.ts): the plan is active
+ *    and was charged; it states the amount, the next charge and, when the checkout offered one,
+ *    the refund deadline (a durable record of what the customer agreed to);
+ *  - trial (opts.trialEnds): a subscription that began with a trial before the paid start,
+ *    which Checkout sessions opened before that release can still create.
+ */
 export async function sendPurchaseConfirmationEmail(
   email: string,
-  opts: { planLabel: string; amount: string; interval: string; trialEnds?: string | null },
+  opts: {
+    planLabel: string;
+    /** The list price per interval, e.g. "$1,290.00". */
+    amount: string;
+    interval: string;
+    trialEnds?: string | null;
+    paid?: {
+      /** What was charged, from the invoice (discounts included), e.g. "$1,290.00". */
+      amount: string;
+      /** The day it was charged, when not today (a confirmation the billing watch sends late). */
+      paidOn?: string | null;
+      nextCharge: string | null;
+      /** "20 November 2026, 15:06 UTC", or null when this purchase has no refund window. */
+      refundUntil: string | null;
+    };
+  },
 ) {
+  if (opts.paid) return sendPaidConfirmation(email, opts.planLabel, opts.amount, opts.interval, opts.paid);
   const rows: Array<[string, string]> = [
     ['Plan', opts.planLabel],
     ['Price', `${opts.amount} / ${opts.interval}`],
@@ -309,6 +333,86 @@ export async function sendPurchaseConfirmationEmail(
     `${intro}\n\n` + rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') +
     `\n\nDashboard: https://aistupidlevel.info/watchlist\n` +
     `Manage or cancel any time in your account settings.\n`
+  );
+}
+
+/** The paid variant of the purchase confirmation. */
+function sendPaidConfirmation(
+  email: string, planLabel: string, list: string, interval: string,
+  paid: { amount: string; paidOn?: string | null; nextCharge: string | null; refundUntil: string | null },
+) {
+  const until = paid.refundUntil;
+  const intro = `Your ${planLabel} subscription is active and we have charged ${paid.amount}.` + (until
+    ? ` If it is not right for you, choose Cancel and refund on your billing page before ${until} and we will refund the full ${paid.amount}.`
+    : '');
+  const rows: Array<[string, string]> = [
+    ['Plan', planLabel],
+    paid.paidOn ? ['Paid', `${paid.amount} on ${paid.paidOn}`] : ['Paid today', paid.amount],
+    ['Price', `${list} / ${interval}`],
+    ...(paid.nextCharge ? [['Next charge', paid.nextCharge] as [string, string]] : []),
+    ...(until ? [['Full refund until', until] as [string, string]] : []),
+  ];
+  const billing = `${SITE}/account/billing`;
+  const after = 'Cancelling from the billing portal stops the next renewal, and you keep the plan until the end of the period you have paid for.';
+  const footnote = 'Manage or cancel your subscription any time from your billing page. ' +
+    'Provider inference is billed separately by your own AI providers — we never mark it up.';
+  return deliver(
+    email,
+    `Your AI Stupid Level ${planLabel} subscription`,
+    renderEmail({
+      heading: 'Subscription confirmed',
+      preheader: `Paid ${paid.amount}.${until ? ` Full refund available until ${until}.` : ''}`,
+      intro,
+      rows,
+      paragraphs: [
+        `Your billing page: <a href="${billing}" style="color:#1a73e8;text-decoration:none;">aistupidlevel.info/account/billing</a>. ${after}`,
+      ],
+      ctaLabel: 'Open your dashboard',
+      ctaUrl: 'https://aistupidlevel.info/watchlist',
+      footnote,
+    }),
+    `${intro}\n\n` + rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') +
+    `\n\nYour billing page: ${billing}\n${after}\n\n` +
+    `Dashboard: https://aistupidlevel.info/watchlist\n` +
+    `Manage or cancel any time from your billing page. Provider inference is billed separately by your own AI providers; we never mark it up.\n`
+  );
+}
+
+/**
+ * Cancel and refund within the 7-day window (lib/paid-start.ts): the plan has ended and every
+ * payment on it was refunded. From hello@, so a reply reaches a person.
+ */
+export async function sendRefundConfirmationEmail(
+  email: string,
+  opts: { planLabel: string; amount: string; ended: string },
+) {
+  const intro =
+    `We have ended your ${opts.planLabel} subscription and refunded ${opts.amount}, as you asked. ` +
+    'Refunds usually reach your account within 5 to 10 business days, depending on your bank.';
+  const rows: Array<[string, string]> = [
+    ['Plan', opts.planLabel],
+    ['Refunded', opts.amount],
+    ['Ended', opts.ended],
+  ];
+  const stay = 'Your account, watchlist and settings stay as they are, on the free plan. You can subscribe again at any time.';
+  const footnote = 'Questions about your refund? Reply to this email and we will help.';
+  return deliver(
+    email,
+    'Your AI Stupid Level refund',
+    renderEmail({
+      heading: 'Your refund is on its way',
+      preheader: `${opts.amount} is on its way back to you.`,
+      intro,
+      rows,
+      paragraphs: [stay],
+      ctaLabel: 'See plans',
+      ctaUrl: `${SITE}/pricing`,
+      footnote,
+    }),
+    `${intro}\n\n` + rows.map(([k, v]) => `  ${k}: ${v}`).join('\n') +
+    `\n\n${stay}\n\nSee plans: ${SITE}/pricing\n\n${footnote}\n`,
+    undefined,
+    HELLO,
   );
 }
 
@@ -535,6 +639,7 @@ const TOPIC_LABEL: Record<string, string> = {
   support: 'Support',
   security: 'Security',
   press: 'Press',
+  provider: 'Provider listing',
   investment: 'Investment',
 };
 
@@ -593,6 +698,25 @@ export async function sendContactNotification(msg: {
 }
 
 /**
+ * The name as the acknowledgement may repeat it, HTML-escaped. The acknowledgement goes to whatever
+ * address was typed into the form, so the name is the one piece of a stranger's text it carries:
+ * unescaped, a name of `<a href=…>…</a>` arrived as a working link in a mail signed for our domain.
+ * Escaping alone still leaves a bare URL as text, which mail clients turn into a link, so a name
+ * holding one (a scheme, www., an @, a domain-like word, seven or more digits) gets the greeting a
+ * message without a name gets. Measured on the stored messages and account names: real names pass.
+ */
+function ackName(name?: string | null): string | null {
+  const n = (name ?? '').trim();
+  if (!n) return null;
+  if (/:\/\/|www\.|@/i.test(n)) return null;
+  // No `u` flag here: this tree type-checks for ES5. A domain-like word is any non-space character, a dot
+  // (ASCII, ideographic or fullwidth), then two more; digits count ASCII, fullwidth and Arabic-Indic forms.
+  if (/[^\s.\u3002\uFF0E\uFF61][.\u3002\uFF0E\uFF61][^\s.\u3002\uFF0E\uFF61]{2,}/.test(n)) return null;
+  if ((n.match(/[0-9\uFF10-\uFF19\u0660-\u0669\u06F0-\u06F9]/g) ?? []).length >= 7) return null;
+  return esc(n);
+}
+
+/**
  * Confirm receipt to the person who wrote in.
  *
  * Deliberately does not echo their message back: a form that mails an
@@ -600,7 +724,8 @@ export async function sendContactNotification(msg: {
  * value of the acknowledgement is the promise of a reply, not a transcript.
  */
 export async function sendContactAcknowledgement(to: string, name?: string | null) {
-  const who = name ? `${name}, thanks` : 'Thanks';
+  const shown = ackName(name);
+  const who = shown ? `${shown}, thanks` : 'Thanks';
   return deliver(
     to,
     'We have your message — AI Stupid Level',

@@ -16,11 +16,38 @@ export interface LandingRow {
   role: 'primary' | 'fallback' | null;
 }
 
+/**
+ * Why the router chose a pick, as fields (primary.explain). The public pages render from these and
+ * never parse the reason text (primary.reasoning); a snapshot without them comes from an API that
+ * does not send them yet, and the pages then read the text as before.
+ */
+export interface LandingExplain {
+  /** What the effective strategy ranks on. */
+  benchmark: 'overall' | 'coding' | 'reasoning' | 'tool_use' | 'agentic_coding';
+  /** The pick's place among the caller's usable models, 1 = first. Always 1 on the landing. */
+  rank: number;
+  /** How many models the caller can use. */
+  of: number;
+  /**
+   * The statistical tie for first: its size with the pick included, the tie-break that settled it
+   * and what that tie-break compared. null when the strategy has no tie rule.
+   */
+  tie: {
+    size: number;
+    by: 'cheaper' | 'faster' | 'highest';
+    basis: 'measured cost per task' | 'list price' | 'measured latency' | 'latency' | 'score';
+  } | null;
+  /** A remembered earlier pick was kept. Never on the landing, which has no caller memory. */
+  kept: boolean;
+  /** match_task's request rule, else null. */
+  rule: string | null;
+}
+
 export interface LandingStrategy {
   strategy: string;
   effectiveStrategy: string;
   taskRule?: string;
-  primary: { model: string; displayName: string; provider: string; latencyMs: number | null; reasoning: string };
+  primary: { model: string; displayName: string; provider: string; latencyMs: number | null; reasoning: string; explain?: LandingExplain };
   fallbacks: string[];
   rows: LandingRow[];
 }
@@ -32,6 +59,8 @@ export interface LandingSnapshot {
   samples: { code: string; design: string; tools: string };
   examplePreference: { strategy: string; excludeProviders: string[]; maxCostPer1M: number };
   strategies: Record<string, LandingStrategy | null>;
+  /** From the API's A1 release: how the router scores right now (lib/router-scoring scoringOf); absent before. */
+  scoring?: unknown;
 }
 
 export interface HourBucket { t: string; total: number; down: number; degraded: number; unmeasured: number }
@@ -150,7 +179,7 @@ interface PriceSuite<R> { from: string; to: string; tasks: number; models: R[]; 
 
 export interface PriceSnapshot {
   generatedAt: string;
-  /** True when the window is a rolling last-N-days view (synthetic mode), not a frozen measured window. */
+  /** True when the window is a rolling last-N-days view, not a fixed, dated window. */
   rolling?: boolean;
   windowDays?: number;
   coding: (PriceSuite<PriceCodingRow> & { trials: number }) | null;

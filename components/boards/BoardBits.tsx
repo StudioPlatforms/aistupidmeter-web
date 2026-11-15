@@ -1,22 +1,36 @@
 'use client';
 
-import { useLayoutEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useLayoutEffect, useRef, useState } from 'react';
 import ProviderLogo from '../ProviderLogo';
+import { HostMark } from '../marketplace/HostLogo';
 import WatchStar from '../WatchStar';
 import type { BoardRow } from '../../lib/use-boards';
 
 /** Small shared pieces for the four leaderboard layouts. Styles: styles/studio-boards.css (sl-*). */
 
-export const modelHref = (row: BoardRow, fund = false) => `/models/${row.slug}${fund ? '?fund=1' : ''}`;
+/** A row's page: a hosted row's entry page (M9, §7.1: /models/<slug> is never right for one), else the model page. */
+export const modelHref = (row: BoardRow, fund = false) => (row.href ? row.href : `/models/${row.slug}${fund ? '?fund=1' : ''}`);
 
 type LogoSize = 'xs' | 'sm' | 'md' | 'lg';
 const LOGO_PX: Record<LogoSize | 'base', number> = { xs: 12, sm: 13, base: 15, md: 16, lg: 20 };
 
-/** A provider's mark on a white chip, as on the landing — the marks are drawn for a light ground. */
-export function Logo({ provider, size }: { provider: string | null; size?: LogoSize }) {
+/**
+ * A provider's mark on a white chip, as on the landing — the marks are drawn for a light ground.
+ * A hosted row (an inference provider's listing, Phase 3 plan §7.1) passes its `host`: the chip
+ * then shows the host's approved mark, or its initials until one is approved, and the row's
+ * `provider` (the host's slug) never reaches ProviderLogo, which would show the OpenAI mark.
+ */
+export function Logo({ provider, size, host }: {
+  provider: string | null;
+  size?: LogoSize;
+  host?: { name: string; logoUrl?: string | null } | null;
+}) {
   return (
     <span className={`sl-logo${size ? ` is-${size}` : ''}`} aria-hidden="true">
-      <ProviderLogo provider={provider || ''} size={LOGO_PX[size ?? 'base']} />
+      {host
+        ? <HostMark name={host.name} logoUrl={host.logoUrl} px={LOGO_PX[size ?? 'base']} />
+        : <ProviderLogo provider={provider || ''} size={LOGO_PX[size ?? 'base']} />}
     </span>
   );
 }
@@ -26,7 +40,67 @@ export function Logo({ provider, size }: { provider: string | null; size?: LogoS
  * star sits above that link rather than inside it — a button inside an <a> is invalid.
  */
 export function Star({ row, size = 14 }: { row: BoardRow; size?: number }) {
+  // M9: no star on a hosted row in v1: the watchlist is keyed by fleet model id (§7.1).
+  if (row.host) return null;
   return <span className="sl-star"><WatchStar modelId={row.id} modelName={row.label} size={size} /></span>;
+}
+
+// ── M9: the hosted group (Phase 3 plan §7.1, §7.2) ─────────────────────────────────────────────
+
+export const HOSTED_TITLE = 'Hosted by independent providers';
+export const HOSTED_SUB = 'Measured with our tests through each host\'s own API. A hosted model joins the ranking above once it meets the published criteria.';
+export const ORDER_HREF = '/inference-providers/ranking-criteria#order';
+export const JOIN_HREF = '/inference-providers/ranking-criteria#join';
+
+/** The group's two links: the consumer-facing ranking disclosure (UCPD Art. 7(4a); rev: S17). */
+export function HostedLinks({ className = 'sl-hosted-links' }: { className?: string }) {
+  return (
+    <p className={className}>
+      <Link href={ORDER_HREF}>How hosts are ordered</Link>
+      <span aria-hidden="true"> · </span>
+      <Link href={JOIN_HREF}>How hosted models join</Link>
+    </p>
+  );
+}
+
+export function HostIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg className="sl-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="6" rx="1.5" />
+      <rect x="3" y="14" width="18" height="6" rx="1.5" />
+      <path d="M7 7h.01M7 17h.01" />
+    </svg>
+  );
+}
+
+/**
+ * A hosted row's name in one line (§7.2): "DeepSeek V4 Pro (FP8) — hosted by Together AI". In a narrow cell "hosted
+ * by " drops first ("DeepSeek V4 Pro (FP8) — Together AI"), then the text ends in an ellipsis; the full text is the
+ * title and the accessible name, and there is never a second line under it.
+ */
+export function HostedName({ row, className = '' }: { row: BoardRow; className?: string }) {
+  const full = row.label;
+  const short = full.replace(' — hosted by ', ' — ');
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const probe = useRef<HTMLSpanElement | null>(null);
+  const [narrow, setNarrow] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current; const pr = probe.current;
+    if (!el || !pr || short === full) return;
+    const fit = () => setNarrow(pr.getBoundingClientRect().width > el.getBoundingClientRect().width + 0.5);
+    fit();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [full, short]);
+  return (
+    <span ref={ref} className={`sl-hname${className ? ` ${className}` : ''}`} title={full}>
+      <span className="sl-hname-t">{narrow ? short : full}</span>
+      <span ref={probe} className="sl-hname-probe" aria-hidden="true">{full}</span>
+    </span>
+  );
 }
 
 export function Rank({ row }: { row: BoardRow }) {

@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { planForPriceId } from '@/lib/stripe-plans';
+import { planForSubscription } from '@/lib/stripe-plans';
 import { markAssessmentPaid } from '@/lib/assessment';
 import { applyCreditPurchase } from '@/lib/router-credits';
 import { recordActivation } from '@/lib/activation';
 import { sendPurchaseConfirmationEmail, sendTrialEndingEmail } from '@/lib/email-service';
 import { PLANS, isPlan, ownPlanFor } from '@/lib/entitlements';
 import { notifyCancelledUnpaid, notifyPaymentFailed } from '@/lib/billing-watch';
+import { recordNotice } from '@/lib/billing-notices';
+import { activatePaidStart, formatMoney, isPaidStart, refundRequested } from '@/lib/paid-start';
 import { 
   updateStripeCustomerId,
   startUserTrial,
@@ -28,24 +30,6 @@ import { syncDataApiTier } from '@/lib/data-api-tier';
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-
-/**
- * Which plan did this subscription actually buy?
- *
- * Read off the Price on the subscription's first line item. Falls back to the
- * plan recorded in checkout metadata, then to 'pro'. Getting this wrong means
- * selling someone Teams and granting them Pro, so it is resolved from the money
- * rather than from anything the browser sent.
- */
-function planFromSubscription(subscription: Stripe.Subscription): string {
-  const priceId = subscription.items?.data?.[0]?.price?.id;
-  const fromPrice = planForPriceId(priceId);
-  if (fromPrice) return fromPrice;
-  const fromMetadata = subscription.metadata?.plan;
-  if (fromMetadata) return fromMetadata;
-  console.warn(`[stripe webhook] could not map price ${priceId} to a plan; defaulting to pro`);
-  return 'pro';
-}
 
 /** Trial end as ISO, or null when the subscription has no trial. */
 function trialEndIso(subscription: Stripe.Subscription): string | null {
@@ -141,6 +125,22 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Paid start: the first period is paid, so the plan starts now. customer.subscription.created
+        // does the same a moment apart; activatePaidStart grants once and emails once.
+        const subRef = session.subscription;
+        const subId = typeof subRef === 'string' ? subRef : subRef?.id;
+        if (session.mode === 'subscription' && subId
+          && (session.payment_status === 'paid' || session.payment_status === 'no_payment_required')) {
+          try {
+            const sub = await stripe.subscriptions.retrieve(subId);
+            if (sub.status === 'active' && isPaidStart(sub)) await activatePaidStart(parseInt(userId), sub);
+          } catch (err) {
+            // subscription.created carries the subscription itself, and the billing watch catches
+            // anything both miss, so this event is not failed for it.
+            console.error(`[stripe webhook] paid start for ${subId} not activated from checkout:`, err instanceof Error ? err.message : err);
+          }
+        }
+
         console.log(`Checkout completed for user ${userId}`);
         break;
       }
@@ -154,7 +154,28 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        const createdPlan = planFromSubscription(subscription);
+        // Not paid yet: 3D Secure is pending, or Checkout showed a decline and the customer may try
+        // another card. Nothing is written, not even the customer id: a free or complimentary
+        // account must not change for a checkout that never paid.
+        if (subscription.status === 'incomplete') {
+          console.warn(`[stripe webhook] ${subscription.id} created incomplete for user ${userId}; waiting for payment`);
+          break;
+        }
+
+        // Paid start (every Checkout since 2026-11-13): active means the first period is paid.
+        if (isPaidStart(subscription) && subscription.status === 'active') {
+          await activatePaidStart(parseInt(userId), subscription);
+          break;
+        }
+        // Checkout passes no trial, so a paid start should never arrive trialing. If one does (a
+        // Price's own trial applied after all), the customer still gets the plan, as a trial.
+        if (isPaidStart(subscription)) {
+          console.error(`[stripe webhook] paid start ${subscription.id} created ${subscription.status}, not active; handled as a trial`);
+        }
+
+        // A subscription that began with a trial (a Checkout session opened before the paid
+        // start), or one created by hand: as before.
+        const createdPlan = planForSubscription(subscription);
         startUserTrial(
           parseInt(userId),
           subscription.customer as string,
@@ -163,6 +184,8 @@ export async function POST(request: NextRequest) {
           trialEndIso(subscription),
           statusFor(subscription),
         );
+        // The plan's Data API quota: the other subscription paths already reconcile it.
+        syncDataApiTier(parseInt(userId));
 
         recordActivation(parseInt(userId), 'subscription_started', createdPlan,
           { trialEnd: trialEndIso(subscription) });
@@ -190,6 +213,21 @@ export async function POST(request: NextRequest) {
           break;
         }
 
+        // A checkout that never paid (3D Secure abandoned, a decline nobody retried) must not
+        // relabel a free account past_due or clear a complimentary plan's dates.
+        if ((subscription.status === 'incomplete' || subscription.status === 'incomplete_expired')
+          && user.stripe_subscription_id !== subscription.id) {
+          break;
+        }
+        // Cancel and refund has been asked for or done (lib/paid-start.ts): the plan is ending or
+        // has ended. No event about it may grant it again, whether sent after the request (it
+        // carries the marker) or from before it and delivered or retried late (only our own
+        // record of the refund tells).
+        if (refundRequested(subscription)) {
+          console.warn(`[stripe webhook] ignoring an update of ${subscription.id}: a refund was requested`);
+          break;
+        }
+
         // As with deletion: a leftover subscription on the same customer must not
         // cancel or relabel the one this account is paying for.
         const current = !user.stripe_subscription_id || user.stripe_subscription_id === subscription.id;
@@ -199,9 +237,12 @@ export async function POST(request: NextRequest) {
           cancelSubscription(user.id, cancelled.endsAt);
           console.log(`Subscription canceled for user ${user.id}, ends at ${cancelled.endsAt ?? 'unknown'}`);
         } else if (subscription.status === 'active') {
-          const plan = planFromSubscription(subscription);
+          const plan = planForSubscription(subscription);
           activateSubscription(user.id, subscription.id, plan);
           syncDataApiTier(user.id);
+          // A paid start completed after 3D Secure arrives here (incomplete → active). The guard
+          // on asl_start keeps every older subscription out: no confirmation on their next update.
+          if (isPaidStart(subscription)) await activatePaidStart(user.id, subscription);
           console.log(`Subscription activated for user ${user.id} on plan ${plan}`);
         } else if (current) {
           // Trialing or a failed renewal: the label, no cancellation Stripe no
@@ -210,7 +251,7 @@ export async function POST(request: NextRequest) {
           const trialing = subscription.status === 'trialing';
           setSubscriptionStatus(user.id, statusFor(subscription), {
             clearCancellation: true,
-            ...(trialing ? { plan: planFromSubscription(subscription) } : {}),
+            ...(trialing ? { plan: planForSubscription(subscription) } : {}),
           });
           if (trialing) syncDataApiTier(user.id);
           console.log(`Subscription for user ${user.id} is ${subscription.status}`);
@@ -220,6 +261,9 @@ export async function POST(request: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
+        // Never paid, so it never granted anything: an abandoned checkout expiring must not
+        // move a free, complimentary or paying account anywhere.
+        if (subscription.status === 'incomplete_expired') break;
         
         // Find user by customer ID
         const user = findUserByStripeCustomerId(subscription.customer as string);
@@ -265,7 +309,7 @@ export async function POST(request: NextRequest) {
         // honest reason to email before a first charge.
         const subscription = event.data.object as Stripe.Subscription;
         const user = findUserByStripeCustomerId(subscription.customer as string);
-        const endingPlan = planFromSubscription(subscription);
+        const endingPlan = planForSubscription(subscription);
         const endPres = planPresentation(endingPlan, subscription.metadata?.interval);
         const chargeDate = asDate((subscription as any).trial_end);
         if (user?.email && chargeDate) {
@@ -308,6 +352,18 @@ export async function POST(request: NextRequest) {
         // invoice, so Stripe's retries do not each send another (lib/billing-watch.ts).
         const failedRef = (invoice as any).parent?.subscription_details?.subscription ?? (invoice as any).subscription;
         const failedSub = typeof failedRef === 'string' ? failedRef : failedRef?.id;
+        // An unpaid plan change (change-plan, pending_if_incomplete) leaves the subscription active
+        // with the change pending: it is not at risk, so "will be cancelled" would be false; the
+        // billing page tells the customer instead. Only a change that left the subscription past
+        // due is a failed payment to warn about (the billing watch's rule 2 checks that too).
+        if (invoice.billing_reason === 'subscription_update' && failedSub) {
+          let atRisk = false;
+          try {
+            const s = await stripe.subscriptions.retrieve(failedSub);
+            atRisk = s.status === 'past_due' || s.status === 'unpaid';
+          } catch { /* unknown: the watch emails if it is past due */ }
+          if (!atRisk) break;
+        }
         const payer = findUserByStripeCustomerId(invoice.customer as string);
         if (payer && failedSub && payer.stripe_subscription_id === failedSub && (invoice.amount_due ?? 0) > 0 && invoice.id) {
           const next = (invoice as any).next_payment_attempt;
@@ -316,6 +372,20 @@ export async function POST(request: NextRequest) {
             { id: invoice.id, amountDue: invoice.amount_due, nextAttemptAt: typeof next === 'number' && next > 0 ? new Date(next * 1000).toISOString() : null },
           ).catch(() => {});
         }
+        break;
+      }
+
+      case 'refund.failed': {
+        // A Cancel-and-refund refund the bank sent back (lib/paid-start.ts): for a person to do by
+        // hand. The admin dashboard lists it.
+        const refund = event.data.object as Stripe.Refund;
+        if (refund.metadata?.asl_reason !== 'refund_window') break;
+        const owner = Number(refund.metadata?.userId);
+        const known = Number.isInteger(owner) && owner > 0 && !!findUserById(owner);
+        console.error(`[stripe webhook] refund ${refund.id} failed: ${refund.failure_reason ?? 'no reason given'}`);
+        recordNotice(known ? owner : null, 'refund_failed', refund.id,
+          `${formatMoney(refund.amount, refund.currency)} refund for ${refund.metadata?.subscriptionId ?? 'a subscription'} failed ` +
+          `(${refund.failure_reason ?? 'no reason given'}); refund it by hand in Stripe and tell the customer, who was emailed that it is on its way`);
         break;
       }
 

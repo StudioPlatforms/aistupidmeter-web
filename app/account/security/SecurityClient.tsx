@@ -18,7 +18,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { PLANS, isPlan, planMeets, type Plan } from '@/lib/entitlements';
 import { REQUIRED_PLAN } from '@/lib/capabilities';
-import { PageHead, Pane, CopyButton, Loader, Empty, Pill, Tag } from '@/components/studio';
+import { PageHead, Pane, CopyButton, Loader, Empty, Pill } from '@/components/studio';
+import { Copyable, DnsBlock, type DnsRecordValue as DnsRecord } from '@/components/workspace/DnsRecord';
 import '@/styles/studio-team.css';
 
 interface ScimToken {
@@ -32,7 +33,6 @@ interface Sso {
   jitProvisioning: boolean; defaultRole: string; enabled: boolean; lastUsedAt: string | null;
   verification?: DnsRecord;
 }
-interface DnsRecord { type: string; name: string; value: string }
 interface Endpoints {
   scimBaseUrl: string; oidcRedirectUri: string; samlAcsUrl: string; samlEntityId: string;
 }
@@ -43,27 +43,6 @@ interface AuditRow {
 
 const LEAD = 'Single sign-on, directory provisioning and the audit trail for your workspace.';
 const ar = <span className="st-ar" aria-hidden="true">→</span>;
-
-/** A value to paste somewhere else, with its label and a copy button. */
-function Copyable({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="sw-copy">
-      <span className="sw-copy-l">{label}</span>
-      <div className="sw-copy-v"><code>{value}</code><CopyButton text={value} /></div>
-    </div>
-  );
-}
-
-/** The TXT record that proves the workspace controls a domain. */
-function DnsBlock({ record }: { record: DnsRecord }) {
-  return (
-    <div className="sw-dns">
-      <div className="sw-dns-head"><span className="st-label">DNS record</span><Tag tone="line">{record.type || 'TXT'}</Tag></div>
-      <Copyable label="Record name (host)" value={record.name} />
-      <Copyable label="Record value (TXT)" value={record.value} />
-    </div>
-  );
-}
 
 export default function SecurityClient() {
   const { data: session, status } = useSession();

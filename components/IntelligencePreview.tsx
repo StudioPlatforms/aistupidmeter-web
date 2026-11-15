@@ -176,7 +176,7 @@ export default function IntelligencePreview() {
             <b>Preview mode: intelligence features are locked</b>
             <span>Unlock model comparison, downloads, and advanced analytics with Pro</span>
           </div>
-          {trialButton('Start free trial', 'st-btn is-primary')}
+          {trialButton('Get Pro', 'st-btn is-primary')}
         </div>
 
         <Stats columns={4}>
@@ -231,7 +231,7 @@ export default function IntelligencePreview() {
               <Tag tone="accent">Pro</Tag>
               <h3 className="si-locked-t">Unlock model comparison</h3>
               <p>Compare up to 4 models side-by-side with overlaid performance charts and deep analytics</p>
-              {trialButton('Start free trial', 'st-btn is-primary')}
+              {trialButton('Get Pro', 'st-btn is-primary')}
             </div>
           </section>
 
@@ -243,7 +243,7 @@ export default function IntelligencePreview() {
               <Tag tone="accent">Pro</Tag>
               <h3 className="si-locked-t">Unlock advanced filters</h3>
               <p>Filter by category, provider, test type, and time period for targeted analysis</p>
-              {trialButton('Start free trial', 'st-btn is-primary')}
+              {trialButton('Get Pro', 'st-btn is-primary')}
             </div>
           </section>
         </div>
@@ -254,7 +254,7 @@ export default function IntelligencePreview() {
             <p className="st-kicker">{PLANS[ENTRY_PAID_PLAN].label}</p>
             <h2 className="st-lock-t">Unlock full intelligence</h2>
             <p className="st-lock-price">{monthlyLong(ENTRY_PAID_PLAN)}</p>
-            <p className="si-trial">7-day free trial · Cancel anytime</p>
+            <p className="si-trial">Full refund within 7 days of your first subscription · cancel any time</p>
             <div className="st-actions">
               {trialButton('Unlock intelligence now', 'st-btn is-primary is-lg')}
             </div>

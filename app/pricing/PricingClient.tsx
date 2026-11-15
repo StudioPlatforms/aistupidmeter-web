@@ -94,7 +94,7 @@ const QA: Array<{ q: string; a: React.ReactNode }> = [
   { q: 'What happens at a limit',
     a: <>Nothing breaks silently, and nothing is ever billed after the fact. When a month&rsquo;s Smart Router allowance is used up, routing pauses with a clear message: top up with prepaid credits — from ${ROUTER_CREDITS.minimumUsd}, {ROUTER_CREDITS.requestsPerUsd.toLocaleString('en-US')} requests per $1, and they never expire — or move up a plan: on Developer and Teams a request costs less than a credit. Data API calls beyond the daily ceiling are refused with a clear error rather than throttled into a timeout.</> },
   { q: 'Why annual is cheaper',
-    a: <>There is no discount code and no countdown. An annual plan is billed once instead of twelve times, which costs us less in payment fees and in churn, and we pass that back as two free months. You can still cancel; we do not hold you to the year.</> },
+    a: <>There is no discount code and no countdown. An annual plan is billed once instead of twelve times, which costs us less in payment fees and in churn, and we pass that back as two free months. You can still cancel at any time to stop the renewal.</> },
   { q: 'What we do not charge for',
     a: <>On every plan, provider inference. You connect your own OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM keys, and those providers bill you directly at their rates. We charge for the software and the measurement, never a markup on tokens. Custom continuous benchmarking works the other way round and says so above: we run it on our accounts and the inference is in the price.</> },
   { q: 'Existing subscribers',
@@ -176,8 +176,9 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
             )}
           />
           <p className="pr-fine lp-up">
-            Prices in USD, excluding any applicable tax. Free trials collect a payment method; cancel any time from the
-            billing portal. Provider inference is billed by your provider, never marked up by us.
+            Prices in USD, excluding any applicable tax. You pay when you subscribe; within 7 days of your first
+            subscription, Cancel and refund on your billing page refunds it in full. Provider inference is billed by your
+            provider, never marked up by us.
           </p>
         </div>
       </section>
@@ -294,8 +295,9 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
             </table>
           </div>
           <p className="pr-fine">
-            Prices in USD, excluding any applicable tax. Every plan collects a payment method at checkout, including
-            during a free trial, and you can cancel at any time from the billing portal.
+            Prices in USD, excluding any applicable tax. You pay when you subscribe. Within 7 days of your first
+            subscription, Cancel and refund on your billing page refunds it in full; cancelling in the billing portal at
+            any time stops the next renewal.
           </p>
         </div>
       </section>

@@ -22,6 +22,8 @@
 .st .sd-flow > .sd-h3 + * { margin-top: 10px; }
 .st .sd-h3 { margin: 0; font-family: var(--lp-font-disp) !important; font-size: 16px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--lp-fg); }
 .st .sd-flow .st-text { max-width: 76ch; }
+/* A link written out as its address (the SDK repository's) breaks rather than push a 320 px page sideways. */
+.st .sd-flow .st-text a { overflow-wrap: anywhere; }
 .st .sd-flow .st-text a, .st .sd-notes a, .st .sd-ans a, .st .sd-hdrs a { color: var(--lp-accent) !important; text-decoration: underline; text-underline-offset: 3px; }
 
 /* Paragraphs ruled apart, each led by its bold point (tools, routing notes). */

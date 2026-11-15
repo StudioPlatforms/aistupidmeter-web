@@ -92,7 +92,7 @@ const num = (id: string) => tocNumber(TOC, id);
 const VENDOR_LIST = listJoin(VENDORS.map(vendorMention));
 const FAMILY_LIST = listJoin(VENDORS.map((v) => v.family));
 
-export default async function AiDriftDetectionPage(): Promise<JSX.Element> {
+export default async function AiDriftDetectionPage(): Promise<React.JSX.Element> {
   const data = await getWorseData();
   const counts = fleetCounts(data.models);
   const verdict = verdictSentence(data.models, null);

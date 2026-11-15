@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { safeReturnPath } from '@/lib/return-path';
 
 /**
  * Redirect to a path on this same site, from middleware or a route handler.
@@ -68,13 +69,21 @@ export function redirectToPath(
 }
 
 /**
- * Build the sign-in path, preserving where the visitor was trying to go.
+ * Build the sign-in path, preserving where the visitor was trying to go: a
+ * path, with its query when there is one (/router/providers?add=openai).
  *
- * Note that most sign-in routes currently ignore this and land on /router
- * regardless (SignInForm hard-codes it, and the auth.config.ts redirect callback
- * returns `${baseUrl}/router`). It is still passed through because the sign-in
- * page reads it for visitors who turn out to be authenticated already.
+ * The sign-in page sends the visitor back there after a password sign-in, an
+ * OAuth sign-in or an already-open session (SignInForm, app/auth/signin), and
+ * it only follows a value that passes safeReturnPath (lib/return-path.ts): a
+ * same-site path of at most 512 characters with no backslash, whitespace or
+ * control character. The same rule is applied here, so the link never carries
+ * a callback the page would refuse: `callbackUrl` is used when it passes,
+ * then `fallback` (the bare path, when a query made the full value unsafe),
+ * and otherwise none, which the page reads as the home page.
  */
-export function signInPath(callbackUrl: string): string {
-  return `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+export function signInPath(callbackUrl: string, fallback?: string): string {
+  const back = [callbackUrl, fallback].find(
+    (v): v is string => typeof v === 'string' && v !== '/' && safeReturnPath(v) === v,
+  );
+  return back ? `/auth/signin?callbackUrl=${encodeURIComponent(back)}` : '/auth/signin';
 }

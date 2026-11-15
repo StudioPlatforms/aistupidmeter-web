@@ -55,7 +55,7 @@ const num = (id: string) => tocNumber(TOC, id);
 
 const VENDOR_NAMES = listJoin(VENDORS.map((v) => v.label));
 
-export default async function AiAggregatorPage(): Promise<JSX.Element> {
+export default async function AiAggregatorPage(): Promise<React.JSX.Element> {
   const roster = await getRoster();
   const groups = VENDORS
     .map((v) => ({ v, models: [...modelsOfVendor(roster, v.key)].sort(byDisplayName) }))

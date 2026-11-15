@@ -1,4 +1,5 @@
 import type { WatchModel } from '../ws';
+import type { ModelSource, ModelSwitching, TeamEndpoint } from '@/lib/api-client';
 
 export interface Policy {
   strategy: string; lockStrategy: boolean; allowPinning: boolean; allowedModels: string[]; excludedProviders: string[];
@@ -7,6 +8,23 @@ export interface Policy {
   maxOutputTokens: number | null; rpmLimit: number | null; promptLogging: 'key' | 'off' | 'on'; allowPersonalProviderKeys: boolean;
   /** Which of several statistically tied leaders to use (router TieBreak); cheaper when unset. */
   tieBreak?: 'cheaper' | 'faster' | 'highest';
+  /**
+   * From R5 (plan D45): which models this project's keys may use. The project GET carries it when the
+   * API has the setting; an older API sends none, and then the routing rules show no Model source and
+   * never send one. `allowedModels` and `excludedProviders` stay the manager's own lists under Only
+   * (the API keeps its fail-closed markers apart, §2.5).
+   */
+  modelSource?: ModelSource;
+  /*
+   * From the API's A2 release (plan §5.2 "Project policy"), present only where the features apply to the workspace
+   * (its owner is on the staff list, or the features are on for everyone): the page shows and sends them only then.
+   */
+  /** Match each request for this project's keys. */
+  requestMatching?: boolean;
+  /** Model switching for this project's keys. */
+  modelSwitching?: ModelSwitching;
+  /** The largest re-send cost of a move, in USD; null for no limit. */
+  switchCostCapUsd?: number | null;
 }
 
 export interface Budget {
@@ -48,6 +66,10 @@ export interface ProjectData {
   providerSources: Record<string, 'project' | 'workspace' | 'members'>;
   webhooks: Array<{ id: number; url: string; events: string; active: number; last_sent_at: string | null; last_status: number | null }>;
   minSample: number;
+  /** R5, when servers are on for the workspace: the project's servers and the workspace's shared with it. */
+  endpoints?: TeamEndpoint[];
+  /** R5, likewise: models its keys can be routed to now (Prefer and Only need one). */
+  readyModels?: number;
 }
 
 export interface MemberStat {

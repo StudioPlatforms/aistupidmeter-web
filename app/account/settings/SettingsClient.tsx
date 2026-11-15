@@ -409,7 +409,7 @@ export default function SettingsClient() {
             <ul className="sc-ticks is-plain">
               <li>Password reset, when you ask for one</li>
               <li>Purchase confirmation and receipts</li>
-              <li>A notice three days before a trial converts to a charge</li>
+              <li>A notice if a payment fails</li>
             </ul>
           </Pane>
         </div>
@@ -459,8 +459,10 @@ export default function SettingsClient() {
                       onClick={() => { if (layout !== l) saveLayout(l); }}>
                 <LayoutSketch layout={l} />
                 <span className="st-card-t">
-                  {LAYOUT_INFO[l].name}
-                  {l === DEFAULT_LAYOUT && <Tag tone="accent">Default</Tag>}
+                  <span className="sc-layout-name">
+                    {LAYOUT_INFO[l].name}
+                    {l === DEFAULT_LAYOUT && <Tag tone="accent">Default</Tag>}
+                  </span>
                   <span className="st-card-tick" aria-hidden="true" />
                 </span>
                 <span className="st-card-d">{LAYOUT_INFO[l].description}</span>

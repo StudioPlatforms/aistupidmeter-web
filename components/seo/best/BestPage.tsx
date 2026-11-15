@@ -140,7 +140,7 @@ function measuresOf(key: BestKey, price: PriceSnapshot | null, nt: NearTop | nul
 
 const pairLabel = (a: SeoModel, b: SeoModel): string => (a.slug <= b.slug ? `${a.displayName} vs ${b.displayName}` : `${b.displayName} vs ${a.displayName}`);
 
-export default async function BestPage({ category }: { category: BestKey }): Promise<JSX.Element> {
+export default async function BestPage({ category }: { category: BestKey }): Promise<React.JSX.Element> {
   const c = BEST[category];
   const [roster, boards, price] = await Promise.all([getRoster(), getBoards24h(), getPrice()]);
 

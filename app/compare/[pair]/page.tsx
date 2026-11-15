@@ -66,7 +66,8 @@ function worseLink(v: Vendor | undefined): { href: string; label: string } {
   return { href: '/is-ai-getting-worse', label: 'Are AI models getting worse?' };
 }
 
-export async function generateMetadata({ params }: { params: { pair: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ pair: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const roster = await getRoster();
   const parsed = parsePairSlug(params.pair, roster);
   if (!parsed) return { title: { absolute: `Comparison not found${TITLE_SUFFIX}` }, robots: { index: false, follow: true } };
@@ -81,7 +82,8 @@ export async function generateMetadata({ params }: { params: { pair: string } })
   });
 }
 
-export default async function PairPage({ params }: { params: { pair: string } }) {
+export default async function PairPage(props: { params: Promise<{ pair: string }> }) {
+  const params = await props.params;
   const roster = await getRoster();
   const parsed = parsePairSlug(params.pair, roster);
   if (!parsed) notFound();

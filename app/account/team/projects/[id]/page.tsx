@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 /** Per-user page — never statically prerendered. */
 export const dynamic = 'force-dynamic';
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
+export default async function ProjectPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   return (
     <AccountShell>
       <ProjectClient id={params.id} />

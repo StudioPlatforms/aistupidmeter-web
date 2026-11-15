@@ -76,7 +76,7 @@ const ld = graphLd([
 
 const REPORT_SLUG = 'drift-detector-false-alarm-rate';
 
-export default function ThirteenMonthsPage(): JSX.Element {
+export default function ThirteenMonthsPage(): React.JSX.Element {
   const siblings = siblingsOf(ENTRY);
   const report = siblings.find((e) => e.slug === REPORT_SLUG);
   const reportPath = report ? researchPath(report) : `/research/${REPORT_SLUG}`;
