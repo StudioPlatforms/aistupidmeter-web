@@ -32,7 +32,7 @@ export interface ProviderDTO {
   internal?: boolean;
   createdAt?: string;
   updatedAt?: string;
-  /** When the account entered its current state ("In review since 5 Nov"). */
+  /** When the account entered its current state ("Awaiting approval since 5 Nov"). */
   stateSince?: string | null;
   restartAfter?: string | null;
   closedAt?: string | null;
@@ -40,6 +40,8 @@ export interface ProviderDTO {
   noticeEmailConfirmedAt?: string | null;
   counts?: { members: number; pendingInvites: number; verifiedDomains: number; pendingDomains: number };
   submitBlockedUntil?: string | null;
+  /** M12: why nothing can be submitted for review in the account's standing (suspended, restricted, terminated), or null. */
+  submitClosedReason?: string | null;
 }
 
 /** GET /account/provider/options: the forms' countries and regions. */
@@ -90,7 +92,7 @@ export const ERROR_TEXT: Record<string, string> = {
   rate_limited: 'Too many attempts. Please wait a little and try again.',
   invalid_field: 'Some fields need attention.',
   role_required: 'Your role in this provider account does not allow that.',
-  not_editable: 'This cannot be changed while the account is in review or published.',
+  not_editable: 'This cannot be changed while the account is awaiting approval or published.',
   companies_only: 'Only company accounts verify domains.',
   domain_exists: 'That domain is already on this provider account.',
   domain_recently_released: 'That domain was released recently and cannot be added again yet.',
@@ -197,7 +199,8 @@ export const ROLE_LABEL: Record<ProviderRole, string> = { owner: 'Owner', admin:
 
 export const STATE_LABEL: Record<ProviderState, string> = {
   draft: 'Draft',
-  in_review: 'In review',
+  // M11: the owner's words for a submitted account (provider-facing; the staff pane shows the same).
+  in_review: 'Awaiting approval',
   changes_requested: 'Changes requested',
   approved: 'Approved',
   refused: 'Refused',
@@ -207,7 +210,7 @@ export const STATE_LABEL: Record<ProviderState, string> = {
 const shortDay = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
 
-/** The page head's pill: "Draft", "In review since 5 Nov". */
+/** The page head's pill: "Draft", "Awaiting approval since 5 Nov". */
 export function stateText(p: Pick<ProviderDTO, 'state' | 'stateSince'>): string {
   const label = STATE_LABEL[p.state] ?? p.state;
   return p.state === 'in_review' && p.stateSince ? `${label} since ${shortDay(p.stateSince)}` : label;
@@ -275,4 +278,26 @@ export function slugFromWebsite(website: string): string {
 /** The host of a URL a person typed, or '' when it is not one. */
 export function hostOf(url: string): string {
   try { return new URL(url).hostname; } catch { return ''; }
+}
+
+/**
+ * M13 (M11 review SHOULD-2): why "Start benchmarking" is not offered, from the API's scheduler reason (effective.ts), so a
+ * missing action always says why. Null when Start is offered or the reason has no text here.
+ */
+export const START_UNAVAILABLE: Record<string, string> = {
+  marketplace_off: 'Benchmarking is switched off on AI Stupid Level for now.',
+  kill_switch: 'Benchmarking is paused on AI Stupid Level for now.',
+  detached: 'This listing has no endpoint: attach one first.',
+  delisted: 'This listing is no longer listed.',
+  paused_admin: 'Benchmarking is paused for this listing by AI Stupid Level.',
+  not_approved: 'Benchmarking starts after your account is approved. Until then you can run the readiness check.',
+  under_review: 'This listing is under review: benchmarking can start once it is approved.',
+  mirror_stale: 'Your account’s latest changes are still being applied. Try again in a few minutes.',
+  agreement_not_current: 'Accept the Provider Terms and Listing Agreement offered on your Agreement page first.',
+  tier_not_standard: 'Your account is limited to the probe for now: full benchmarking needs the standard tier.',
+};
+export function startUnavailableText(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  if (reason.startsWith('hold_')) return 'An endpoint safety hold stops benchmarking until it is lifted: see your Endpoints page.';
+  return START_UNAVAILABLE[reason] ?? null;
 }

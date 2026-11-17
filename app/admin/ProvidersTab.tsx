@@ -89,6 +89,12 @@ interface Detail {
     tls: { confirmed: { issuer: string; at: string } | null; pending: { issuer: string; from: string; at: string } | null } }>;
   listings?: Array<{ id: number; publicId?: string; model: string; precision: string; state: string; openModel: { name: string } | null }>;
   attestedHosts?: string[];
+  /** M13 (privacy 1.9): the transfer arrangement per declared region, and the EU-US Data Privacy Framework flag staff set. */
+  transfer?: {
+    covered: boolean; reason: string | null; current: boolean; evaluatedAt: string | null;
+    regions: Array<{ region: string; countries: string[]; mechanism: string; covered: boolean; words: string }>;
+    dpfCertified: boolean; dpfSetBy: number | null; dpfSetAt: string | null;
+  };
 }
 
 /** Queue kinds and details that read better than their codes; any other is shown as the API names it. */
@@ -144,7 +150,11 @@ export default function ProvidersTab() {
     try {
       const r = await fetch(`/api/admin/marketplace/providers/${encodeURIComponent(p.publicId)}`, { cache: 'no-store' });
       const j = await r.json().catch(() => null);
-      if (r.ok && j?.success) setDetail(j.data); else setDetailError(j?.message || j?.error || `The API answered ${r.status}.`);
+      if (r.ok && j?.success) {
+        setDetail(j.data);
+        // M12 (M11 review MINOR-10): an account opened from a mail link by its id alone gets its name and state from the detail.
+        if (j.data?.provider) setOpen(prev => (prev && prev.publicId === p.publicId && !prev.displayName ? { ...prev, ...j.data.provider } : prev));
+      } else setDetailError(j?.message || j?.error || `The API answered ${r.status}.`);
     } catch {
       setDetailError('Could not reach the server.');
     }
@@ -173,6 +183,14 @@ export default function ProvidersTab() {
   }, []);
   const confirmTls = (endpointId: string) => post(`holds/${encodeURIComponent(endpointId)}/confirm-tls`, {}, 'Confirmed: the hold is lifted.');
   const attest = (host: string, attested: boolean) => open ? post(`providers/${encodeURIComponent(open.publicId)}/hosts`, { host, attested }, attested ? `${host} attested` : `${host} withdrawn`) : Promise.resolve();
+  /** M13: staff record (or withdraw) the host's EU-US Data Privacy Framework certification; its US regions count only then. */
+  const setDpf = (certified: boolean) => {
+    if (!open) return Promise.resolve();
+    if (!confirm(certified
+      ? `Record that ${open.displayName || 'this host'} is certified under the EU-US Data Privacy Framework? Check it on the DPF list first: its US regions then count as covered, and its connections to the Smart Router resume.`
+      : `Withdraw the EU-US Data Privacy Framework certification of ${open.displayName || 'this host'}? A host that declares US regions is then not covered: its connections are suspended at once and its connected users are emailed.`)) return Promise.resolve();
+    return post(`providers/${encodeURIComponent(open.publicId)}/dpf`, { certified }, certified ? 'Recorded: certified under the EU-US Data Privacy Framework.' : 'Withdrawn: not certified under the EU-US Data Privacy Framework.');
+  };
 
   const fetchAll = useCallback(async () => {
     try {
@@ -194,6 +212,19 @@ export default function ProvidersTab() {
     }
   }, []);
   useEffect(() => { void fetchAll(); }, [fetchAll]);
+  // M11: the owner's submission mail links to /admin?provider=<public id>#providers: once the accounts are loaded, that
+  // account's review opens, and the parameter is dropped from the address (the hash stays), as ?case= in Integrity cases.
+  useEffect(() => {
+    if (load !== 'ok') return;
+    const id = new URLSearchParams(window.location.search).get('provider');
+    if (!id || !/^[a-z2-7]{10}$/.test(id)) return;
+    const u = new URL(window.location.href); u.searchParams.delete('provider');
+    window.history.replaceState(null, '', `${u.pathname}${u.search}${u.hash}`);
+    // M12 (M11 review MINOR-10): the list holds the newest 500 accounts; an older one opens by its id (the detail read
+    // needs only the id, and fills the name and state in).
+    const p = providers.find(x => x.publicId === id);
+    void openDetail(p ?? ({ publicId: id } as AdminProvider));
+  }, [load, providers, openDetail]);
 
   if (load === 'loading') return <Loader label="Loading provider accounts" minHeight={240} />;
   if (load === 'off') {
@@ -230,7 +261,7 @@ export default function ProvidersTab() {
     <>
       <Stats columns={4}>
         <Stat value={num(total)} label="Provider accounts" sub="our test accounts left out" />
-        <Stat value={num(count('in_review'))} label="In review" sub={`${num(count('changes_requested'))} with changes requested`} />
+        <Stat value={num(count('in_review'))} label="Awaiting approval" sub={`${num(count('changes_requested'))} with changes requested`} />
         <Stat value={num(count('approved'))} label="Approved" sub={`${num(count('draft'))} still in draft`} />
         <Stat value={num(providers.length - customers.length)} label="Internal test accounts" sub="never public, never counted" />
       </Stats>
@@ -319,8 +350,8 @@ export default function ProvidersTab() {
       <Modal
         open={!!open}
         onClose={() => { setOpen(null); setActionMsg(null); }}
-        title={open?.displayName ?? ''}
-        sub={open ? `${KIND_LABEL[open.kind] ?? open.kind} · ${STATE_LABEL[open.state] ?? open.state}${open.internal ? ' · internal test account' : ''}` : undefined}
+        title={open?.displayName || 'Provider account'}
+        sub={open && open.kind ? `${KIND_LABEL[open.kind] ?? open.kind} · ${STATE_LABEL[open.state] ?? open.state}${open.internal ? ' · internal test account' : ''}` : undefined}
         size="wide"
       >
         {!detail && !detailError && <Loader label="Loading" />}
@@ -394,6 +425,25 @@ export default function ProvidersTab() {
                 <ul className="mp-admin-list">
                   {detail.listings.map(l => <li key={l.id}><span>{l.openModel?.name ?? l.model} · {l.precision.toUpperCase()}</span><span className="st-faint">{l.state.replace(/_/g, ' ')}</span></li>)}
                 </ul>
+              </>
+            )}
+            {detail.transfer && (
+              <>
+                <p className="st-label mp-admin-h">International transfers (Smart Router connections)</p>
+                <p className="st-faint">
+                  {detail.transfer.covered ? 'Covered: users can connect this host.' : `Not covered: users cannot connect this host, and connections to it are suspended. ${detail.transfer.reason ?? ''}`}
+                  {detail.transfer.evaluatedAt ? ` Evaluated ${fullDate(detail.transfer.evaluatedAt)}.` : ' Not evaluated yet.'}
+                </p>
+                <ul className="mp-admin-list">
+                  {detail.transfer.regions.map(r => (
+                    <li key={r.region}><span>{r.region}{r.countries.length && r.mechanism !== 'eea' && r.countries.join(', ') !== r.region ? ` (${r.countries.join(', ')})` : ''}</span><span className="st-faint">{r.words}</span></li>
+                  ))}
+                  <li>
+                    <span>EU-US Data Privacy Framework: {detail.transfer.dpfCertified ? 'certified' : 'not recorded'}{detail.transfer.dpfSetAt ? ` (set ${fullDate(detail.transfer.dpfSetAt)}${detail.transfer.dpfSetBy ? ` by user #${detail.transfer.dpfSetBy}` : ''})` : ''}</span>
+                    <span><button type="button" className="st-more ad-linkbtn" onClick={() => void setDpf(!detail.transfer!.dpfCertified)}>{detail.transfer.dpfCertified ? 'Withdraw' : 'Record certification'}</button></span>
+                  </li>
+                </ul>
+                {actionMsg && !detail.provider.internal && <Note>{actionMsg}</Note>}
               </>
             )}
             {detail.provider.internal && (

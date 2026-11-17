@@ -80,7 +80,8 @@ export const MEASURING = new Set(['active', 'waiting_slot', 'paused_credit', 'pa
 export const usd2 = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /**
- * The Start dialog's words (start-v2): exported for the render tests. The spot-check sentence only when the API sends it (a
+ * The Start dialog's words (start-v3, M13: agreement v1.0 §6.6's "the times at which individual runs take place or per-task
+ * results" in place of "never single runs"): exported for the render tests. The spot-check sentence only when the API sends it (a
  * published spot month of this listing), the calibration sentence in the owner's reading (B); "and stay published" is gone.
  */
 export function StartBenchText({ e, startText }: { e: Estimate; startText?: BenchSection['startText'] }) {
@@ -88,7 +89,7 @@ export function StartBenchText({ e, startText }: { e: Estimate; startText?: Benc
     <>
       <p>We test this model with our coding, reasoning and tool-use suites and an hourly probe, on our schedule: coding about every 4 hours, reasoning and tool use daily, the probe every hour. We choose the exact times and never announce them.</p>
       <p>Each run uses the API key on this endpoint, so your own provider account pays for the tokens: about <strong>{usd2(e.monthUsd)} a month</strong> at your declared prices (coding {usd2(e.perSuiteMonthUsd.coding)}, reasoning {usd2(e.perSuiteMonthUsd.reasoning)}, tool use {usd2(e.perSuiteMonthUsd.tooling)}, probe {usd2(e.perSuiteMonthUsd.canary)}).</p>
-      <p>Results count from the first run, good or bad. We publish each day&apos;s mean score, rounded to a whole point, one to two days after the day ends, never single runs, and you see the same numbers at the same time. A run that fails because the key is refused or out of credit, or because the endpoint is down, never counts: measurement pauses until it works again.</p>
+      <p>Results count from the first run, good or bad. We publish each day&apos;s mean score, rounded to a whole point, one to two days after the day ends, and you see the same numbers at the same time. We do not publish the times at which individual runs take place or per-task results. A run that fails because the key is refused or out of credit, or because the endpoint is down, never counts: measurement pauses until it works again.</p>
       {startText?.spotSentence && <p>{startText.spotSentence}</p>}
       {startText?.calibrationSentence && <p>{startText.calibrationSentence}</p>}
     </>

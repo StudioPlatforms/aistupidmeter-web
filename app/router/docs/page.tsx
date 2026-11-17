@@ -36,6 +36,8 @@ const SECTIONS: Array<{ id: string; label: string; method?: Method }> = [
   { id: 'sdks', label: 'SDKs' },
   { id: 'chat', label: 'Chat completions', method: 'POST' },
   { id: 'strategies', label: 'Virtual models' },
+  { id: 'switching', label: 'Model switching' },
+  { id: 'own-endpoints', label: 'Your own endpoints' },
   { id: 'models', label: 'Models', method: 'GET' },
   { id: 'features', label: 'Tools, JSON and streaming' },
   { id: 'sandbox', label: 'Sandbox and preview' },
@@ -83,7 +85,7 @@ const PARAMS: Array<{ n: string; t: string; r: boolean; d: string }> = [
 
 const STRATEGIES: Array<{ id: string; cat: string; desc: string }> = [
   { id: 'auto', cat: 'Default', desc: 'Uses your saved routing strategy from Preferences' },
-  { id: 'auto-task', cat: 'Per request', desc: 'Reads each request and picks the matching benchmark: tools → tool use, design or long sessions → reasoning, code → coding, else overall; simple requests use the Best value version. The routing reason names the rule' },
+  { id: 'auto-task', cat: 'Per request', desc: 'Best model on the benchmark that matches each request.' },
   { id: 'auto-split', cat: 'Your split', desc: 'Your own weighted traffic split across models you choose (set it in Preferences); the rest of the split goes ahead of your fallback order' },
   { id: 'auto-coding', cat: 'Coding', desc: 'Best for code generation, debugging, refactoring' },
   { id: 'auto-reasoning', cat: 'Reasoning', desc: 'Best for complex analysis, math, logic' },
@@ -922,6 +924,13 @@ export default function DocsPage() {
                     <div><dt><code>X-AISM-Reasoning</code></dt><dd>Why it was chosen, including any fallback</dd></div>
                     <div><dt><code>X-AISM-Latency</code></dt><dd>How long the request took</dd></div>
                     <div><dt><code>X-AISM-Request-Id</code></dt><dd>The completion id, for feedback</dd></div>
+                    <div><dt><code>X-AISM-Strategy</code></dt><dd>The strategy the request was ranked on (<C>best_tooling</C>, <C>best_value_coding</C>, …), <C>custom_split</C> for your traffic split, or <C>pinned</C> when it named its model</dd></div>
+                    <div><dt><code>X-AISM-Strategy-Source</code></dt><dd>Where that strategy came from: <C>request</C> (the mode it named), <C>preferences</C>, <C>project</C>, <C>project-lock</C> or <C>budget-downgrade</C></dd></div>
+                    <div><dt><code>X-AISM-Benchmark</code></dt><dd>The benchmark it was ranked on: <C>overall</C>, <C>coding</C>, <C>reasoning</C>, <C>tool_use</C>, or <C>agentic_coding</C> (only when a request names <C>best_agentic_coding</C>). Absent for <C>cheapest</C>, <C>fastest</C> and <C>custom_split</C>, which rank on price, speed or your split rather than a benchmark, and for a request that names a model</dd></div>
+                    <div><dt><code>X-AISM-Request-Kind</code></dt><dd>The rule Match each request matched, when matching applied: <C>tools_code</C>, <C>tools</C>, <C>long_session</C>, <C>planning</C>, <C>code</C> or <C>general</C></dd></div>
+                    <div><dt><code>X-AISM-Conversation</code></dt><dd><C>new</C>, <C>stayed</C>, <C>kept</C>, <C>kept_cost</C>, <C>switched</C> or <C>moved</C> — see <a href="#switching" onClick={e => jump(e, 'switching')}>Model switching</a></dd></div>
+                    <div><dt><code>X-AISM-Switched-From</code></dt><dd>The model a conversation moved from (<C>switched</C>, <C>moved</C>)</dd></div>
+                    <div><dt><code>X-AISM-Switch-Cost-Est</code></dt><dd>The estimated extra cost of re-sending the conversation to the new model, in USD (<C>switched</C>, <C>moved</C>)</dd></div>
                     <div>
                       <dt><code>X-AISM-Streaming-Mode</code></dt>
                       <dd>
@@ -979,9 +988,23 @@ export default function DocsPage() {
                       <strong>How the best model is chosen:</strong> every model ranks on an average of its recent scored benchmark runs, never on
                       a single run. When the leaders are closer than the test can tell apart (within 1.96 times their combined standard error, the
                       same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among the leaders by
-                      cost per task in our runs (the default), by speed or by score. A conversation stays on the model that answered it, and with
-                      the cheaper or faster tie-break a model you were already routed to stays while it is still close to the leader, so the pick
-                      does not change with every new run. Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
+                      cost per task in our runs (the default), by speed or by score. Within a conversation, <a href="#switching" onClick={e => jump(e, 'switching')}>Model switching</a> decides,
+                      and with the cheaper or faster tie-break a model you were already routed to stays while it is still close to the leader, so
+                      the pick does not change with every new run. Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
+                    </p>
+                    <p>
+                      <strong>Match each request</strong> (Preferences, or a project&apos;s rules) ranks each request on the benchmark that tests its kind
+                      of work. Requests with tools are ranked on tool use, or on coding when the tools work on files, code or a terminal. Code without
+                      tools is ranked on coding. Design and planning requests are ranked on reasoning, and so is a conversation that is already eight
+                      or more messages long when it first reaches the router. Anything else is ranked on the overall score. It applies to Best overall
+                      and Best value, and so to <C>auto</C>, <C>auto-best</C>, <C>auto-value</C> and <C>auto-task</C>; a mode that names a benchmark, such as{' '}
+                      <C>auto-coding</C> or <C>auto-value-tooling</C>, is used as sent. The routing reason and <C>X-AISM-Request-Kind</C> name the rule that matched.
+                    </p>
+                    <p>
+                      <strong>Your strategy for every routed request:</strong> requests sent as <C>auto</C> use the strategy saved in Preferences, and a
+                      request that names a mode uses that mode. With <em>Apply this strategy to: Every routed request</em>, <C>auto</C> and every{' '}
+                      <C>auto-*</C> name use your strategy, so you can change routing without changing your apps; a request that names a model still goes
+                      to that model. A project&apos;s rules have the same switch: <em>Use this strategy for every routed request</em>.
                     </p>
                     <p>
                       <strong>Near-top strategies</strong> (<C>auto-value*</C>, <C>auto-consistent</C>, <C>auto-fastest-quality</C>) only choose among models
@@ -995,6 +1018,104 @@ export default function DocsPage() {
                       the best of them is still used — and the routing reason names any model that was passed over and why.
                     </p>
                   </div>
+                </div>
+              </Pane>
+
+              {/* ── Model switching (router release A2): what the router does with a conversation under way ── */}
+              <Pane
+                id="switching"
+                ruled
+                title="Model switching"
+                sub="Whether a conversation that is under way can move to another model."
+              >
+                <div className="sd-flow">
+                  <p className="st-text">
+                    A conversation is a request whose messages contain an answer the router gave (its tool calls, or an answer of at least 20
+                    characters, remembered for 24 hours), and its model is the one that gave the newest of them. A new conversation always starts on
+                    the current pick. Choose the setting in <Link href="/router/preferences">Preferences</Link>, or in a project&apos;s rules for its
+                    keys; it applies to every routed request, whatever mode it names. A request that names a model is never moved.
+                  </p>
+                  <dl className="st-kv sd-hdrs">
+                    <div><dt>One model per conversation</dt><dd>The default. The model that answered keeps the conversation while you can still use it. It keeps its own reasoning between steps, and your provider keeps the conversation in its prompt cache, so long conversations and agent loops cost the least.</dd></div>
+                    <div><dt>At each new message</dt><dd>Each new message you send is ranked again, on the benchmark that matches it when Match each request is on. The conversation moves only when its model is no longer a good fit for your strategy and the move costs less than your limit, or when its model can no longer serve it. For Best overall, Best coding, Best reasoning and Best tool use, that means another model leads it by more than 2.58 standard errors (a wider margin than the one that defines a tie). For the Best value strategies, Most consistent and Fastest good model, it has fallen more than 5 points behind the best score. For a traffic split, it is no longer in the split. Tool calls and their results stay on the model that made them.</dd></div>
+                    <div><dt>At every request</dt><dd>The same check at every request, tool results included, so a model can change in the middle of an agent loop. The new model starts without the previous model&apos;s hidden reasoning.</dd></div>
+                  </dl>
+                  <p className="st-text">
+                    <strong>The cost of a move.</strong> A move re-sends the whole conversation to a model that has not cached it, at your
+                    provider&apos;s full input price. A move that would cost more than your limit to re-send is skipped: $0.10, $0.50 (the default),
+                    $2.00 or no limit. On scores, a conversation moves at most once in 10 requests, and not back to the model it left within those 10.
+                    After a move on scores, the model it left is tried first if the new one fails.
+                  </p>
+                  <p className="st-text">
+                    <strong>Under every setting,</strong> a conversation moves when its model can no longer serve it: no key, excluded or not
+                    allowed, over your cost or latency limit, failing right now, or unable to make a tool call the request requires. With
+                    Avoid drifting on, a model with an active drift alert can also lose its conversation: at the next new message, or under At every
+                    request at the next request. Each response says what happened in <C>X-AISM-Conversation</C>, with <C>X-AISM-Switched-From</C> and{' '}
+                    <C>X-AISM-Switch-Cost-Est</C> after a move, and the routing reason says why.
+                  </p>
+                  <h3 className="sd-h3">Routing reasons, by example</h3>
+                  <p className="st-text">What <C>X-AISM-Reasoning</C> says about the conversation (models, scores and costs are examples):</p>
+                  <dl className="st-kv sd-hdrs sd-reasons">
+                    <div><dt><C>stayed</C></dt><dd>Continuing the conversation on claude-opus-5-5, which gave its previous answer. For best tool use it ranks 3rd of 19 (88.1 ±1.5); a new conversation would start on gpt-6.1-sol (89.2 ±1.4).</dd></div>
+                    <div><dt><C>kept</C></dt><dd>Kept glm-5.3 at this new message: on the coding benchmark it is within 2.58 standard errors of the leader, gpt-6.1-sol (91.0 ±1.6 against 92.1 ±1.2).</dd></div>
+                    <div><dt><C>kept_cost</C></dt><dd>Kept glm-5.3: on the coding benchmark gpt-6.1-sol leads it by more than 2.58 standard errors (95.4 against 91.0), but re-sending this conversation to gpt-6.1-sol would cost about $0.62, above your $0.50 limit for a move.</dd></div>
+                    <div><dt><C>switched</C></dt><dd>Moved this conversation from glm-5.3 to gpt-6.1-sol at this new message (Model switching: at each new message): on the coding benchmark gpt-6.1-sol leads it by more than 2.58 standard errors (95.4 against 91.0); gpt-6.1-sol is the leader. gpt-6.1-sol has no cached copy of this conversation: about 92,000 input tokens at full price, roughly $0.22 more than staying.</dd></div>
+                    <div><dt><C>moved</C></dt><dd>Moved this conversation from glm-5.3 to gpt-6.1-sol: glm-5.3 is failing right now.</dd></div>
+                    <div><dt>A named mode</dt><dd>auto-best: best overall (combined benchmark: coding 50%, reasoning 25%, tool use 25%). Your saved strategy, Best tool use, applies to requests sent as auto. Selected …</dd></div>
+                  </dl>
+                </div>
+              </Pane>
+
+              {/* ── Your own endpoints (private endpoints, R7). From the api: router/endpoints gate.ts (ids, the /v1/messages
+                  refusal), chain.ts and source.ts (Model source, the order), health.ts and jobs/endpoint-health.ts (checks),
+                  router/proxy and lib/allowance (the allowance); the plan rule as the Providers page words it. ── */}
+              <Pane
+                id="own-endpoints"
+                ruled
+                title="Your own endpoints"
+                sub="OpenAI-compatible servers you run or rent, which the router can send your requests to."
+              >
+                <div className="sd-flow">
+                  <p className="st-text">
+                    Add one on the <Link href="/router/providers">Providers</Link> page, under Your endpoints. Any OpenAI-compatible API works:
+                    vLLM, SGLang, llama.cpp, Ollama, LM Studio, TGI or a hosting company. Give its base URL, such as{' '}
+                    <C>https://gpu1.example.com/v1</C>, and its API key if it has one. The key is optional, but an endpoint without one is tagged
+                    Unprotected: anyone who finds its address can use it. Adding it tests the address and reads its model list; a model can be
+                    turned on once it passes a test and its context size is known. Included in Pro and above; your plan&apos;s number of
+                    endpoints is shown on the Providers page.
+                  </p>
+                  <p className="st-text">
+                    Name a model as <C>ep/&lt;slug&gt;/&lt;model&gt;</C>: the slug is the Model id prefix you chose when you added the endpoint
+                    (it cannot be changed), and the model is its id as your server lists it. A workspace&apos;s and a project&apos;s servers
+                    (Servers for every project, Servers for this project) are <C>ep/team.&lt;slug&gt;/&lt;model&gt;</C>.{' '}
+                    <C>GET /v1/models</C> lists the ones your key can use.
+                  </p>
+                  <p className="st-text">
+                    <strong>Model source</strong> in <Link href="/router/preferences">Preferences</Link> decides when automatic requests
+                    (<C>auto</C> and the <C>auto-*</C> modes) use them. It applies to your personal router keys; a project&apos;s keys follow its
+                    Routing rules (All connected, Prefer our servers or Only our own servers). Endpoints have no benchmark scores: among them,
+                    routing goes by health, then what you tagged each model for (Use for), then your declared price (<C>auto-cheapest</C>) or the
+                    latency of your own requests (<C>auto-fastest</C>, <C>auto-fastest-quality</C>), then your order.
+                  </p>
+                  <dl className="st-kv sd-hdrs">
+                    <div><dt>All connected</dt><dd>The default. Automatic requests go to benchmarked cloud models, and your endpoints answer requests that name them. With Try other models automatically on, up to two of your endpoint models are also tried as a last resort when no cloud model can answer.</dd></div>
+                    <div><dt>Prefer my endpoints</dt><dd>Your endpoints first, then benchmarked cloud models. A request none of your endpoints can take goes to the cloud. If an endpoint fails, the next one and then the cloud models are tried when Try other models automatically is on.</dd></div>
+                    <div><dt>Only my endpoints</dt><dd>Your endpoints and nothing else: no built-in provider is ever called. A request none of them can take fails with an error that names each endpoint and why, and <C>/v1/messages</C>, <C>/v1/messages/count_tokens</C> and <C>/v1/embeddings</C> stop working, because only built-in providers serve them.</dd></div>
+                  </dl>
+                  <p className="st-text">
+                    <strong>Health checks.</strong> We check each endpoint&apos;s model list (<C>GET /models</C>, never a generation) every 2 to 30
+                    minutes, depending on its state and how recently it was used. A failed check is repeated 15 seconds later before it counts:
+                    two in a row mark the endpoint down, and one that passes brings it back. Automatic routing tries endpoints that are up before
+                    degraded ones (2 of their last 12 checks failed, or a check took over 3 times their 7-day median), and at most one model of an
+                    endpoint that is down, last. An endpoint whose key was refused or whose address is blocked is not used until it passes a new
+                    test. Your requests count too: an endpoint that cannot be reached, or fails three requests in a row, is skipped for up to 5
+                    minutes, then tried with one request.
+                  </p>
+                  <p className="st-text">
+                    Requests your endpoints answer count toward your plan&apos;s monthly requests, like any other. <C>/v1/messages</C> does not
+                    serve them: a request there that names an endpoint model (its <C>ep/</C> id, or a name one of your endpoints serves) is refused
+                    with a 400 and not sent. Use <C>/v1/chat/completions</C>.
+                  </p>
                 </div>
               </Pane>
 

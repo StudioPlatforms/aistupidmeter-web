@@ -238,7 +238,7 @@ export default function LogoClient({ initial }: { initial: ProviderSummary }) {
                       </Note>
                     )}
                     {cur.state === 'pending_review' && (
-                      <Note title="In review">
+                      <Note title="Awaiting approval">
                         {approved
                           ? 'A person at AI Stupid Level reviews every new or replaced mark; until then your approved mark stays live.'
                           : 'A person at AI Stupid Level reviews every new or replaced mark; until then we show your initials.'}

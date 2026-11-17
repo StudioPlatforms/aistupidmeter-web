@@ -35,10 +35,11 @@ interface Data {
   offerLimits: { livePerProvider: number; title: number; details: number; code: number; maxDays: number };
   offerKinds: Array<{ kind: string; label: string }>;
 }
-type TestResult = { ok: true; status: number | null; answered: boolean; header: string | null; host: string } | { ok: false; message: string };
+/** M12: the API keeps the sent signature header server-side (it could be replayed to that host); it returns its key id, time and request id. */
+type TestResult = { ok: true; status: number | null; answered: boolean; signed: boolean; kid: string | null; t: number | null; rid: string | null; host: string } | { ok: false; message: string };
 
 const OFFER_STATE: Record<Offer['state'], { label: string; tone?: 'good' | 'warn' | 'bad' }> = {
-  draft: { label: 'Draft' }, in_review: { label: 'In review', tone: 'warn' }, live: { label: 'Live', tone: 'good' }, expired: { label: 'Expired' }, removed: { label: 'Withdrawn' },
+  draft: { label: 'Draft' }, in_review: { label: 'Awaiting approval', tone: 'warn' }, live: { label: 'Live', tone: 'good' }, expired: { label: 'Expired' }, removed: { label: 'Withdrawn' },
 };
 const day = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—');
@@ -78,7 +79,7 @@ export default function RouterClient({ initial }: { initial: ProviderSummary }) 
   };
   const test = async (l: RouterListing) => {
     setBusy(true);
-    const r = await mpApi<{ status: number | null; answered: boolean; header: string | null; host: string }>('/router/test-request', { method: 'POST', body: { listingId: l.id } });
+    const r = await mpApi<{ status: number | null; answered: boolean; signed: boolean; kid: string | null; t: number | null; rid: string | null; host: string }>('/router/test-request', { method: 'POST', body: { listingId: l.id } });
     setBusy(false);
     setTests(t => ({ ...t, [l.id]: r.ok && r.data ? { ok: true, ...r.data } : { ok: false, message: r.error ?? 'The test request was not sent.' } }));
   };
@@ -174,7 +175,7 @@ export default function RouterClient({ initial }: { initial: ProviderSummary }) 
                           <span>{l.label}</span>
                           <button type="button" className="st-btn is-sm" disabled={busy || !data.signature.kid} onClick={() => void test(l)}>Send a signed test request</button>
                           {t && (t.ok
-                            ? <span className="sw-quiet" role="status">Sent to {t.host}: {t.answered ? `your endpoint answered HTTP ${t.status}` : 'your endpoint did not answer'}.{t.header && <> Header sent: <code className="st-ic">{t.header}</code></>}</span>
+                            ? <span className="sw-quiet" role="status">Sent to {t.host}: {t.answered ? `your endpoint answered HTTP ${t.status}` : 'your endpoint did not answer'}.{t.signed && t.rid && <> Signed with key <code className="st-ic">{t.kid}</code>{t.t ? ` at ${new Date(t.t * 1000).toISOString().replace('T', ' ').slice(0, 19)} UTC` : ''}, request id <code className="st-ic">{t.rid}</code>: look for it in your endpoint&apos;s logs.</>}</span>
                             : <span className="st-error" role="status">{t.message}</span>)}
                         </div>
                       );

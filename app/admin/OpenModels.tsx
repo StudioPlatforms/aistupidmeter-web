@@ -65,7 +65,7 @@ export default function OpenModels() {
   };
 
   return (
-    <Pane title="Open-model registry" sub="The open-weights models providers can list. Closed families are never added." ruled flush>
+    <Pane title="Model registry" sub="The models providers can list, open-source or closed. Add one when a provider requests it." ruled flush>
       {msg && <div className="sw-pad"><Note>{msg}</Note></div>}
       {!rows && !error && <Loader label="Loading the registry" />}
       {error && <div className="sw-pad"><Note tone="bad" title="Not loaded">{error}</Note></div>}

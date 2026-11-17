@@ -4,7 +4,7 @@ import { breadcrumbLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
 import JsonLd from '@/components/seo/JsonLd';
 import { ReadingPage, RdSection, RdFacts, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
 import { getVisitTotal } from '@/components/landing/data';
-import { providerSignupOpenNow } from '@/lib/provider-public';
+import { agreementPublicNow, providerSignupOpenNow } from '@/lib/provider-public';
 import ListingOpenPage, { OPEN_DESCRIPTION, OPEN_TITLE } from './ListingOpen';
 
 /**
@@ -56,7 +56,7 @@ function visitsLabel(visits: number | null): string | null {
 const arrow = <span className="lp-ar" aria-hidden="true">→</span>;
 
 export default async function InferenceProvidersPage() {
-  if (await providerSignupOpenNow()) return <ListingOpenPage />;
+  if (await providerSignupOpenNow()) return <ListingOpenPage agreementPublic={await agreementPublicNow()} />;
   // Read hourly; when the API cannot answer, the figure is left out rather than guessed.
   const visits = visitsLabel(await getVisitTotal());
 

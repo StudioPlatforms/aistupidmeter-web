@@ -71,6 +71,8 @@ const WRITES: Array<{ method: 'POST' | 'PATCH'; path: RegExp }> = [
   { method: 'PATCH', path: /^open-models\/[1-9][0-9]{0,9}$/ },
   { method: 'POST', path: /^holds\/[a-z2-7]{10}\/confirm-tls$/ },
   { method: 'POST', path: /^providers\/[a-z2-7]{10}\/hosts$/ },
+  // M13 (privacy 1.9): staff record or withdraw a host's EU-US Data Privacy Framework certification.
+  { method: 'POST', path: /^providers\/[a-z2-7]{10}\/dpf$/ },
   // M5: decisions (§10.4), measures (§10.5), agreement versions (§9.3), reports (§9.5), appeals and complaints (§9.6).
   { method: 'POST', path: /^providers\/[a-z2-7]{10}\/decision$/ },
   { method: 'POST', path: /^listings\/[a-z0-9]{6,32}\/decision$/ },

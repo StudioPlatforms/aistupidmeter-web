@@ -2,7 +2,7 @@ import AccountShell from '@/components/AccountShell';
 import { providerPageGate, providerPageMetadata } from '@/lib/provider-gate';
 import AgreementClient from './AgreementClient';
 
-export const generateMetadata = providerPageMetadata('/account/provider/agreement', 'Provider agreement');
+export const generateMetadata = providerPageMetadata('/account/provider/agreement', 'Provider Terms and Listing Agreement');
 
 export const dynamic = 'force-dynamic';
 

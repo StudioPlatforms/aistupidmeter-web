@@ -8,7 +8,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { pageMeta, SITE, breadcrumbLd } from '@/lib/seo';
 import { providerSignupOpenCached } from '@/lib/provider-public';
 import { countryName } from '@/lib/countries';
-import { marketplaceRead, providerTags, safeHttps, usd, tokens, longDay, headlineText, type ProviderPageDTO, type EntryDTO } from '@/lib/marketplace-public';
+import { connectable, marketplaceRead, providerTags, safeHttps, usd, tokens, longDay, type ProviderPageDTO, type EntryDTO } from '@/lib/marketplace-public';
 import { HowWeTestSpotItems, HowWeTestSpotList } from '@/components/marketplace/SpotCopy';
 import MeasuredScores from '@/components/marketplace/MeasuredScores';
 import Offers from '@/components/marketplace/Offers';
@@ -50,9 +50,9 @@ const STATUS_CHIP: Record<string, string> = {
 
 function measuredCell(e: EntryDTO): string {
   if (e.measurement.state === 'not_measured') return 'Not measured yet';
-  // M6b: the headline mean ± SE over the newest counted runs of published days (whole number ± one decimal).
-  const h = headlineText(e.scores?.headline.combined);
-  if (h) return h;
+  // M13 (agreement v1.0 §6.5): the newest published daily mean in whole points, with its day (the API sends no SE here).
+  const hc = e.scores?.headline.combined;
+  if (hc) return `${hc.mean}${hc.lastDay ? ` (${longDay(hc.lastDay)})` : ''}`;
   const m = e.scores?.measuring;
   if (m) return `Measuring: ${m.runs} of ${m.of} runs`;
   const last = e.measurement.daily.find(d => d.suite === 'combined');
@@ -80,6 +80,9 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
   }
   const { provider: p, entries, declaration, health } = r.data;
   const offers = r.data.offers ?? [];
+  // M13 (Provider Terms and Listing Agreement v1.0 §24.2): a closed account's page stays up for 90 days, "No longer listed" with the close's
+  // date, its models listed as no longer listed (then the middleware answers 410). No way to use it is offered.
+  const closedSince = r.data.noLongerListed?.since ?? null;
   const live = entries.filter(e => e.status.kind !== 'no_longer_listed');
   const gone = entries.filter(e => e.status.kind === 'no_longer_listed');
   const spotted = live.filter(e => e.scores?.spotChecks);
@@ -91,7 +94,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
     { id: 'models', label: 'Models and prices' },
     ...(measured.length ? [{ id: 'performance', label: 'Measured performance' }] : []),
     ...(offers.length ? [{ id: 'offers', label: 'Offers' }] : []),
-    { id: 'use', label: 'How to use it' },
+    ...(closedSince ? [] : [{ id: 'use', label: 'How to use it' }]),
     ...(p.about ? [{ id: 'about', label: 'About' }] : []),
     { id: 'data', label: 'Data handling' },
     { id: 'testing', label: 'How we test this host' },
@@ -114,10 +117,13 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
         className="mp-provider-page"
         kicker="Inference provider"
         title={p.displayName}
-        lead={operated ?? undefined}
-        actions={(
+        lead={closedSince ? `No longer listed on AI Stupid Level (since ${longDay(closedSince)}).` : operated ?? undefined}
+        actions={closedSince ? undefined : (
           <div className="mp-actions">
-            <Link className="lp-btn lp-btn-primary lp-btn-lg" href={`/router/providers?host=${p.slug}`}>Use {p.displayName} in the Smart Router</Link>
+            {/* M13 (privacy 1.9): only a host whose declared processing regions are covered can be connected. */}
+            {connectable(p.connect)
+              ? <Link className="lp-btn lp-btn-primary lp-btn-lg" href={`/router/providers?host=${p.slug}`}>Use {p.displayName} in the Smart Router</Link>
+              : <p className="mp-muted mp-noconnect">{p.connect?.reason}</p>}
             {getKey && <a className="lp-btn lp-btn-ghost lp-btn-lg" href={getKey} rel={PROVIDER_REL} target="_blank">Get an API key ↗</a>}
             {website && <a className="lp-btn lp-btn-ghost lp-btn-lg" href={website} rel={PROVIDER_REL} target="_blank">Website ↗</a>}
           </div>
@@ -130,7 +136,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
               {p.domains.slice(0, 3).map(d => <li key={d.domain}>Verified domain {d.domain}</li>)}
               {p.regions.slice(0, 6).map(x => <li key={x}>{x}</li>)}
               {p.publishedAt && <li>Listed since {new Date(p.publishedAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })}</li>}
-              {standing && <li className="is-warn">{standing}</li>}
+              {closedSince ? <li className="is-warn">No longer listed</li> : standing && <li className="is-warn">{standing}</li>}
             </ul>
             {health.endpoints > 0 && (
               <p className="mp-live">{health.up === health.endpoints ? 'All endpoints up' : `${health.up} of ${health.endpoints} endpoints up`}{health.checkedAt ? ` · checked ${longDay(health.checkedAt)}` : ''}</p>
@@ -174,7 +180,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
 
         {measured.length > 0 && (
           <RdSection id="performance" n={n('performance')} title="Measured performance">
-            {measured.map(e => <MeasuredScores key={e.publicId} title={e.label} scores={e.scores!} href={e.path} />)}
+            {measured.map(e => <MeasuredScores key={e.publicId} title={e.label} scores={e.scores!} href={e.path} publicDaily />)}
           </RdSection>
         )}
 
@@ -184,8 +190,9 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
           </RdSection>
         )}
 
-        <RdSection id="use" n={n('use')} title="How to use it">
+        {!closedSince && <RdSection id="use" n={n('use')} title="How to use it">
           <RdProse>
+            {!connectable(p.connect) && <p><b>{p.connect?.reason}</b></p>}
             <ol>
               <li>Create an API key on {p.displayName}{getKey ? <>&apos;s site (<a href={getKey} rel={PROVIDER_REL} target="_blank">get a key ↗</a>)</> : '’s site'}.</li>
               <li>Add it on your Providers page in the Smart Router.</li>
@@ -196,7 +203,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
           {first && (
             <RdCode title="A request" label="curl" code={`curl https://aistupidlevel.info/v1/chat/completions \\\n  -H "Authorization: Bearer $AISM_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model": "${first.mpId}", "messages": [{"role": "user", "content": "Hello"}]}'`} />
           )}
-        </RdSection>
+        </RdSection>}
 
         {p.about && (
           <RdSection id="about" n={n('about')} title={`About ${p.displayName}`}>
@@ -237,7 +244,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
               <li>We choose the times of every test run, and never announce them.</li>
               <li>The host pays for its own test traffic, with the key on its endpoint.</li>
               <li>A refused key or exhausted credit pauses measurement; such a run never counts.</li>
-              <li>We publish each day&apos;s mean one to two days after the day ends, never single runs.</li>
+              <li>We publish each day&apos;s mean one to two days after the day ends, never when a run took place, and never a per-task result.</li>
               {/* M7: spot checks, from each listing's newest PUBLISHED month only (never a count before its monthly publication, §6.7).
                   M9b (D-C7): the practice sentences only with a published month among the recent ones (the API's spotPractice). */}
               <HowWeTestSpotItems spotPractice={r.data.spotPractice} spotted={spottedMonths} />
@@ -251,7 +258,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
           <p>Listing details supplied by {p.operatedBy ?? p.displayName}{p.country ? ` (${countryName(p.country)})` : ''}. Measurements by AI Stupid Level.</p>
           <ReportListing provider={p.slug} path={`/inference-providers/${p.slug}`} />
           <p><Link href="/inference-providers">Are you an inference provider? List your models →</Link></p>
-          <p className="mp-router-cta">The Smart Router is one OpenAI-compatible endpoint whose routing modes choose a model for each request; with your own key it can reach {p.displayName}. <Link href="/router">Explore the Smart Router →</Link></p>
+          <p className="mp-router-cta">The Smart Router is one OpenAI-compatible endpoint whose routing modes choose a model for each request{closedSince ? '' : <>; with your own key it can reach {p.displayName}</>}. <Link href="/router">Explore the Smart Router →</Link></p>
         </footer>
       </ReadingPage>
     </>

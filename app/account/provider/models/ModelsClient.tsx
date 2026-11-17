@@ -14,8 +14,9 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { Pane, Loader, Note, Pill, Modal, Empty } from '@/components/studio';
 import { ProviderHead, FieldError, canEdit, useProviderSummary } from '@/components/marketplace/ProviderBits';
-import { mpApi, type ProviderSummary } from '@/lib/provider-account';
+import { mpApi, startUnavailableText, type ProviderSummary } from '@/lib/provider-account';
 import { StartBenchDialog, StopBenchDialog, CalibrationDialog, WithdrawCalibrationDialog, BENCH_STATE, MEASURING } from '@/components/marketplace/BenchDialogs';
+import { SubmitButton, SubmitLine } from './SubmitForReview';
 import '@/styles/studio-provider-models.css';
 
 interface OpenModel { id: number; slug: string; name: string; maker: string; contextTokens: number | null }
@@ -53,7 +54,7 @@ interface Data {
 }
 
 const STATE: Record<string, { label: string; tone?: 'good' | 'warn' | 'bad' }> = {
-  draft: { label: 'Draft' }, in_review: { label: 'In review', tone: 'warn' }, published: { label: 'Listed', tone: 'good' },
+  draft: { label: 'Draft' }, in_review: { label: 'Awaiting approval', tone: 'warn' }, published: { label: 'Listed', tone: 'good' },
   paused: { label: 'Paused', tone: 'warn' }, delisted: { label: 'Delisted', tone: 'bad' },
 };
 const fmt = (n: number) => n.toLocaleString('en-US');
@@ -196,6 +197,17 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
     else flash(r.error ?? 'Not started', true);
     void load();
   };
+  // M11: a listing added after approval goes to review on its own (POST /models/:id/submit); the owner is mailed at once.
+  // M12 (M11 review MINOR-9): the button reads "Submitting…" meanwhile; once submitted the row loses its button, so focus
+  // moves to the row (its pill now reads "Awaiting approval") instead of falling to the page's top.
+  const submitListing = async (l: Listing) => {
+    setBusy(l.id);
+    const r = await mpApi<{ message?: string }>(`/models/${l.id}/submit`, { method: 'POST', body: {} });
+    setBusy(null);
+    if (r.ok) flash(r.data?.message ?? 'Submitted: the listing is awaiting approval.'); else flash(r.error ?? 'Not submitted', true);
+    await load();
+    if (r.ok) window.setTimeout(() => document.getElementById(`lst-${l.id}`)?.focus(), 0);
+  };
   const remove = async (l: Listing) => {
     if (!confirm(`Remove the draft listing of ${l.openModel?.name ?? l.model}?`)) return;
     setBusy(l.id);
@@ -222,7 +234,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
 
   return (
     <>
-      <ProviderHead summary={s} title="Models" lead="The open models you serve, at the price and precision you serve them. Each one needs a passing readiness check before it can be submitted." />
+      <ProviderHead summary={s} title="Models" lead="The models you serve, open-source or closed, at the price and precision you serve them. Each one needs a passing readiness check before it can be submitted." />
       <div className="st-body sw-body">
         {msg && <div role="status" className={`st-note sw-flash${msg.bad ? ' is-bad' : ''}`}><div>{msg.text}</div></div>}
         {/* F4 (revision 4 §R2.3): the console banner of an open calibration (console first: mail is never the only channel). */}
@@ -239,7 +251,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
         )}
         {loadError && <Note tone="bad" title="Not loaded">{loadError}</Note>}
         {!d && !loadError && <Loader label="Loading your models" />}
-        {d?.individual && <Note>Public listing for individual hosts opens later. Your setup is saved and we will email you when it opens.</Note>}
+        {d?.individual && <Note>Public listing for individual hosts opens later.</Note>}
         {d && (
           <>
             <Pane title="Listings" sub={<>{fmt(d.limits.used)} of {fmt(d.limits.max)}{d.individual ? null : <> · whether people can reach them through the Smart Router is set on <Link href="/account/provider/router">Router &amp; offers</Link></>}</>} ruled flush>
@@ -249,7 +261,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                 const st = STATE[l.state] ?? { label: l.state };
                 const run = l.lastReadinessRun;
                 return (
-                  <div className="mp-check mp-lst is-plain" key={l.id}>
+                  <div className="mp-check mp-lst is-plain" key={l.id} id={`lst-${l.id}`} tabIndex={-1}>
                     <div className="mp-check-main">
                       <div className="mp-check-t">{l.openModel?.name ?? l.model} · {l.precision.toUpperCase()}{l.precisionNote ? ` (${l.precisionNote})` : ''}</div>
                       <div className="mp-check-s">
@@ -269,6 +281,9 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                       {l.submissionGaps.length > 0 && (
                         <ul className="sw-list mp-lst-gaps">{l.submissionGaps.map(g => <li key={g.code}>{g.message}</li>)}</ul>
                       )}
+                      {/* M11: once the account is approved, a new listing is submitted on its own (owners and admins: a viewer cannot submit).
+                          M12: outside good standing the line says why and there is no button (MINOR-5); the button points here (MINOR-9). */}
+                      <SubmitLine l={l} provider={s.provider} editable={editable} />
                       {d?.calibration?.[l.publicId] && d.calibration[l.publicId].state !== 'not_available' && (
                         <p className="mp-check-s">{calibrationLine(d.calibration[l.publicId])}</p>
                       )}
@@ -280,6 +295,10 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                         <>
                           {(l.effective?.scheduler === 'yes' || l.effective?.scheduler === 'resume_probe_only') && l.readiness?.passed && l.readiness.current && !['active', 'waiting_slot'].includes(l.benchState) && (
                             <button type="button" className="st-btn is-sm is-primary" onClick={() => setBench({ id: l.id, label: `${l.openModel?.name ?? l.model} (${l.precision.toUpperCase()})`, kind: 'start' })}>{l.benchState === 'not_started' ? 'Start benchmarking' : 'Resume benchmarking'}</button>
+                          )}
+                          {/* M13 (M11 review SHOULD-2): where Start is not offered, say why. */}
+                          {!(l.effective?.scheduler === 'yes' || l.effective?.scheduler === 'resume_probe_only') && l.state !== 'draft' && !['active', 'waiting_slot'].includes(l.benchState) && startUnavailableText(l.effective?.schedulerReason) && (
+                            <span className="mp-muted">{startUnavailableText(l.effective?.schedulerReason)}</span>
                           )}
                           {MEASURING.has(l.benchState) && (
                             <button type="button" className="st-btn is-sm" onClick={() => setBench({ id: l.id, label: `${l.openModel?.name ?? l.model} (${l.precision.toUpperCase()})`, kind: 'stop' })}>Stop benchmarking</button>
@@ -294,6 +313,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                           <button type="button" className="st-btn is-sm" onClick={() => void readiness(l)} disabled={busy === l.id || running(run) || !l.endpoint}>
                             {running(run) ? 'Checking…' : l.readiness ? 'Run readiness again' : 'Run readiness check'}
                           </button>
+                          <SubmitButton l={l} provider={s.provider} editable={editable} busy={busy === l.id} onSubmit={() => void submitListing(l)} />
                           <button type="button" className="st-btn is-sm" onClick={() => openEdit(l)}>Edit</button>
                           {l.state === 'draft' && <button type="button" className="st-btn is-sm is-quiet sw-bad-text" onClick={() => void remove(l)} disabled={busy === l.id}>Remove</button>}
                         </>
@@ -335,7 +355,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
             </Pane>
 
             {editable && (
-              <Pane title="Request a model we don't have" sub="Open-weights models only. We add them to the registry by hand." ruled>
+              <Pane title="Request a model we don't have" sub="Open-source or closed. We add them to the registry by hand." ruled>
                 <form className="sw-stack mp-lst-ask" onSubmit={ask}>
                   <label className="st-field"><span className="st-field-label">Model</span><input name="name" required maxLength={80} className="st-input" placeholder="e.g. Qwen3 235B A22B" /></label>
                   <label className="st-field"><span className="st-field-label">Who publishes the weights</span><input name="maker" required maxLength={60} className="st-input" placeholder="e.g. Qwen" /></label>
@@ -354,7 +374,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
           <form id="mp-lst-form" className="sw-stack" onSubmit={save} noValidate>
             {!editingDraft && <Note>After submission only the prices, regions, rate limits and model page change here.</Note>}
             <label className="st-field">
-              <span className="st-field-label">Open model</span>
+              <span className="st-field-label">Model</span>
               <select className="st-select" value={form.openModelId} disabled={!editingDraft} onChange={e => setForm({ ...form, openModelId: e.target.value })} aria-invalid={!!fields.openModelId}>
                 <option value="">Choose…</option>
                 {d.openModels.map(o => <option key={o.id} value={o.id}>{o.maker} · {o.name}</option>)}

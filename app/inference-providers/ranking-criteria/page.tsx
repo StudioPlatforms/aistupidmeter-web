@@ -4,11 +4,13 @@ import { marketplaceStaffGate, providerPageMetadata } from '@/lib/provider-gate'
 import { marketplaceRead, type DirectoryDTO } from '@/lib/marketplace-public';
 import { DIRECTORY_PATH } from '@/lib/marketplace-open';
 import { PublishedParagraph } from '@/components/marketplace/SpotCopy';
+import { agreementPublicNow } from '@/lib/provider-public';
 
 /**
  * Ranking criteria v1 (Phase 3 plan §7.4, §9.4; P2B Art. 5): how hosted entries are ordered and when one joins the
- * main ranking. Annex A of the Provider Listing Agreement says the same. Published at the opening (M10); until then
- * shown only to accounts the API lets into the provider pages, the site's 404 for everyone else, never indexed.
+ * main ranking. Annex A of the Provider Terms and Listing Agreement says the same. Published at the opening (M10); until then shown only
+ * to accounts the API lets into the provider pages, the site's 404 for everyone else, never indexed. M12: the agreement
+ * is linked only once a version of it is public (its page answers 404 until then), and it is named without a title.
  */
 const PATH = '/inference-providers/ranking-criteria';
 // The page's lead, and from the opening its description too (fix round, code review m9: the same words, nothing new).
@@ -31,6 +33,7 @@ export default async function RankingCriteriaPage() {
   const spotPractice = dir.kind === 'ok' && dir.data.spotPractice === true;
   // F6 (phase4-plan §6.5): the fresh stated limit, sent only with the practice while fresh task versions are in use or announced.
   const spotOnFresh = dir.kind === 'ok' && dir.data.spotOnFresh === true;
+  const agreementPublic = await agreementPublicNow();
   return (
     <ReadingPage
       className="rd-ranking-criteria"
@@ -65,7 +68,7 @@ export default async function RankingCriteriaPage() {
           ['D4', 'Completed runs are at least 90% of completed runs plus runs abandoned for credit, key, rate or reachability, over 14 days'],
           ['D5', 'No capped trials over 14 days'],
           ['I1', 'Spot checks, last full calendar month: at least 2 consistent checks, a 30-day minimum detectable effect of at most 3 coding points, and no confirmed inconsistency in the last 90 days'],
-          ['I2', 'No open integrity event'],
+          ['I2', 'No open integrity case that we have told you about'],
           ['I3', 'The listing’s configuration unchanged for at least 7 days'],
           ['S', 'Our switch for joining the main ranking is on'],
         ]} />
@@ -82,7 +85,12 @@ export default async function RankingCriteriaPage() {
 
       <RdSection id="changes" n={n('changes')} title="Changes">
         <RdProse>
-          <p>A change to any criterion, threshold or parameter is announced 15 days before it applies. These criteria are Annex A of the <Link href="/inference-providers/agreement">Provider Listing Agreement</Link>.</p>
+          <p>
+            A change to any criterion, threshold or parameter is announced 15 days before it applies.{' '}
+            {agreementPublic
+              ? <>These criteria are Annex A of our <Link href="/inference-providers/agreement">Provider Terms and Listing Agreement</Link>.</>
+              : <>These criteria will be Annex A of our Provider Terms and Listing Agreement, which is being finalised.</>}
+          </p>
         </RdProse>
       </RdSection>
     </ReadingPage>

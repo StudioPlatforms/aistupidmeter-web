@@ -121,7 +121,7 @@ const MODES: Mode[] = [
   { id: 'auto-fastest', ranks: 'The lowest response time outright: the median of each model’s most recent week of benchmark runs, blended with what production observed.', more: DOCS_MODES },
   { id: 'auto-cheapest', ranks: 'The lowest list price per token, input and output averaged.', more: DOCS_MODES },
   { id: 'auto-consistent', ranks: `Within ${VALUE_FLOOR_POINTS} points of the best, then the smallest run-to-run spread of the coding score over the last ${SPREAD_WINDOW_DAYS} days.`, more: DOCS_MODES },
-  { id: 'auto-task', ranks: 'Decided per request from what it contains: code worked on through tools goes to coding and tool use together; other tools to tool use; design, planning or a long session to reasoning; large or demanding code to coding; other code to value for coding; long text to best overall; everything else to best value.', more: DOCS_MODES },
+  { id: 'auto-task', ranks: 'Decided per request, on the benchmark that tests its kind of work: requests with tools on tool use, or on coding when the tools work on files, code or a terminal; code without tools on coding; design and planning requests, and a conversation already eight or more messages long when it first reaches the router, on reasoning; anything else on the overall score.', more: DOCS_MODES },
   { id: 'auto-split', ranks: `Your own weighted split across up to ${MAX_OWN_LIST} models. Each request draws its primary by weight; the rest of the split become its fallbacks.`, more: DOCS_MODES },
 ];
 const MODE_COUNT = MODES.length;

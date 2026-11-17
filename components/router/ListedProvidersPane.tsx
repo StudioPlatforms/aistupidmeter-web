@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
-import type { DataDeclaration, ListedHost, ListedKeyResult, ListedOffer } from '@/lib/api-client';
+import type { DataDeclaration, ListedHost, ListedKeyResult, ListedOffer, TransferView } from '@/lib/api-client';
 import HostLogo from '@/components/marketplace/HostLogo';
 import { Pane, Modal, Note, Tag, Pill } from '@/components/studio';
 import '@/styles/studio-keys.css';
@@ -28,6 +28,11 @@ import '@/styles/studio-keys.css';
  * the dialog names, which it sends along so the API refuses a list that changed since the page loaded (hosts_changed);
  * Check key sends the stored key only to `connection.checkHosts`, the addresses the user confirmed. A host stopped for
  * a security reason reaches the pane only for a connected user, as paused, with no Check key and no offers.
+ *
+ * M13 (privacy 1.9, the owner's rule): before connection the dialog shows the host, the company operating it, its declared
+ * processing regions with their countries and the international-transfer arrangement for each (TransferFacts). A host
+ * whose regions no arrangement covers (`transfer.covered` false) is shown with the reason and no [Add key] (the API
+ * refuses it, 409 transfer_not_covered); a connection to it reads paused 'transfer', with the reason, until it is covered.
  */
 
 const PROVIDER_REL = 'nofollow ugc noopener noreferrer';
@@ -120,6 +125,43 @@ export function OfferBox({ o }: { o: ListedOffer }) {
   );
 }
 
+/** "UK (United Kingdom)": a label's countries where they say more than the label. */
+function regionLabel(r: TransferView['regions'][number]): string {
+  const c = r.countries.join(', ');
+  return r.mechanism !== 'eea' && c && c !== r.region ? `${r.region} (${c})` : r.region;
+}
+
+/** Whether a host may be offered [Add key]: not when the API says no transfer arrangement covers it. */
+export const canConnect = (h: ListedHost): boolean => h.transfer?.covered !== false;
+
+/**
+ * M13 (privacy 1.9): before connection, the host, the company operating it, its declared processing regions with their
+ * countries, and the international-transfer arrangement for each; why it cannot be connected when none covers a region.
+ */
+export function TransferFacts({ h }: { h: ListedHost }) {
+  const t = h.transfer;
+  if (!t) return null;
+  return (
+    <div className="lh-data lh-transfer">
+      <p className="st-label">Where {h.displayName} processes requests</p>
+      <p className="st-hint">
+        {h.operatedBy ? <>{h.displayName} is operated by {h.operatedBy}. </> : null}
+        {t.regions.length ? 'Its declared processing regions, and the international-transfer arrangement for each:' : `${h.displayName} has not declared where it processes requests.`}
+      </p>
+      {t.regions.length > 0 && (
+        <ul>
+          {t.regions.map(r => <li key={r.region}><b>{regionLabel(r)}</b>: {r.words}</li>)}
+        </ul>
+      )}
+      {!t.covered && <p className="sk-prov-msg is-bad"><b>{h.displayName} cannot be connected.</b> {t.reason}</p>}
+      <p className="st-hint">
+        Regions declared by {h.displayName}, not audited by AI Stupid Level. Adequacy decisions as the{' '}
+        <a href={t.source.url} rel="noopener noreferrer" target="_blank">European Commission lists them ↗</a> (checked {new Date(`${t.source.checkedOn.slice(0, 10)}T12:00:00Z`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}).
+      </p>
+    </div>
+  );
+}
+
 type DialogState = { slug: string; replace: boolean };
 
 export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSlug, onOpened }: {
@@ -145,7 +187,7 @@ export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSl
     const h = hosts.find(x => x.slug === openSlug);
     if (h) {
       requestAnimationFrame(() => document.getElementById(`listed-${h.slug}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }));
-      if (!h.connection) setDialog({ slug: h.slug, replace: false });
+      if (!h.connection) { if (canConnect(h)) setDialog({ slug: h.slug, replace: false }); }
       else if (h.connection.state === 'key_refused') setDialog({ slug: h.slug, replace: true });
     }
     onOpened?.();
@@ -256,7 +298,9 @@ export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSl
                         ? <><b>{h.displayName} was paused for a security reason,</b> so nothing is sent to it. Rotate this key at {h.displayName}, then remove it here.</>
                         : c.pausedReason && Object.prototype.hasOwnProperty.call(HOLD_WORDS, c.pausedReason)
                           ? <><b>{h.displayName}&rsquo;s endpoint is paused for a security check</b>{HOLD_WORDS[c.pausedReason]}, so nothing is sent to it until the check is resolved.</>
-                          : <><b>{h.displayName} is not listed right now,</b> so the router does not use it.</>}
+                          : c.pausedReason === 'transfer'
+                            ? <><b>Your {h.displayName} connection is suspended.</b> {h.transfer?.reason ?? 'Its declared processing regions are not covered by an international-transfer arrangement we recognise.'} Nothing is sent to {h.displayName} and your key is not used; the connection resumes by itself once {h.displayName}&rsquo;s regions are covered.</>
+                            : <><b>{h.displayName} is not listed right now,</b> so the router does not use it.</>}
                     </p>
                   )}
                   {c?.state === 'confirm_host' && (
@@ -269,6 +313,9 @@ export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSl
                       </div>
                     </div>
                   )}
+                  {!c && !canConnect(h) && (
+                    <p className="sk-prov-msg is-warn"><b>Not available to connect.</b> {h.transfer?.reason}</p>
+                  )}
                   {msg && <p className={`sk-prov-msg is-${msg.tone}`} role="status">{msg.text}</p>}
                 </div>
                 <div className="st-row-end">
@@ -280,9 +327,9 @@ export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSl
                         : c.state !== 'paused' && c.checkHosts.length > 0 && <button type="button" className="st-btn is-sm" disabled={busy === h.slug} onClick={() => void check(h)}>{busy === h.slug ? 'Checking…' : 'Check key'}</button>}
                       <button type="button" className="st-btn is-sm is-danger" disabled={busy === h.slug} onClick={() => void remove(h)}>Remove</button>
                     </>
-                  ) : (
+                  ) : canConnect(h) ? (
                     <button type="button" className="st-btn is-sm is-primary" onClick={() => setDialog({ slug: h.slug, replace: false })}>Add key</button>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );
@@ -318,6 +365,8 @@ function AddKeyForm({ h, onDone, onSaved, onHost }: { h: ListedHost; onDone: () 
   const field = useRef<HTMLInputElement>(null);
   const keyUrl = safeHttps(h.getKeyUrl);
   const chat = h.checkBy === 'chat' || chatAsked !== null;
+  // M13: a host no transfer arrangement covers is never sent a key (the API refuses it too).
+  const blocked = !canConnect(h);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => field.current?.focus());
@@ -327,7 +376,7 @@ function AddKeyForm({ h, onDone, onSaved, onHost }: { h: ListedHost; onDone: () 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     const k = apiKey.trim();
-    if (!k || busy) return;
+    if (!k || busy || blocked) return;
     if (k.length > KEY_MAX || !PRINTABLE.test(k)) { setError('A key is one line of letters, digits and symbols, with no spaces.'); return; }
     setBusy(true);
     setError(null);
@@ -374,6 +423,7 @@ function AddKeyForm({ h, onDone, onSaved, onHost }: { h: ListedHost; onDone: () 
         <li>Create a key at {keyUrl ? <a href={keyUrl} rel={PROVIDER_REL} target="_blank">{linkText(keyUrl)} ↗</a> : `${h.displayName}'s site`}</li>
         <li>Paste it here</li>
       </ol>
+      <TransferFacts h={h} />
       <div className="st-field">
         <label className="st-field-label" htmlFor="lh-key">{h.displayName} API key</label>
         <input
@@ -387,7 +437,7 @@ function AddKeyForm({ h, onDone, onSaved, onHost }: { h: ListedHost; onDone: () 
           autoComplete="new-password"
           spellCheck={false}
           maxLength={KEY_MAX}
-          disabled={busy}
+          disabled={busy || blocked}
         />
       </div>
       <Note>
@@ -406,7 +456,7 @@ function AddKeyForm({ h, onDone, onSaved, onHost }: { h: ListedHost; onDone: () 
       {error && <Note tone="bad" title="Not saved">{error}</Note>}
       <div className="pk-actions">
         <button type="button" className="st-btn" onClick={onDone} disabled={busy}>Cancel</button>
-        <button type="submit" className="st-btn is-primary" disabled={busy || !apiKey.trim()}>{busy ? 'Checking…' : 'Add & check key'}</button>
+        <button type="submit" className="st-btn is-primary" disabled={busy || blocked || !apiKey.trim()}>{busy ? 'Checking…' : 'Add & check key'}</button>
       </div>
     </form>
   );

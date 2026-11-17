@@ -222,8 +222,10 @@ export default function TeamsGuidePage() {
         <RdCode title="A project key in use" label="curl" code={KEY_SNIPPET} />
         <RdProse><p>The rules a manager sets, which every key in the project follows:</p></RdProse>
         <RdFacts rows={[
-          ['Strategy', 'What “auto” means: best overall, best for coding, reasoning or tool use, best value, most consistent, fastest good model, cheapest, fastest, matched to each request, or your own weighted traffic split.'],
-          ['Use it for every routed request', 'Requests asking for auto-coding, auto-cheapest and so on get the project’s strategy too.'],
+          ['Strategy', 'What “auto” means: best overall, best for coding, reasoning or tool use, best value, most consistent, fastest good model, cheapest, fastest, or your own weighted traffic split.'],
+          ['Match each request', 'Rank each request on the benchmark that tests its kind of work: requests with tools on tool use, or on coding when the tools work on files, code or a terminal; code without tools on coding; design and planning requests on reasoning; anything else on the overall score. Applies to best overall and best value, and so to auto, auto-best, auto-value and auto-task.'],
+          ['Model switching', 'Whether a conversation under way can move to another model: one model per conversation (the default), at each new message, or at every request. A move on scores needs the conversation’s model to stop being a good fit for the strategy (for the quality strategies, another model leads it by more than 2.58 standard errors; for Best value, Most consistent and Fastest good model, it falls more than 5 points behind the best score; for a traffic split, it leaves the split), and is skipped when re-sending the conversation would cost more than the project’s limit ($0.10, $0.50 by default, $2.00 or no limit).'],
+          ['Use this strategy for every routed request', 'Requests asking for auto-coding, auto-cheapest and so on get the project’s strategy too, with the project’s Match each request and Model switching.'],
           ['Naming a model', 'Allowed or not. When not, requests that name a model — and /v1/messages, which always does — are refused, and everything is routed.'],
           ['Allowed models', 'Only these models, routed or named. Empty means any model we benchmark.'],
           ['Providers not used', 'Never route to, or accept requests for, these providers.'],

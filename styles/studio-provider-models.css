@@ -46,6 +46,9 @@
   .mp-table tr { display: block; border-bottom: 1px solid var(--st-line, #e3e6ea); padding: 6px 0; }
   .mp-table td { display: flex; justify-content: space-between; gap: 12px; border: 0; padding: 4px 0; }
   .mp-table td::before { content: attr(data-label); font-weight: 600; font-size: 12.5px; }
+  /* M12: a cell's label and its value wrap on a phone, so a row of buttons (an offer's Edit, Send for review, Withdraw)
+     never widens the table past its scroller and hides the state pills (the M11 CDP check). */
+  .st .mp-table td { flex-wrap: wrap; }
 }
 
 /* Router & offers (Phase 3 M8) */

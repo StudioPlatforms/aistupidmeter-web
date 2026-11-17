@@ -13,6 +13,15 @@
 .mp-muted code { overflow-wrap: anywhere; }
 .mp-accept, .mp-appeal, .mp-complaint { display: grid; gap: 12px; max-width: 640px; }
 .mp-accept .st-check, .mp-admin-form .st-check { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+/* M13: a label carrying .st-check is a row, not the 18 px box `.st .st-check` sizes for the input (studio.css): v1.0's long
+   checkbox texts spilled out of it. label.st-check outranks that rule. */
+.mp-accept label.st-check, .mp-admin-form label.st-check { width: auto; height: auto; flex: 0 1 auto; min-width: 0; }
+/* M13: v1.0's company block above the two ticks. */
+.mp-accept-company { display: grid; gap: 6px; margin: 0; font-size: 14px; }
+.mp-accept-company > div { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 12px; }
+.mp-accept-company dt { color: var(--lp-fg3, #70757a); }
+.mp-accept-company dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .mp-accept-company > div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
 .mp-agreement-text { font-size: 14.5px; line-height: 1.6; max-height: 60vh; overflow: auto; padding-right: 6px; }
 .mp-agreement-text .mp-ag-annex { font-size: 18px; margin: 26px 0 6px; }
 .mp-agreement-text .mp-ag-h { font-size: 15.5px; margin: 18px 0 4px; }

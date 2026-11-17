@@ -58,7 +58,9 @@ function check(kind: ProviderKind, f: Form): Record<string, string> {
 
 export default function NewProviderClient({ initial }: { initial: ProviderSummary }) {
   const { data: session, status } = useSession();
-  const [kind, setKind] = useState<ProviderKind>('company');
+  // M12: at the opening only companies create provider accounts (the API refuses an individual one); the individual
+  // branches below stay for Phase 4, when individual listing opens.
+  const [kind] = useState<ProviderKind>('company');
   const [f, setF] = useState<Form>(EMPTY);
   const [slugEdited, setSlugEdited] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -163,7 +165,7 @@ export default function NewProviderClient({ initial }: { initial: ProviderSummar
       title={domainHeld ? 'Provider account created' : 'Create your provider account'}
       lead={domainHeld
         ? 'Where an inference provider sets up its account: company details, domains and data handling.'
-        : 'Free, with no card. Choose what kind of provider you are and add your details; you can change them later.'}
+        : 'Free, with no card. Add your company’s details; you can change them later.'}
     />
   );
 
@@ -221,22 +223,15 @@ export default function NewProviderClient({ initial }: { initial: ProviderSummar
 
         <form onSubmit={submit} className="mp-form" noValidate>
           <Pane title="What kind of provider are you?">
-            <div className="st-cards mp-kinds" role="radiogroup" aria-label="Kind of provider">
-              <label className="st-card mp-kind">
-                <input type="radio" name="kind" className="st-check" checked={kind === 'company'} onChange={() => { setKind('company'); setErrors({}); }} disabled={!emailConfirmed} />
+            <div className="st-cards mp-kinds">
+              <div className="st-card mp-kind">
                 <span className="mp-kind-text">
                   <span className="st-card-t">A company</span>
                   <span className="st-card-d">You sell inference under a company name. You verify your domain.</span>
                 </span>
-              </label>
-              <label className="st-card mp-kind">
-                <input type="radio" name="kind" className="st-check" checked={kind === 'individual'} onChange={() => { setKind('individual'); setErrors({}); }} disabled={!emailConfirmed} />
-                <span className="mp-kind-text">
-                  <span className="st-card-t">An individual</span>
-                  <span className="st-card-d">You run models yourself. Public listing for individual hosts opens later; your setup is kept until then.</span>
-                </span>
-              </label>
+              </div>
             </div>
+            <p className="st-hint mp-kind-later">Individual hosts can&apos;t open a provider account yet. Listing opens to companies first.</p>
           </Pane>
 
           <Pane title={kind === 'company' ? 'Your company' : 'About you'} delay={0.06}>
@@ -319,6 +314,8 @@ export default function NewProviderClient({ initial }: { initial: ProviderSummar
             </fieldset>
 
             {problem && <p className="sw-msg is-bad" role="alert">{problem}</p>}
+            {/* M12: the provider-account privacy information, linked where its collection starts. */}
+            <p className="st-hint mp-privacy-line">How we handle your company&apos;s and your team&apos;s information: <Link href="/privacy#providers">our privacy policy, provider accounts</Link>. The terms that apply: <Link href="/terms#providers">our terms of service, provider accounts</Link>.</p>
             <div className="st-actions sw-gap-top">
               <button type="submit" className="st-btn is-primary" disabled={!emailConfirmed || busy}>
                 {busy ? 'Creating…' : 'Create provider account'}

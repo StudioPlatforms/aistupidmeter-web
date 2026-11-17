@@ -75,7 +75,7 @@ export const LOGO_STATE_LABEL: Record<LogoState, string> = {
   queued: 'Waiting to be checked',
   processing: 'Being checked',
   refused: 'Refused',
-  pending_review: 'In review',
+  pending_review: 'Awaiting approval',
   approved: 'Approved',
   retired: 'Retired',
   withdrawn: 'Withdrawn',

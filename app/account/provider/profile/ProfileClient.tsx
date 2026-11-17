@@ -17,6 +17,8 @@ import { mpApi, PAGE_BASE, SLUG_RE, type ProviderSummary } from '@/lib/provider-
 
 interface Profile {
   displayName: string; legalName: string; tradingName: string; country: string; companyNumber: string; vatNumber: string;
+  /** M13: required with the company number before the agreement can be accepted (v1.0's acceptance block). */
+  registeredOffice: string;
   noticeEmail: string; website: string; pricingUrl: string; getKeyUrl: string; docsUrl: string; statusUrl: string; support: string;
   about: string; foundedYear: string; hqCity: string; regions: string[]; x: string; linkedin: string; github: string;
 }
@@ -31,7 +33,7 @@ interface ProfileData {
 }
 
 const TEXT_FIELDS: Array<Exclude<keyof Profile, 'regions'>> = [
-  'displayName', 'legalName', 'tradingName', 'country', 'companyNumber', 'vatNumber', 'noticeEmail', 'website', 'pricingUrl',
+  'displayName', 'legalName', 'tradingName', 'country', 'companyNumber', 'vatNumber', 'registeredOffice', 'noticeEmail', 'website', 'pricingUrl',
   'getKeyUrl', 'docsUrl', 'statusUrl', 'support', 'about', 'foundedYear', 'hqCity', 'x', 'linkedin', 'github',
 ];
 
@@ -158,7 +160,7 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
       const v = f[k].trim();
       body[k] = v === '' ? null : k === 'x' ? v.replace(/^@/, '') : k === 'foundedYear' ? Number(v) : v;
     }
-    if (!company) { delete body.legalName; delete body.companyNumber; delete body.vatNumber; }
+    if (!company) { delete body.legalName; delete body.companyNumber; delete body.vatNumber; delete body.registeredOffice; }
     if (slugChanged) body.slug = slug;
     const r = await mpApi<ProfileData>('/profile', { method: 'PUT', body });
     setBusy(false);
@@ -227,8 +229,11 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
                       </Field>
                       {company && (
                         <>
-                          <Field label="Company number" who="optional · not public" error={errors.companyNumber}>
+                          <Field label="Company registration number" who="required to accept the agreement · not public" error={errors.companyNumber}>
                             <input className="st-input" value={f.companyNumber} maxLength={60} onChange={e => set({ companyNumber: e.target.value })} />
+                          </Field>
+                          <Field label="Registered office" who="required to accept the agreement · not public" error={errors.registeredOffice}>
+                            <input className="st-input" value={f.registeredOffice} maxLength={300} autoComplete="street-address" onChange={e => set({ registeredOffice: e.target.value })} />
                           </Field>
                           <Field label="VAT number" who="optional · not public" error={errors.vatNumber}>
                             <input className="st-input" value={f.vatNumber} maxLength={40} onChange={e => set({ vatNumber: e.target.value })} />

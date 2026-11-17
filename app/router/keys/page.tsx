@@ -159,7 +159,7 @@ const VIRTUAL_MODELS = [
   { id: 'auto-value-tooling', desc: 'Best value on the tool-use benchmark' },
   { id: 'auto-consistent', desc: 'Steadiest near-top model' },
   { id: 'auto-fastest-quality', desc: 'One of the fastest models near the top' },
-  { id: 'auto-task', desc: 'Coding, reasoning or tool use, judged from each request' },
+  { id: 'auto-task', desc: 'Best model on the benchmark that matches each request' },
   { id: 'auto-split', desc: 'Your own weighted traffic split (Preferences)' },
   { id: 'auto-cheapest', desc: 'Lowest list price, no quality bar' },
   { id: 'auto-fastest', desc: 'Lowest measured latency, no quality bar' },

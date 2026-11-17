@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import pageDates from './page-dates.json';
+import { legalUpdated } from './legal-dates';
 import { RESEARCH, researchPath } from './research-index';
 import { SITE } from './seo';
 import { curatedPairs, lastUpdatedOf, pairSlug, type SeoBoards, type SeoModel } from './seo-data';
@@ -115,7 +116,8 @@ export function pageDate(path: string): Date | undefined {
 }
 
 const entryOf = (r: StaticRoute): SitemapEntry => {
-  const lastModified = pageDate(r.path);
+  // M12: the legal pages' lastmod is the day they say they were last updated, not their last commit (MINOR-20).
+  const lastModified = legalUpdated(r.path) ?? pageDate(r.path);
   return {
     url: `${SITE}${r.path}`,
     ...(lastModified ? { lastModified } : {}),
@@ -191,8 +193,11 @@ export interface MarketplaceDirectoryRow { slug: string; measured: boolean; meas
 export const PROVIDER_TERMS_PAGES: readonly string[] = Object.freeze([
   '/inference-providers/agreement', '/inference-providers/ranking-criteria', '/inference-providers/logo-standards', '/inference-providers/router-signature',
 ]);
-export function marketplaceRoutes(directory: MarketplaceDirectoryRow[] | null, termsOpen = false): SitemapEntry[] {
-  const out: SitemapEntry[] = termsOpen ? PROVIDER_TERMS_PAGES.map(path => ({ url: `${SITE}${path}`, changeFrequency: 'monthly' as const, priority: 0.4 })) : [];
+export function marketplaceRoutes(directory: MarketplaceDirectoryRow[] | null, termsOpen = false, agreementPublic = false): SitemapEntry[] {
+  // M12 (item 7): the agreement's page only once a version of the agreement is public (`agreementPublic`, the same status
+  // route); until then it answers 404 to the public, as the opening page's missing link says. The other three from the opening.
+  const terms = termsOpen ? PROVIDER_TERMS_PAGES.filter(path => agreementPublic || path !== '/inference-providers/agreement') : [];
+  const out: SitemapEntry[] = terms.map(path => ({ url: `${SITE}${path}`, changeFrequency: 'monthly' as const, priority: 0.4 }));
   if (!directory) return out;
   const models = new Set<string>();
   for (const p of directory) {
@@ -206,7 +211,7 @@ export function marketplaceRoutes(directory: MarketplaceDirectoryRow[] | null, t
 }
 
 /** Every sitemap entry, in family order, each URL once. Works with an empty roster and null boards. */
-export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, directory: MarketplaceDirectoryRow[] | null = null, termsOpen = false): SitemapEntry[] {
+export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, directory: MarketplaceDirectoryRow[] | null = null, termsOpen = false, agreementPublic = false): SitemapEntry[] {
   const all = [
     ...staticRoutes(),
     ...bestRoutes(),
@@ -217,7 +222,7 @@ export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, director
     ...integrationRoutes(),
     ...modelRoutes(roster, boards),
     ...pairRoutes(roster, boards),
-    ...marketplaceRoutes(directory, termsOpen),
+    ...marketplaceRoutes(directory, termsOpen, agreementPublic),
   ];
   const seen = new Set<string>();
   return all.filter((e) => (seen.has(e.url) ? false : (seen.add(e.url), true)));

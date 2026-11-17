@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import JsonLd from '@/components/seo/JsonLd';
 import HostLogo from '@/components/marketplace/HostLogo';
+import BecomeProvider, { PROVIDER_START } from '@/components/marketplace/BecomeProvider';
 import { ReadingPage, RdSection, RdProse, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
 import { publicRead } from '@/lib/marketplace-public';
 import { breadcrumbLd, graphLd, webPageLd } from '@/lib/seo';
@@ -23,9 +24,8 @@ export const PATH = '/inference-providers';
 export const OPEN_TITLE = 'Inference providers: list your models';
 export const OPEN_DESCRIPTION = 'List your models on AI Stupid Level for free. We benchmark your own endpoint with our coding, reasoning and tool-use suites and an hourly probe, publish what we measure, and the Smart Router can send you requests from people who bring your key.';
 
-/** Where a provider account starts (§2: signed out, sign up with the provider switch preset; signed in, the set-up page). */
-const SIGNUP = '/auth/signup?as=provider&callbackUrl=%2Faccount%2Fprovider%2Fnew';
-const START = '/account/provider/new';
+/** The set-up page (§2); "Become a provider" picks sign-up or this by the session (components/marketplace/BecomeProvider). */
+const START = PROVIDER_START;
 
 const TOC = [
   { id: 'how', label: 'How listing works' },
@@ -48,7 +48,7 @@ const STEPS: Array<[string, string]> = [
   ['Add your profile and your logo', 'Your company details, links and data-handling declaration, and a square SVG mark that a person reviews.'],
   ['Add your endpoint and your key', 'Your OpenAI-compatible base URL and an API key on an ordinary paid account. We check it with a few short, fixed requests.'],
   ['List your models', 'Each model with its precision, context and your prices, then a readiness check that confirms the settings our tests need.'],
-  ['Accept the agreement', 'An owner or admin accepts the Provider Listing Agreement, and you confirm the address that receives our notices.'],
+  ['Accept the agreement', 'An owner or admin accepts the Provider Terms and Listing Agreement, and you confirm the address that receives our notices.'],
   ['Submit for review', 'A person reviews every application and every listing, and sends you the decision with its reasons.'],
   ['Choose when we start', 'You start benchmarking each listing when you are ready, see the monthly estimate first, and set a spending cap.'],
 ];
@@ -63,7 +63,7 @@ const EXAMPLE: Array<[string, string, string]> = [
 
 const FAQ: Array<[string, string]> = [
   ['Does listing cost anything?', 'No. There is no fee for listing, tests, rankings or routed traffic. Your own account pays for our test traffic at your own prices, and you set a monthly cap.'],
-  ['Can we see our scores before they are published?', 'No. You see the same daily means as everyone else, at the same time, one to two days after the day ends. No single run is ever published.'],
+  ['Can we see our scores before they are published?', 'No. You see the same daily means as everyone else, at the same time, one to two days after the day ends: never when a run took place, and never a per-task result.'],
   ['Who chooses when the tests run?', 'We do: coding about every 4 hours, reasoning and tool use daily, and a probe every hour, at times drawn at random within each window. You choose only when measurement starts and stops.'],
   ['What if our key runs out of credit?', 'Measurement pauses with the reason, and a run that failed because of a refused key, exhausted credit or an endpoint that is down never counts. It resumes when a check request answers normally, or when you resume it.'],
   ['Can we pay for a better position?', 'No. Hosted entries are ordered by their measured scores; price breaks only a statistical tie, and offers, payments and profile fields are never used.'],
@@ -72,7 +72,8 @@ const FAQ: Array<[string, string]> = [
 
 interface DirRow { slug: string; displayName: string; kind: string; regions: string[]; models: string[]; measured: boolean; logoUrl: string | null; offer: boolean }
 
-export default async function ListingOpenPage() {
+/** M12: `agreementPublic`: a version of the agreement is public (published or later); until then its page is staff-only, so it is not linked. */
+export default async function ListingOpenPage({ agreementPublic = false }: { agreementPublic?: boolean } = {}) {
   const dir = await publicRead<{ providers: DirRow[] }>('/marketplace/public/providers', ['mp:directory']).catch(() => null);
   const providers = dir && dir.kind === 'ok' ? dir.data.providers.filter(p => /^[a-z0-9-]{1,64}$/.test(p.slug)) : [];
   const ld = graphLd([
@@ -90,11 +91,13 @@ export default async function ListingOpenPage() {
       lead="Add your endpoint and your API key, test it, and choose when we start. We benchmark your models on our schedule with your credit, publish what we measure on your own page, and the Smart Router can send you requests from people who bring your key. Listing is free."
       actions={(
         <>
-          <Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGNUP} data-cta="providers-hero-list">List your models {arrow}</Link>
-          <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/inference-providers/agreement" data-cta="providers-hero-agreement">Read the agreement</Link>
+          <BecomeProvider className="lp-btn lp-btn-primary lp-btn-lg" cta="providers-hero-list">Become a provider {arrow}</BecomeProvider>
+          {agreementPublic && <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/inference-providers/agreement" data-cta="providers-hero-agreement">Read the agreement</Link>}
         </>
       )}
-      note={<>Already have an account? <Link href={START}>Set up your provider account</Link>.</>}
+      note={agreementPublic
+        ? <>Already have an account? <Link href={START}>Set up your provider account</Link>.</>
+        : <>You can set up your account and test your endpoints now: submission for review opens when the Provider Terms and Listing Agreement is final, and we will email your account&apos;s owner and admins then. Already have an account? <Link href={START}>Set up your provider account</Link>.</>}
       aside={(
         <dl className="lp-facts">
           <div><dt>$0</dt><dd>to list, and no fees on router traffic</dd></div>
@@ -110,7 +113,7 @@ export default async function ListingOpenPage() {
           lead="Create your provider account, verify your domain and add your endpoint. A person reviews every application."
           actions={(
             <>
-              <Link className="lp-btn lp-btn-primary lp-btn-lg" href={SIGNUP} data-cta="providers-final-list">List your models {arrow}</Link>
+              <BecomeProvider className="lp-btn lp-btn-primary lp-btn-lg" cta="providers-final-list">Become a provider {arrow}</BecomeProvider>
               <Link className="lp-btn lp-btn-ghost lp-btn-lg" href="/router" data-cta="providers-final-router">Explore the Smart Router</Link>
             </>
           )}
@@ -132,7 +135,7 @@ export default async function ListingOpenPage() {
         <RdRows rows={[
           ['On your endpoint', 'Our benchmark runs go to the endpoint you listed, with your key, at times we choose.'],
           ['From the first run', 'Results count from the first run after you start measurement, good or bad.'],
-          ['Daily means, a day or two later', 'We publish each day’s mean per suite in whole points, one to two days after the day ends: never a single run, a run’s time or a per-task result. You see the same numbers at the same time as everyone else.'],
+          ['Daily means, a day or two later', 'We publish each day’s mean per suite in whole points, one to two days after the day ends: never when a run took place, and never a per-task result. You see the same numbers at the same time as everyone else.'],
           ['Failures that never count', 'A run that fails because your key is refused or out of credit, or because your endpoint is down, never counts: measurement pauses with the reason until it works again. A run we interrupt never counts either.'],
           ['Drift', 'A sustained change in a listing’s scores is shown on its page, after the same delay as the scores.'],
         ]} />
@@ -182,14 +185,16 @@ export default async function ListingOpenPage() {
 
       <RdSection id="agreement" n={n('agreement')} title="The agreement">
         <RdProse>
-          <p>Listing is governed by the <Link href="/inference-providers/agreement">Provider Listing Agreement</Link>, which you can read before you sign. We announce any change to it, and to the ranking criteria, at least 15 days before it applies, and you can close your account before then.</p>
+          {agreementPublic
+            ? <p>Listing is governed by the <Link href="/inference-providers/agreement">Provider Terms and Listing Agreement</Link>, which you can read before you sign. We announce any change to it, and to the ranking criteria, at least 15 days before it applies, and you can close your account before then.</p>
+            : <p>Listing is governed by our Provider Terms and Listing Agreement, which is being finalised. You can create your account, set up your endpoints and models and test them now; submission for review opens once the agreement is final, and we will email your account’s owner and admins then. We announce any change to it, and to the ranking criteria, at least 15 days before it applies, and you can close your account before then.</p>}
         </RdProse>
       </RdSection>
 
       <RdSection id="who" n={n('who')} title="Who can list">
         <RdRows rows={[
           ['Companies', 'Hosts that run, or directly contract, the inference they sell, under a company name, on a domain they verify. Routers and aggregators that forward requests to other providers cannot list.'],
-          ['Individuals', 'You can set up your endpoint and run its readiness check. Public listing is open to companies.'],
+          ['Individuals', 'Individual hosts can’t open a provider account yet. Public listing will open to companies first.'],
         ]} />
       </RdSection>
 

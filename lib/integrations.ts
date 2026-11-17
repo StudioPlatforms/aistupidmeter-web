@@ -75,7 +75,7 @@ export interface Mode {
 
 export const MODES: Record<ModeId, Mode> = {
   'auto': { id: 'auto', label: 'Default', desc: 'Uses your saved routing strategy from Preferences' },
-  'auto-task': { id: 'auto-task', label: 'Per request', desc: 'Reads each request and picks the matching benchmark: tools → tool use, design or long sessions → reasoning, code → coding, else overall; simple requests use the Best value version. The routing reason names the rule' },
+  'auto-task': { id: 'auto-task', label: 'Per request', desc: 'Best model on the benchmark that matches each request: tools → tool use, or coding when they work on files, code or a terminal; design, planning, or a conversation already eight or more messages long when it first reaches the router → reasoning; code → coding; else overall. The routing reason names the rule' },
   'auto-coding': { id: 'auto-coding', label: 'Coding', desc: 'Best for code generation, debugging, refactoring', board: 'coding' },
   'auto-reasoning': { id: 'auto-reasoning', label: 'Reasoning', desc: 'Best for complex analysis, math, logic', board: 'reasoning' },
   'auto-tooling': { id: 'auto-tooling', label: 'Tool use', desc: 'Best at calling tools correctly — scored on our tool-calling suite', board: 'tooling' },

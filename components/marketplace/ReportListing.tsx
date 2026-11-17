@@ -68,7 +68,8 @@ export default function ReportListing({ provider, entry, path }: { provider: str
         <button type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send report'}</button>
         <button type="button" className="is-quiet" onClick={() => setOpen(false)}>Cancel</button>
       </div>
-      <p className="mp-report-note">A person reviews every report. We tell you our decision; the provider learns about the report only if we act, and never who sent it.</p>
+      {/* M12 (the web and legal review SHOULD-3): as privacy 1.5 says, and the privacy information where the collection starts. */}
+      <p className="mp-report-note">A person reviews every report. We tell you our decision; the provider learns about the report only if we act. We don&apos;t routinely tell the provider who sent a report. How we handle your details: <a href="/privacy#providers">our privacy policy</a>.</p>
     </form>
   );
 }

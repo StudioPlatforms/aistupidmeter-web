@@ -63,7 +63,7 @@ export function PublishedParagraph({ spotPractice, spotOnFresh }: { spotPractice
   return (
     <p>
       Hosted scores appear only as daily means in whole points, one to two days after the day ends, for everyone, the provider included.
-      {practice ? ' Spot-check counts, their detectable effect and spot-run speed are published once a month.' : ''} Single runs on a fixed task set would let a host
+      {practice ? ' Spot-check counts, their detectable effect and spot-run speed are published once a month.' : ''} Knowing when a run took place, or its per-task results on a fixed task set, would let a host
       work out our hidden tests{practice && !fresh ? ', and spot checks cannot see special treatment of our prompts by their content until fresh task versions exist' : ''}.
       {fresh ? ' For hosts on fresh task versions, spot checks use new task versions in our standard request format, so they detect special treatment of our benchmark key, not of our request format or of the family our tasks come from. For hosts on the standard tasks, spot checks cannot see special treatment of our prompts by their content.' : ''}
     </p>

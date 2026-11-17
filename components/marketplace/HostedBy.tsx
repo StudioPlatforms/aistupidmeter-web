@@ -3,15 +3,15 @@ import HostLogo from '@/components/marketplace/HostLogo';
 import HostLines from '@/components/marketplace/HostLines';
 import { Pane, ProviderMark } from '@/components/studio';
 import { PROVIDER_LABEL } from '@/components/landing/types';
-import { headlineText, isCalibrated, usd, type HostRow, type OfficialRef, type VsOfficialLine, type VsOfficialCalibrated } from '@/lib/marketplace-public';
+import { connectable, headlineText, isCalibrated, usd, type HostRow, type OfficialRef, type VsOfficialLine, type VsOfficialCalibrated } from '@/lib/marketplace-public';
 
 type ChartSuite = 'combined' | 'coding' | 'reasoning' | 'tooling' | 'canary';
 const SUITE_LABEL: Record<ChartSuite, string> = { combined: 'Combined', coding: 'Coding', reasoning: 'Reasoning', tooling: 'Tool use', canary: 'Hourly probe' };
 const SUITES: ChartSuite[] = ['combined', 'coding', 'reasoning', 'tooling', 'canary'];
 
 /**
- * The hosts of one open model, ordered as the API orders them (§4.6: measured hosts first by their combined daily
- * mean, then the rest alphabetically), for the open-model page and the fleet model pages' "Hosted by other
+ * The hosts of one open model, ordered as the API orders them (M13: measured hosts first, then by name; never by a score
+ * the pane may hide), for the open-model page and the fleet model pages' "Hosted by other
  * providers" pane (§7.5). Host scores appear only where the API says the comparison holds; otherwise the pane
  * reads "Measurements for each host are on its page." (neutral copy; the API decides, never the web).
  *
@@ -109,7 +109,10 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
             </span>
             <span className="mp-muted">{usd(h.entry.price.inPerMTok)} in · {usd(h.entry.price.outPerMTok)} out per 1M</span>
             <span className="mp-muted">{h.entry.measurement.state === 'measured' ? 'Measured' : 'Not measured yet'}{scores.length ? ` · ${scores.join(' · ')}` : ''}</span>
-            <Link className={framed ? 'mp-host-cta st-btn is-sm' : 'mp-host-cta'} href={`/router/providers?host=${h.provider.slug}`}>Use in the Smart Router</Link>
+            {/* M13 (privacy 1.9): a host whose declared processing regions no transfer arrangement covers cannot be connected. */}
+            {connectable(h.provider.connect)
+              ? <Link className={framed ? 'mp-host-cta st-btn is-sm' : 'mp-host-cta'} href={`/router/providers?host=${h.provider.slug}`}>Use in the Smart Router</Link>
+              : <span className="mp-muted mp-host-line mp-host-noconnect">{h.provider.connect?.reason}</span>}
             {lines.map(l => <span key={l.s} className="mp-muted mp-host-line">{l.text}</span>)}
           </li>
         );
@@ -136,7 +139,8 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
       )}
       <p className="mp-caption">
         {comparable ? null : 'Measurements for each host are on its page. '}
-        <Link href="/inference-providers/ranking-criteria">How hosts are ordered</Link>
+        Hosts are listed measured first, then by name.{' '}
+        <Link href="/inference-providers/ranking-criteria">Ranking criteria</Link>
       </p>
     </>
   );

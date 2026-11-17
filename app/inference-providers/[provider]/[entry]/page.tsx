@@ -8,7 +8,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { pageMeta, SITE, breadcrumbLd } from '@/lib/seo';
 import { providerSignupOpenCached } from '@/lib/provider-public';
 import { countryName } from '@/lib/countries';
-import { marketplaceRead, providerTags, safeHttps, usd, tokens, longDay, userTestsRead, type EntryPageDTO } from '@/lib/marketplace-public';
+import { connectable, marketplaceRead, providerTags, safeHttps, usd, tokens, longDay, userTestsRead, type EntryPageDTO } from '@/lib/marketplace-public';
 import MeasuredScores from '@/components/marketplace/MeasuredScores';
 import UserTests from '@/components/marketplace/UserTests';
 import Offers from '@/components/marketplace/Offers';
@@ -62,7 +62,8 @@ export default async function EntryPage(props: { params: Promise<{ provider: str
     { id: 'measurement', label: 'Measurement' },
     ...(tested ? [{ id: 'tested', label: 'Tested by people' }] : []),
     ...(offers.length ? [{ id: 'offers', label: 'Offers' }] : []),
-    { id: 'use', label: 'How to use it' },
+    // M13: a page no longer listed (a delisting, or its account's close) offers no way to use it, as its actions already don't.
+    ...(e.status.kind === 'no_longer_listed' ? [] : [{ id: 'use', label: 'How to use it' }]),
     ...(otherHosts.length ? [{ id: 'hosts', label: 'Other hosts' }] : []),
   ];
   const n = (id: string) => tocNumber(toc, id);
@@ -82,7 +83,10 @@ export default async function EntryPage(props: { params: Promise<{ provider: str
         lead={noLonger ? `No longer listed on AI Stupid Level (since ${longDay(e.delistedAt)}).` : notMeasured ? 'Listed · not measured yet.' : e.status.text || undefined}
         actions={noLonger ? undefined : (
           <div className="mp-actions">
-            <Link className="lp-btn lp-btn-primary lp-btn-lg" href={`/router/providers?host=${p.slug}`}>Use {p.displayName} in the Smart Router</Link>
+            {/* M13 (privacy 1.9): only a host whose declared processing regions are covered can be connected. */}
+            {connectable(p.connect)
+              ? <Link className="lp-btn lp-btn-primary lp-btn-lg" href={`/router/providers?host=${p.slug}`}>Use {p.displayName} in the Smart Router</Link>
+              : <p className="mp-muted mp-noconnect">{p.connect?.reason}</p>}
             <Link className="lp-btn lp-btn-ghost lp-btn-lg" href={`/inference-providers/${p.slug}`}>All {p.displayName} models</Link>
           </div>
         )}
@@ -109,10 +113,10 @@ export default async function EntryPage(props: { params: Promise<{ provider: str
         <RdSection id="measurement" n={n('measurement')} title="Measurement">
           <RdProse>
             {notMeasured
-              ? <p>Not measured yet. We publish each day&apos;s mean score, rounded to a whole point, one to two days after the day ends, never single runs.</p>
+              ? <p>Not measured yet. We publish each day&apos;s mean score, rounded to a whole point, one to two days after the day ends, never when a run took place, and never a per-task result.</p>
               : <p>{e.measurement.publishedDays} published day{e.measurement.publishedDays === 1 ? '' : 's'}, {e.measurement.runs} counted run{e.measurement.runs === 1 ? '' : 's'}; the last published day is {longDay(e.measurement.lastPublishedDay)}.</p>}
           </RdProse>
-          {!notMeasured && e.scores && <MeasuredScores scores={e.scores} daily={e.measurement.daily} />}
+          {!notMeasured && e.scores && <MeasuredScores scores={e.scores} daily={e.measurement.daily} publicDaily />}
           <RdProse>
             <h3>Measurement notes</h3>
             <ul>
@@ -136,10 +140,13 @@ export default async function EntryPage(props: { params: Promise<{ provider: str
           </RdSection>
         )}
 
-        <RdSection id="use" n={n('use')} title="How to use it">
-          <RdProse><p>The Smart Router id of this listing is <code>{e.mpId}</code>. At {p.displayName} the model is called <code>{e.upstreamModel}</code>.</p></RdProse>
+        {!noLonger && <RdSection id="use" n={n('use')} title="How to use it">
+          <RdProse>
+            {!connectable(p.connect) && <p><b>{p.connect?.reason}</b></p>}
+            <p>The Smart Router id of this listing is <code>{e.mpId}</code>. At {p.displayName} the model is called <code>{e.upstreamModel}</code>.</p>
+          </RdProse>
           <RdCode title="A request" label="curl" code={`curl https://aistupidlevel.info/v1/chat/completions \\\n  -H "Authorization: Bearer $AISM_KEY" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model": "${e.mpId}", "messages": [{"role": "user", "content": "Hello"}]}'`} />
-        </RdSection>
+        </RdSection>}
 
         {otherHosts.length > 0 && (
           <RdSection id="hosts" n={n('hosts')} title={`Other hosts of ${model}`}>
@@ -160,7 +167,7 @@ export default async function EntryPage(props: { params: Promise<{ provider: str
           <p>Listing details supplied by {p.operatedBy ?? p.displayName}{p.country ? ` (${countryName(p.country)})` : ''}. Measurements by AI Stupid Level.{declaration ? ` Data handling declared by ${p.displayName} on ${longDay(declaration.declaredAt)}; not audited by AI Stupid Level.` : ''}</p>
           <ReportListing provider={p.slug} entry={e.entrySlug} path={e.path} />
           <p><Link href="/inference-providers">Are you an inference provider? List your models →</Link></p>
-          <p className="mp-router-cta">The Smart Router is one OpenAI-compatible endpoint whose routing modes choose a model for each request; name <code>{e.mpId}</code> to reach this listing with your own key. <Link href="/router">Explore the Smart Router →</Link></p>
+          <p className="mp-router-cta">The Smart Router is one OpenAI-compatible endpoint whose routing modes choose a model for each request{noLonger ? '' : <>; name <code>{e.mpId}</code> to reach this listing with your own key</>}. <Link href="/router">Explore the Smart Router →</Link></p>
         </footer>
       </ReadingPage>
       <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebPage', name: e.label, url: `${SITE}${e.path}`, about: { '@type': 'Organization', name: p.displayName } }} />

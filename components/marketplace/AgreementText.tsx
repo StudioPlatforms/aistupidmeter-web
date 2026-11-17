@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 /**
- * The Provider Listing Agreement's text (Phase 3 plan §9.1), from the API's small Markdown subset: `# ` the title
+ * The Provider Terms and Listing Agreement's text (Phase 3 plan §9.1), from the API's small Markdown subset: `# ` the title
  * or an annex, `## ` a section, `### ` a sub-heading, `- ` a bullet, blank-line separated paragraphs. Every other
  * character is text, rendered as React text only (never HTML), the same rules the PDF renderer reads.
  */

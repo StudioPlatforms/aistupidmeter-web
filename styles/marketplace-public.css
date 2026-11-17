@@ -132,3 +132,6 @@
   .st .mp-ut-list.is-framed li { padding: 12px 16px; }
   .mp-ut-list li a, .mp-ut-cta { display: inline-flex; align-items: center; min-height: 40px; }
 }
+/* M13 (privacy 1.9): where a host cannot be connected, its reason stands in for "Use in the Smart Router". */
+.mp-actions .mp-noconnect { margin: 0; max-width: 52ch; align-self: center; overflow-wrap: anywhere; }
+.mp-host-noconnect { overflow-wrap: anywhere; }

@@ -19,6 +19,7 @@ import {
   type ChecklistRow, type ProviderSummary,
 } from '@/lib/provider-account';
 import { countryName } from '@/lib/countries';
+import { ExportOnlyAccounts } from './export/ExportClient';
 
 const ar = <span className="st-ar" aria-hidden="true">→</span>;
 
@@ -57,6 +58,8 @@ export default function OverviewClient({ initial }: { initial: ProviderSummary }
       <>
         <ProviderHead summary={s} title="Provider account" lead="Where an inference provider sets up its account: company details, domains and data handling." />
         <div className="st-body sw-body">
+          {/* M13 (agreement v1.0 §24.4): a closed account's members keep its three exports for 90 days, and nothing else. */}
+          <ExportOnlyAccounts />
           <Empty
             title="You do not have a provider account yet"
             actions={s.canCreate !== false
@@ -89,8 +92,9 @@ export default function OverviewClient({ initial }: { initial: ProviderSummary }
     setClosing(false);
     if (!r.ok) { setProblem(r.error ?? 'Could not close the provider account.'); return; }
     chooseProvider(null);
-    // A full page load: the sidebar's Provider group goes with the next session read.
-    window.location.assign('/account');
+    // A full page load: the sidebar's Provider group goes with the next session read. M13: to the provider page, which
+    // shows the closed account's export-only view (90 days) when no other account is open.
+    window.location.assign('/account/provider');
   };
 
   // §2.11: the API checks every row up to the agreement, the notice email and the limits; its reason is shown.
@@ -161,7 +165,8 @@ export default function OverviewClient({ initial }: { initial: ProviderSummary }
                         {reason && <div className="mp-check-s">{reason}</div>}
                       </div>
                       <div className="mp-check-end">
-                        {row.key === 'submit' && row.state !== 'done' && (s.role === 'owner' || s.role === 'admin') && (
+                        {/* M12: no button while the row is blocked (no agreement can be signed yet: its reason says so). */}
+                        {row.key === 'submit' && row.state !== 'done' && row.state !== 'blocked' && (s.role === 'owner' || s.role === 'admin') && (
                           <button type="button" className="st-btn is-sm is-primary" onClick={submit} disabled={submitting}>{submitting ? 'Submitting…' : 'Submit for review'}</button>
                         )}
                         {meta?.href && !muted && (
@@ -223,7 +228,7 @@ export default function OverviewClient({ initial }: { initial: ProviderSummary }
                   <summary>Close the provider account</summary>
                   <form className="sw-stack" onSubmit={close}>
                     <p className="sw-quiet">
-                      Every member loses access to it. To keep it running without you,{' '}
+                      Every member loses access to it, except to download its data for 90 days. To keep it running without you,{' '}
                       <Link href="/account/provider/team" className="st-link-inline">transfer ownership</Link> instead.
                     </p>
                     <label className="st-field">

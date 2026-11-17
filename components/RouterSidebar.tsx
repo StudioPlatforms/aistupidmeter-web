@@ -135,8 +135,9 @@ export default function RouterSidebar() {
           { label: 'Benchmarks', href: '/account/provider/benchmarks', here: 'Provider benchmarks' },
           { label: 'Router & offers', href: '/account/provider/router', here: 'Provider router' },
           { label: 'Profile', href: '/account/provider/profile', here: 'Provider profile' },
-          { label: 'Agreement & notices', href: '/account/provider/agreement', here: 'Provider agreement' },
+          { label: 'Agreement & notices', href: '/account/provider/agreement', here: 'Provider Terms and Listing Agreement' },
           { label: 'Team', href: '/account/provider/team', here: 'Provider team' },
+          { label: 'Export your data', href: '/account/provider/export', here: 'Provider export' },
         ] }] : []),
         { label: 'Account', items: [
           { label: 'Settings', href: '/account/settings' },

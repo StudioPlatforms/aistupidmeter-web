@@ -5,7 +5,7 @@ import { marketplaceStaffGate, providerPageMetadata } from '@/lib/provider-gate'
 /**
  * "Logo standards v1" (Phase 3 plan §3.1): the rules every provider's mark meets. Shown to staff
  * from M3 and published for everyone with the opening (M10), when it is also attached to the
- * provider agreement as Annex C; a change to it is a change to the agreement. Items 1–13 are the
+ * Provider Terms and Listing Agreement as Annex C; a change to it is a change to the agreement. Items 1–13 are the
  * plan's text word for word, grouped into five sections for reading, except item 5's measurement:
  * the processor measures ink and colour on the framed 12 px render (the chip), so the page says so
  * and gives the ranges our seven marks measure there (M3 dossier §4 decision 10, §5.1), not the
@@ -122,8 +122,7 @@ export default async function LogoStandardsPage() {
             <li>We clean it, render it in an isolated sandbox, and serve PNGs at 64, 128, 256 and 512 px, without any metadata, from aistupidlevel.info under an address that changes with the content.</li>
             <li>We keep our cleaned-up copy for later re-drawing, and delete your original 30 days after the review decision.</li>
           </ul>
-          <p><b>12. Licence.</b> Uploading your mark grants AI Stupid Level the licence in §12 of the agreement to display it to identify you.</p>
-          <p><b>13. Trademark complaints.</b> If someone shows, through their own verified domain, that a mark is theirs, we hide the disputed mark while we review it, and tell both sides why.</p>
+          <p><b>12. Trademark complaints.</b> If someone shows, through their own verified domain, that a mark is theirs, we hide the disputed mark while we review it, and tell both sides why.</p>
         </RdProse>
       </RdSection>
     </ReadingPage>

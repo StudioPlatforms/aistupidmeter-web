@@ -4,6 +4,8 @@ import { clientIp } from '@/lib/ip-rate-limit';
 import { forgetProviderFor } from '@/lib/provider-membership';
 
 import { backendUrlFor } from '@/lib/proxy-path';
+import { refuseMailForm } from '@/lib/mail-form-guard';
+import { providerMailForm } from '@/lib/provider-mail-forms';
 const API_URL = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
 
 /**
@@ -80,6 +82,11 @@ async function proxyRequest(request: NextRequest, path: string[], method: string
       { success: false, error: 'Unauthorized', message: 'Sign in to manage your watchlist' },
       { status: 401 }
     );
+  }
+  const mailForm = providerMailForm(path, method);
+  if (mailForm) {
+    const refused = await refuseMailForm(request, mailForm);
+    if (refused) return refused;
   }
 
   const internalToken = process.env.ROUTER_INTERNAL_TOKEN;

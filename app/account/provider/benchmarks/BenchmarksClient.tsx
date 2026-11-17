@@ -14,7 +14,7 @@ import { Pane, Loader, Note, Pill, Empty } from '@/components/studio';
 import { ProviderHead, canEdit, useProviderSummary } from '@/components/marketplace/ProviderBits';
 import MeasuredScores from '@/components/marketplace/MeasuredScores';
 import { StartBenchDialog, StopBenchDialog, BENCH_STATE, MEASURING, usd2, type BenchSection } from '@/components/marketplace/BenchDialogs';
-import { mpApi, chosenProvider, type ProviderSummary } from '@/lib/provider-account';
+import { mpApi, chosenProvider, startUnavailableText, type ProviderSummary } from '@/lib/provider-account';
 import { ConsoleSpotChecks } from '@/components/marketplace/SpotCopy';
 import '@/styles/studio-provider-models.css';
 
@@ -117,6 +117,10 @@ function ListingBench({ l, editable, onFlash }: { l: ListingLite; editable: bool
             )}
             {editable && sec.canManage && MEASURING.has(sec.benchState) && <button type="button" className="st-btn is-sm" onClick={() => setDlg('stop')}>Stop benchmarking</button>}
           </div>
+          {/* M13 (M11 review SHOULD-2): where Start is not offered, say why. */}
+          {!sec.canStart && !['active', 'waiting_slot'].includes(sec.benchState) && startUnavailableText(sec.schedulerReason) && (
+            <p className="sw-quiet">{startUnavailableText(sec.schedulerReason)}</p>
+          )}
           <dl className="st-kv">
             <div><dt>Estimate</dt><dd>about {usd2(sec.estimate.monthUsd)} a month at your declared prices</dd></div>
             <div><dt>Monthly spending cap</dt><dd>{usd2(sec.capUsd)}</dd></div>

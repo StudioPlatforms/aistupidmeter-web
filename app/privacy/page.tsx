@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { pageMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdFacts, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
+import ProviderAccounts from './ProviderAccounts';
 
 /**
  * Privacy policy. Every statement here was checked against the code and the server on 2026-10-19:
@@ -22,6 +23,12 @@ import { ReadingPage, RdSection, RdProse, RdFacts, RdRows, RdFinal, tocNumber } 
  * the mode asked for, the switching setting and the turn kind, the live pick and event, the matched rule, each
  * setting's model, event and short reason, and the estimated move cost; labels only, never prompt text; kept 30
  * days and deleted with the account or the project), in the same "Routing comparisons" row.
+ * Provider marketplace release M12 (the opening): the "Provider accounts" section, kept in ProviderAccounts.tsx with what
+ * it rests on; the scope sentence under "Who we are" names provider accounts.
+ * Private endpoints release R7 (open to every account): the own-endpoint rows under "Smart Router traffic" (api
+ * db/endpoint-schema.ts, router/endpoints store.ts, probe.ts, health.ts, change-log.ts, quarantine.ts, runtime.ts noteCrash,
+ * router/keys/encryption.ts encryptEndpointSecret) and their rows under "How long we keep it" (api jobs/endpoint-health.ts
+ * RETENTION and runRetention, store.ts deleteEndpoint, routes/account-purge.ts).
  */
 
 export const metadata: Metadata = pageMeta({
@@ -31,11 +38,12 @@ export const metadata: Metadata = pageMeta({
 });
 
 /**
- * The day router release A1d goes live (the Request records row: which model a new conversation's pick replaced, and
- * why): a placeholder until the deploy day is set. A production build refuses the placeholder, so this page cannot ship
- * with it (as for A1 and A2). A1d's install block sets it on the deploy day (phase W), in its own commit.
+ * The day the page last changed for what it says: router release A1d (14 November 2026), then provider marketplace
+ * release M12, the opening, which adds the "Provider accounts" section (its planned deploy day; if the deploy moves, this
+ * date moves with it, and lib/legal-dates.ts with it, in its own commit, before the web build). A production build
+ * refuses the deploy-day placeholder, as for A1 and A2.
  */
-const UPDATED: string = '14 November 2026';
+const UPDATED: string = '17 November 2026';
 if (UPDATED === 'AW4_DEPLOY_DAY' && process.env.NODE_ENV === 'production') {
   throw new Error('app/privacy/page.tsx: set UPDATED to the day router A1d is deployed before building this branch');
 }
@@ -45,6 +53,7 @@ const TOC = [
   { id: 'who', label: 'Who we are' },
   { id: 'collect', label: 'What we collect' },
   { id: 'router', label: 'Smart Router traffic' },
+  { id: 'providers', label: 'Provider accounts' },
   { id: 'why', label: 'Why, and on what legal basis' },
   { id: 'share', label: 'Who we share it with' },
   { id: 'transfers', label: 'Transfers outside the EU' },
@@ -90,7 +99,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             This policy covers the website, your account, paid plans, the Smart Router (<code>/v1</code>), the Data API, workspaces,
-            the forum and our emails. It applies under the EU General Data Protection Regulation (GDPR) and Romanian law.
+            provider accounts, the forum and our emails. It applies under the EU General Data Protection Regulation (GDPR) and Romanian law.
           </p>
         </RdProse>
       </RdSection>
@@ -124,8 +133,17 @@ export default function PrivacyPage() {
           ['Tool calls', 'To continue a multi-step tool conversation on the same model, the model’s own turn data is kept, encrypted, for 24 hours.'],
           ['Provider keys', 'Stored encrypted with AES-256-GCM and decrypted only to make your requests. You can remove them at any time.'],
           ['The AI provider', 'Receives your request under your own key and processes it under its own terms and privacy policy, as if you had called it directly. You choose which providers we may route to.'],
+          ['Your own endpoints', 'If you add a server of your own (Providers, Your endpoints): its name, base URL and host, the model id prefix you chose, whether you accepted plain http, its timeout and how many requests it may take at once, its place in your order, whether it is paused, and the IP address our last check or test reached. For a workspace’s or project’s server, also who added it and which projects and members may use it. Requests you route to it go to that server instead of a provider.'],
+          ['Endpoint keys', 'An endpoint’s API key is optional. If you give one, it is stored encrypted with AES-256-GCM, tied to that endpoint, and decrypted only on our server to call the endpoint (your requests, its tests and health checks) or, when you ask, to copy it into a workspace. Cloudflare Access credentials, if you add them, are stored the same way. We keep the key’s last 4 characters so you can see which key is saved.'],
+          ['Endpoint models and settings', 'The models its server lists and any you add by hand, which ones you turned on, their order, what you tagged them for (Use for), context size, output cap and the prices you declared, and what tests found each model can do (tool calls, streaming, JSON output, how it returns its reasoning).'],
+          ['Endpoint health checks and tests', 'We regularly ask each endpoint for its model list and keep a row per check: the time, whether it answered, the HTTP status, how long it took and why it failed. Requests sent to it add a row at most every 5 minutes, with how many there were, how many failed, and the latest one’s status and timing. The endpoint keeps its current state, its last error and when it was last used. When you test it, we keep who started the test, which models were tested, and each step’s result with a short message. Tests send our own short prompts (such as “Reply with exactly: pong”), never yours, and any key is removed from what checks and tests record.'],
+          ['Model source changes', 'Each change of Model source (yours, or a project’s) adds a line to a log: when, the account or project, the old and new setting, and who made it. It lets us put your setting back after restoring a database backup. It never holds a key or a prompt.'],
+          ['Crash notes', 'If our router crashes while a request to an endpoint is running, we note the time, which endpoints had requests running (by internal id) and where in our code it crashed, never the request itself, and our team receives a report naming each such endpoint’s account or workspace number and its host. An endpoint the crash is traced to is paused, and its host and address are remembered with your account (or workspace), so that address starts paused if it is added again within 7 days.'],
+          ['Blocked connections', 'When our safety checks refuse to connect to an endpoint’s address (for example because it points into a private network), we record the time, your account or workspace, the endpoint, the host and IP address, and the reason. Repeated refusals can pause endpoint changes on your account for an hour.'],
         ]} />
       </RdSection>
+
+      <ProviderAccounts n={n('providers')} />
 
       <RdSection id="why" n={n('why')} title="Why, and on what legal basis">
         <RdFacts rows={[
@@ -143,6 +161,7 @@ export default function PrivacyPage() {
           ['Google', 'Sign in with Google (if you use it) and Google Analytics (only if you accept analytics cookies; IP anonymisation on, advertising features off).'],
           ['GitHub', 'Sign in with GitHub, if you use it.'],
           ['AI providers you hold keys for', 'OpenAI, Anthropic, Google, DeepSeek, Moonshot (Kimi) and Zhipu (GLM) receive the requests you route to them, under your key.'],
+          ['Servers you add', 'If you add your own endpoints, the requests you route to them go to those servers, with the key you gave us. You choose them, and whoever operates them handles the requests under your own arrangement with them.'],
           ['Your workspace', 'If you join a workspace, its owners and admins see your membership, your usage within its projects and the workspace audit log.'],
           ['Authorities', 'Only when the law requires it.'],
         ]} />
@@ -157,7 +176,7 @@ export default function PrivacyPage() {
             Our server is in the EU. Stripe, Google and GitHub may process data in the United States; they rely on the EU-US Data Privacy
             Framework or the European Commission&rsquo;s Standard Contractual Clauses. When you route a request to an AI provider, it goes
             where that provider processes requests (for example the US, or China for DeepSeek, Moonshot and Zhipu), under your
-            agreement with that provider.
+            agreement with that provider. A request you route to one of your own endpoints goes wherever that server runs.
           </p>
         </RdProse>
       </RdSection>
@@ -170,6 +189,12 @@ export default function PrivacyPage() {
           ['Retry protection and tool-call turns', '24 hours.'],
           ['Model-pick memory', '7 days after its last use (an hourly clean-up deletes it), or sooner with your account or project.'],
           ['Routing comparisons', '30 days (an hourly clean-up deletes older ones), or sooner with your account or project.'],
+          ['Your own endpoints (address, key, models and settings)', 'Until you remove the endpoint, which deletes it with its key, models, tests and health checks, or delete your account. A workspace’s or project’s server goes when it is removed, or with its workspace or project.'],
+          ['Endpoint health checks', '14 days (a daily clean-up deletes older ones), or sooner when the endpoint is removed.'],
+          ['Endpoint tests', 'The newest 20 of each endpoint, and any less than 24 hours old; a daily clean-up deletes the rest. All of them go when the endpoint is removed.'],
+          ['Model source change log', '30 days. Deleting your account removes your lines sooner.'],
+          ['Crash notes', '30 days.'],
+          ['Blocked connections, and crash addresses remembered with your account', '90 days, or sooner with your account.'],
           ['Site visits (IP address, browser, page, location)', '90 days. After that only daily totals remain (visits, unique visitors, top pages and top countries), with no IP addresses.'],
           ['Web server logs', '14 days.'],
           ['Mail server logs', 'About four weeks.'],

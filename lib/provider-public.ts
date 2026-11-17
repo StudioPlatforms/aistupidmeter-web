@@ -40,6 +40,21 @@ export function providerSignupOpenCached(): boolean {
 }
 
 /**
+ * M12: whether a version of the Provider Terms and Listing Agreement is public (published or later), from the same status route:
+ * until then its page answers 404 to everyone but staff, so no page links to it. Any failure: false.
+ */
+export async function agreementPublicNow(): Promise<boolean> {
+  try {
+    const r = await fetch(`${API_URL}/marketplace/public/status`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(3000) });
+    if (!r.ok) return false;
+    const j = await r.json().catch(() => null) as { success?: boolean; data?: { agreementPublic?: boolean } } | null;
+    return j?.success === true && j?.data?.agreementPublic === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The same answer for a page that may wait for it (M10: the ranking criteria, the logo standards and the router
  * signature become public at the opening): GET /marketplace/public/status through Next's fetch cache, refreshed at most
  * once a minute, as the sign-up page reads it. Any failure reads as false: a page whose door cannot be asked stays the

@@ -38,7 +38,7 @@ const MODES: Mode[] = [
   { id: 'auto-consistent', key: 'best_consistent', group: 2, name: 'Most consistent', order: 'Smallest run-to-run spread, among contenders',
     desc: 'Among contenders, the model whose coding score moves least from run to run.' },
   { id: 'auto-task', key: 'match_task', group: 3, name: 'Match each request', order: 'As the matched strategy',
-    desc: 'Reads each request and picks the strategy for it: a coding agent’s tool calls go to coding and tool use together, other tools to tool use, design questions to reasoning, large code to coding.' },
+    desc: 'Ranks each request on the benchmark that tests its kind of work: tools that work on files, code or a terminal go to coding, other tools to tool use, design and planning to reasoning, code to coding, anything else to overall.' },
   { id: 'auto-split', key: 'custom_split', group: 3, name: 'Your traffic split', order: 'Weighted draw per request',
     desc: 'Up to 10 models with your own weights. Each request draws its primary by weight; the rest of the split become its fallbacks.' },
   { id: 'auto', key: 'preference', group: 3, name: 'Your saved preference', order: 'As configured',
@@ -55,13 +55,12 @@ function wordsFor(m: Mode, s: RouterScoring): Mode {
 }
 
 const RULES: Array<[string, string, RegExp]> = [
-  ['Works on code through tools', 'best_agentic_coding', /works on code through tools/],
-  ['Offers other tools', 'best_tooling', /offers tools/],
-  ['Design or planning words, or 8+ turns', 'best_reasoning', /design|planning|long session/],
-  ['Code, large or demanding', 'best_coding', /large or demanding/],
-  ['Other code', 'best_value_coding', /^coding request/],
-  ['Long or analytical text', 'best_overall', /long or analytical/],
-  ['Everything else', 'best_value', /short general/],
+  ['Tools that work on files, code or a terminal', 'best_coding', /works on code through tools/],
+  ['Other tools', 'best_tooling', /offers tools/],
+  ['8+ messages when it first reaches the router', 'best_reasoning', /long session/],
+  ['Design or planning words', 'best_reasoning', /design or planning/],
+  ['Code without tools', 'best_coding', /coding request/],
+  ['Everything else', 'best_overall', /general request/],
 ];
 
 /** Where most people start; the other modes are one click away. */

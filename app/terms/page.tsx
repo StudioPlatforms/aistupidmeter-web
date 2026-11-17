@@ -2,11 +2,15 @@ import type { Metadata } from 'next';
 import { pageMeta } from '@/lib/seo';
 import Link from 'next/link';
 import { ReadingPage, RdSection, RdProse, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
+import ListedHosts from './ListedHosts';
 
 /**
  * Terms of Service. Prices, payment, the 7-day refund and cancellation match the pricing page
  * (lib/entitlements.ts, app/pricing/PricingClient.tsx) and the billing code (lib/paid-start.ts) as
- * of 2026-11-14; keep them in step.
+ * of 2026-11-14; keep them in step. Provider marketplace release M12 (the opening): the "Listed hosts and provider
+ * accounts" section, kept in ListedHosts.tsx with why it is true.
+ * UPDATED is the day the page last changed for what it says: M12's planned deploy day; if the deploy moves, this date
+ * moves with it (and lib/legal-dates.ts with it), in its own commit, before the web build.
  */
 
 export const metadata: Metadata = pageMeta({
@@ -15,7 +19,7 @@ export const metadata: Metadata = pageMeta({
   path: '/terms',
 });
 
-const UPDATED = '14 November 2026';
+const UPDATED = '17 November 2026';
 const EMAIL = 'hello@aistupidlevel.info';
 
 const TOC = [
@@ -23,6 +27,7 @@ const TOC = [
   { id: 'service', label: 'The service' },
   { id: 'accounts', label: 'Accounts' },
   { id: 'router', label: 'Smart Router and your provider keys' },
+  { id: 'providers', label: 'Listed hosts and provider accounts' },
   { id: 'plans', label: 'Plans, trials and payment' },
   { id: 'withdrawal', label: 'EU consumers: right of withdrawal' },
   { id: 'use', label: 'Acceptable use' },
@@ -100,11 +105,14 @@ export default function TermsPage() {
         <RdRows rows={[
           ['Your keys, your provider accounts', 'The Smart Router calls AI providers (OpenAI, Anthropic, Google, DeepSeek, Moonshot, Zhipu) with the provider keys you add. The provider bills you directly for that usage, under your agreement with it. We do not resell model access and do not mark up provider prices.'],
           ['Provider terms apply', 'You are responsible for complying with each provider’s terms and usage policies for the requests you send, and for having the rights to the content you send.'],
+          ['Your own endpoints', 'If you add servers of your own (Your endpoints on the Providers page), you must operate them or be authorised to use them. We send the requests you route to them with the key you gave us; you are responsible for those servers, what they return and how they handle your requests.'],
           ['Routing is a recommendation', 'We choose models based on our measurements, your settings and the providers you enabled. We do not guarantee that a chosen model gives a correct, complete or suitable answer, or that a provider is available. Check outputs before relying on them.'],
           ['Allowances and limits', 'Each plan includes a monthly request allowance and rate limits, shown on the pricing page. Requests beyond the allowance may be refused until the next period, unless you have prepaid credits.'],
           ['Sandbox', 'Requests marked as sandbox requests return mock answers, call no provider and do not count against your allowance.'],
         ]} />
       </RdSection>
+
+      <ListedHosts n={n('providers')} />
 
       <RdSection id="plans" n={n('plans')} title="Plans, trials and payment">
         <RdRows rows={[

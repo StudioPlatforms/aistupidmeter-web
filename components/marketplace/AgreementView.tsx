@@ -13,7 +13,7 @@ export default function AgreementView({ a, preview }: { a: AgreementDTO; preview
       <ReadingPage
         className="mp-agreement-page"
         kicker="For inference providers"
-        title="Provider Listing Agreement"
+        title="Provider Terms and Listing Agreement"
         accent={`v${a.version}`}
         lead={draft ? 'A generic draft for staff previews: it is not offered for signature. Version 1.0, after legal review, is the first version anyone outside signs.' : `In force from ${longDay(a.effectiveAt)}.`}
         note={`SHA-256 of this text: ${a.bodySha256}`}

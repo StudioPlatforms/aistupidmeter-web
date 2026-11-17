@@ -6,7 +6,8 @@ import { monthName } from '@/lib/marketplace-spot';
  * A listing's published measurement (Phase 3 plan §4.5 rows 2-6, §4.6; M6b), from published days only: the mean ±
  * SE per suite over its newest counted runs (whole number ± one decimal), the tasks each suite covered as counts, the
  * speed (measured with the host's benchmark key), 30 days of availability, drift and how many runs completed. Daily
- * means are rounded to whole points and appear one to two days after the day ends; no single run is shown.
+ * means are rounded to whole points and appear one to two days after the day ends; never when a run took place, and never a per-task result
+ * (M12: reasoning and tool use run once a day, so a day's mean can be one run's score).
  */
 const SUITES: Array<[keyof PublishedScores['headline'], string]> = [
   ['combined', 'Combined'], ['coding', 'Coding'], ['reasoning', 'Reasoning'], ['tooling', 'Tool use'], ['canary', 'Hourly probe'],
@@ -25,9 +26,17 @@ export function dailyRuns<T extends { fresh?: boolean }>(xs: readonly T[]): Arra
   return out;
 }
 
-export default function MeasuredScores({ scores: s, title, href, daily }: {
+/**
+ * M13 (agreement v1.0 §6.5; M12 web review SHOULD-5): `publicDaily` on the public provider and entry pages, whose API sends
+ * each suite's newest published daily mean in whole points (no SE): the column reads "Daily mean" and "Runs that day".
+ * The provider's own console keeps the mean ± SE over its newest runs.
+ */
+export default function MeasuredScores({ scores: s, title, href, daily, publicDaily = false }: {
   scores: PublishedScores; title?: string; href?: string; daily?: Array<{ day: string; suite: string; mean: number; runs: number; fresh?: true }>;
+  publicDaily?: boolean;
 }) {
+  const meanLabel = publicDaily ? 'Daily mean' : 'Mean ± SE';
+  const runsLabel = publicDaily ? 'Runs that day' : 'Runs';
   const rows = SUITES.filter(([k]) => s.headline[k] || (k !== 'combined' && s.coverage[k as 'coding']));
   const recent = (daily ?? []).filter(d => d.suite === 'combined').slice(0, 14);
   const remeasuring = !!s.remeasuring && Object.keys(s.remeasuring).length > 0;
@@ -44,15 +53,15 @@ export default function MeasuredScores({ scores: s, title, href, daily }: {
       {rows.length > 0 && (
         <div className="mp-table-wrap">
           <table className="mp-table">
-            <thead><tr><th scope="col">Suite</th><th scope="col">Mean ± SE</th><th scope="col">Runs</th><th scope="col">Tasks</th><th scope="col">Last published day</th><th scope="col">Drift</th></tr></thead>
+            <thead><tr><th scope="col">Suite</th><th scope="col">{meanLabel}</th><th scope="col">{runsLabel}</th><th scope="col">Tasks</th><th scope="col">Last published day</th><th scope="col">Drift</th></tr></thead>
             <tbody>
               {rows.map(([k, label]) => {
                 const h = s.headline[k];
                 return (
                   <tr key={k}>
                     <td data-label="Suite">{label}</td>
-                    <td data-label="Mean ± SE">{cell(h)}</td>
-                    <td data-label="Runs">{h ? h.runs : '—'}</td>
+                    <td data-label={meanLabel}>{publicDaily ? (h ? `${h.mean}` : '—') : cell(h)}</td>
+                    <td data-label={runsLabel}>{h ? h.runs : '—'}</td>
                     <td data-label="Tasks">{k === 'combined' ? '—' : s.coverage[k as 'coding'] ?? '—'}</td>
                     <td data-label="Last published day">{h ? day(h.lastDay) : '—'}</td>
                     <td data-label="Drift">{k === 'combined' ? '—' : s.drift[k as 'coding'] ?? '—'}</td>

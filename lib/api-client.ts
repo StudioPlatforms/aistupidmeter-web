@@ -69,8 +69,25 @@ export interface ListedOffer {
   code: string | null; percent: number | null; termsUrl: string; endsAt: string | null; listingId: number | null; disclosure: string;
 }
 
+/**
+ * M13 (privacy 1.9): a listed host's international-transfer arrangement, before connection: each declared processing
+ * region, the countries it means and the arrangement that covers it (the EEA, an EU adequacy decision, or the EU-US Data
+ * Privacy Framework for a host we recorded as certified). `covered` false: the host cannot be connected (the API refuses
+ * with 409 transfer_not_covered) and a connection to it is suspended; `reason` says why.
+ */
+export interface TransferView {
+  covered: boolean;
+  reason: string | null;
+  regions: Array<{ region: string; countries: string[]; mechanism: 'eea' | 'adequacy' | 'dpf' | 'none'; covered: boolean; words: string }>;
+  source: { name: string; url: string; checkedOn: string };
+}
+
 export interface ListedHost {
   slug: string; displayName: string; kind: string; country: string | null; regions: string[]; logoUrl: string | null; getKeyUrl: string | null;
+  /** M13: the company operating the host, as its public page names it. */
+  operatedBy?: string | null;
+  /** M13 (privacy 1.9): the transfer arrangement; absent from an older API (the API still decides at connect time). */
+  transfer?: TransferView;
   /** The endpoint hosts a new key for this provider is sent to, checked at and confirmed for: what the Add-key dialog names. */
   hosts: string[];
   models: Array<{ id: string; name: string; measured: boolean; contextTokens: number }>;

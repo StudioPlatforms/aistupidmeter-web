@@ -98,7 +98,7 @@ const GROUPS: Array<{ title: string; note: string; items: Strategy[] }> = [
     title: 'Your own rules',
     note: 'Decide per request, or split traffic yourself.',
     items: [
-      { id: 'match_task', name: 'Match each request', desc: 'Reads each request and picks the matching benchmark: code worked on through tools → coding and tool use together, other tools → tool use, design or long sessions → reasoning, code → coding, anything else → overall. Simple requests use the Best value version of the same choice.', basis: 'Chosen per request; the routing reason names the rule', modelId: 'auto-task' },
+      { id: 'match_task', name: 'Match each request', desc: 'Reads each request and picks the matching benchmark: tools → tool use, or coding when they work on files, code or a terminal; design, planning, or a conversation already eight or more messages long when it first reaches the router → reasoning; code → coding; anything else → overall.', basis: 'Chosen per request; the routing reason names the rule', modelId: 'auto-task' },
       { id: 'custom_split', name: 'Your traffic split', desc: 'Send a share of requests to each model you choose, for example 80% to one model and 20% to another.', basis: 'Your weights; the rest of the split is the first fallback', modelId: 'auto-split' },
     ],
   },

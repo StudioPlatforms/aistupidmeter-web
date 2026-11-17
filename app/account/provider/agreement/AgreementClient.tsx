@@ -5,6 +5,10 @@
  * acceptances with their PDFs, the notice email's confirmation, and "Accept and sign" for the owner or an admin with
  * a confirmed email. Internal test accounts and individuals have no agreement; nothing is ever signed on anyone's
  * behalf. While the release offers no version for signature (before legal review), the form is not shown.
+ *
+ * M13 (v1.0's ELECTRONIC ACCEPTANCE block): the company block (legal name, registration number, registered office, the
+ * representative's name, title and email, the confirmed notice email), the lawyer's two checkboxes word for word (the API
+ * sends them), and the button "Accept Agreement and Continue". A missing company field shows its reason and a profile link.
  */
 
 import { useEffect, useState, type FormEvent } from 'react';
@@ -17,12 +21,18 @@ import '@/styles/studio-provider-legal.css';
 
 interface Acceptance { id: number; version: string; acceptedAt: string; signerName: string | null; signerTitle: string | null; signerEmail: string | null; offDomain: boolean; early: boolean; pdfReady: boolean; recordSha256: string; supersededAt: string | null; terminatedAt: string | null; redactedAt: string | null }
 interface View {
-  text: { version: string; title: string; body: string; bodySha256: string; state: string; legalReview: string; effectiveAt: string | null };
+  /** null for a member who is not staff while no version is public (the public page shows nothing then either): textNote says so. */
+  text: { version: string; title: string; body: string; bodySha256: string; state: string; legalReview: string; effectiveAt: string | null } | null;
+  textNote: string | null;
   offered: { version: string; effectiveAt: string | null; signable: boolean } | null;
   inForce: { version: string } | null;
   early: boolean; textPdfReady: boolean; acceptances: Acceptance[]; notApplicable: string | null; canSign: boolean; blocked: string | null;
   signer: { email: string | null; onVerifiedDomain: boolean }; entityName: string; country: string | null;
   noticeEmail: { address: string | null; confirmedAt: string | null };
+  /** M13: the company block (what is missing, with reasons), the two checkbox texts and the button's label. */
+  company?: { legalName: string | null; companyNumber: string | null; registeredOffice: string | null; gaps: Array<{ key: string; message: string }> };
+  ticks?: [string, string] | null;
+  button?: string;
 }
 
 const day = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—');
@@ -71,7 +81,7 @@ export default function AgreementClient({ initial }: { initial: ProviderSummary 
     setBusy(true); setFields({}); setError(null);
     const r = await mpApi('/agreement/accept', { method: 'POST', body: {
       version: v.offered?.version, fullName: f.get('fullName'), title: f.get('title'),
-      readConfirmed: f.get('read') === 'on', authorityConfirmed: f.get('authority') === 'on', offDomainConfirmed: f.get('offDomain') === 'on',
+      termsConfirmed: f.get('terms') === 'on', expressConfirmed: f.get('express') === 'on', offDomainConfirmed: f.get('offDomain') === 'on',
     } });
     setBusy(false);
     if (!r.ok) { setError(r.error); setFields(r.fields ?? {}); return; }
@@ -122,35 +132,57 @@ export default function AgreementClient({ initial }: { initial: ProviderSummary 
           </Pane>
         )}
 
-        <Pane title={v.text.title} sub={v.text.legalReview === 'reviewed' ? `In force from ${day(v.text.effectiveAt)}.` : 'A generic draft for staff previews: not offered for signature.'}>
-          <div className="sw-pad">
-            {v.offered && v.textPdfReady && <p><a className="st-btn is-sm is-quiet" href={pdfHref(`/agreement/text.pdf?version=${encodeURIComponent(v.offered.version)}`)}>Download PDF of the text</a></p>}
-            <AgreementText body={v.text.body} />
-            <p className="mp-muted">SHA-256 of this text: <code>{v.text.bodySha256}</code></p>
-          </div>
-        </Pane>
+        {v.text ? (
+          <Pane title={v.text.title} sub={v.text.legalReview === 'reviewed' ? `In force from ${day(v.text.effectiveAt)}.`
+            : v.text.state === 'draft' || v.text.state === 'text' ? 'A generic draft for staff previews: not offered for signature.' : 'Not offered for signature yet.'}>
+            <div className="sw-pad">
+              {v.offered && v.textPdfReady && <p><a className="st-btn is-sm is-quiet" href={pdfHref(`/agreement/text.pdf?version=${encodeURIComponent(v.offered.version)}`)}>Download PDF of the text</a></p>}
+              <AgreementText body={v.text.body} />
+              <p className="mp-muted">SHA-256 of this text: <code>{v.text.bodySha256}</code></p>
+            </div>
+          </Pane>
+        ) : (
+          <Pane title="Provider Terms and Listing Agreement">
+            <div className="sw-pad"><p>{v.textNote}</p></div>
+          </Pane>
+        )}
 
-        {v.canSign && v.offered && p && (
-          <Pane title={`Accept v${v.offered.version}`} sub={v.early ? 'Accepting now waives the notice period for this version.' : undefined}>
+        {v.canSign && v.offered && p && v.ticks && (
+          <Pane title={`Accept v${v.offered.version}`} sub={v.early ? 'Accepting now waives the notice period for this version.' : 'Electronic acceptance'}>
             <form className="sw-pad mp-accept" onSubmit={accept}>
-              <label className="st-field"><span className="st-field-label">Full name</span><input className="st-input" name="fullName" required maxLength={120} autoComplete="name" /><FieldError text={fields.fullName} /></label>
+              <dl className="mp-accept-company">
+                <div><dt>Company legal name</dt><dd>{v.company?.legalName ?? legal}</dd></div>
+                <div><dt>Company registration number</dt><dd>{v.company?.companyNumber ?? '—'}</dd></div>
+                <div><dt>Registered office</dt><dd>{v.company?.registeredOffice ?? '—'}</dd></div>
+                <div><dt>Email</dt><dd>{v.signer.email ?? '—'}</dd></div>
+                <div><dt>Company notice email</dt><dd>{v.noticeEmail.address ?? '—'}{v.noticeEmail.confirmedAt ? ' (confirmed)' : ''}</dd></div>
+              </dl>
+              <p className="mp-muted">The company details come from your <Link href="/account/provider/profile">profile</Link>. Enter yours as the authorised representative:</p>
+              <label className="st-field"><span className="st-field-label">Authorised representative (full name)</span><input className="st-input" name="fullName" required maxLength={120} autoComplete="name" /><FieldError text={fields.fullName} /></label>
               <label className="st-field"><span className="st-field-label">Title</span><input className="st-input" name="title" required maxLength={80} autoComplete="organization-title" /><FieldError text={fields.title} /></label>
-              <label className="st-check"><input type="checkbox" name="read" required /> I have read this agreement, the Logo Standards and the Ranking Criteria</label>
-              <FieldError text={fields.readConfirmed} />
-              <label className="st-check"><input type="checkbox" name="authority" required /> I am authorised to accept it on behalf of {legal}</label>
-              <FieldError text={fields.authorityConfirmed} />
+              <label className="st-check"><input type="checkbox" name="terms" required /> {v.ticks[0]}</label>
+              <FieldError text={fields.termsConfirmed} />
+              <label className="st-check"><input type="checkbox" name="express" required /> {v.ticks[1]}</label>
+              <FieldError text={fields.expressConfirmed} />
               {!v.signer.onVerifiedDomain && (
                 <>
                   <label className="st-check"><input type="checkbox" name="offDomain" required /> I confirm I sign for {legal} although my email address is not on its domain</label>
                   <FieldError text={fields.offDomainConfirmed} />
                 </>
               )}
-              <p className="mp-muted">We record your name, title, email address, IP address, browser and the time, with a fingerprint of the exact text, and email a PDF copy to you and to {v.noticeEmail.address ?? 'your notice email'}.</p>
-              <button type="submit" className="st-btn is-primary" disabled={busy}>{busy ? 'Signing…' : 'Accept and sign'}</button>
+              <p className="mp-muted">We record the company details above, your name, title, email address, IP address, browser and the time, both ticks, with a fingerprint of the exact text, and email a PDF copy to you and to {v.noticeEmail.address ?? 'your notice email'}.</p>
+              <button type="submit" className="st-btn is-primary" disabled={busy}>{busy ? 'Accepting…' : (v.button ?? 'Accept Agreement and Continue')}</button>
             </form>
           </Pane>
         )}
-        {!v.canSign && !v.notApplicable && v.blocked && <Note>{v.blocked}</Note>}
+        {!v.canSign && !v.notApplicable && (v.company?.gaps.length ?? 0) > 0 && v.text && v.offered?.signable
+          && !v.acceptances.some(a => a.version === v.offered?.version && !a.terminatedAt) && (
+          <Note title="Before you can accept">
+            <ul>{v.company!.gaps.map(g => <li key={g.key}>{g.message}</li>)}</ul>
+            <p><Link href="/account/provider/profile">Open your profile</Link></p>
+          </Note>
+        )}
+        {!v.canSign && !v.notApplicable && v.blocked && v.text && !((v.company?.gaps.length ?? 0) > 0 && v.offered?.signable && !v.acceptances.some(a => a.version === v.offered?.version && !a.terminatedAt)) && <Note>{v.blocked}</Note>}
       </div>
     </>
   );

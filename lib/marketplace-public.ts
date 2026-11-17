@@ -123,10 +123,18 @@ export interface PublicProvider {
   website: string | null; pricingUrl: string | null; getKeyUrl: string | null; docsUrl: string | null; statusUrl: string | null; support: string | null;
   about: string | null; foundedYear: number | null; hqCity: string | null; regions: string[]; x: string | null; linkedin: string | null; github: string | null;
   logoSha256: string | null; publishedAt: string | null; domains: Array<{ domain: string; since: string }>; logoUrl: string | null;
+  /** M13 (privacy 1.9): whether "Use in the Smart Router" is offered, and why not; absent from an older API. */
+  connect?: PublicConnect;
 }
+/** M13 (privacy 1.9): a host is connectable only where its declared processing regions are covered (the API decides). */
+export interface PublicConnect { covered: boolean; reason: string | null }
+/** Whether a host's "Use in the Smart Router" control is shown: not when the API says it cannot be connected. */
+export const connectable = (c: PublicConnect | null | undefined): boolean => !c || c.covered !== false;
 export interface ProviderPageDTO { provider: PublicProvider; entries: EntryDTO[]; offers?: OfferDTO[]; declaration: Declaration | null; health: { endpoints: number; up: number; checkedAt: string | null }; noindex: boolean; staffPreview: boolean; internal: boolean;
   /** M9b (D-C7): a listing on this page has a published spot month among the recent ones; missing reads as false. */
-  spotPractice?: boolean }
+  spotPractice?: boolean;
+  /** M13 (Provider Terms and Listing Agreement v1.0 §24.2): a closed account's page, "No longer listed" since its close, for 90 days (then 410). */
+  noLongerListed?: { since: string } }
 /** The directory (GET /marketplace/public/providers); M9b: `spotPractice`, fleet-wide, for the ranking criteria page. */
 export interface DirectoryDTO { providers: unknown[]; spotPractice?: boolean; /** F6: sent only with spotPractice while fresh task versions are in use or announced. */ spotOnFresh?: boolean }
 export type PaneSuite = 'combined' | 'coding' | 'reasoning' | 'tooling' | 'canary';
@@ -140,7 +148,7 @@ export interface VsOfficialCalibrated { basis: 'standard_tasks'; official: { mea
 export type VsOfficial = Partial<Record<PaneSuite, VsOfficialLine | VsOfficialCalibrated | null>>;
 export const isCalibrated = (x: VsOfficialLine | VsOfficialCalibrated | null | undefined): x is VsOfficialCalibrated => !!x && (x as VsOfficialCalibrated).basis === 'standard_tasks';
 /** M10: `vsOfficial` only where the API sends a comparison (older APIs and the zero-host pane: absent). */
-export interface HostRow { provider: { slug: string; displayName: string; logoUrl: string | null }; entry: EntryDTO; vsOfficial?: VsOfficial | null }
+export interface HostRow { provider: { slug: string; displayName: string; logoUrl: string | null; connect?: PublicConnect }; entry: EntryDTO; vsOfficial?: VsOfficial | null }
 /** M10 (D-A1): the official API's reference row on a fleet model's page: a label with no number, sent only beside a line. */
 export interface OfficialRef { label: string; vendor: string; model: { id: number; name: string; displayName: string } }
 export interface EntryPageDTO { provider: PublicProvider; entry: EntryDTO; otherHosts: HostRow[]; declaration: Declaration | null; staffPreview: boolean }

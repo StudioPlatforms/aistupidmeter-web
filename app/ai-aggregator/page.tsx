@@ -239,7 +239,7 @@ export default async function AiAggregatorPage(): Promise<React.JSX.Element> {
             [<code key="r">auto-reasoning</code>, 'The Reasoning board: long, multi-turn working sessions.'],
             [<code key="t">auto-tooling</code>, 'The Tool use board: sandboxed agent tasks with real tools.'],
             [<code key="v">auto-value</code>, `Among the models within ${VALUE_FLOOR_POINTS} points of the best Combined score, the most points per dollar of a scored run.`],
-            [<code key="k">auto-task</code>, 'Decided per request from what it contains: code, tools, design and planning, or long text.'],
+            [<code key="k">auto-task</code>, 'Decided per request from what it contains: tools, code, design and planning, or a long conversation.'],
           ]} />
           <RdProse>
             <p>
