@@ -82,16 +82,34 @@ export interface TransferView {
   source: { name: string; url: string; checkedOn: string };
 }
 
+/**
+ * API M22: an account's choice for a connected listed host: 'auto' (our recommendation: ordered by our measurements),
+ * 'prefer' (first when it can serve the request), 'never' (never used automatically; requests that name its models still
+ * reach it).
+ */
+export type ListedChoice = 'auto' | 'prefer' | 'never';
+
+/** API M22: a listed model's published scores (its newest published daily mean per suite, whole points). */
+export type ListedScores = Partial<Record<'combined' | 'coding' | 'reasoning' | 'tooling', number>>;
+
 export interface ListedHost {
   slug: string; displayName: string; kind: string; country: string | null; regions: string[]; logoUrl: string | null; getKeyUrl: string | null;
+  /** API M23: the host's "Top up credit" page (where a customer adds credit or pays), or null; absent from an older API. */
+  billingUrl?: string | null;
+  /** M24: an internal test host (staff only; no public page). */
+  internal?: boolean;
   /** M13: the company operating the host, as its public page names it. */
   operatedBy?: string | null;
   /** M13 (privacy 1.9): the transfer arrangement; absent from an older API (the API still decides at connect time). */
   transfer?: TransferView;
   /** The endpoint hosts a new key for this provider is sent to, checked at and confirmed for: what the Add-key dialog names. */
   hosts: string[];
-  models: Array<{ id: string; name: string; measured: boolean; contextTokens: number }>;
+  /** From API M22: each model's published scores (none before its first published day) and the newest such day. */
+  models: Array<{ id: string; name: string; measured: boolean; contextTokens: number; scores?: ListedScores; scoredDay?: string | null }>;
   measured: number; total: number;
+  /** From API M22: when the host was first listed, and whether it is new to this account (listed since it last looked; 30 days at most). */
+  listedSince?: string | null;
+  isNew?: boolean;
   health: 'up' | 'degraded' | 'down' | 'unknown';
   /** How a key is checked: GET /models (free), or a 1-token chat (the host's model list answers any key). */
   checkBy: 'models' | 'chat';
@@ -103,6 +121,8 @@ export interface ListedHost {
     /** The hosts Check key sends the stored key to (the confirmed ones), and how it checks there. */
     checkHosts: string[];
     checkBy: 'models' | 'chat';
+    /** From API M22: the account's choice for the host (absent from an older API, which has only useInRouting). */
+    choice?: ListedChoice;
   };
   offers: ListedOffer[];
   declaration: DataDeclaration | null;
@@ -170,6 +190,11 @@ export interface UserPreferences {
   modelSwitching?: ModelSwitching;
   /** The largest estimated re-send cost a move may have, in USD; null for no limit. */
   switchCostCapUsd?: number | null;
+  /**
+   * From the API's M18 release: "Same model, cheaper host" (off by default). The Preferences page shows the setting only
+   * when GET /router/preferences carries it, and sends it back only then.
+   */
+  sameModelCheaperHost?: boolean;
 }
 
 /** Apply this strategy to (A2): requests sent as `auto`, or every routed request. */
@@ -205,12 +230,23 @@ export interface PreviewChainEntry {
   model: string;
   provider: string;
   reasoning: string;
-  /** From R4: 'endpoint' for one of the account's own servers. Absent from older APIs: cloud. */
-  source?: 'cloud' | 'endpoint';
+  /**
+   * From R4: 'endpoint' for one of the account's own servers. Absent from older APIs: cloud. From the API's M18 release,
+   * 'listed' for a listed host that "Same model, cheaper host" sends the request to (provider 'marketplace').
+   */
+  source?: 'cloud' | 'endpoint' | 'listed';
   /** From R4: false for endpoint models, which are never benchmarked. */
   measured?: boolean;
   /** From R4: the endpoint's name ("GPU box A"), on endpoint entries. */
   endpointName?: string | null;
+  /** M18, on listed entries: the host's name ("Together AI") and the model it serves ("DeepSeek V4 Pro (FP8)"). */
+  host?: string | null;
+  modelName?: string | null;
+  /**
+   * API M22, on a listed entry under Prefer my endpoints: the account's choice for that host ('prefer' or 'auto'). Absent on
+   * the entry "Same model, cheaper host" adds.
+   */
+  choice?: 'prefer' | 'auto';
   /** From R4: null on endpoint entries (the router never prices an endpoint); shown nowhere. */
   estimatedCost?: number | null;
 }
@@ -1261,9 +1297,14 @@ class ApiClient {
     return this.request(`/api/router/marketplace/${encodeURIComponent(slug)}/check`, { method: 'POST', body: JSON.stringify(chatConfirmed ? { chatConfirmed: true } : {}) });
   }
 
-  /** "Use in routing", or "Send my key to <host>" after a host change. */
-  async updateListedHost(slug: string, patch: { useInRouting?: boolean; confirmHost?: string }): Promise<{ host: ListedHost | null }> {
+  /** The account's choice for a host (API M22; "Use in routing" before it), or "Send my key to <host>" after a host change. */
+  async updateListedHost(slug: string, patch: { useInRouting?: boolean; confirmHost?: string; choice?: ListedChoice }): Promise<{ host: ListedHost | null }> {
     return this.request(`/api/router/marketplace/${encodeURIComponent(slug)}`, { method: 'PATCH', body: JSON.stringify(patch) });
+  }
+
+  /** API M22: this account has seen the listed providers now (later ones are marked new). */
+  async markListedSeen(): Promise<{ seenAt: string | null }> {
+    return this.request('/api/router/marketplace/seen', { method: 'POST', body: '{}' });
   }
 
   async removeListedHost(slug: string): Promise<{ removed: boolean }> {
@@ -1344,6 +1385,8 @@ class ApiClient {
     strategyScope?: StrategyScope;
     modelSwitching?: ModelSwitching;
     switchCostCapUsd?: number | null;
+    /** From the API's M18 release, when the request sent it: the stored value. */
+    sameModelCheaperHost?: boolean;
   }> {
     return this.request('/api/router/preferences', {
       method: 'PUT',

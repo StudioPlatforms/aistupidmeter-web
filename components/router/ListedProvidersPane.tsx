@@ -14,8 +14,9 @@ import '@/styles/studio-keys.css';
  * GET /router/marketplace answered 200 with at least one host (the API sends none while the switches keep listed
  * hosts out), so it is never a "coming soon" shell.
  *
- * Each row: the host's mark on a white tile, "Company · regions", its models, "N of M measured", an Offer tag with
- * one line, a health chip, and [Add key], or "Connected" with [Check key] [Remove]. Alphabetical (the API's order),
+ * Each row: the host's mark on a white tile, "Company · regions", its models (the first three; "+N more" shows every one),
+ * "N of M measured", an Offer tag with one line, a health chip, "Top up credit" when the host gave its billing page (API
+ * M23), and [Add key], or "Connected" with [Check key] [Remove]. Alphabetical (the API's order),
  * with a search box above 8 rows. The Add-key dialog checks the key with the host before anything is saved (the
  * API's rule: an invalid key is never saved); on a host whose model list answers any key the check is a 1-token chat
  * at the user's cost, and the dialog says so before it runs. `openSlug` (the page's `?host=`) scrolls to that host's
@@ -177,6 +178,8 @@ export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSl
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, { tone: 'good' | 'warn' | 'bad'; text: string }>>({});
+  // M23: the rows whose "+N more" was opened: every model the host serves.
+  const [allModels, setAllModels] = useState<Record<string, boolean>>({});
   const handled = useRef(false);
 
   // ?host=: once, after the hosts are known. A connected host is only scrolled to; one whose key was refused opens
@@ -271,20 +274,27 @@ export default function ListedProvidersPane({ hosts, onChange, onRemoved, openSl
             const c = h.connection;
             const health = HEALTH[h.health] ?? HEALTH.unknown;
             const more = h.models.length - MODELS_SHOWN;
+            const expanded = more > 0 && !!allModels[h.slug];
+            const topUp = safeHttps(h.billingUrl);
             const msg = rowMsg[h.slug];
             return (
               <div key={h.slug} id={`listed-${h.slug}`} className={`st-row lh-row${c ? ' is-connected' : ''}`}>
                 <HostLogo name={h.displayName} logoUrl={h.logoUrl} size={40} />
                 <div className="st-row-main">
-                  <div className="lh-name"><b>{h.displayName}</b><span className="lh-meta">{metaLine(h)}</span></div>
+                  <div className="lh-name"><b>{h.internal ? h.displayName : <Link href={`/inference-providers/${h.slug}`}>{h.displayName}</Link>}</b><span className="lh-meta">{metaLine(h)}</span></div>
                   <div className="lh-models">
-                    {h.models.slice(0, MODELS_SHOWN).map(m => <span key={m.id} className="lh-model" title={m.id}>{m.name}</span>)}
-                    {more > 0 && <span className="lh-more">+{more}</span>}
+                    {(expanded ? h.models : h.models.slice(0, MODELS_SHOWN)).map(m => <span key={m.id} className="lh-model" title={m.id}>{m.name}</span>)}
+                    {more > 0 && (
+                      <button type="button" className="lh-more" aria-expanded={expanded} onClick={() => setAllModels(s => ({ ...s, [h.slug]: !expanded }))}>
+                        {expanded ? 'Show fewer' : `+${more} more`}
+                      </button>
+                    )}
                   </div>
                   <div className="lh-facts">
                     <span>{h.measured} of {h.total} measured</span>
                     <Tag tone={health.tone}>{health.label}</Tag>
                     {h.offers[0] && <span className="lh-offer-line"><Tag tone="accent">Offer</Tag> {h.offers[0].title}</span>}
+                    {topUp && <a className="lh-topup" href={topUp} rel={PROVIDER_REL} target="_blank">Top up credit ↗</a>}
                   </div>
                   {c?.state === 'key_refused' && (
                     <p className="sk-prov-msg is-bad"><b>{h.displayName} refused this key</b>{c.lastValidatedAt ? ` when it was checked on ${day(c.lastValidatedAt)}` : ''}, so the router does not use it. Replace it with a working key.</p>

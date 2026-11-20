@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   BOARD_KEYS, BOARD_TO_SORT, SORT_TO_BOARD,
   type BoardKey, type BoardRow, type Boards, type SortKey,
 } from '../../lib/use-boards';
-import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, Star, modelHref } from './BoardBits';
+import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, RowHosts, Star, modelHref, useOpenHosts } from './BoardBits';
 
 /**
  * Layout "Simple" (replaced "Top 5" on 2026-10-18): one board at a time, in plain words, for
@@ -14,6 +14,9 @@ import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, Star, modelHre
  * new version", contact message #10). One row per model: its place, its score out of 100 with a
  * bar, a word for how good that is and a word for which way it is moving. The tab is the
  * dashboard sort, shared with the rest of the page.
+ *
+ * M16: a model with hosts on the board shown gets a chip under its row ("3 hosts · best 71 · median 68"), which opens a
+ * row per host.
  */
 
 const TAB: Record<BoardKey, { label: string; about: string }> = {
@@ -39,6 +42,8 @@ export default function LayoutSimple({ boards, sortKey, onSortChange }: {
 }) {
   const key: BoardKey = sortKey === 'price' ? 'combined' : SORT_TO_BOARD[sortKey];
   const [all, setAll] = useState(false);
+  const [open, onToggle] = useOpenHosts();
+  const hostsOf = (row: BoardRow) => <RowHosts row={row} k={`${key}:${row.id}`} open={open.has(`${key}:${row.id}`)} onToggle={onToggle} />;
   const board = boards[key];
   const rows = all ? board.ranked : board.ranked.slice(0, FIRST);
   const unranked = [...board.community, ...board.other];
@@ -60,7 +65,7 @@ export default function LayoutSimple({ boards, sortKey, onSortChange }: {
       <p className="sl-simple-about">{TAB[key].about}</p>
 
       <ol className="sl-simple-list">
-        {rows.map((row) => <SimpleRow key={row.id} row={row} />)}
+        {rows.map((row) => <SimpleRow key={row.id} row={row} hosts={hostsOf(row)} />)}
       </ol>
 
       {board.ranked.length > FIRST && (
@@ -86,10 +91,11 @@ export default function LayoutSimple({ boards, sortKey, onSortChange }: {
           <p>We have fewer results for these right now, so they are shown without a place.</p>
           <ul>
             {unranked.map((row) => (
-              <li key={row.id}>
+              <li key={row.id} className={row.hostsSummary ? 'has-hosts' : undefined}>
                 <Logo provider={row.provider} />
                 <Link href={modelHref(row)} className="sl-name">{row.label}</Link>
                 <span className="sl-simple-when">{row.score ?? '—'}{row.when ? ` · ${row.when}` : ''}</span>
+                {hostsOf(row)}
               </li>
             ))}
           </ul>
@@ -99,7 +105,7 @@ export default function LayoutSimple({ boards, sortKey, onSortChange }: {
   );
 }
 
-function SimpleRow({ row }: { row: BoardRow }) {
+function SimpleRow({ row, hosts }: { row: BoardRow; hosts?: ReactNode }) {
   const score = row.score ?? 0;
   const v = verdict(score);
   const trend = TREND[row.trend] ?? 'Steady';
@@ -148,6 +154,7 @@ function SimpleRow({ row }: { row: BoardRow }) {
         <span className={`sl-simple-verdict is-${v.tone}`}>{v.word}</span>
         <span className={`sl-simple-trend is-${row.trend === 'up' ? 'up' : row.trend === 'down' ? 'down' : 'flat'}`}>{trend}</span>
       </span>
+      {hosts}
     </li>
   );
 }

@@ -16,6 +16,8 @@ export function allowedPath(pieces: string[]): string | null {
   // M9: the boards' hosted rows (§7.1, MD21), path-addressed so every period is its own ≤ 60 s cache entry, and the
   // per-host chart of one open model (§7.6). The API answers both the same for everyone.
   if (pieces.length === 2 && a === 'boards' && PERIODS.has(b)) return `/marketplace/public/boards?period=${b}`;
+  // M16: each leaderboard model's hosts combined, per board (empty while the comparable-fleet gate fails).
+  if (pieces.length === 2 && a === 'fleet-hosts' && PERIODS.has(b)) return `/marketplace/public/boards/fleet-hosts?period=${b}`;
   if (pieces.length === 5 && a === 'open-models' && SLUG.test(b) && c === 'series' && SUITES.has(d) && DAYS.has(e)) return `/marketplace/public/open-models/${b}/series/${d}/${e}`;
   if (pieces.length > 3) return null;
   if (pieces.length === 1 && a === 'providers') return '/marketplace/public/providers';

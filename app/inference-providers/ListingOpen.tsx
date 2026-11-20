@@ -47,9 +47,9 @@ const STEPS: Array<[string, string]> = [
   ['Verify your domain', 'A DNS record proves the domain is yours. Your endpoint and the links to your own site must be on a verified domain.'],
   ['Add your profile and your logo', 'Your company details, links and data-handling declaration, and a square SVG mark that a person reviews.'],
   ['Add your endpoint and your key', 'Your OpenAI-compatible base URL and an API key on an ordinary paid account. We check it with a few short, fixed requests.'],
-  ['List your models', 'Each model with its precision, context and your prices, then a readiness check that confirms the settings our tests need.'],
+  ['List your models', 'Any model you serve, open-source or closed (one not in our list yet, you add yourself), with its precision, context and your prices, then a readiness check that confirms the settings our tests need.'],
   ['Accept the agreement', 'An owner or admin accepts the Provider Terms and Listing Agreement, and you confirm the address that receives our notices.'],
-  ['Submit for review', 'A person reviews every application and every listing, and sends you the decision with its reasons.'],
+  ['Submit for review', 'A person reviews your application with the models in it, and sends you the decision with its reasons. Once you are approved, models you add later go live when you publish them, once their readiness check passes.'],
   ['Choose when we start', 'You start benchmarking each listing when you are ready, see the monthly estimate first, and set a spending cap.'],
 ];
 

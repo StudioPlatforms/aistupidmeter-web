@@ -58,6 +58,9 @@ const ALLOWED: RegExp[] = [
   /^calibration$/,
   // F7: the User-run tests pane (the newest tests; hiding one is a measure, POST actions).
   /^user-tests$/,
+  // M20: the Listings pane (every listing) and the Practice runs pane (every account's practice runs), read-only views.
+  /^listings$/,
+  /^practice-runs$/,
 ];
 const PDF_PATH = /^acceptances\/[1-9][0-9]{0,9}\/pdf$/;
 
@@ -96,8 +99,11 @@ const WRITES: Array<{ method: 'POST' | 'PATCH'; path: RegExp }> = [
   { method: 'POST', path: /^calibration\/items\/[1-9][0-9]{0,15}\/decision$/ },
 ];
 const WRITE_MAX_BYTES = 8 * 1024;
-/** Query parameters the API's lists take (M2 contract §5; `state` also filters the logo list, M3 §3), each a short plain value. */
-const QUERY_KEYS = new Set(['state', 'internal', 'q']);
+/**
+ * Query parameters the API's lists take (M2 contract §5; `state` also filters the logo list, M3 §3; M20: `limit`, the
+ * practice runs shown), each a short plain value.
+ */
+const QUERY_KEYS = new Set(['state', 'internal', 'q', 'limit']);
 
 const notFound = () => NextResponse.json({ success: false, error: 'not_found' }, { status: 404 });
 

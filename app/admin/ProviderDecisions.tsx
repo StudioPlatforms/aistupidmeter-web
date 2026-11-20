@@ -251,20 +251,27 @@ export default function ProviderDecisions({ publicId, state, internal, kind, lis
   );
 }
 
-/** Agreement versions (§9.3): create one from a text the release has; publish it with its effective date. */
+/**
+ * Agreement versions (§9.3): create one from a text the release has; publish it with its effective date. Providers accept
+ * the version in force themselves, by ticking the boxes in their console: nothing here is per provider. M15: a draft older
+ * than the version in force (v0.9, the staff preview from before v1.0) is not offered for publishing.
+ */
 export function AgreementVersions() {
   const [v, setV] = useState<{ versions: Array<{ version: string; state: string; publishedAt: string | null; effectiveAt: string | null; legalReview: string; signable: boolean }>; inForce: string | null; releaseTexts: string[]; chain: boolean } | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const load = useCallback(async () => { const r = await call('agreement/versions', 'GET'); if (r.ok) setV(r.data); else setMsg(r.message); }, []);
   useEffect(() => { void load(); }, [load]);
   if (!v) return <Pane title="Agreement versions">{msg ? <Note tone="bad">{msg}</Note> : <Loader label="Loading" />}</Pane>;
-  const missing = v.releaseTexts.filter(t => !v.versions.some(x => x.version === t));
+  const num = (s: string | null) => (s ? s.split('.').map(Number) : []);
+  const newer = (a: string, b: string | null) => { const x = num(a), y = num(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] ?? 0) - (y[i] ?? 0); if (d) return d > 0; } return false; };
+  const shown = v.versions.filter(x => x.state !== 'draft' || !v.inForce || newer(x.version, v.inForce));
+  const missing = v.releaseTexts.filter(t => !v.versions.some(x => x.version === t) && (!v.inForce || newer(t, v.inForce)));
   const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 16);
   return (
-    <Pane title="Agreement versions" sub={`In force: ${v.inForce ?? 'none'} · acceptance chain ${v.chain ? 'verifies' : 'DOES NOT VERIFY'}. v0.9 is a draft for staff previews: no version is offered for signature before legal review.`} ruled flush>
+    <Pane title="Agreement versions" sub={`In force: ${v.inForce ?? 'none'} · acceptance chain ${v.chain ? 'verifies' : 'DOES NOT VERIFY'}. Providers accept the version in force themselves, by ticking the boxes in their console: nothing to do here. This pane only publishes a new version of the agreement text, after legal review.`} ruled flush>
       {msg && <Note>{msg}</Note>}
       <ul className="mp-admin-list sw-pad">
-        {v.versions.map(x => (
+        {shown.map(x => (
           <li key={x.version}>
             <span>v{x.version} · {x.state}{x.legalReview === 'reviewed' ? ' · reviewed' : ' · no legal review'}{x.effectiveAt ? ` · in force from ${fullDate(x.effectiveAt)}` : ''}</span>
             {x.state === 'draft' && (

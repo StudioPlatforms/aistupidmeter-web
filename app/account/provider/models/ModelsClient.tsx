@@ -3,7 +3,7 @@
 /**
  * Models (phase3-plan §2.9, §2.8 readiness; M4): the provider's listings. One row per listing with its state,
  * prices, precision, context and readiness results; one row per tested model on the endpoints with
- * [List this model]; "Request a model we don't have". The readiness check is a job our benchmark unit runs
+ * [List this model]; "Add a model" for one the list lacks (M15: in the list at once, with nothing needed from staff). The readiness check is a job our benchmark unit runs
  * (fixed, published prompts; never published itself): this page queues it and follows it.
  *
  * Shapes: the API contract (GET /account/provider/models and its children).
@@ -15,7 +15,7 @@ import { useSession } from 'next-auth/react';
 import { Pane, Loader, Note, Pill, Modal, Empty } from '@/components/studio';
 import { ProviderHead, FieldError, canEdit, useProviderSummary } from '@/components/marketplace/ProviderBits';
 import { mpApi, startUnavailableText, type ProviderSummary } from '@/lib/provider-account';
-import { StartBenchDialog, StopBenchDialog, CalibrationDialog, WithdrawCalibrationDialog, BENCH_STATE, MEASURING } from '@/components/marketplace/BenchDialogs';
+import { StartBenchDialog, StopBenchDialog, CalibrationDialog, WithdrawCalibrationDialog, PracticeDialog, BENCH_STATE, MEASURING } from '@/components/marketplace/BenchDialogs';
 import { SubmitButton, SubmitLine } from './SubmitForReview';
 import '@/styles/studio-provider-models.css';
 
@@ -51,6 +51,8 @@ interface Data {
   canManage: boolean; individual: boolean;
   /** F4 (revision 4 §R2.3): each listing's "Fresh task versions" line by public id; an older API sends none. */
   calibration?: Record<string, { state: string; text: string }>;
+  /** M19: each listing's practice line by public id (can a practice run start, the API's reason when not, its newest run's status); an older API sends none. */
+  practice?: Record<string, { allowed: boolean; reason: string | null; latest: string | null }>;
 }
 
 const STATE: Record<string, { label: string; tone?: 'good' | 'warn' | 'bad' }> = {
@@ -131,7 +133,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState<number | null>(null);
   const [asking, setAsking] = useState(false);
-  const [bench, setBench] = useState<{ id: number; label: string; kind: 'start' | 'stop' | 'calibrate' | 'withdraw' } | null>(null);
+  const [bench, setBench] = useState<{ id: number; label: string; kind: 'start' | 'stop' | 'calibrate' | 'withdraw' | 'practice' } | null>(null);
   const editable = canEdit(s) && (d?.canManage ?? true);
 
   const load = useCallback(async () => {
@@ -197,14 +199,14 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
     else flash(r.error ?? 'Not started', true);
     void load();
   };
-  // M11: a listing added after approval goes to review on its own (POST /models/:id/submit); the owner is mailed at once.
+  // M11: a listing added after approval is submitted on its own (POST /models/:id/submit). M15: it is published at once.
   // M12 (M11 review MINOR-9): the button reads "Submitting…" meanwhile; once submitted the row loses its button, so focus
-  // moves to the row (its pill now reads "Awaiting approval") instead of falling to the page's top.
+  // moves to the row (its pill now reads "Listed") instead of falling to the page's top.
   const submitListing = async (l: Listing) => {
     setBusy(l.id);
     const r = await mpApi<{ message?: string }>(`/models/${l.id}/submit`, { method: 'POST', body: {} });
     setBusy(null);
-    if (r.ok) flash(r.data?.message ?? 'Submitted: the listing is awaiting approval.'); else flash(r.error ?? 'Not submitted', true);
+    if (r.ok) flash(r.data?.message ?? 'Published: the listing is live.'); else flash(r.error ?? 'Not published', true);
     await load();
     if (r.ok) window.setTimeout(() => document.getElementById(`lst-${l.id}`)?.focus(), 0);
   };
@@ -221,10 +223,16 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
     const f = new FormData(e.currentTarget);
     const form2 = e.currentTarget;
     setAsking(true);
-    const r = await mpApi('/models/request', { method: 'POST', body: { name: String(f.get('name') ?? ''), maker: String(f.get('maker') ?? ''), weightsUrl: String(f.get('weightsUrl') ?? '') || null } });
+    // M15: the model is in the list at once (201), or already was (200, created false): choose it when you list the model.
+    const r = await mpApi<{ openModel?: { name?: string }; created?: boolean }>('/models/request', { method: 'POST', body: { name: String(f.get('name') ?? ''), maker: String(f.get('maker') ?? ''), weightsUrl: String(f.get('weightsUrl') ?? '') || null } });
     setAsking(false);
-    if (r.ok) { form2.reset(); flash('Sent. We add models to the registry by hand; you will see it here once it is in.'); }
-    else flash(r.error ?? 'Not sent', true);
+    if (r.ok) {
+      const name = r.data?.openModel?.name ?? String(f.get('name') ?? '');
+      form2.reset();
+      flash(r.data?.created === false ? `${name} is already in the list: choose it when you list the model.` : `${name} is added: choose it when you list the model.`);
+      void load();
+    }
+    else flash(r.error ?? 'Not added', true);
   };
 
   if (status === 'loading') return <div data-page-loading><Loader label="Loading your models" minHeight={420} /></div>;
@@ -234,7 +242,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
 
   return (
     <>
-      <ProviderHead summary={s} title="Models" lead="The models you serve, open-source or closed, at the price and precision you serve them. Each one needs a passing readiness check before it can be submitted." />
+      <ProviderHead summary={s} title="Models" lead="The models you serve, open-source or closed, at the price and precision you serve them. Each one needs a passing readiness check before it goes live." />
       <div className="st-body sw-body">
         {msg && <div role="status" className={`st-note sw-flash${msg.bad ? ' is-bad' : ''}`}><div>{msg.text}</div></div>}
         {/* F4 (revision 4 §R2.3): the console banner of an open calibration (console first: mail is never the only channel). */}
@@ -287,6 +295,10 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                       {d?.calibration?.[l.publicId] && d.calibration[l.publicId].state !== 'not_available' && (
                         <p className="mp-check-s">{calibrationLine(d.calibration[l.publicId])}</p>
                       )}
+                      {/* M19: where a practice run cannot start, the API's reason (owners and admins: the button's place). */}
+                      {editable && l.state !== 'delisted' && d?.practice?.[l.publicId] && !d.practice[l.publicId].allowed && d.practice[l.publicId].reason && (
+                        <p className="mp-check-s">{d.practice[l.publicId].reason}</p>
+                      )}
                     </div>
                     <div className="mp-check-end">
                       <Pill tone={st.tone}>{st.label}</Pill>
@@ -309,6 +321,12 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                           )}
                           {d?.calibration?.[l.publicId]?.state === 'calibrating' && (
                             <button type="button" className="st-btn is-sm" onClick={() => setBench({ id: l.id, label: `${l.openModel?.name ?? l.model} (${l.precision.toUpperCase()})`, kind: 'withdraw' })}>Withdraw from calibration</button>
+                          )}
+                          {/* M19: a private practice run of the standard suites (hidden when one cannot start; its results stay readable). */}
+                          {(d?.practice?.[l.publicId]?.allowed || d?.practice?.[l.publicId]?.latest) && (
+                            <button type="button" className="st-btn is-sm" onClick={() => setBench({ id: l.id, label: `${l.openModel?.name ?? l.model} (${l.precision.toUpperCase()})`, kind: 'practice' })}>
+                              {d?.practice?.[l.publicId]?.allowed ? 'Practice run' : 'Practice results'}
+                            </button>
                           )}
                           <button type="button" className="st-btn is-sm" onClick={() => void readiness(l)} disabled={busy === l.id || running(run) || !l.endpoint}>
                             {running(run) ? 'Checking…' : l.readiness ? 'Run readiness again' : 'Run readiness check'}
@@ -355,12 +373,12 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
             </Pane>
 
             {editable && (
-              <Pane title="Request a model we don't have" sub="Open-source or closed. We add them to the registry by hand." ruled>
+              <Pane title="Add a model" sub="Open-source or closed, if it is not in the list yet. It is added at once, and you choose it when you list the model." ruled>
                 <form className="sw-stack mp-lst-ask" onSubmit={ask}>
                   <label className="st-field"><span className="st-field-label">Model</span><input name="name" required maxLength={80} className="st-input" placeholder="e.g. Qwen3 235B A22B" /></label>
-                  <label className="st-field"><span className="st-field-label">Who publishes the weights</span><input name="maker" required maxLength={60} className="st-input" placeholder="e.g. Qwen" /></label>
-                  <label className="st-field"><span className="st-field-label">Weights URL <small>optional</small></span><input name="weightsUrl" type="url" maxLength={300} className="st-input" placeholder="https://huggingface.co/…" /></label>
-                  <div className="st-actions"><button type="submit" className="st-btn" disabled={asking}>{asking ? 'Sending…' : 'Send request'}</button></div>
+                  <label className="st-field"><span className="st-field-label">Who makes it</span><input name="maker" required maxLength={60} className="st-input" placeholder="e.g. Qwen" /></label>
+                  <label className="st-field"><span className="st-field-label">Hugging Face or ModelScope page <small>optional</small></span><input name="weightsUrl" type="url" maxLength={300} className="st-input" placeholder="https://huggingface.co/…" /></label>
+                  <div className="st-actions"><button type="submit" className="st-btn" disabled={asking}>{asking ? 'Adding…' : 'Add model'}</button></div>
                 </form>
               </Pane>
             )}
@@ -380,7 +398,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                 {d.openModels.map(o => <option key={o.id} value={o.id}>{o.maker} · {o.name}</option>)}
               </select>
               <FieldError text={fields.openModelId} />
-              {d.openModels.length === 0 && <span className="st-hint">The registry is empty: request the model below this form.</span>}
+              {d.openModels.length === 0 ? <span className="st-hint">The list is empty: add the model under &ldquo;Add a model&rdquo; below this form.</span> : <span className="st-hint">Not in the list? Add it under &ldquo;Add a model&rdquo; below this form.</span>}
             </label>
             <div className="mp-lst-row">
               <label className="st-field">
@@ -462,6 +480,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
       {bench && <CalibrationDialog listingId={bench.id} open={bench.kind === 'calibrate'} onClose={() => setBench(null)} onDone={t => { flash(t); void load(); }} />}
       {bench && <WithdrawCalibrationDialog listingId={bench.id} label={bench.label} open={bench.kind === 'withdraw'} onClose={() => setBench(null)} onDone={t => { flash(t); void load(); }} />}
       {bench && <StopBenchDialog listingId={bench.id} label={bench.label} open={bench.kind === 'stop'} onClose={() => setBench(null)} onDone={t => { flash(t); void load(); }} />}
+      {bench && <PracticeDialog listingId={bench.id} label={bench.label} open={bench.kind === 'practice'} onClose={() => setBench(null)} onDone={t => { flash(t); void load(); }} />}
       {d && d.listings.length === 0 && probed.length === 0 && untested.length === 0 && !loadError && (
         <div className="st-body sw-body"><Empty title="Start with an endpoint">Add the API your models are served from on <Link href="/account/provider/endpoints">Endpoints</Link>, test its models, then list them here.</Empty></div>
       )}

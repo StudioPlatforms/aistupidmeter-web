@@ -396,6 +396,36 @@
 /* Listed providers under Providers and models (Phase 3 M8) */
 .st .sr-listed { margin-top: 18px; display: grid; gap: 8px; }
 .st .sr-listed .st-toggle b { overflow-wrap: anywhere; }
+/* API M22: every listed provider (the connected ones first, the others one line each), its choice, its models and scores */
+.st .sr-lp-list { display: grid; gap: 10px; min-width: 0; }
+.st .sr-lp { display: grid; gap: 8px; min-width: 0; padding: 12px 14px; border: 1px solid var(--lp-line2); border-radius: 12px; }
+.st .sr-lp.is-line { padding: 8px 14px; }
+.st .sr-lp-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; min-width: 0; }
+.st .sr-lp-head b { overflow-wrap: anywhere; }
+.st .sr-lp-meta { color: var(--lp-fg3); font-size: 13px; overflow-wrap: anywhere; }
+.st .sr-lp-connect { margin-left: auto; }
+/* M23: a connected provider's billing page. */
+.st .sr-lp-topup { margin-left: auto; font-size: 13px; font-weight: 600; color: var(--lp-accent) !important; text-decoration: none !important; white-space: nowrap; }
+.st .sr-lp-topup:hover { text-decoration: underline !important; text-underline-offset: 3px; }
+.st .sr-lp-choice { justify-self: start; }
+.st .sr-lp-models { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.st .sr-lp-models li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.st .sr-lp-models small { color: var(--lp-fg3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.st .sr-lp-name { font-size: 13.5px; overflow-wrap: anywhere; }
+/* A model's chip in a provider's card wraps inside the card rather than widening it (long model names, narrow phones). */
+.st .sr-lp .st-chip, .st .sr-lp-orphans .st-chip { max-width: 100%; height: auto; min-height: 32px; white-space: normal; overflow-wrap: anywhere; text-align: left; line-height: 1.25; padding-top: 4px; padding-bottom: 4px; border-radius: 16px; }
+.st .sr-lp-filter { width: 100%; max-width: 360px; }
+@media (max-width: 760px) {
+  /* The three choices share the row's width and their words wrap inside them, 36 px or taller. */
+  .st .sr-lp-choice { display: flex; width: 100%; border-radius: 22px; }
+  .st .sr-lp-choice button { flex: 1 1 0; min-width: 0; height: auto; min-height: 36px; padding: 6px 10px; border-radius: 18px; white-space: normal; line-height: 1.25; }
+  .st .sr-lp .st-chip, .st .sr-lp-orphans .st-chip { min-height: 40px; }
+}
+@media (max-width: 479px) {
+  /* Below 480 px the three choices stack, each the card's full width. */
+  .st .sr-lp-choice { flex-direction: column; border-radius: 18px; }
+  .st .sr-lp-choice button { flex: 0 0 auto; width: 100%; border-radius: 14px; }
+}
 
 /* ── model changes (router release AW3): components/router/ModelChanges.tsx ──
    One change: the summary line (st-row), then a disclosure holding the requests before and after as Recent activity

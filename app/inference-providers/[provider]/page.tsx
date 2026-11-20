@@ -89,6 +89,8 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
   const spottedMonths = spotted.map(e => ({ publicId: e.publicId, label: e.label, spot: e.scores!.spotChecks! }));
   const standing = p.standing !== 'good' ? (p.standing === 'suspended' ? 'Suspended' : 'Under review') : null;
   const website = safeHttps(p.website); const getKey = safeHttps(p.getKeyUrl); const pricing = safeHttps(p.pricingUrl);
+  // API M23: where a customer adds credit or pays, when the provider gave it.
+  const topUp = safeHttps(p.billingUrl);
   const measured = live.filter(e => e.scores && e.scores.publishedDays > 0);
   const toc = [
     { id: 'models', label: 'Models and prices' },
@@ -125,6 +127,7 @@ export default async function ProviderPage(props: { params: Promise<{ provider: 
               ? <Link className="lp-btn lp-btn-primary lp-btn-lg" href={`/router/providers?host=${p.slug}`}>Use {p.displayName} in the Smart Router</Link>
               : <p className="mp-muted mp-noconnect">{p.connect?.reason}</p>}
             {getKey && <a className="lp-btn lp-btn-ghost lp-btn-lg" href={getKey} rel={PROVIDER_REL} target="_blank">Get an API key ↗</a>}
+            {topUp && <a className="lp-btn lp-btn-ghost lp-btn-lg" href={topUp} rel={PROVIDER_REL} target="_blank">Top up credit ↗</a>}
             {website && <a className="lp-btn lp-btn-ghost lp-btn-lg" href={website} rel={PROVIDER_REL} target="_blank">Website ↗</a>}
           </div>
         )}

@@ -10,6 +10,7 @@
  * owner's reading (B); the dialog shows exactly those and sends back which it showed. "and stay published" is gone
  * (retractions exist). The calibration dialogs (phase4-plan revision 4 §R2.4): [Take part in calibration] shows the API's
  * exact text (its sha256 goes back with the consent), the sole-taker estimate and maximum, the cap with its floor; withdraw.
+ * M19 [Practice run]: the quote of one private run of the standard suites, the API's sentence, the newest results per suite.
  */
 import { useEffect, useState, type FormEvent } from 'react';
 import { Modal, Note } from '@/components/studio';
@@ -40,6 +41,8 @@ export interface BenchSection {
   startText?: { consentVersion: string; spotSentence: string | null; calibrationSentence: string; reading: string };
   /** F4: the calibration section (an open invitation; the enrolment's counts and spend against its cap). */
   calibration?: CalibrationSection & { spend?: { campaign: string; spendUsd: number; capUsd: number | null; state: string } | null } | null;
+  /** M19: the newest practice runs, marked as private, not published, not counted; an older API sends none. */
+  practice?: { label: string; text: string; limits: { perListing: number; perAccount: number; days: number }; runs: PracticeRun[] };
 }
 
 /** F4 (revision 4 §R2.4): what the consent dialog shows, exactly as the API rendered it. */
@@ -270,6 +273,110 @@ export function WithdrawCalibrationDialog({ listingId, label, open, onClose, onD
       footer={<div className="st-actions"><button type="button" className="st-btn" onClick={onClose}>Cancel</button><button type="button" className="st-btn is-primary" onClick={() => void go()} disabled={busy}>{busy ? 'Withdrawing…' : 'Withdraw'}</button></div>}>
       <p>No further calibration run starts; a run in progress finishes. The runs already completed still count. Your benchmarking is not affected.</p>
       {err && <Note tone="bad">{err}</Note>}
+    </Modal>
+  );
+}
+
+// ── M19: practice runs (owner, 2026-11-18): the standard suites once each, private, before Start ─────────────────────
+
+type PracticeSuite = 'coding' | 'reasoning' | 'tooling';
+/** One suite's result: the score, the tasks passed of the tasks run, tokens and cost at declared prices (no score when it stopped). */
+export interface PracticeSuiteResult { score: number | null; passed: number | null; total: number | null; tokensIn: number; tokensOut: number; costUsd: number }
+export interface PracticeRun {
+  id: string; status: 'queued' | 'running' | 'done' | 'failed' | 'cancelled'; requestedAt: string; quoteUsd: number; capUsd: number; costUsd: number;
+  results: Partial<Record<PracticeSuite, PracticeSuiteResult>>; error: string | null; errorText: string | null; counted: boolean;
+}
+/** GET /models/:id/practice/quote: the quote, whether a run can start now (and why not), the API's words, the newest runs. */
+export interface PracticeData {
+  quote: { perSuiteUsd: Record<PracticeSuite, number>; totalUsd: number; capUsd: number };
+  allowed: boolean; reason: string | null; label: string; text: string; limits: { perListing: number; perAccount: number; days: number }; runs: PracticeRun[]; canManage?: boolean;
+}
+
+/** Dollars with cents; an amount under a cent keeps 4 decimals (a practice run of a low-priced model can cost less). */
+export const usdSmall = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: n > 0 && n < 0.01 ? 4 : 2 })}`;
+const PRACTICE_SUITE: Record<PracticeSuite, string> = { coding: 'Coding', reasoning: 'Reasoning', tooling: 'Tool use' };
+const PRACTICE_STATUS: Record<PracticeRun['status'], string> = { queued: 'Queued', running: 'Running', done: 'Done', failed: 'Stopped', cancelled: 'Cancelled' };
+
+/** The practice dialog's words: the quote, then the API's sentence, then the limits (exported for the render tests). */
+export function PracticeText({ d }: { d: PracticeData }) {
+  const q = d.quote;
+  return (
+    <>
+      <p>One run of each suite: coding, reasoning and tool use. About <strong>{usdSmall(q.totalUsd)}</strong> at your declared prices (coding {usdSmall(q.perSuiteUsd.coding)}, reasoning {usdSmall(q.perSuiteUsd.reasoning)}, tool use {usdSmall(q.perSuiteUsd.tooling)}). It stops starting new requests once its cost reaches {usdSmall(q.capUsd)}. The cost counts toward your monthly benchmarking cap.</p>
+      <p>{d.text}</p>
+      <p className="sw-quiet">At most {d.limits.perListing} practice runs per listing and {d.limits.perAccount} per account in any {d.limits.days} days, one at a time per listing. A run counts once its first suite has started, unless we stop it on our side (a restart or a fault, or no free slot within 3 days). Each suite&apos;s result appears here when it ends.</p>
+    </>
+  );
+}
+
+/** The newest practice runs under the API's mark, per suite: the score, the tasks passed, tokens and cost. */
+export function PracticeResults({ label, runs }: { label: string; runs: PracticeRun[] }) {
+  if (!runs.length) return null;
+  return (
+    <div className="sw-stack">
+      <p className="st-label">{label}</p>
+      {runs.map(run => (
+        <div key={run.id}>
+          <p className="mp-check-s">{dateOnly(run.requestedAt)} · {PRACTICE_STATUS[run.status] ?? run.status}{run.errorText ? `: ${run.errorText}` : ''} · {usdSmall(run.costUsd)}{run.counted ? '' : ' · not counted toward the limit'}</p>
+          <ul className="sw-list">
+            {(['coding', 'reasoning', 'tooling'] as const).map(s => {
+              const x = run.results[s];
+              if (!x) return null;
+              return (
+                <li key={s}>
+                  {PRACTICE_SUITE[s]}: {x.score === null ? 'no score' : x.score.toLocaleString('en-US', { maximumFractionDigits: 1 })}
+                  {x.passed !== null && x.total !== null ? ` · ${x.passed} of ${x.total} tasks passed` : ''} · {x.tokensIn.toLocaleString('en-US')} tokens in, {x.tokensOut.toLocaleString('en-US')} out · {usdSmall(x.costUsd)}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * M19: "Practice run for <Model (precision)>": the quote and the API's sentence, the start button while a run may start
+ * (owners and admins; otherwise the API's reason), then the newest results per suite. The quote goes back with the
+ * request; a changed one comes back to be shown again (409 quote_changed), as Start's estimate does.
+ */
+export function PracticeDialog({ listingId, label, open, onClose, onDone }: { listingId: number; label: string; open: boolean; onClose: () => void; onDone: (text: string) => void }) {
+  const [d, setD] = useState<PracticeData | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    setD(null); setErr(null);
+    void mpApi<PracticeData>(`/models/${listingId}/practice/quote`).then(r => {
+      if (r.ok && r.data) setD(r.data); else setErr(r.error ?? 'Not loaded');
+    });
+  }, [open, listingId]);
+  const start = async () => {
+    if (!d) return;
+    setBusy(true); setErr(null);
+    const r = await mpApi<{ run: PracticeRun }>(`/models/${listingId}/practice`, { method: 'POST', body: { quotedUsd: d.quote.totalUsd } });
+    setBusy(false);
+    if (r.ok) { onDone('The practice run is queued. Each suite’s result appears under Practice results when it ends.'); onClose(); return; }
+    if (r.code === 'quote_changed') {
+      const q = (r as unknown as { data?: { quote?: PracticeData['quote'] } }).data?.quote;
+      if (q) setD({ ...d, quote: q });
+    }
+    setErr(r.error ?? 'Not started');
+  };
+  const can = !!d && d.allowed && d.canManage !== false;
+  return (
+    <Modal open={open} onClose={onClose} title={`Practice run for ${label}`}
+      footer={<div className="st-actions"><button type="button" className="st-btn" onClick={onClose}>{can ? 'Cancel' : 'Close'}</button>{can && <button type="button" className="st-btn is-primary" onClick={() => void start()} disabled={busy}>{busy ? 'Starting…' : 'Start practice run'}</button>}</div>}>
+      {!d && !err && <p className="sw-quiet">Loading the estimate…</p>}
+      {err && <Note tone="bad">{err}</Note>}
+      {d && (
+        <div className="sw-stack mp-bench-form">
+          <PracticeText d={d} />
+          {!d.allowed && d.reason && <Note>{d.reason}</Note>}
+          <PracticeResults label={d.label} runs={d.runs} />
+        </div>
+      )}
     </Modal>
   );
 }

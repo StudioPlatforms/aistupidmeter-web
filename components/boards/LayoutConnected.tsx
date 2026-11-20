@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { BOARD_KEYS, BOARD_TITLE, BOARD_CADENCE, standingOn, useElementWidth, type Board, type BoardRow, type Boards } from '../../lib/use-boards';
-import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, Star, modelHref, useFlip } from './BoardBits';
+import { BOARD_KEYS, BOARD_TITLE, BOARD_CADENCE, hostPrecision, hostsSummaryOn, standingOn, useElementWidth, type Board, type BoardRow, type Boards } from '../../lib/use-boards';
+import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, HostsChip, HostsRows, Logo, Star, hostsListId, modelHref, useFlip, useOpenHosts } from './BoardBits';
 
 /**
  * Layout "Connected" (the default): each board is a column, best at the top, and a line
@@ -19,6 +19,9 @@ import { HOSTED_SUB, HOSTED_TITLE, HostedLinks, HostedName, Logo, Star, modelHre
  *
  * Under ~1000px of width four columns cannot hold model names, so each model becomes a row
  * with a small chart of its four ranks instead.
+ *
+ * M16: a leaderboard model with hosts on a board gets a chip line under its row in that column ("3 hosts · best 71 ·
+ * median 68"); opening it adds a line per host. Both have fixed heights, so the lines still meet the rows.
  */
 
 const ROW = 34;
@@ -28,12 +31,25 @@ const LABEL = 36;
 /** The column card's border and its body's padding, above the first row. */
 const EDGE = 1;
 const PAD = 6;
+/** M16: the hosts chip's line under a row, and each host's line once it is open. */
+const CHIP = 26;
+const HROW = 26;
 
 type Group = 'ranked' | 'community' | 'hosted' | 'other';
-type Item = { kind: 'row'; row: BoardRow; group: Group } | { kind: 'label'; group: Group; text: string; title?: string };
+type Item = { kind: 'row'; row: BoardRow; group: Group } | { kind: 'label'; group: Group; text: string; title?: string }
+  | { kind: 'hosts'; row: BoardRow; key: string } | { kind: 'hostlist'; row: BoardRow; key: string };
 
-function columnItems(board: Board): Item[] {
-  const items: Item[] = board.ranked.map((row) => ({ kind: 'row', row, group: 'ranked' as Group }));
+function columnItems(board: Board, open: ReadonlySet<string>): Item[] {
+  const items: Item[] = [];
+  // M16: a row with hosts on this board is followed by its chip, and by its hosts while the chip is open.
+  const push = (row: BoardRow, group: Group) => {
+    items.push({ kind: 'row', row, group });
+    if (!row.hostsSummary) return;
+    const key = `${board.key}:${row.id}`;
+    items.push({ kind: 'hosts', row, key });
+    if (open.has(key)) items.push({ kind: 'hostlist', row, key });
+  };
+  board.ranked.forEach((row) => push(row, 'ranked'));
   if (board.community.length) {
     const dates = Array.from(new Set(board.community.map((r) => r.when).filter(Boolean)));
     // On Combined, say why they have no rank. "Community-funded · coding only" read as if only
@@ -45,11 +61,11 @@ function columnItems(board: Board): Item[] {
       ? 'Their reasoning and tool-use runs are funded by the community, so there is no complete combined score to rank. We test their coding every 4 hours.'
       : 'Community-funded: these scores are from the last run someone funded, so they are not ranked against models we measure on schedule.';
     items.push({ kind: 'label', group: 'community', text, title });
-    board.community.forEach((row) => items.push({ kind: 'row', row, group: 'community' }));
+    board.community.forEach((row) => push(row, 'community'));
   }
   if (board.other.length) {
     items.push({ kind: 'label', group: 'other', text: 'Not ranked right now' });
-    board.other.forEach((row) => items.push({ kind: 'row', row, group: 'other' }));
+    board.other.forEach((row) => push(row, 'other'));
   }
   // M9 (§7.1): the hosted group, last, under its own label (never "community"); nothing while it is empty.
   if (board.hosted.length) {
@@ -72,18 +88,21 @@ export default function LayoutConnected({ boards, selected, onSelect }: {
 }) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<string | null>(null);
+  const [open, toggleHosts] = useOpenHosts();
 
   const cols = useMemo(() => BOARD_KEYS.map((k) => {
-    const items = columnItems(boards[k]);
+    const items = columnItems(boards[k], open);
     const pos = new Map<string, { y: number; dashed: boolean }>();
     let y = 0;
     for (const it of items) {
       if (it.kind === 'label') { y += LABEL; continue; }
+      if (it.kind === 'hosts') { y += CHIP; continue; }
+      if (it.kind === 'hostlist') { y += HROW * (it.row.hostsSummary?.rows.length ?? 0); continue; }
       pos.set(it.row.id, { y: y + ROW / 2, dashed: it.group !== 'ranked' });
       y += ROW;
     }
     return { board: boards[k], items, pos, height: y };
-  }), [boards]);
+  }), [boards, open]);
 
   const everyone = useMemo(
     () => {
@@ -100,16 +119,17 @@ export default function LayoutConnected({ boards, selected, onSelect }: {
     <div ref={ref} className="sl-conn">
       {width === 0 ? null : width >= 1000
         ? <Columns cols={cols} width={width} focus={focus} sel={sel} everyone={everyone}
-                   onSelect={onSelect} onHover={setHover} boards={boards} />
-        : <RankLines boards={boards} everyone={everyone} />}
+                   onSelect={onSelect} onHover={setHover} boards={boards} open={open} onToggleHosts={toggleHosts} />
+        : <RankLines boards={boards} everyone={everyone} open={open} onToggleHosts={toggleHosts} />}
     </div>
   );
 }
 
-function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards }: {
+function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards, open, onToggleHosts }: {
   cols: { board: Board; items: Item[]; pos: Map<string, { y: number; dashed: boolean }>; height: number }[];
   width: number; focus: string | null; sel: string | null; everyone: BoardRow[];
   onSelect: (id: string) => void; onHover: (id: string | null) => void; boards: Boards;
+  open: ReadonlySet<string>; onToggleHosts: (key: string) => void;
 }) {
   // The gaps carry the lines; the rest goes to the columns, so full model names fit at 1,440px.
   const gap = Math.max(56, Math.min(100, Math.round(width * 0.06)));
@@ -183,6 +203,29 @@ function Columns({ cols, width, focus, sel, everyone, onSelect, onHover, boards 
                          style={{ height: LABEL }} title={it.title}>
                       {it.text}
                     </div>
+                  )
+                  : it.kind === 'hosts' ? (
+                    <div key={`hosts-${it.row.id}`} data-flip={`${board.key}:hosts-${it.row.id}`} className="sl-conn-hosts" style={{ height: CHIP }}>
+                      {it.row.hostsSummary && (
+                        <HostsChip summary={it.row.hostsSummary} open={open.has(it.key)} onToggle={() => onToggleHosts(it.key)} controls={hostsListId(it.key)} />
+                      )}
+                    </div>
+                  )
+                  : it.kind === 'hostlist' ? (
+                    <ul key={`hostlist-${it.row.id}`} id={hostsListId(it.key)} data-flip={`${board.key}:hostlist-${it.row.id}`} className="sl-conn-hostlist"
+                        aria-label={`Hosts of ${it.row.label}`}>
+                      {(it.row.hostsSummary?.rows ?? []).map((h) => {
+                        const prec = hostPrecision(h.label);
+                        return (
+                          <li key={h.href} className="sl-conn-host" style={{ height: HROW }}>
+                            <Link href={h.href} className="sl-conn-host-name" title={h.label}>
+                              {h.provider.displayName}{prec && <small> {prec}</small>}
+                            </Link>
+                            <span className="sl-conn-host-score">{h.score}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   )
                   : (
                     <div
@@ -285,7 +328,9 @@ function TraceBar({ row, boards }: { row: BoardRow; boards: Boards }) {
 }
 
 /** Phone / narrow: one row per model, with a four-point chart of its rank on each board. */
-function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] }) {
+function RankLines({ boards, everyone, open, onToggleHosts }: {
+  boards: Boards; everyone: BoardRow[]; open: ReadonlySet<string>; onToggleHosts: (key: string) => void;
+}) {
   const maxRank = Math.max(2, ...BOARD_KEYS.map((k) => boards[k].ranked.length));
   const X = [18, 54, 90, 126];
   const yOf = (rank: number) => +(5 + ((rank - 1) / (maxRank - 1)) * 30).toFixed(1);
@@ -316,6 +361,8 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
     return {
       m,
       group,
+      // M16: the model's hosts, from Combined when it has them there, else from the first board that does (named on the chip).
+      hosts: group === 'hosted' ? null : hostsSummaryOn(boards, m.id, 'combined'),
       // A community row has one rank (coding); saying so is shorter and clearer than "— · =2 · 24 Sep · 24 Sep".
       sub: isCommunity
         ? `coding ${cells[1].rank ? cells[1].label : '—'}${cells[2].label !== '—' ? ` · ${cells[2].label}` : ''}`
@@ -332,7 +379,7 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
   // first, then any other model without one (added recently, not yet run on every suite).
   // `everyone` is ranked, then community, then other, so each heading appears once.
   const groupOf = (r: (typeof rows)[number]) => r.group;
-  const list = useFlip<HTMLDivElement>([rows.map((r) => r.m.id).join(',')]);
+  const list = useFlip<HTMLDivElement>([rows.map((r) => r.m.id).join(','), Array.from(open).join(',')]);
 
   return (
     <div className="sl-rl" ref={list}>
@@ -354,7 +401,7 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
               </div>
             )
           )}
-          <div className={`sl-rl-row${r.muted ? ' is-muted' : ''}${r.m.paused ? ' is-paused' : ''}`}>
+          <div className={`sl-rl-row${r.muted ? ' is-muted' : ''}${r.m.paused ? ' is-paused' : ''}${r.hosts ? ' has-hosts' : ''}`}>
             <span className="sl-model">
               <Star row={r.m} />
               <Logo provider={r.m.provider} size="sm" host={r.m.host} />
@@ -372,6 +419,16 @@ function RankLines({ boards, everyone }: { boards: Boards; everyone: BoardRow[] 
               {r.dots && <path d={r.dots} className="sl-rl-dot" />}
             </svg>
           </div>
+          {r.hosts && (() => {
+            const key = `rl:${r.m.id}`;
+            const id = hostsListId(key);
+            return (
+              <div className="sl-rl-hosts">
+                <HostsChip summary={r.hosts.summary} open={open.has(key)} onToggle={() => onToggleHosts(key)} controls={id} board={BOARD_TITLE[r.hosts.board]} />
+                {open.has(key) && <HostsRows summary={r.hosts.summary} id={id} model={r.m.label} />}
+              </div>
+            );
+          })()}
         </div>
       ))}
       <p className="sl-foot">Top of each chart is rank 1. A grey dot at the bottom means no rank on that board.</p>

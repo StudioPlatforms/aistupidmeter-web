@@ -135,3 +135,9 @@
 /* M13 (privacy 1.9): where a host cannot be connected, its reason stands in for "Use in the Smart Router". */
 .mp-actions .mp-noconnect { margin: 0; max-width: 52ch; align-self: center; overflow-wrap: anywhere; }
 .mp-host-noconnect { overflow-wrap: anywhere; }
+/* M16 (owner 2026-11-18): each host's badge per shown suite against the official API (HostedBy), beside its name; they wrap
+   on a phone. The theme's tokens, so both themes read the same. */
+.mp-vs-badges { display: inline-flex; flex-wrap: wrap; gap: 6px; min-width: 0; max-width: 100%; }
+.mp-vs-badge { display: inline-block; max-width: 100%; padding: 2px 8px; border: 1px solid var(--lp-line, #e3e6ea); border-radius: 999px; font-size: 12px; font-weight: 600;
+  line-height: 1.4; color: var(--lp-fg2, #3c4043); overflow-wrap: anywhere; }
+.mp-vs-badge.is-tied { border-color: color-mix(in srgb, var(--lp-good, #1e8e3e) 45%, var(--lp-line, #e3e6ea)); background: var(--lp-good-bg, #e6f4ea); color: var(--lp-good, #1e8e3e); }

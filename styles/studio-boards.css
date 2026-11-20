@@ -849,3 +849,57 @@
 .st .sl-simple-hosted h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--lp-fg); }
 .st .sl-simple-hosted > p { margin: 4px 0 10px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
 .st .sl-simple-hosted .sl-simple-list { margin: 0; }
+
+/* ── M16: a leaderboard model's hosted providers, combined (BoardBits HostsChip, HostsRows, RowHosts) ───────────── */
+/* The chip: "3 hosts · best 71 · median 68", a button above the row's stretched link; it wraps where the row can grow. */
+.st .sl-hchip { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; min-height: 22px; padding: 3px 9px;
+  border: 1px solid var(--lp-line); border-radius: 999px; background: var(--lp-card); color: var(--lp-fg2) !important; font-family: var(--lp-font-body) !important;
+  font-size: 11.5px; font-weight: 600; line-height: 1.25; text-align: left; white-space: normal; cursor: pointer; transition: border-color .18s, color .18s, background-color .18s; }
+.st .sl-hchip:hover { border-color: color-mix(in srgb, var(--lp-accent) 50%, var(--lp-line)); color: var(--lp-fg) !important; }
+.st .sl-hchip:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
+.st .sl-hchip.is-open { border-color: color-mix(in srgb, var(--lp-accent) 60%, var(--lp-line)); background: var(--lp-accent-bg); color: var(--lp-accent) !important; }
+.st .sl-hchip .sl-icon { flex: none; }
+.st .sl-hchip-t { min-width: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.st .sl-hchip-chev { flex: none; transition: transform .18s; }
+.st .sl-hchip.is-open .sl-hchip-chev { transform: rotate(180deg); }
+/* The host rows: the host (its listing page), the model as listed, the score ± SE; long names wrap. */
+.st .sl-hrows { list-style: none; margin: 6px 0 0; padding: 0 0 0 10px; display: grid; gap: 0; border-left: 2px solid var(--lp-line); }
+.st .sl-hrows-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 4px 0; min-width: 0; font-size: 13px; line-height: 1.35; }
+.st .sl-hrows-name { flex: 0 1 auto; min-width: 0; font-weight: 600; color: var(--lp-fg) !important; text-decoration: none !important; overflow-wrap: anywhere; }
+.st .sl-hrows-name:hover { color: var(--lp-accent) !important; text-decoration: underline !important; }
+.st .sl-hrows-name:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; border-radius: 4px; }
+.st .sl-hrows-model { flex: 1 1 auto; min-width: 0; font-size: 12px; color: var(--lp-fg3); overflow-wrap: anywhere; }
+.st .sl-hrows-score { flex: none; margin-left: auto; font-weight: 600; color: var(--lp-fg); font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Inside a row (Side, Simple, the table's cards): a full-width line under it, above its stretched link. */
+.st .sl-row-hosts { position: relative; z-index: 1; grid-column: 1 / -1; flex-basis: 100%; min-width: 0; padding: 2px 0 6px; }
+.st .sl-row .sl-row-hosts { padding-left: 40px; }
+.st .sl-crow.has-hosts { flex-wrap: wrap; padding-top: 6px; padding-bottom: 2px; }
+.st .sl-crow .sl-row-hosts { padding-left: 26px; }
+.st .sl-simple-row .sl-row-hosts { padding: 0 0 2px 60px; }
+.st .sl-simple-unranked li.has-hosts { flex-wrap: wrap; }
+.st .sl-tcard .sl-row-hosts { margin-top: 10px; padding: 0 0 0 44px; }
+@media (max-width: 760px) {
+  .st .sl-simple-row .sl-row-hosts { padding-left: 42px; }
+}
+/* Connected, columns: one fixed-height line for the chip and one per host, so the lines still meet the rows. */
+.st .sl-conn-hosts { box-sizing: border-box; display: flex; align-items: center; min-width: 0; padding: 0 8px 0 38px; }
+.st .sl-conn-hosts .sl-hchip { min-height: 0; height: 22px; padding: 0 8px; }
+.st .sl-conn-hosts .sl-hchip-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st .sl-conn-hostlist { list-style: none; margin: 0; padding: 0; }
+.st .sl-conn-host { box-sizing: border-box; display: grid; grid-template-columns: minmax(0, 1fr) 28px; align-items: center; column-gap: 4px; padding: 0 8px 0 38px; }
+.st .sl-conn-host-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; font-weight: 500; line-height: 1.3;
+  color: var(--lp-fg2) !important; text-decoration: none !important; }
+.st .sl-conn-host-name:hover { color: var(--lp-accent) !important; }
+.st .sl-conn-host-name:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 1px; border-radius: 4px; }
+.st .sl-conn-host-name small { font-size: 11px; color: var(--lp-fg3); }
+.st .sl-conn-host-score { text-align: right; font-size: 12.5px; font-weight: 600; color: var(--lp-fg2); font-variant-numeric: tabular-nums; }
+/* Connected, narrow: under the model's row, before the next one. */
+.st .sl-rl-row.has-hosts { border-bottom: 0; }
+.st .sl-rl-hosts { min-width: 0; padding: 0 14px 10px 16px; border-bottom: 1px solid var(--lp-line); }
+/* Table: the chip under the model's name; each host a row of its own, its score on each board where it has one. */
+.st .sl-td-hosts { margin: 4px 0 8px; min-width: 0; }
+.st .sl-table tr.sl-thost td, .st .sl-table tr.sl-thost:hover td { height: 44px; background: color-mix(in srgb, var(--lp-fg) 2.5%, transparent) !important; cursor: default; }
+.st .sl-table tr.sl-thost td.is-on, .st .sl-table tr.sl-thost:hover td.is-on { background: color-mix(in srgb, var(--lp-accent) 6%, transparent) !important; }
+.st .sl-thost-t { display: flex; flex-direction: column; min-width: 0; padding-left: 38px; }
+.st .sl-thost-t .sl-name { font-size: 13px; }
+.st .sl-thost-t .sl-name:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; border-radius: 4px; }

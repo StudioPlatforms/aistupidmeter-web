@@ -9,6 +9,7 @@ import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { boardVerdict, companyOf } from '@/components/seo/best/best-data';
 import { LEADERBOARD_TOP_N } from '@/components/seo/leaderboard/leaderboard-config';
 import LeaderboardHosted from '@/components/seo/leaderboard/LeaderboardHosted';
+import LeaderboardFleetHosts from '@/components/seo/leaderboard/LeaderboardFleetHosts';
 import { CADENCE, OPENNESS, TIES_RULE } from '@/components/seo/best/best-config';
 import { PLANS } from '@/lib/entitlements';
 import type { BoardKey } from '@/lib/boards-core';
@@ -26,6 +27,8 @@ import '@/styles/seo.css';
  * score and count is read from /dashboard/boards?period=24h at render time. ISR, no auth().
  * M9 (Phase 3 plan §7.1, MD21, rev: S13): each board's hosted rows are fetched in the browser
  * (LeaderboardHosted), so the 900 s revalidate below stays and the server's top 10 is the fleet's alone.
+ * M16: under each table, the models shown there that independent providers host too, combined, are fetched in the browser
+ * as well (LeaderboardFleetHosts); nothing renders until the API sends a summary.
  */
 
 export const revalidate = 900;
@@ -175,6 +178,7 @@ export default async function LeaderboardPage() {
                 <>
                   <ScoreTable rows={rows} caption={`The first ${rows.length} places on the ${boardLabel(b.key)} board, last 24 hours`} />
                   {asOf && <AsOf>{asOf} · places with statistical ties; “=” marks a shared place</AsOf>}
+                  {boards && <LeaderboardFleetHosts board={b.key} models={topOfBoard(boards, b.key, LEADERBOARD_TOP_N).map(({ row }) => ({ id: row.id, name: row.label }))} />}
                   <LeaderboardHosted board={b.key} />
                 </>
               ) : (

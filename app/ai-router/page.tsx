@@ -238,6 +238,14 @@ export default async function AiRouterPage(): Promise<React.JSX.Element> {
           lead="One OpenAI-compatible endpoint in front of every model on the leaderboard, with the model for each request chosen from the public boards."
         >
           <RdRows rows={[
+            ['Request-level routing', <>
+              With <code>auto-task</code>, or Match each request on for Best overall or Best value, each request is read on its own:
+              tools that work on files, code or a terminal rank it on coding, other tools on tool use, code on coding, design and
+              planning or a long conversation on reasoning, and anything else on the Combined score. The rules run inside the request,
+              with no extra model call, and <code>X-AISM-Request-Kind</code> names the one that matched. A conversation keeps its model
+              by default, or moves at a new message when another is clearly ahead and the re-send stays within your limit.{' '}
+              <Link href="/router#request">How it reads each request</Link>.
+            </>],
             ['Modes that name a job', <>
               <code>auto-coding</code>, <code>auto-reasoning</code>, <code>auto-tooling</code> and <code>auto-best</code> rank on the
               boards. <code>auto-value</code> and <code>auto-fastest-quality</code> choose among the models within{' '}

@@ -16,6 +16,11 @@
  * measures, appeals, complaints), and the tab's Agreement versions and Reports panes.
  *
  * Integrity (M7): the Integrity cases and Spot checks panes (IntegrityCases); F4: the Calibration pane beside them.
+ *
+ * M20 (owner, 2026-11-18): the main view is the Listings pane (every listing: provider, model, published scores, runs,
+ * connections, Smart Router traffic) and the Practice runs pane (every account's practice runs and what changed between
+ * them), both in Listings.tsx; a row opens its provider's detail. The model list (edit or retire entries) is a collapsed
+ * pane at the bottom (OpenModels).
  */
 import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -28,8 +33,11 @@ import { ago, fullDate, num } from './format';
 
 /** Loaded when a provider's detail first shows its logos, with its previews' stylesheet: /admin itself loads nothing new. */
 const LogoReview = dynamic(() => import('./LogoReview'), { ssr: false, loading: () => <Loader label="Loading the logos" /> });
-/** M4: the open-model registry, loaded with the tab. */
-const OpenModels = dynamic(() => import('./OpenModels'), { ssr: false, loading: () => <Loader label="Loading the registry" /> });
+/** M4: the open-model registry, loaded with the tab; M20: collapsed at the bottom as the model list. */
+const OpenModels = dynamic(() => import('./OpenModels'), { ssr: false, loading: () => <Loader label="Loading the model list" /> });
+/** M20: the Listings and Practice runs panes, the tab's main view. */
+const Listings = dynamic(() => import('./Listings'), { ssr: false, loading: () => <Loader label="Loading the listings" /> });
+const PracticeRuns = dynamic(() => import('./Listings').then(m => m.PracticeRuns), { ssr: false, loading: () => <Loader label="Loading the practice runs" /> });
 /** M5: decisions, measures and the record; agreement versions; reports. */
 const ProviderDecisions = dynamic(() => import('./ProviderDecisions'), { ssr: false, loading: () => <Loader label="Loading the record" /> });
 const AgreementVersions = dynamic(() => import('./ProviderDecisions').then(m => m.AgreementVersions), { ssr: false, loading: () => <Loader label="Loading the versions" /> });
@@ -95,6 +103,9 @@ interface Detail {
     regions: Array<{ region: string; countries: string[]; mechanism: string; covered: boolean; words: string }>;
     dpfCertified: boolean; dpfSetBy: number | null; dpfSetAt: string | null;
   };
+  /** M19: the account's newest practice runs (private to the provider and staff; never published, never counted). */
+  practice?: Array<{ id: string; listing: string | null; status: string; requestedAt: string; costUsd: number; capUsd: number; error: string | null;
+    results: Partial<Record<'coding' | 'reasoning' | 'tooling', { score: number | null; passed: number | null; total: number | null }>> }>;
 }
 
 /** Queue kinds and details that read better than their codes; any other is shown as the API names it. */
@@ -181,6 +192,11 @@ export default function ProvidersTab() {
       setQueueMsg('Could not reach the server.');
     }
   }, []);
+  /** M20: a listing's or practice run's row opens its provider's detail (an account beyond the newest 500 by its id alone). */
+  const openById = useCallback((publicId: string) => {
+    const p = providers.find(x => x.publicId === publicId);
+    void openDetail(p ?? ({ publicId } as AdminProvider));
+  }, [providers, openDetail]);
   const confirmTls = (endpointId: string) => post(`holds/${encodeURIComponent(endpointId)}/confirm-tls`, {}, 'Confirmed: the hold is lifted.');
   const attest = (host: string, attested: boolean) => open ? post(`providers/${encodeURIComponent(open.publicId)}/hosts`, { host, attested }, attested ? `${host} attested` : `${host} withdrawn`) : Promise.resolve();
   /** M13: staff record (or withdraw) the host's EU-US Data Privacy Framework certification; its US regions count only then. */
@@ -266,6 +282,9 @@ export default function ProvidersTab() {
         <Stat value={num(providers.length - customers.length)} label="Internal test accounts" sub="never public, never counted" />
       </Stats>
 
+      <Listings onOpen={openById} />
+      <PracticeRuns onOpen={openById} />
+
       <Pane title="Review queue" sub="Oldest first, with how long each item has waited." ruled flush>
         {queueMsg && <Note>{queueMsg}</Note>}
         <div className="st-table-wrap">
@@ -339,13 +358,13 @@ export default function ProvidersTab() {
         </div>
       </Pane>
 
-      <OpenModels />
       <AgreementVersions />
       <Reports />
       <IntegrityCases />
       <SpotChecks />
       <CalibrationPane />
       <UserTestsPane />
+      <OpenModels />
 
       <Modal
         open={!!open}
@@ -424,6 +443,25 @@ export default function ProvidersTab() {
                 <p className="st-label mp-admin-h">Listings</p>
                 <ul className="mp-admin-list">
                   {detail.listings.map(l => <li key={l.id}><span>{l.openModel?.name ?? l.model} · {l.precision.toUpperCase()}</span><span className="st-faint">{l.state.replace(/_/g, ' ')}</span></li>)}
+                </ul>
+              </>
+            )}
+            {detail.practice && detail.practice.length > 0 && (
+              <>
+                <p className="st-label mp-admin-h">Practice runs (private, not published, not counted)</p>
+                <ul className="mp-admin-list">
+                  {detail.practice.map(r => (
+                    <li key={r.id}>
+                      <span>
+                        {r.listing ?? '—'}
+                        {(['coding', 'reasoning', 'tooling'] as const).filter(s => r.results[s]).map(s => {
+                          const x = r.results[s]!;
+                          return ` · ${s === 'tooling' ? 'tool use' : s} ${x.score === null ? 'no score' : x.score}${x.passed !== null && x.total !== null ? ` (${x.passed}/${x.total})` : ''}`;
+                        }).join('')}
+                      </span>
+                      <span className="st-faint" title={fullDate(r.requestedAt)}>{r.status}{r.error ? ` (${r.error.replace(/_/g, ' ')})` : ''} · ${r.costUsd.toFixed(4)} of ${r.capUsd.toFixed(2)} · {ago(r.requestedAt)}</span>
+                    </li>
+                  ))}
                 </ul>
               </>
             )}

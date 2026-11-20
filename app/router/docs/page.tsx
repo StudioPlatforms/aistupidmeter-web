@@ -790,9 +790,19 @@ export default function DocsPage() {
                 <div className="sd-flow">
                   <h3 className="sd-h3">Introduction</h3>
                   <p className="st-text">
-                    The AI Smart Router provides an OpenAI-compatible API that intelligently routes your requests to the best AI model
-                    for the job, based on benchmarks that re-run on a fixed schedule (coding every four hours, reasoning and tool use daily). Use a single <C>aism_</C> key &mdash; your <strong>SR (Smart Router) key</strong> &mdash;
-                    to access models from 6 providers: OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI).
+                    The AI Smart Router provides an OpenAI-compatible API that routes each request to the best AI model for the job, based
+                    on benchmarks that re-run on a fixed schedule (coding every four hours, reasoning and tool use daily). Use a single <C>aism_</C> key &mdash; your <strong>SR (Smart Router) key</strong> &mdash;
+                    to access models from 6 providers: OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot), and GLM (Z.AI), and
+                    your own OpenAI-compatible servers (<a href="#own-endpoints" onClick={e => jump(e, 'own-endpoints')}>Your own endpoints</a>).
+                  </p>
+                  <p className="st-text">
+                    <strong>Request-level routing.</strong> With <C>auto-task</C>, or <strong>Match each request</strong> on in Preferences,
+                    each request is read on its own before anything is ranked: the tools it offers, its latest message and the length of
+                    the conversation choose the benchmark (tool use, coding, reasoning or the overall score), and the leader on that
+                    benchmark answers. The rules run inside the request, with no extra model call, and <C>X-AISM-Request-Kind</C> names the
+                    one that matched. <a href="#switching" onClick={e => jump(e, 'switching')}>Model switching</a> decides whether a
+                    conversation already under way keeps its model. The rules are under{' '}
+                    <a href="#strategies" onClick={e => jump(e, 'strategies')}>Virtual models</a>.
                   </p>
 
                   <h3 className="sd-h3">Base URL</h3>
@@ -978,8 +988,13 @@ export default function DocsPage() {
                         <C>mp/&lt;host&gt;/&lt;model&gt;</C>, for example <C>mp/together/deepseek-v4-pro</C>. It needs your own key at that host, added under
                         Listed providers on the <Link href="/router/providers">Providers</Link> page; the request goes to the host with your key, and the host
                         bills you. <C>GET /v1/models</C> lists the ones your keys reach. Automatic routing chooses a listed host&apos;s model only once it is
-                        measured, and only when Model source in Preferences is Prefer my endpoints. <C>/v1/messages</C> does not serve <C>mp/</C> ids: use{' '}
-                        <C>/v1/chat/completions</C>.
+                        measured, and only when Model source in Preferences is Prefer my endpoints. There, each listed provider you connected
+                        follows your choice for it in Preferences: <em>Automatic</em> (the default) ranks its models by their scores after your
+                        endpoints, <em>Prefer</em> puts it first among the listed hosts, and <em>Never use automatically</em> leaves it to requests
+                        that name its models; single models can be excluded too. The exception is <strong>Same model, cheaper host</strong>{' '}
+                        in Preferences: with it on, automatic routing can send a request to a connected provider of the same model under any model source
+                        except Only my endpoints, when that provider is statistically tied with the official API on our tests and costs less.{' '}
+                        <C>/v1/messages</C> does not serve <C>mp/</C> ids: use <C>/v1/chat/completions</C>.
                       </p>
                     )}
                     {/* True however the router scores right now (lib/router-scoring: the estimate and the tie band
@@ -987,7 +1002,7 @@ export default function DocsPage() {
                     <p>
                       <strong>How the best model is chosen:</strong> every model ranks on an average of its recent scored benchmark runs, never on
                       a single run. When the leaders are closer than the test can tell apart (within 1.96 times their combined standard error, the
-                      same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among the leaders by
+                      same test as the leaderboard&apos;s <C>=</C> ranks), they are tied, and your tie-break in Preferences picks among the closest of them by
                       cost per task in our runs (the default), by speed or by score. Within a conversation, <a href="#switching" onClick={e => jump(e, 'switching')}>Model switching</a> decides,
                       and with the cheaper or faster tie-break a model you were already routed to stays while it is still close to the leader, so
                       the pick does not change with every new run. Unknown <C>auto-*</C> names are a 400 <C>model_not_found</C> that lists the valid ones.
@@ -1049,8 +1064,8 @@ export default function DocsPage() {
                   <p className="st-text">
                     <strong>Under every setting,</strong> a conversation moves when its model can no longer serve it: no key, excluded or not
                     allowed, over your cost or latency limit, failing right now, or unable to make a tool call the request requires. With
-                    Avoid drifting on, a model with an active drift alert can also lose its conversation: at the next new message, or under At every
-                    request at the next request. Each response says what happened in <C>X-AISM-Conversation</C>, with <C>X-AISM-Switched-From</C> and{' '}
+                    Avoid drifting on, a model with an active drift alert is passed over when a conversation starts; a conversation already on
+                    it is not moved for the alert alone. Each response says what happened in <C>X-AISM-Conversation</C>, with <C>X-AISM-Switched-From</C> and{' '}
                     <C>X-AISM-Switch-Cost-Est</C> after a move, and the routing reason says why.
                   </p>
                   <h3 className="sd-h3">Routing reasons, by example</h3>
@@ -1124,7 +1139,7 @@ export default function DocsPage() {
                 id="models"
                 ruled
                 title={<Endpoint method="GET" path="/v1/models" />}
-                sub={<>List available models. Returns virtual <C>auto-*</C> models plus all real models that have been benchmarked. Requires authentication.</>}
+                sub={<>List available models. Returns virtual <C>auto-*</C> models plus all real models that have been benchmarked, and the models of your own endpoints (<C>ep/</C> ids) your key can use. Requires authentication.</>}
               >
                 <div className="sd-flow">
                   <CodeBlock samples={one('cURL', 'bash', MODELS_CURL)} />

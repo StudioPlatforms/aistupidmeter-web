@@ -3,7 +3,7 @@ import HostLogo from '@/components/marketplace/HostLogo';
 import HostLines from '@/components/marketplace/HostLines';
 import { Pane, ProviderMark } from '@/components/studio';
 import { PROVIDER_LABEL } from '@/components/landing/types';
-import { connectable, headlineText, isCalibrated, usd, type HostRow, type OfficialRef, type VsOfficialLine, type VsOfficialCalibrated } from '@/lib/marketplace-public';
+import { connectable, isCalibrated, usd, type HostRow, type OfficialRef, type VsOfficialLine, type VsOfficialCalibrated } from '@/lib/marketplace-public';
 
 type ChartSuite = 'combined' | 'coding' | 'reasoning' | 'tooling' | 'canary';
 const SUITE_LABEL: Record<ChartSuite, string> = { combined: 'Combined', coding: 'Coding', reasoning: 'Reasoning', tooling: 'Tool use', canary: 'Hourly probe' };
@@ -32,12 +32,17 @@ const SUITES: ChartSuite[] = ['combined', 'coding', 'reasoning', 'tooling', 'can
  * caption says "Hosts on fresh copies are compared through <Model>'s calibration: fresh copies score within ±X points of
  * the standard tasks." The "same tests and days" caption then speaks of the hosts on the standard tasks alone, and renders
  * only where such a line does.
+ *
+ * M16 (owner 2026-11-18): beside each host's name, one small badge per shown suite from the same reading. M16 review
+ * (agreement v1.0 6.5, 10.1): the API sends the verdict only (computed on the host's newest five runs, never published),
+ * so badges and direct lines read "Matches the official API", "Above the official API" or "Below the official API", with
+ * no number of points, no ± figure and no host figure beside them; the host's published daily mean for that suite stays
+ * in its daily-mean line. None for the calibrated form (its tests differ) and none where the API sends no reading.
  */
 // The site's vendor names (DeepSeek, Moonshot AI, Z.ai, …); a vendor the map does not name shows as "Official API" alone,
 // never as a raw id (fix round, code review m10).
 const vendorName = (v: string): string | null => PROVIDER_LABEL[v] ?? null;
 const officialName = (o: OfficialRef) => { const v = vendorName(o.vendor); return v ? `${o.label} · ${v}` : o.label; };
-const officialText = (x: VsOfficialLine) => `${x.official.mean} ± ${x.official.se.toFixed(1)}`;
 const SUITE_WORD: Record<ChartSuite, string> = { combined: 'Combined', coding: 'coding', reasoning: 'reasoning', tooling: 'tool use', canary: 'the hourly probe' };
 /**
  * F5: the calibration caption's margins. F5b (web review MINOR-5): "±3.6 points of the standard tasks for coding", and with
@@ -48,11 +53,12 @@ export function marginsText(m: Partial<Record<ChartSuite, number>>): string {
   const parts = xs.map((x, i) => (i === 0 ? `±${x.v} points of the standard tasks for ${SUITE_WORD[x.s]}` : `±${x.v} for ${SUITE_WORD[x.s]}`));
   return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0] ?? '';
 }
-function reading(x: VsOfficialLine): string {
-  if (x.tied) return 'tied';
-  const n = Math.abs(x.delta);
-  return `${n} point${n === 1 ? '' : 's'} ${x.delta > 0 ? 'above' : 'below'}`;
+/** M16: a host's reading for one suite, in the badge and the line alike: the verdict only. */
+function verdictText(x: VsOfficialLine): string {
+  return x.tied ? 'Matches the official API' : x.above ? 'Above the official API' : 'Below the official API';
 }
+/** A host's published figure for a suite, whole points: never a ± figure (M16 follow-up). */
+const figureText = (h: { mean: number } | null | undefined): string | null => (h ? `${h.mean}` : null);
 
 export default function HostedBy({ hosts, comparable, title, staffPreview, suites, chart, official, calibrated, framed }: {
   hosts: HostRow[]; comparable: boolean; title: string; staffPreview?: boolean;
@@ -71,12 +77,17 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
   // host on fresh copies gets the calibrated form (the official number on the standard tasks, no verdict).
   const linesOf = (h: HostRow) => shown.flatMap(s => {
     const x = h.vsOfficial?.[s];
-    const mine = headlineText(h.entry.scores?.headline?.[s]);
+    const mine = figureText(h.entry.scores?.headline?.[s]);
     if (!x || !mine) return [];
     if (isCalibrated(x)) return [{ s, fresh: true, text: `${SUITE_LABEL[s]} ${mine} · official API ${(x as VsOfficialCalibrated).official.mean} on the standard tasks` }];
-    return [{ s, fresh: false, text: `${SUITE_LABEL[s]} ${mine} · official API ${officialText(x as VsOfficialLine)} · ${reading(x as VsOfficialLine)}` }];
+    return [{ s, fresh: false, text: `${SUITE_LABEL[s]} · ${verdictText(x as VsOfficialLine)}` }];
   });
   const compared = !!official && hosts.some(h => linesOf(h).length > 0);
+  // M16: one badge per shown suite where the API sent this host's reading on the same tests (never the calibrated form).
+  const badgesOf = (h: HostRow) => shown.flatMap(s => {
+    const x = h.vsOfficial?.[s];
+    return x && !isCalibrated(x) ? [{ s, tied: (x as VsOfficialLine).tied, text: verdictText(x as VsOfficialLine) }] : [];
+  });
   const comparedSame = compared && hosts.some(h => linesOf(h).some(l => !l.fresh));
   const comparedFresh = compared && !!calibrated && hosts.some(h => linesOf(h).some(l => l.fresh));
   const list = (
@@ -94,10 +105,12 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
       )}
       {hosts.map(h => {
         const lines = compared ? linesOf(h) : [];
-        const inLines = new Set(lines.map(l => l.s));
+        const badges = compared ? badgesOf(h) : [];
+        // The suites whose line shows the host's own figure (the calibrated form); a direct line shows none (M16 review).
+        const inLines = new Set(lines.filter(l => l.fresh).map(l => l.s));
         const scores = shown.flatMap(s => {
           if (inLines.has(s)) return [];
-          const t = headlineText(h.entry.scores?.headline?.[s]);
+          const t = figureText(h.entry.scores?.headline?.[s]);
           return t ? [`${SUITE_LABEL[s]} ${t}`] : [];
         });
         return (
@@ -107,6 +120,11 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
               <Link href={h.entry.path}>{h.provider.displayName}</Link>
               <span className="mp-chip">{h.entry.precisionLabel}</span>
             </span>
+            {badges.length > 0 && (
+              <span className="mp-vs-badges">
+                {badges.map(b => <span key={b.s} className={`mp-vs-badge${b.tied ? ' is-tied' : ''}`}>{SUITE_LABEL[b.s]} · {b.text}</span>)}
+              </span>
+            )}
             <span className="mp-muted">{usd(h.entry.price.inPerMTok)} in · {usd(h.entry.price.outPerMTok)} out per 1M</span>
             <span className="mp-muted">{h.entry.measurement.state === 'measured' ? 'Measured' : 'Not measured yet'}{scores.length ? ` · ${scores.join(' · ')}` : ''}</span>
             {/* M13 (privacy 1.9): a host whose declared processing regions no transfer arrangement covers cannot be connected. */}
@@ -124,8 +142,7 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
       {comparedSame && (
         <p className="mp-caption">
           {/* F5b (web review MINOR-5): beside hosts on fresh copies this caption speaks of the hosts on the standard tasks. */}
-          {comparedFresh ? 'Hosts on the standard tasks are compared on the same tests and days' : 'Compared on the same tests and days'}: each host&apos;s newest 5 runs (at least 3) and the official API&apos;s runs over the same days, in whole points. Tied: within the measurement noise.
-          {' '}The official API&apos;s number in each line covers only that host&apos;s days, so it can differ from the score at the top of this page.
+          {comparedFresh ? 'Hosts on the standard tasks are compared' : 'Compared'} statistically on the same tests and days: each host&apos;s newest five runs (at least three) against the official API&apos;s runs on those days. &ldquo;Matches the official API&rdquo;: the difference is within the measurement noise; &ldquo;Above&rdquo; or &ldquo;Below&rdquo;: it is not.
         </p>
       )}
       {comparedFresh && calibrated && (
@@ -134,7 +151,7 @@ export default function HostedBy({ hosts, comparable, title, staffPreview, suite
           {calibrated.families && calibrated.families.length > 1
             ? calibrated.families.map((f, i) => <span key={f.model}>{i > 0 ? ' ' : ''}Hosts of {f.model} on fresh copies are compared through its calibration: fresh copies score within {marginsText(f.margins)}.</span>)
             : <>Hosts on fresh copies are compared through {calibrated.model}&apos;s calibration: fresh copies score within {marginsText(calibrated.margins)}.</>}
-          {comparedSame ? null : <>{' '}The official API&apos;s number in each line covers only that host&apos;s days, so it can differ from the score at the top of this page.</>}
+          {' '}The official API&apos;s number in each line covers only that host&apos;s days, so it can differ from the score at the top of this page.
         </p>
       )}
       <p className="mp-caption">

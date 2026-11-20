@@ -6,10 +6,12 @@ import { useMemo, useState } from 'react';
 import WatchStar from '../WatchStar';
 import { getModelPricing, getBlendedCostPer1M } from '../../lib/model-pricing';
 import {
-  BOARD_KEYS, BOARD_TITLE, BOARD_TO_SORT, SORT_TO_BOARD, useElementWidth,
-  type BoardKey, type BoardRow, type Boards, type SortKey,
+  BOARD_KEYS, BOARD_TITLE, BOARD_TO_SORT, SORT_TO_BOARD, hostModelPart, hostsSummaryOn, useElementWidth,
+  type BoardKey, type BoardRow, type Boards, type HostsSummary, type SortKey,
 } from '../../lib/use-boards';
-import { CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedName, Logo, Rank, Star, modelHref, useFlip } from './BoardBits';
+import {
+  CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedName, HostsChip, HostsRows, Logo, Rank, Star, hostsListId, modelHref, useFlip, useOpenHosts,
+} from './BoardBits';
 
 /**
  * Layout "Table": one row per model with all four scores and each score's rank on its own
@@ -17,6 +19,10 @@ import { CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedN
  * dashboard follows, so the analytics panel and the drift monitor stay in step with it.
  * Below ~680px of width each model becomes a card: the sorted score large, the other three
  * underneath. Rows slide to their new places when the sort or the period changes.
+ *
+ * M16: a leaderboard model with hosts gets a chip under its name for the sorted board (Combined when sorting by price; the
+ * first board that has hosts otherwise, named on the chip). Opening it adds a row per host, with that host's score on
+ * each board where it has one.
  */
 
 type Group = 'ranked' | 'community' | 'hosted' | 'other';
@@ -29,6 +35,7 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
 }) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [showAll, setShowAll] = useState(false);
+  const [open, toggleHosts] = useOpenHosts();
   const router = useRouter();
 
   const index = useMemo(() => {
@@ -61,7 +68,9 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
   const cell = (k: BoardKey, id: string) => index[k].get(id);
   const positionOf = (i: number) => i + 1;
   const wide = width >= 680;
-  const flip = useFlip<HTMLDivElement>([boards, sortKey, showAll, width > 0, wide], wide ? 'table' : 'cards');
+  const flip = useFlip<HTMLDivElement>([boards, sortKey, showAll, width > 0, wide, open], wide ? 'table' : 'cards');
+  // M16: a fleet row's hosts on the sorted board (Combined when sorting by price), else on the first board that has them.
+  const hostsOf = (g: Group, row: BoardRow) => (g === 'hosted' ? null : hostsSummaryOn(boards, row.id, active ?? 'combined'));
 
   const sortButtons: { key: SortKey; label: string }[] = [
     ...BOARD_KEYS.map((k) => ({ key: BOARD_TO_SORT[k], label: BOARD_TITLE[k] })),
@@ -110,7 +119,11 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                     </td>
                   </tr>
                 )}
-                {g.rows.map((row, i) => (
+                {g.rows.flatMap((row, i) => {
+                  const hs = hostsOf(g.key, row);
+                  const hk = `t:${row.id}`;
+                  const shown = !!hs && open.has(hk);
+                  return [
                   <tr key={row.id} data-flip={row.id} className={`sl-trow${row.paused ? ' is-paused' : ''}`} onClick={() => router.push(modelHref(row, g.key === 'community'))}>
                     <td className="sl-td-rank">
                       {g.key === 'hosted' ? <Rank row={row} />
@@ -128,6 +141,12 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                           <span className="sl-vendor">{row.vendor}</span>
                         </span>
                       </span>
+                      {hs && (
+                        <div className="sl-td-hosts">
+                          <HostsChip summary={hs.summary} open={shown} onToggle={() => toggleHosts(hk)} board={BOARD_TITLE[hs.board]}
+                                     controls={hs.summary.rows.map((_, j) => `${hostsListId(hk)}-${j}`).join(' ')} />
+                        </div>
+                      )}
                     </td>
                     {BOARD_KEYS.map((k) => (
                       <td key={k} className={`sl-td-score${active === k ? ' is-on' : ''}`}>
@@ -137,8 +156,28 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                     <td className={`sl-td-score${sortKey === 'price' ? ' is-on' : ''}`}>
                       {row.host ? <span className="sl-cell is-price"><b className="is-muted">—</b><small>on its page</small></span> : <PriceCell row={row} />}
                     </td>
-                  </tr>
-                ))}
+                  </tr>,
+                  ...(hs && shown ? hs.summary.rows.map((h, j) => (
+                    <tr key={`${row.id}:h:${h.href}`} id={`${hostsListId(hk)}-${j}`} className="sl-thost">
+                      <td className="sl-td-rank" />
+                      <td className="sl-td-model">
+                        <span className="sl-thost-t">
+                          <Link href={h.href} className="sl-name" title={h.label}>{h.provider.displayName}</Link>
+                          <span className="sl-vendor">{hostModelPart(h.label)}</span>
+                        </span>
+                      </td>
+                      {BOARD_KEYS.map((k) => (
+                        <td key={k} className={`sl-td-score${active === k ? ' is-on' : ''}`}>
+                          <HostCell summary={cell(k, row.id)?.row.hostsSummary} href={h.href} />
+                        </td>
+                      ))}
+                      <td className={`sl-td-score${sortKey === 'price' ? ' is-on' : ''}`}>
+                        <span className="sl-cell is-price"><b className="is-muted">—</b><small>on its page</small></span>
+                      </td>
+                    </tr>
+                  )) : []),
+                  ];
+                })}
               </tbody>
             ))}
           </table>
@@ -200,6 +239,17 @@ export default function LayoutTable({ boards, sortKey, onSortChange }: {
                           </span>
                         ))}
                       </span>
+                      {(() => {
+                        const hs = hostsOf(g.key, row);
+                        if (!hs) return null;
+                        const hk = `c:${row.id}`;
+                        return (
+                          <div className="sl-row-hosts">
+                            <HostsChip summary={hs.summary} open={open.has(hk)} onToggle={() => toggleHosts(hk)} controls={hostsListId(hk)} board={BOARD_TITLE[hs.board]} />
+                            {open.has(hk) && <HostsRows summary={hs.summary} id={hostsListId(hk)} model={row.label} />}
+                          </div>
+                        );
+                      })()}
                     </div>
                   ))}
                   {g.key === 'ranked' && !showAll && g.rows.length > 8 && (
@@ -246,6 +296,13 @@ function ScoreCell({ entry, board }: { entry?: Entry; board: BoardKey }) {
     );
   }
   return <span className="sl-cell" title={row.staleReason || undefined}><b className="is-muted">{row.score ?? '—'}</b><small>not ranked</small></span>;
+}
+
+/** M16: one host's whole-point score on one board (from that board's summary of the model), or a dash where it has none. */
+function HostCell({ summary, href }: { summary?: HostsSummary; href: string }) {
+  const h = summary?.rows.find((x) => x.href === href);
+  if (!h) return <span className="sl-cell"><b className="is-muted">—</b></span>;
+  return <span className="sl-cell"><b>{h.score}</b></span>;
 }
 
 function BigScore({ entry, board }: { entry?: Entry; board: BoardKey }) {

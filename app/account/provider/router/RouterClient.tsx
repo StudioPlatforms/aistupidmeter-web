@@ -7,6 +7,13 @@
  * the signature panel (the header, the current kid, the public keys, the verifiers' page, and [Send a signed test
  * request] to the provider's own endpoint); the offers editor (display only: a person reviews each offer before it
  * goes live, at most 3 live, terms on a verified domain, codes shown as plain text, never applied automatically).
+ * M21: each listing's Usage (the API's `usage`, absent before M21's tables stand): over 7 and 30 days the requests, how
+ * many it answered, the people who sent them, tokens in and out, failed calls at the endpoint and the requests another
+ * model answered after one; and once for the account, the people with a key connected and in use. Counts only: every count
+ * of people under 5 reads "fewer than 5", the windows' and connections' people come rounded down to a multiple of 5 ("20+":
+ * the API never sends their exact count). And "Where the router would choose you" (the API's `ranking`): per routing mode,
+ * the listing's place among the listings of the same model in the order automatic routing gives them, from our
+ * measurements and the declared prices only, never from which users chose what.
  *
  * The router toggle lives here only (the Models page links here), so the console offers it once.
  */
@@ -18,10 +25,23 @@ import { mpApi, type ProviderSummary } from '@/lib/provider-account';
 import '@/styles/studio-provider-models.css';
 
 interface TrafficDay { day: string; requests: number; successes: number; p50Ms: number | null; users: number | 'fewer than 5' }
+/** A count of people over a window or of the connections, as the API sends it: "fewer than 5", or rounded down as "20+". */
+type People = 'fewer than 5' | `${number}+`;
+interface WindowUsage { requests: number; successes: number; successRate: number | null; tokensIn: number; tokensOut: number; failures: number; rescued: number; users: People | null }
+interface ListingUsage { windows: { '7d': WindowUsage; '30d': WindowUsage }; usersCountedAt: string | null; connectedUsers: People }
+/** One routing mode's place for a listing (the API's ranking rows). */
+interface RankRow {
+  strategy: string; strategies?: string[]; label: string; status: 'ranked' | 'not_measured' | 'not_measured_recently' | 'not_routable' | 'not_in_router';
+  place: number | null; of: number | null; hosts: number | null; tiedWith: number | null;
+}
 interface RouterListing {
   id: number; publicId: string; label: string; mpId: string | null; state: string;
   routerEnabled: boolean; routerEnabledAt: string | null; canToggle: boolean;
   traffic: { days: TrafficDay[]; requests: number; successRate: number | null };
+  /** M21; null or absent before the API has it. */
+  usage?: ListingUsage | null;
+  /** M21: where automatic routing would place it among the listings of the same model; absent before the API has it. */
+  ranking?: { model: string; rows: RankRow[] };
 }
 interface Offer {
   id: number; kind: string; kindLabel: string; title: string; details: string | null; code: string | null; percent: number | null; termsUrl: string;
@@ -29,6 +49,8 @@ interface Offer {
 }
 interface Data {
   listings: RouterListing[];
+  /** M21: people with a key connected and in use for this account ("fewer than 5" or "20+"); absent before the API has it. */
+  connectedUsers?: People;
   signature: { kid: string | null; keys: Array<{ kid: string; alg: string; x: string; not_before: number; not_after: number }>; header: string };
   offers: Offer[];
   canManage: boolean;
@@ -44,6 +66,74 @@ const OFFER_STATE: Record<Offer['state'], { label: string; tone?: 'good' | 'warn
 const day = (iso: string) => new Date(`${iso.slice(0, 10)}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : '—');
 const unixDay = (s: number) => new Date(s * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const num = (x: number) => x.toLocaleString('en-US');
+const count = (x: number, one: string, many: string) => `${num(x)} ${x === 1 ? one : many}`;
+const peopleOf = (u: People) => `${u} people`;
+
+/** One window of a listing's usage as a sentence. */
+function windowLine(w: WindowUsage): string {
+  if (!w.requests && !w.failures && !w.rescued) return 'No requests.';
+  const parts = [
+    `${count(w.requests, 'request', 'requests')}${w.users !== null ? ` from ${peopleOf(w.users)}` : ''}${w.requests ? `, ${num(w.successes)} answered${w.successRate !== null ? ` (${w.successRate}%)` : ''}` : ''}`,
+    `${num(w.tokensIn)} tokens in and ${num(w.tokensOut)} out`,
+  ];
+  if (w.failures) parts.push(`${count(w.failures, 'failed call', 'failed calls')} at your endpoint`);
+  if (w.rescued) parts.push(`${count(w.rescued, 'request', 'requests')} answered by another model after your endpoint failed`);
+  return `${parts.join('; ')}.`;
+}
+
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+const RANK_STATUS: Record<Exclude<RankRow['status'], 'ranked'>, string> = {
+  not_measured: 'Not measured yet', not_measured_recently: 'Not measured recently', not_routable: 'Not taken by automatic routing right now',
+  not_in_router: 'Not in the Smart Router',
+};
+
+/** "1st of 3 hosts of DeepSeek V4 Pro, statistically tied with 1 other." */
+function rankLine(r: RankRow, model: string): string {
+  if (r.status !== 'ranked' || r.place === null || r.of === null) return `${RANK_STATUS[r.status as Exclude<RankRow['status'], 'ranked'>] ?? 'Not ranked'}.`;
+  const what = r.hosts === r.of ? (r.of === 1 ? 'host' : 'hosts') : (r.of === 1 ? 'listing' : 'listings');
+  const tied = r.tiedWith ? `, statistically tied with ${r.tiedWith} ${r.tiedWith === 1 ? 'other' : 'others'}` : '';
+  return `${ordinal(r.place)} of ${r.of} ${what} of ${model}${tied}.`;
+}
+
+/** M21: "Where the router would choose you", from our measurements and the declared prices only. */
+function RankingBlock({ ranking }: { ranking: { model: string; rows: RankRow[] } }) {
+  const one = ranking.rows.every(r => r.status !== 'ranked' && r.status === ranking.rows[0]?.status) ? ranking.rows[0] : null;
+  return (
+    <div className="sw-stack">
+      <p><b>Where the router would choose you</b></p>
+      <p className="sw-quiet">
+        How the Smart Router ranks your listing among the providers of the same model, from our measurements and your declared prices. It does not
+        depend on which users chose what. Price only orders the hosts statistically tied with the leader: the highest price declared in the last
+        7 days, each change counted 72 hours after it is made. Every other host is ordered by its measured score.
+      </p>
+      {one ? <p className="sw-quiet">{rankLine(one, ranking.model)}</p> : (
+        <dl className="st-kv">
+          {ranking.rows.map(r => <div key={r.strategy}><dt>{r.label}</dt><dd>{rankLine(r, ranking.model)}</dd></div>)}
+        </dl>
+      )}
+    </div>
+  );
+}
+
+/** M21: a listing's Usage, in plain sentences. */
+function UsageBlock({ usage, everInRouter }: { usage: ListingUsage; everInRouter: boolean }) {
+  const w30 = usage.windows['30d'];
+  const none = !w30.requests && !w30.failures && !w30.rescued;
+  return (
+    <div className="sw-stack">
+      <p><b>Usage</b></p>
+      {none ? <p className="sw-quiet">{everInRouter ? 'No requests in the last 30 days.' : 'No requests yet.'}</p> : (
+        <>
+          <dl className="st-kv">
+            <div><dt>Last 7 days</dt><dd>{windowLine(usage.windows['7d'])}</dd></div>
+            <div><dt>Last 30 days</dt><dd>{windowLine(w30)}</dd></div>
+          </dl>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function RouterClient({ initial }: { initial: ProviderSummary }) {
   const [summary] = useProviderSummary(initial);
@@ -110,9 +200,12 @@ export default function RouterClient({ initial }: { initial: ProviderSummary }) 
         {!data && !error && <Loader label="Loading" />}
         {data && (
           <>
-            <Pane title="In the Smart Router" sub="People who add their own key for your service on their Providers page can send requests to these models. You bill them as usual." ruled>
+            <Pane title="In the Smart Router" sub="Each model joins the Smart Router when it is published, so people who add their own key for your service on their Providers page can send it requests; you bill them as usual. Remove any model here to take it out." ruled>
               {data.listings.length === 0 ? <p className="sw-quiet">No model is listed yet. <Link href="/account/provider/models">List one on Models</Link>.</p> : (
                 <div className="sw-stack">
+                  {data.connectedUsers !== undefined && (
+                    <p>People with a key connected and in use for {providerName}: {data.connectedUsers}.</p>
+                  )}
                   {data.listings.map(l => (
                     <div key={l.id} className="mp-router-row">
                       <div className="mp-bench-head">
@@ -124,11 +217,19 @@ export default function RouterClient({ initial }: { initial: ProviderSummary }) 
                           : <button type="button" className="st-btn is-sm is-primary" disabled={busy || !l.canToggle} title={l.canToggle ? undefined : 'A model is added once it is approved and listed.'} onClick={() => setAdding(l)}>Add to the Smart Router</button>)}
                       </div>
                       {!l.canToggle && !l.routerEnabled && <p className="sw-quiet">A model can be added once it is approved and listed.</p>}
-                      <p className="sw-quiet">
-                        Last 30 days: {l.traffic.requests.toLocaleString('en-US')} {l.traffic.requests === 1 ? 'request' : 'requests'}
-                        {l.traffic.successRate !== null ? `, ${l.traffic.successRate}% answered` : ''}.
-                        {l.routerEnabledAt ? ` In the Smart Router since ${when(l.routerEnabledAt)}.` : ''}
-                      </p>
+                      {l.usage ? (
+                        <>
+                          {l.routerEnabledAt && <p className="sw-quiet">In the Smart Router since {when(l.routerEnabledAt)}.</p>}
+                          <UsageBlock usage={l.usage} everInRouter={!!l.routerEnabledAt} />
+                        </>
+                      ) : (
+                        <p className="sw-quiet">
+                          Last 30 days: {l.traffic.requests.toLocaleString('en-US')} {l.traffic.requests === 1 ? 'request' : 'requests'}
+                          {l.traffic.successRate !== null ? `, ${l.traffic.successRate}% answered` : ''}.
+                          {l.routerEnabledAt ? ` In the Smart Router since ${when(l.routerEnabledAt)}.` : ''}
+                        </p>
+                      )}
+                      {l.ranking && <RankingBlock ranking={l.ranking} />}
                       {l.traffic.days.length > 0 && (
                         <div className="mp-table-wrap">
                           <table className="mp-table">
@@ -147,7 +248,7 @@ export default function RouterClient({ initial }: { initial: ProviderSummary }) 
                       )}
                     </div>
                   ))}
-                  <p className="sw-quiet">Counts only, rolled up every hour: no prompt and no user identity ever reaches you through these statistics.</p>
+                  <p className="sw-quiet">Counts only, rolled up every hour: no prompt and no user identity ever reaches you through these statistics. Any count of people under 5 reads “fewer than 5”; the 7-day, 30-day and connected people are otherwise rounded down to a multiple of 5 (“20+”).</p>
                 </div>
               )}
             </Pane>

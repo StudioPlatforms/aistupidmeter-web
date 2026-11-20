@@ -42,6 +42,15 @@ import PricingPlans, { type Interval } from '@/components/landing/PricingPlans';
 
 const fmt = (n: number) => (isUnlimited(n) ? 'Unlimited' : n.toLocaleString());
 
+/**
+ * Your own endpoints per plan. Copied from the API, where the only copy lives (the API's router/endpoints/limits.ts
+ * ENDPOINT_LIMITS, confirmed by the owner 2026-11-17): personal endpoints, and servers shared across a workspace
+ * (Teams: per seat holder). Enterprise's limit is soft. Change it there first, then here.
+ */
+const OWN_ENDPOINTS: Record<Plan, string> = {
+  free: '—', pro: '2', developer: '10 + 10 shared', legacy_pro: '10 + 10 shared', teams: '10 per editor + 25 shared', enterprise: '100 + 100 shared',
+};
+
 type Row = { label: string; get: (p: Plan) => string; note?: string };
 
 /** The comparison table, in three groups. Every value is read from the plan table. */
@@ -64,6 +73,8 @@ const GROUPS: Array<{ title: string; rows: Row[] }> = [
   { title: 'Smart Router and Data API', rows: [
     { label: 'Smart Router requests / month', get: p => fmt(PLANS[p].routerRequestsPerMonth),
       note: `The router picks the best model for each request and sends it with your own provider keys, so providers bill the tokens to you directly. Past the allowance, top up from $${ROUTER_CREDITS.minimumUsd} (${ROUTER_CREDITS.requestsPerUsd.toLocaleString('en-US')} requests per $1) or move up a plan` },
+    { label: 'Your own endpoints',    get: p => OWN_ENDPOINTS[p] ?? '—',
+      note: 'OpenAI-compatible servers you run or rent (vLLM, Ollama, llama.cpp, a hosting company), routed beside the cloud models: name them, prefer them or use only them' },
     { label: 'Routing analytics',     get: p => planMeets(p, REQUIRED_PLAN['routing-analytics']) ? 'Yes' : '—', note: 'What each request cost, which model served it, and the trend' },
     { label: 'API monitoring',        get: p => planMeets(p, REQUIRED_PLAN['api-monitoring']) ? 'Yes' : '—',
       note: 'Per-key request logs, cost dashboard, prompt auditing with secret scrubbing, and budget limits per key' },

@@ -41,11 +41,11 @@ const HELP_LD = graphLd([
 
 const QUICK_LINKS: Array<{ href: string; title: string; desc: ReactNode }> = [
   { href: '/router/keys', title: 'Create API key', desc: <>Your <C>aism_</C> key, for every tool you connect</> },
-  { href: '/router/providers', title: 'Add providers', desc: 'Keys for OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM' },
+  { href: '/router/providers', title: 'Add providers', desc: 'Keys for OpenAI, Anthropic, Google, DeepSeek, Kimi or GLM, or your own servers' },
   { href: '/router/docs', title: 'API docs', desc: 'Endpoints, parameters, errors and examples' },
   { href: '/router/monitoring', title: 'Monitoring', desc: 'Per-key activity, costs, prompt audit and budgets' },
   { href: '/router/analytics', title: 'Analytics', desc: 'Cost patterns across your requests' },
-  { href: '/router/preferences', title: 'Preferences', desc: 'Default strategy, fallbacks and latency limits' },
+  { href: '/router/preferences', title: 'Preferences', desc: 'Strategy, Match each request, Model switching, fallbacks and limits' },
 ];
 
 const TOOL_SETTINGS = `Base URL: https://aistupidlevel.info/v1
@@ -100,7 +100,8 @@ const FAQ: Array<{ q: string; a: ReactNode }> = [
   { q: 'Can I use a specific model directly?', a: <>Yes — send any real model ID (<C>GET /v1/models</C> lists them) instead of an <C>auto-*</C> strategy. The router forwards directly to that provider; your plan allowance and key budgets still apply.</> },
   { q: 'Does tool calling work with agents?', a: <>Yes. Send OpenAI-format tools and return results as role &quot;tool&quot; messages with <C>tool_call_id</C>. The router keeps each model&apos;s own turn (such as Claude&apos;s thinking) between requests, so multi-step agent loops work, and a loop stays on the model that started it. Forcing a call with <C>tool_choice</C> works on every model: where a provider cannot enforce it, the router asks the model in words and checks that the answer really is the tool call.</> },
   { q: 'Can I send images, audio or files?', a: 'No — the router routes text only, on purpose. It picks a model from our benchmark results for coding, reasoning and tool use, and none of those measure image, audio or file understanding, so we would be guessing. Such a request gets a clear 400. Call the provider directly for multimodal work.' },
-  { q: 'Which providers are supported?', a: 'OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like.' },
+  { q: 'Which providers are supported?', a: <>OpenAI, Anthropic, Google (Gemini), DeepSeek, Kimi (Moonshot) and GLM (Z.AI). Add as many as you like. From Pro up you can also add your own OpenAI-compatible servers (vLLM, SGLang, llama.cpp, Ollama, LM Studio or a hosting company) under Your endpoints on the <Link href="/router/providers">Providers</Link> page, and name their models <C>ep/&lt;prefix&gt;/&lt;model&gt;</C>. See <Link href="/router/docs#own-endpoints">Your own endpoints</Link>.</> },
+  { q: 'Does the router pick a model for each request?', a: <>Yes. With <C>auto-task</C>, or Match each request on in <Link href="/router/preferences">Preferences</Link>, each request is read on its own and ranked on the benchmark for its kind of work: tool use, coding, reasoning or the overall score. The response names the rule in <C>X-AISM-Request-Kind</C>. Within a conversation, Model switching decides: by default it stays on the model that answered, so its reasoning and your provider&apos;s prompt cache carry over; at each new message it moves only when another model is clearly ahead and re-sending stays within your limit. See <Link href="/router/docs#switching">Model switching</Link>.</> },
   { q: 'Does it work with embeddings?', a: <>Yes — <Link href="/router/docs#embeddings"><C>POST /v1/embeddings</C></Link> proxies to OpenAI embedding models. Required by Continue, LibreChat, and Open WebUI for RAG.</> },
 ];
 
@@ -175,6 +176,13 @@ export default function HelpPage() {
                 The AI Smart Router is an intelligent API gateway that automatically selects the best AI model for your requests.
                 Instead of manually choosing between Claude, GPT, Gemini, DeepSeek, Kimi or GLM, our system continuously benchmarks
                 all models and routes your requests to the optimal one based on performance, cost, and your preferences.
+              </p>
+              <p className="st-text">
+                <strong>It routes request by request.</strong> Send <C>auto-task</C>, or turn on Match each request in{' '}
+                <Link href="/router/preferences">Preferences</Link>, and each request is read on its own: tools, code, design and
+                planning, or a long conversation decide which benchmark ranks it, and the leader there answers; when the top models are
+                too close to call, the one that costs less per task wins. A conversation keeps its model by default, or moves at a new message when another
+                model is clearly ahead (Model switching). Your own OpenAI-compatible servers can join the cloud models from Pro up.
               </p>
 
               <h3 className="sd-h3">Quick start (5 minutes)</h3>

@@ -29,6 +29,12 @@ import ProviderAccounts from './ProviderAccounts';
  * db/endpoint-schema.ts, router/endpoints store.ts, probe.ts, health.ts, change-log.ts, quarantine.ts, runtime.ts noteCrash,
  * router/keys/encryption.ts encryptEndpointSecret) and their rows under "How long we keep it" (api jobs/endpoint-health.ts
  * RETENTION and runRetention, store.ts deleteEndpoint, routes/account-purge.ts).
+ * Provider marketplace release M21: the "Listed hosts’ traffic counts" row (api marketplace/router-usage.ts and
+ * router-console.ts: the console's counts per listing, rolled up hourly, no user id, the floor of 5 on every count of people,
+ * the 7-day, 30-day and connected people sent rounded down to a multiple of 5 (router-usage.ts peopleCount), connections
+ * counted when active and not paused, and nothing from the routing settings users chose (the console's ranking,
+ * router-rank.ts, comes from our measurements and declared prices only); the
+ * daily tables keep no person, so no retention row is added, as for M8's daily table).
  */
 
 export const metadata: Metadata = pageMeta({
@@ -39,11 +45,12 @@ export const metadata: Metadata = pageMeta({
 
 /**
  * The day the page last changed for what it says: router release A1d (14 November 2026), then provider marketplace
- * release M12, the opening, which adds the "Provider accounts" section (its planned deploy day; if the deploy moves, this
+ * release M12, the opening, which adds the "Provider accounts" section, then M17's alert-records row and M21's listed
+ * hosts' traffic counts (18 November 2026) (the planned deploy day; if the deploy moves, this
  * date moves with it, and lib/legal-dates.ts with it, in its own commit, before the web build). A production build
  * refuses the deploy-day placeholder, as for A1 and A2.
  */
-const UPDATED: string = '17 November 2026';
+const UPDATED: string = '18 November 2026';
 if (UPDATED === 'AW4_DEPLOY_DAY' && process.env.NODE_ENV === 'production') {
   throw new Error('app/privacy/page.tsx: set UPDATED to the day router A1d is deployed before building this branch');
 }
@@ -133,6 +140,7 @@ export default function PrivacyPage() {
           ['Tool calls', 'To continue a multi-step tool conversation on the same model, the model’s own turn data is kept, encrypted, for 24 hours.'],
           ['Provider keys', 'Stored encrypted with AES-256-GCM and decrypted only to make your requests. You can remove them at any time.'],
           ['The AI provider', 'Receives your request under your own key and processes it under its own terms and privacy policy, as if you had called it directly. You choose which providers we may route to.'],
+          ['Listed hosts’ traffic counts', 'If you route requests to a listed host, its provider sees aggregated counts of the Smart Router traffic to its listings (requests, tokens, failures, and how many people sent them or have a key connected and in use for it), never who sent them or which router settings they chose: counts of people under 5 are shown as “fewer than 5”, and the 7-day, 30-day and connected counts are otherwise rounded down to a multiple of 5.'],
           ['Your own endpoints', 'If you add a server of your own (Providers, Your endpoints): its name, base URL and host, the model id prefix you chose, whether you accepted plain http, its timeout and how many requests it may take at once, its place in your order, whether it is paused, and the IP address our last check or test reached. For a workspace’s or project’s server, also who added it and which projects and members may use it. Requests you route to it go to that server instead of a provider.'],
           ['Endpoint keys', 'An endpoint’s API key is optional. If you give one, it is stored encrypted with AES-256-GCM, tied to that endpoint, and decrypted only on our server to call the endpoint (your requests, its tests and health checks) or, when you ask, to copy it into a workspace. Cloudflare Access credentials, if you add them, are stored the same way. We keep the key’s last 4 characters so you can see which key is saved.'],
           ['Endpoint models and settings', 'The models its server lists and any you add by hand, which ones you turned on, their order, what you tagged them for (Use for), context size, output cap and the prices you declared, and what tests found each model can do (tool calls, streaming, JSON output, how it returns its reasoning).'],
@@ -198,6 +206,7 @@ export default function PrivacyPage() {
           ['Site visits (IP address, browser, page, location)', '90 days. After that only daily totals remain (visits, unique visitors, top pages and top countries), with no IP addresses.'],
           ['Web server logs', '14 days.'],
           ['Mail server logs', 'About four weeks.'],
+          ['Records of alerts about a model’s hosts (your address and when we sent it)', '30 days, or sooner when you delete your account.'],
           ['Payment and accounting records', 'As long as Romanian accounting and tax law requires (up to 10 years).'],
           ['Contact messages', 'As long as we need them to answer and follow up. Ask and we delete yours.'],
           ['Backups', 'Nightly database backups, kept for 7 days on the same server.'],

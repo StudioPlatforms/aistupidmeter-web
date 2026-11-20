@@ -340,9 +340,9 @@ export default function CalibrationPane() {
   // The same Pane props while loading and after (StudioEffects marks a revealed pane with a class that a re-rendered
   // className would wipe): the padding is the pane body's, never a flush toggle.
   const SUB = 'Consented, provider-side calibration of fresh task versions: hosts run both versions on their own endpoints, at their own cost. A person decides every failure and every case.';
-  if (!data) return <Pane title="Calibration" sub={SUB} ruled>{msg ? <Note tone="bad">{msg}</Note> : <Loader label="Loading" />}</Pane>;
+  if (!data) return <Pane title="Fresh task calibration (our own tests; off)" sub={SUB} ruled>{msg ? <Note tone="bad">{msg}</Note> : <Loader label="Loading" />}</Pane>;
   return (
-    <Pane title="Calibration" sub={SUB} ruled>
+    <Pane title="Fresh task calibration (our own tests; off)" sub={SUB} ruled>
       <CalibrationView data={data} onDecide={(campaign, body, title, note) => { setErr(null); setAsk({ campaign, body, title, note }); }}
         onDecideItem={(item, title, note) => { setErr(null); setAsk({ campaign: null, body: { action: 'decided', item }, title, note }); }} />
       <Modal open={!!ask} onClose={closeAsk} title={ask?.title ?? ''}

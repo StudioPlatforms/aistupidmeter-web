@@ -72,3 +72,24 @@
 .lp .lp-hosted .seo-table tr.is-paused td { opacity: .58; }
 .lp .lp-hosted .lp-hosted-name { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 .lp .lp-hosted .seo-table-note { margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--lp-fg3); }
+/* M16: the models shown that independent providers host too, combined (LeaderboardFleetHosts); long names wrap. */
+.lp .lp-fleet-hosts { margin-top: 14px; max-width: 1000px; padding: 12px 16px; border: 1px solid var(--lp-line); border-radius: 14px; background: var(--lp-card); min-width: 0; }
+.lp .lp-fleet-hosts-t { margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; color: var(--lp-fg2); }
+.lp .lp-fleet-hosts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lp .lp-fleet-hosts-list > li { min-width: 0; }
+.lp .lp-fleet-hosts-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.lp .lp-fleet-hosts-model { min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--lp-fg); overflow-wrap: anywhere; }
+.lp .lp-fleet-hosts-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 3px 10px; border: 1px solid var(--lp-line2); border-radius: 999px;
+  background: transparent; color: var(--lp-fg2); font-size: 13px; font-weight: 600; line-height: 1.35; text-align: left; white-space: normal; cursor: pointer; font-variant-numeric: tabular-nums; }
+.lp .lp-fleet-hosts-chip > span { min-width: 0; overflow-wrap: anywhere; }
+.lp .lp-fleet-hosts-chip:hover { border-color: var(--lp-accent); color: var(--lp-fg); }
+.lp .lp-fleet-hosts-chip:focus-visible { outline: 2px solid var(--lp-accent); outline-offset: 2px; }
+.lp .lp-fleet-hosts-chip[aria-expanded='true'] { border-color: var(--lp-accent); background: var(--lp-accent-bg); color: var(--lp-accent); }
+.lp .lp-fleet-hosts-chip svg { flex: none; transition: transform .18s; }
+.lp .lp-fleet-hosts-chip[aria-expanded='true'] svg { transform: rotate(180deg); }
+.lp .lp-fleet-hosts-rows { list-style: none; margin: 6px 0 2px; padding: 0 0 0 12px; display: grid; border-left: 2px solid var(--lp-line); }
+.lp .lp-fleet-hosts-rows li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; padding: 4px 0; font-size: 14px; line-height: 1.4; }
+.lp .lp-fleet-hosts-rows a { min-width: 0; font-weight: 600; color: var(--lp-accent); text-decoration: none; overflow-wrap: anywhere; }
+.lp .lp-fleet-hosts-rows a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lp .lp-fleet-hosts-as { flex: 1 1 auto; min-width: 0; font-size: 13px; color: var(--lp-fg3); overflow-wrap: anywhere; }
+.lp .lp-fleet-hosts-score { margin-left: auto; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }

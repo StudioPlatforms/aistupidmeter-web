@@ -3,16 +3,24 @@
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { BOARD_KEYS, BOARD_CADENCE, useElementWidth, type Board, type Boards } from '../../lib/use-boards';
-import { CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedName, Logo, Note, Rank, Score, ScoreBar, Star, communityBlurb, modelHref, useFlip } from './BoardBits';
+import {
+  CommunityIcon, HOSTED_SUB, HOSTED_TITLE, HostIcon, HostedLinks, HostedName, Logo, Note, Rank, RowHosts, Score, ScoreBar, Star, communityBlurb, modelHref, useFlip, useOpenHosts,
+} from './BoardBits';
 
 /**
  * Layout "Side by side": the four boards as four full lists next to each other. Below
  * ~900px of width they become swipeable cards with a tab per board, since four columns of
  * model names do not fit a phone. Rows slide to their new places when the period changes.
+ *
+ * M16: a leaderboard model with hosts on a board gets a chip under its name in that board's list ("3 hosts · best 71 ·
+ * median 68"), which opens a row per host.
  */
 
-export function BoardCard({ board, communityModels }: { board: Board; communityModels: number }) {
+type HostsOpen = { open: ReadonlySet<string>; onToggle: (key: string) => void };
+
+export function BoardCard({ board, communityModels, hosts }: { board: Board; communityModels: number; hosts: HostsOpen }) {
   const k = board.key;
+  const rowHosts = (row: Board['ranked'][number]) => <RowHosts row={row} k={`${k}:${row.id}`} open={hosts.open.has(`${k}:${row.id}`)} onToggle={hosts.onToggle} />;
   return (
     <section className="sl-board" aria-label={`${board.title} leaderboard`}>
       <header className="sl-board-head">
@@ -36,6 +44,7 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
             </span>
             <ScoreBar row={row} />
             <Score row={row} />
+            {rowHosts(row)}
           </li>
         ))}
       </ol>
@@ -54,12 +63,13 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
           <p className="sl-comm-text">{communityBlurb(k)}</p>
           <ul className="sl-crows">
             {board.community.map((row) => (
-              <li key={row.id} data-flip={`${k}:c:${row.id}`} className="sl-crow">
+              <li key={row.id} data-flip={`${k}:c:${row.id}`} className={`sl-crow${row.hostsSummary ? ' has-hosts' : ''}`}>
                 <Star row={row} size={13} />
                 <Logo provider={row.provider} size="xs" />
                 <Link href={modelHref(row, true)} className="sl-name sl-stretch" title={`Open ${row.label} to fund its next run`}>{row.label}</Link>
                 {row.when && <span className="sl-date">{row.when}</span>}
                 <Score row={row} muted />
+                {rowHosts(row)}
               </li>
             ))}
           </ul>
@@ -72,12 +82,13 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
           <div className="sl-comm-head"><span>Not ranked right now</span></div>
           <ul className="sl-crows">
             {board.other.map((row) => (
-              <li key={row.id} data-flip={`${k}:o:${row.id}`} className="sl-crow">
+              <li key={row.id} data-flip={`${k}:o:${row.id}`} className={`sl-crow${row.hostsSummary ? ' has-hosts' : ''}`}>
                 <Star row={row} size={13} />
                 <Logo provider={row.provider} size="xs" />
                 <Link href={modelHref(row)} className="sl-name sl-stretch" title={row.staleReason || undefined}>{row.label}</Link>
                 {row.when && <span className="sl-date">{row.when}</span>}
                 <Score row={row} muted />
+                {rowHosts(row)}
               </li>
             ))}
           </ul>
@@ -112,25 +123,27 @@ export function BoardCard({ board, communityModels }: { board: Board; communityM
 
 export default function LayoutSide({ boards }: { boards: Boards }) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
+  const [open, onToggle] = useOpenHosts();
+  const hosts = { open, onToggle };
   const communityModels = boards.combined.community.length;
   const grid = width >= 900;
-  const flip = useFlip<HTMLDivElement>([boards, width > 0, grid], grid ? 'grid' : 'swipe');
+  const flip = useFlip<HTMLDivElement>([boards, width > 0, grid, open], grid ? 'grid' : 'swipe');
   return (
     <div ref={ref} className="sl-side">
       {width === 0 ? null : grid ? (
         <div ref={flip} className="sl-side-grid">
-          {BOARD_KEYS.map((k) => <BoardCard key={k} board={boards[k]} communityModels={communityModels} />)}
+          {BOARD_KEYS.map((k) => <BoardCard key={k} board={boards[k]} communityModels={communityModels} hosts={hosts} />)}
         </div>
       ) : (
         <div ref={flip}>
-          <Swipe boards={boards} communityModels={communityModels} />
+          <Swipe boards={boards} communityModels={communityModels} hosts={hosts} />
         </div>
       )}
     </div>
   );
 }
 
-function Swipe({ boards, communityModels }: { boards: Boards; communityModels: number }) {
+function Swipe({ boards, communityModels, hosts }: { boards: Boards; communityModels: number; hosts: HostsOpen }) {
   const scroller = useRef<HTMLDivElement | null>(null);
   const cards = useRef<(HTMLDivElement | null)[]>([]);
   const [active, setActive] = useState(0);
@@ -166,7 +179,7 @@ function Swipe({ boards, communityModels }: { boards: Boards; communityModels: n
       <div className="sl-swipe-track" ref={scroller} onScroll={onScroll}>
         {BOARD_KEYS.map((k, i) => (
           <div key={k} className="sl-swipe-item" ref={(el) => { cards.current[i] = el; }}>
-            <BoardCard board={boards[k]} communityModels={communityModels} />
+            <BoardCard board={boards[k]} communityModels={communityModels} hosts={hosts} />
           </div>
         ))}
       </div>

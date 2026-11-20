@@ -169,7 +169,27 @@ function planSummary(p: Plan): string {
   }
 }
 
+/**
+ * Request-level routing: classifier v2's rules (the API's router/proxy/classify.ts classifyRequest, RULE_BENCHMARK,
+ * CLASSIFY_LIMITS), in the order the classifier tries them. It reads the request's tools, its last user message and the
+ * conversation's length, and makes no model call. auto-task always matches; Best overall and Best value match when Match
+ * each request is on (proxy/adaptive-route.ts finish, MATCHABLE). The header names are X-AISM-Request-Kind's values.
+ */
+const MATCH_RULES_TABLE: Array<{ rule: string; kind: string; reads: string; board: string }> = [
+  { rule: 'Tools that work on code', kind: 'tools_code', reads: 'Tools offered, at least two of them for files, code or a terminal (read, edit, grep, bash and the like).', board: 'Coding' },
+  { rule: 'Tools', kind: 'tools', reads: 'Any other request that offers tools.', board: 'Tool use' },
+  { rule: 'Long session', kind: 'long_session', reads: 'A conversation already eight or more messages long when it first reaches the router.', board: 'Reasoning' },
+  { rule: 'Design and planning', kind: 'planning', reads: 'Architecture, system design, trade-offs, a migration plan, a roadmap, a step-by-step plan.', board: 'Reasoning' },
+  { rule: 'Code', kind: 'code', reads: 'A code block, code syntax, or two or more programming terms in the latest message.', board: 'Coding' },
+  { rule: 'Anything else', kind: 'general', reads: 'Questions, writing, summaries and the rest of everyday work.', board: 'Combined' },
+];
+/** The API's router/proxy/adaptive-prefs.ts DEFAULT_SWITCH_COST_CAP_USD: the default re-send limit for a move (USD). */
+const SWITCH_COST_DEFAULT_USD = 0.5;
+/** The API's router/endpoints/limits.ts ENDPOINT_LIMITS (owner-confirmed 2026-11-17): personal / workspace. */
+const OWN_ENDPOINTS = { pro: 2, developer: 10, developerShared: 10, teams: 10, teamsShared: 25 };
+
 const TOC = [
+  { id: 'request', label: 'Request-level routing' },
   { id: 'live', label: 'Live picks' },
   { id: 'how', label: 'How it decides' },
   { id: 'what', label: 'What it is' },
@@ -206,6 +226,10 @@ function buildFaq({ interval, perVendor, scoring }: FaqContext): FaqItem[] {
       a: `An LLM router is a service that sits in front of several language-model providers, behind one API, and chooses which model answers each request. Most route on rules you write, on price, or on which models are popular. The AI Stupid Level Smart Router routes on benchmark results: every model on the [leaderboard](/) runs the same coding, reasoning and tool-use tasks, ${CADENCE}, and each auto-* mode sends your request to the model placing highest for that job among the providers you hold keys for. That is automatic model selection with a checkable basis, and the decision is written into every response.`,
     },
     {
+      q: 'Does the Smart Router choose a model for every request?',
+      a: `Yes, request by request. Send auto-task, or turn on Match each request for Best overall or Best value, and each request is read on its own: tools that work on files, code or a terminal rank it on coding, other tools on tool use, code on coding, design and planning, or a conversation already eight or more messages long, on reasoning, and anything else on the Combined score. The rules run inside the request, with no extra model call, and X-AISM-Request-Kind names the one that matched. Within a conversation, Model switching decides whether a new message can move to another model: by default the conversation keeps the model that answered, so its prompt cache and reasoning carry over; at each new message it moves only when another model is clearly ahead and re-sending stays within your limit ($${SWITCH_COST_DEFAULT_USD.toFixed(2)} by default). [How it reads each request](/router#request).`,
+    },
+    {
       q: 'How does the Smart Router choose a model?',
       a: `Each mode names a suite and a rule: auto-coding ranks on the Coding board, auto-reasoning on Reasoning, auto-tooling on Tool use, auto-best on the Combined score (coding 50%, reasoning 25%, tool use 25%). ${how.average} ${how.tie} The auto-value modes choose among models within ${VALUE_FLOOR_POINTS} points of the best and take the most points per dollar of one scored run; ${how.fastestQuality} Drift-aware routing then moves any model with a fired Page-Hinkley detector or an open canary incident behind the healthy ones. The X-AISM-Reasoning header on every response says which rule won. The full table is on this page under [how it decides](/router#how).`,
     },
@@ -223,7 +247,7 @@ function buildFaq({ interval, perVendor, scoring }: FaqContext): FaqItem[] {
     },
     {
       q: 'Which models can it route to?',
-      a: `${roster} You add a key for each provider you want in play, and the modes rank only the models you can reach. Any real model id from GET /v1/models can also be pinned directly. The router handles text, code and tool calls, because those are what the benchmarks measure.`,
+      a: `${roster} You add a key for each provider you want in play, and the modes rank only the models you can reach. Any real model id from GET /v1/models can also be pinned directly. From ${planName('pro')} up, your own OpenAI-compatible servers (vLLM, Ollama, llama.cpp, a hosting company) join them as ep/ models, which you can name, prefer or use alone. The router handles text, code and tool calls, because those are what the benchmarks measure.`,
     },
     {
       q: 'Is the Smart Router an OpenRouter alternative?',
@@ -277,7 +301,10 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
         'OpenAI-compatible /v1/chat/completions with streaming, tool calls and JSON schema output',
         'Native Anthropic /v1/messages passthrough for Claude Code',
         '/v1/embeddings',
+        'Request-level routing: each request read on its own and ranked on the benchmark for its kind of work, with no extra model call',
+        'Model switching: a conversation keeps its model, or moves at a new message when another is clearly ahead and the move stays within your limit',
         `${MODE_COUNT} auto-* routing modes ranked on benchmark results`,
+        'Your own OpenAI-compatible endpoints routed beside the cloud models',
         'Drift-aware routing: a model with a fired detector or an open canary incident moves behind healthy ones',
         `Up to ${MAX_FALLBACKS} fallbacks per request and a per-model circuit breaker`,
         'Per-request routing decision in the X-AISM-Reasoning header',
@@ -305,10 +332,11 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
         title={H1}
         accent={H1_ACCENT}
         lead={<>
-          An AI router with one endpoint, {MODE_COUNT} auto-* modes, your own provider keys and zero markup on tokens. Point any
-          OpenAI-compatible client at <code>{BASE_URL}</code>, send <code>model: &quot;auto-coding&quot;</code> or any other mode, and the request
-          goes to the model placing highest for that job among the providers you hold keys for, re-ranked as the benchmarks
-          re-run: {CADENCE}.
+          An AI router with one endpoint, request-level routing, {MODE_COUNT} auto-* modes, your own provider keys and zero markup on
+          tokens. Point any OpenAI-compatible client at <code>{BASE_URL}</code> and send <code>model: &quot;auto-task&quot;</code>: each request
+          is read on its own and goes to the model placing highest on the benchmark for that kind of work, among the providers you hold
+          keys for. Or name the job with <code>auto-coding</code> or any other mode. The rankings move as the benchmarks re-run:{' '}
+          {CADENCE}.
         </>}
         actions={(
           <CtaRow>
@@ -339,6 +367,60 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
           />
         )}
       >
+        <RdSection
+          id="request"
+          n={num('request')}
+          title="Request-level routing: how does the Smart Router read each request?"
+          lead={<>
+            Send <code>auto-task</code>, or turn on Match each request for Best overall or Best value (<code>auto-best</code>,{' '}
+            <code>auto-value</code>, and <code>auto</code> when either is your saved strategy), and each request is read on its own
+            before anything is ranked. What it asks for picks the benchmark, the models are ranked on that benchmark, and the leader
+            answers. When the top models are too close to call, the one that costs less per task wins, unless you choose speed or
+            score, so each request gets a model suited to its work at the lowest cost that quality allows.
+          </>}
+        >
+          <div className="rd-table-wrap lp-up">
+            <table className="rd-table rtl-modes">
+              <caption>The rules, in the order the router tries them. The first that fits decides; <code>X-AISM-Request-Kind</code> names it on the response.</caption>
+              <thead>
+                <tr><th scope="col">Rule</th><th scope="col">What it looks for</th><th scope="col">Ranked on</th></tr>
+              </thead>
+              <tbody>
+                {MATCH_RULES_TABLE.map((r) => (
+                  <tr key={r.kind}>
+                    <th scope="row">{r.rule} <code>{r.kind}</code></th>
+                    <td>{r.reads}</td>
+                    <td className="rtl-board">{r.board}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <RdRows rows={[
+            ['No extra model call', <>
+              The rules read what the request already carries: the tools it offers, its latest message and the length of the
+              conversation. Nothing is sent to another model to decide, so matching adds no tokens and no round trip.
+            </>],
+            ['Quality or value, per request', <>
+              Best overall with matching ranks each request on the score of its benchmark. Best value with matching takes the most
+              points per dollar on that benchmark, among the models within {VALUE_FLOOR_POINTS} points of the best one you can use: the
+              best value for that kind of work, never a much weaker model.
+            </>],
+            ['A conversation keeps its benchmark', <>
+              The benchmark is set at a conversation&apos;s first request. A later request changes it only when its own content calls
+              for another: tools, code, design or planning.
+            </>],
+            ['Message by message, when it pays', <>
+              Model switching decides what a conversation under way does. By default it stays on the model that answered, so its
+              reasoning and your provider&apos;s prompt cache carry over and long agent loops cost the least. At each new message, every
+              new message is ranked again, and the conversation moves only when another model is clearly ahead (more than 2.58
+              standard errors on the quality modes) and re-sending it stays within your limit, ${SWITCH_COST_DEFAULT_USD.toFixed(2)} by
+              default. At every request applies the same check inside an agent loop. <code>X-AISM-Conversation</code> says what happened.{' '}
+              <Link href="/router/docs#switching">Model switching in the docs</Link>.
+            </>],
+          ]} />
+        </RdSection>
+
         <RdSection
           id="live"
           n={num('live')}
@@ -424,9 +506,22 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
           id="what"
           n={num('what')}
           title="What is the Smart Router, and what is it not?"
-          lead={`A proxy in front of ${word(providerCount)} providers that speaks the OpenAI API, speaks Anthropic’s too, and decides the model. Everything below is what the running service does today; the documentation has every parameter.`}
+          lead={`A proxy in front of ${word(providerCount)} providers and your own servers that speaks the OpenAI API, speaks Anthropic’s too, and decides the model. Everything below is what the running service does today; the documentation has every parameter.`}
         >
           <RdRows rows={[
+            ['Your own endpoints', <>
+              Any OpenAI-compatible server you run or rent (vLLM, SGLang, llama.cpp, Ollama, LM Studio, TGI or a hosting company),
+              added on the Providers page and named <code>ep/&lt;prefix&gt;/&lt;model&gt;</code>. Model source in Preferences decides
+              whether automatic routing uses them: beside the cloud models, first, or nothing else. Included from{' '}
+              {planName('pro')}: {OWN_ENDPOINTS.pro} on {planName('pro')}, {OWN_ENDPOINTS.developer} on {planName('developer')} and{' '}
+              {OWN_ENDPOINTS.teams} per editor on {planName('teams')}, plus servers shared across a workspace.{' '}
+              <Link href="/router/docs#own-endpoints">Your own endpoints in the docs</Link>.
+            </>],
+            ['Inference providers, listed', <>
+              Companies that host models can list them on AI Stupid Level: each listing is benchmarked on our tests and gets a public
+              page, and Smart Router users reach it with their own key at the host, under <code>mp/&lt;host&gt;/&lt;model&gt;</code>.{' '}
+              <Link href="/inference-providers">List your models</Link>.
+            </>],
             ['An OpenAI-compatible endpoint', <>
               <code>POST /v1/chat/completions</code> with streaming, tool calls that keep the provider’s own call ids and each
               model’s own turn for {TURN_MEMORY_HOURS} hours of an agent loop, forced <code>tool_choice</code> (natively where
@@ -463,7 +558,7 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
           <RdProse>
             <p><b>What it is not.</b></p>
             <ul className="rd-ticks">
-              <li><b>Not a hosted model or a reseller of inference.</b> The router never answers a prompt itself. Every request goes to the provider with your own key, and the provider bills you at its own list price.</li>
+              <li><b>Not a hosted model or a reseller of inference.</b> The router never answers a prompt itself. Every request goes to the provider with your own key, or to your own server, and the provider bills you at its own list price.</li>
               <li><b>Not a way around one provider’s limits.</b> It does not spread your traffic over several accounts at one provider. The one split it does is the one you define yourself with <code>auto-split</code>.</li>
               <li><b>Not a markup.</b> Nothing is added to token prices. Plans include a number of routed requests a month, and that is all the router counts.</li>
               <li><b>Not multimodal.</b> It routes text, code and tool calls, because those are what the benchmarks measure; images and audio are not routed.</li>

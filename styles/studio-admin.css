@@ -226,3 +226,18 @@
    (F6r re-check web MINOR-1) drops F7's own 36 px rule, which came later in the file and lowered them. */
 .st .mp-ut-form { display: grid; gap: 14px; }
 .st .mp-ut-signals { margin: 0 0 14px; }
+
+/* M20: the Providers tab's Listings and Practice runs tables (app/admin/Listings.tsx): every column stays readable and the
+   table scrolls sideways inside its own box (st-table-wrap) on a narrow screen, never the page; a listing's runs and the
+   changes since the previous practice run wrap within a set width, a practice run's results one line per suite. The model
+   list (app/admin/OpenModels.tsx) is collapsed at the bottom: closed, its head keeps the bottom padding a ruled head has;
+   its notes and form use ad-pad (the team pages' sw-pad is not loaded on /admin). */
+.st .ad-mp-table td { vertical-align: top; }
+.st .ad-mp-table :is(th, td).is-num { white-space: nowrap; }
+.st .ad-mp-table .ad-acct { min-width: 160px; }
+.st .ad-mp-runs { display: grid; gap: 2px; min-width: 170px; font-size: 12.5px; line-height: 1.45; color: var(--lp-fg2); }
+.st .ad-mp-results { display: grid; gap: 2px; min-width: 210px; font-size: 13px; line-height: 1.45; color: var(--lp-fg); white-space: nowrap; }
+.st .ad-mp-changes { margin: 0; min-width: 240px; max-width: 420px; font-size: 13px; line-height: 1.45; color: var(--lp-fg); overflow-wrap: anywhere; }
+.st .ad-mp-changes.is-none { color: var(--lp-fg3); }
+.st .ad-fold > .st-pane-head:not(.is-ruled) { padding-bottom: 18px; }
+@media (max-width: 760px) { .st .ad-fold > .st-pane-head:not(.is-ruled) { padding-bottom: 16px; } }

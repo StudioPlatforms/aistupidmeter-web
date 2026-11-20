@@ -86,7 +86,23 @@ export interface BoardRow {
   href?: string;
   joined?: boolean;
   paused?: boolean;
+  /** M16: a leaderboard model's hosts on this board, combined (GET /api/marketplace/fleet-hosts/<period>); absent when none. */
+  hostsSummary?: HostsSummary;
 }
+
+/** M16: one host under a leaderboard model's row: the hosted group's own row (its listing page and whole-point score; no SE). */
+export interface HostsSummaryRow {
+  provider: { slug: string; displayName: string };
+  /** "DeepSeek V4 Pro (FP8) — hosted by Together AI", as on the hosted rows. */
+  label: string;
+  entrySlug: string;
+  score: number;
+  href: string;
+}
+/** M16: "3 hosts · best 71 · median 68": distinct hosts, the highest score, the median of the rows' scores. */
+export interface HostsSummary { hosts: number; best: number; median: number; rows: HostsSummaryRow[] }
+/** Per board, keyed by the leaderboard model's id; the API sends a board only while its comparable-fleet gate passes. */
+export type HostsSummaries = Partial<Record<BoardKey, Record<string, unknown>>>;
 
 export interface Board {
   key: BoardKey;
@@ -219,6 +235,68 @@ export function buildBoards(data: Record<string, any[]>, hosted?: Record<string,
   const out = {} as Boards;
   for (const k of BOARD_KEYS) out[k] = buildBoardWithHosted(k, Array.isArray(data?.[k]) ? data[k] : [], hosted?.[k]);
   return out;
+}
+
+// ── M16 (owner 2026-11-18): a leaderboard model's hosted providers, combined ────────────────────────────────
+
+const num = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+const str = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
+
+/** One summary from the API, or null when anything in it is off (then nothing renders for that row). */
+export function parseHostsSummary(raw: unknown): HostsSummary | null {
+  const x = raw as Record<string, any> | null;
+  if (!x || typeof x !== 'object' || !num(x.hosts) || x.hosts < 1 || !num(x.best) || !num(x.median) || !Array.isArray(x.rows) || !x.rows.length) return null;
+  const rows: HostsSummaryRow[] = [];
+  for (const r of x.rows as Array<Record<string, any>>) {
+    if (!r || typeof r !== 'object' || !r.provider || !str(r.provider.slug) || !str(r.provider.displayName) || !str(r.label) || !str(r.entrySlug)
+      || !num(r.score) || !str(r.href) || !r.href.startsWith('/inference-providers/')) return null;
+    rows.push({ provider: { slug: r.provider.slug, displayName: r.provider.displayName }, label: r.label, entrySlug: r.entrySlug, score: r.score, href: r.href });
+  }
+  return { hosts: x.hosts, best: x.best, median: x.median, rows };
+}
+
+/** Each fleet row's summary on its own board (a hosted row never gets one). The boards come back unchanged when there is none. */
+export function withHostsSummaries(boards: Boards, raw: HostsSummaries | null | undefined): Boards {
+  if (!raw) return boards;
+  let out: Boards | null = null;
+  for (const k of BOARD_KEYS) {
+    const map = raw[k];
+    if (!map || typeof map !== 'object' || !Object.keys(map).length) continue;
+    const add = (r: BoardRow): BoardRow => {
+      if (r.host) return r;
+      const s = parseHostsSummary((map as Record<string, unknown>)[r.id]);
+      return s ? { ...r, hostsSummary: s } : r;
+    };
+    const b = boards[k];
+    out = out ?? { ...boards };
+    out[k] = { ...b, ranked: b.ranked.map(add), community: b.community.map(add), other: b.other.map(add) };
+  }
+  return out ?? boards;
+}
+
+/** "3 hosts · best 71 · median 68"; one row: "1 host · score 71". */
+export function hostsSummaryText(s: HostsSummary): string {
+  const hosts = `${s.hosts} host${s.hosts === 1 ? '' : 's'}`;
+  return s.rows.length === 1 ? `${hosts} · score ${s.best}` : `${hosts} · best ${s.best} · median ${s.median}`;
+}
+
+/** A host row's model part ("DeepSeek V4 Pro (FP8)") and its precision when the label names one ("FP8"). */
+export function hostModelPart(label: string): string {
+  return label.split(' — hosted by ')[0];
+}
+export function hostPrecision(label: string): string | null {
+  const m = /\(([^()]+)\)$/.exec(hostModelPart(label));
+  return m ? m[1] : null;
+}
+
+/** A model's summary on `prefer` when it has one, else on the first board that has one (with that board's key). */
+export function hostsSummaryOn(boards: Boards, id: string, prefer: BoardKey): { board: BoardKey; summary: HostsSummary } | null {
+  for (const k of [prefer, ...BOARD_KEYS.filter((x) => x !== prefer)]) {
+    const b = boards[k];
+    const r = b.ranked.find((x) => x.id === id) ?? b.community.find((x) => x.id === id) ?? b.other.find((x) => x.id === id);
+    if (r?.hostsSummary) return { board: k, summary: r.hostsSummary };
+  }
+  return null;
 }
 
 /** A model's place on one board: ranked (with its rank among the ranked), community-funded, or neither. */

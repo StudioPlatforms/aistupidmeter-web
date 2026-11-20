@@ -3,8 +3,10 @@
 /**
  * The open-model registry (phase3-plan §2.9, §5.4 `marketplace_open_models`; M4), for staff: the open-weights
  * models providers can list, with the fleet model serving the same weights (it decides the `fleet:` protocol
- * profile at approval). Add, edit, retire. Providers' "Request a model we don't have" arrives in the review
- * queue above. Data: /api/admin/marketplace/open-models (GET, POST) and open-models/:id (PATCH).
+ * profile at approval). Add, edit, retire. Since M15 providers add a model the list lacks themselves, at once (no
+ * queue item). Data: /api/admin/marketplace/open-models (GET, POST) and open-models/:id (PATCH).
+ * M20: the "Model list (edit or retire entries)", collapsed at the bottom of the Providers tab (the Listings pane is the
+ * main view); it loads when opened.
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Loader, Note, Pane, Pill } from '@/components/studio';
@@ -33,6 +35,7 @@ async function call(path: string, method = 'GET', body?: unknown): Promise<{ ok:
 const num = (v: FormDataEntryValue | null) => { const s = String(v ?? '').trim(); return s === '' ? null : Number(s); };
 
 export default function OpenModels() {
+  const [shown, setShown] = useState(false);
   const [rows, setRows] = useState<OpenModel[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<Record<string, string>>({});
@@ -43,7 +46,7 @@ export default function OpenModels() {
     const r = await call('open-models');
     if (r.ok) { setRows(r.data?.openModels ?? []); setError(null); } else setError(r.error);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { if (shown) void load(); }, [shown, load]);
 
   const add = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -65,51 +68,56 @@ export default function OpenModels() {
   };
 
   return (
-    <Pane title="Model registry" sub="The models providers can list, open-source or closed. Add one when a provider requests it." ruled flush>
-      {msg && <div className="sw-pad"><Note>{msg}</Note></div>}
-      {!rows && !error && <Loader label="Loading the registry" />}
-      {error && <div className="sw-pad"><Note tone="bad" title="Not loaded">{error}</Note></div>}
-      {rows && (
-        <div className="st-table-wrap">
-          <table className="st-table">
-            <thead><tr><th>Model</th><th className="ad-hide-sm">Fleet model</th><th className="is-num ad-hide-md">Listings</th><th>State</th></tr></thead>
-            <tbody>
-              {rows.length === 0 && <EmptyRow cols={4}>The registry is empty.</EmptyRow>}
-              {rows.map(m => (
-                <tr key={m.id}>
-                  <td>
-                    <div className="ad-acct">
-                      <span className="ad-acct-e">{m.maker} · {m.name}</span>
-                      <span className="ad-acct-s">{m.slug}{m.contextTokens ? ` · ${m.contextTokens.toLocaleString('en-US')} context` : ''}{m.paramsB ? ` · ${m.paramsB}B` : ''}{m.licence ? ` · ${m.licence}` : ''}</span>
-                    </div>
-                  </td>
-                  <td className="ad-hide-sm">{m.fleetModelName ?? <span className="st-faint">—</span>}</td>
-                  <td className="is-num ad-hide-md">{m.listings}</td>
-                  <td>
-                    <Pill tone={m.state === 'active' ? 'good' : undefined}>{m.state}</Pill>{' '}
-                    <button type="button" className="st-more ad-linkbtn" onClick={() => void setState(m, m.state === 'active' ? 'retired' : 'active')}>{m.state === 'active' ? 'Retire' : 'Restore'}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <form className="sw-pad mp-admin-om" onSubmit={add}>
-        <p className="st-label">Add an open model</p>
-        <div className="mp-admin-om-grid">
-          <label className="st-field"><span className="st-field-label">Slug</span><input name="slug" required className="st-input" placeholder="deepseek-v4-pro" />{fields.slug && <span className="st-error">{fields.slug}</span>}</label>
-          <label className="st-field"><span className="st-field-label">Name</span><input name="name" required className="st-input" placeholder="DeepSeek V4 Pro" />{fields.name && <span className="st-error">{fields.name}</span>}</label>
-          <label className="st-field"><span className="st-field-label">Maker</span><input name="maker" required className="st-input" placeholder="DeepSeek" />{fields.maker && <span className="st-error">{fields.maker}</span>}</label>
-          <label className="st-field"><span className="st-field-label">Licence</span><input name="licence" className="st-input" placeholder="MIT" /></label>
-          <label className="st-field"><span className="st-field-label">Weights URL</span><input name="weightsUrl" type="url" className="st-input" />{fields.weightsUrl && <span className="st-error">{fields.weightsUrl}</span>}</label>
-          <label className="st-field"><span className="st-field-label">Context</span><input name="contextTokens" inputMode="numeric" className="st-input" />{fields.contextTokens && <span className="st-error">{fields.contextTokens}</span>}</label>
-          <label className="st-field"><span className="st-field-label">Params (B)</span><input name="paramsB" inputMode="decimal" className="st-input" /></label>
-          <label className="st-field"><span className="st-field-label">Active params (B)</span><input name="activeParamsB" inputMode="decimal" className="st-input" /></label>
-          <label className="st-field"><span className="st-field-label">Fleet model id</span><input name="fleetModelId" inputMode="numeric" className="st-input" placeholder="same weights, if any" />{fields.fleetModelId && <span className="st-error">{fields.fleetModelId}</span>}</label>
-        </div>
-        <div className="st-actions"><button type="submit" className="st-btn is-primary is-sm" disabled={busy}>{busy ? 'Adding…' : 'Add'}</button></div>
-      </form>
+    <Pane title="Model list (edit or retire entries)" sub="The models providers can list, open-source or closed. Providers add the ones they serve themselves; edit or retire one here." ruled={shown} flush className="ad-fold"
+      actions={<button type="button" className="st-btn is-sm" aria-expanded={shown} aria-controls="ad-model-list" onClick={() => setShown(v => !v)}>{shown ? 'Hide' : 'Show'}</button>}>
+      <div id="ad-model-list" hidden={!shown}>
+        {shown && <>
+          {msg && <div className="ad-pad"><Note>{msg}</Note></div>}
+          {!rows && !error && <Loader label="Loading the registry" />}
+          {error && <div className="ad-pad"><Note tone="bad" title="Not loaded">{error}</Note></div>}
+          {rows && (
+            <div className="st-table-wrap">
+              <table className="st-table">
+                <thead><tr><th>Model</th><th className="ad-hide-sm">Fleet model</th><th className="is-num ad-hide-md">Listings</th><th>State</th></tr></thead>
+                <tbody>
+                  {rows.length === 0 && <EmptyRow cols={4}>The registry is empty.</EmptyRow>}
+                  {rows.map(m => (
+                    <tr key={m.id}>
+                      <td>
+                        <div className="ad-acct">
+                          <span className="ad-acct-e">{m.maker} · {m.name}</span>
+                          <span className="ad-acct-s">{m.slug}{m.contextTokens ? ` · ${m.contextTokens.toLocaleString('en-US')} context` : ''}{m.paramsB ? ` · ${m.paramsB}B` : ''}{m.licence ? ` · ${m.licence}` : ''}</span>
+                        </div>
+                      </td>
+                      <td className="ad-hide-sm">{m.fleetModelName ?? <span className="st-faint">—</span>}</td>
+                      <td className="is-num ad-hide-md">{m.listings}</td>
+                      <td>
+                        <Pill tone={m.state === 'active' ? 'good' : undefined}>{m.state}</Pill>{' '}
+                        <button type="button" className="st-more ad-linkbtn" onClick={() => void setState(m, m.state === 'active' ? 'retired' : 'active')}>{m.state === 'active' ? 'Retire' : 'Restore'}</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <form className="ad-pad mp-admin-om" onSubmit={add}>
+            <p className="st-label">Add an open model</p>
+            <div className="mp-admin-om-grid">
+              <label className="st-field"><span className="st-field-label">Slug</span><input name="slug" required className="st-input" placeholder="deepseek-v4-pro" />{fields.slug && <span className="st-error">{fields.slug}</span>}</label>
+              <label className="st-field"><span className="st-field-label">Name</span><input name="name" required className="st-input" placeholder="DeepSeek V4 Pro" />{fields.name && <span className="st-error">{fields.name}</span>}</label>
+              <label className="st-field"><span className="st-field-label">Maker</span><input name="maker" required className="st-input" placeholder="DeepSeek" />{fields.maker && <span className="st-error">{fields.maker}</span>}</label>
+              <label className="st-field"><span className="st-field-label">Licence</span><input name="licence" className="st-input" placeholder="MIT" /></label>
+              <label className="st-field"><span className="st-field-label">Weights URL</span><input name="weightsUrl" type="url" className="st-input" />{fields.weightsUrl && <span className="st-error">{fields.weightsUrl}</span>}</label>
+              <label className="st-field"><span className="st-field-label">Context</span><input name="contextTokens" inputMode="numeric" className="st-input" />{fields.contextTokens && <span className="st-error">{fields.contextTokens}</span>}</label>
+              <label className="st-field"><span className="st-field-label">Params (B)</span><input name="paramsB" inputMode="decimal" className="st-input" /></label>
+              <label className="st-field"><span className="st-field-label">Active params (B)</span><input name="activeParamsB" inputMode="decimal" className="st-input" /></label>
+              <label className="st-field"><span className="st-field-label">Fleet model id</span><input name="fleetModelId" inputMode="numeric" className="st-input" placeholder="same weights, if any" />{fields.fleetModelId && <span className="st-error">{fields.fleetModelId}</span>}</label>
+            </div>
+            <div className="st-actions"><button type="submit" className="st-btn is-primary is-sm" disabled={busy}>{busy ? 'Adding…' : 'Add'}</button></div>
+          </form>
+        </>}
+      </div>
     </Pane>
   );
 }

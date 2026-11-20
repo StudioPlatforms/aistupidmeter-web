@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BOARD_KEYS, buildBoardWithHosted, type BoardKey, type Boards } from './boards-core';
+import { BOARD_KEYS, buildBoardWithHosted, withHostsSummaries, type BoardKey, type Boards, type HostsSummaries } from './boards-core';
 
 export * from './boards-core';
 
@@ -26,9 +26,27 @@ export async function fetchHostedBoards(period: string): Promise<Record<string, 
   }
 }
 
+/**
+ * M16 (owner 2026-11-18): each leaderboard model's hosted providers combined, per board, through the same public proxy. The
+ * API sends a board only while its comparable-fleet gate passes; any failure reads as "no summaries", and the fleet boards
+ * never wait for this fetch.
+ */
+export async function fetchFleetHosts(period: string): Promise<HostsSummaries | null> {
+  if (!HOSTED_PERIODS.has(period)) return null;
+  try {
+    const r = await fetch(`/api/marketplace/fleet-hosts/${period}`, { signal: AbortSignal.timeout(8_000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && j.success && j.data && typeof j.data === 'object' ? (j.data as HostsSummaries) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useBoards(period: string, enabled = true) {
   const [fleet, setFleet] = useState<Record<string, any[]> | null>(null);
   const [hosted, setHosted] = useState<Record<string, unknown[]> | null>(null);
+  const [summaries, setSummaries] = useState<HostsSummaries | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const seq = useRef(0);
@@ -41,6 +59,7 @@ export function useBoards(period: string, enabled = true) {
       setLoading(true);
       // The hosted rows on their own: they arrive when they arrive and never hold up the fleet's boards.
       fetchHostedBoards(period).then((h) => { if (!cancelled && mine === seq.current) setHosted(h); });
+      fetchFleetHosts(period).then((x) => { if (!cancelled && mine === seq.current) setSummaries(x); });
       try {
         const r = await fetch(`${API_BASE}/dashboard/boards?period=${encodeURIComponent(period)}`);
         const j = await r.json();
@@ -63,8 +82,8 @@ export function useBoards(period: string, enabled = true) {
     if (!fleet) return null;
     const next = {} as Boards;
     for (const k of BOARD_KEYS) next[k] = buildBoardWithHosted(k, Array.isArray(fleet[k]) ? fleet[k] : [], hosted?.[k]);
-    return next;
-  }, [fleet, hosted]);
+    return withHostsSummaries(next, summaries);
+  }, [fleet, hosted, summaries]);
 
   return { boards, loading, error };
 }

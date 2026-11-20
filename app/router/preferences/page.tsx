@@ -8,7 +8,7 @@ import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { apiClient, ApiRequestError, endpointEntryLabel, isEndpointEntry, isModelSource } from '@/lib/api-client';
 import type {
   UserPreferences, RoutingStrategyId, PreferencesPreview, PreviewCandidate, PreviewChainEntry, PreviewEndpoint, TieBreak,
-  ModelSource, EndpointList, ListedHost,
+  ModelSource, EndpointList, ListedHost, ListedChoice, ListedScores,
 } from '@/lib/api-client';
 import { PageHead, Pane, Loader, Note, Tag, ProviderMark, RankList, previewToSnap, useModelNames } from '@/components/studio';
 import { scoreLabel } from '@/components/landing/util';
@@ -51,6 +51,17 @@ import '@/styles/studio-router.css';
  * connected, "Providers and models" gains a "Listed providers" group with a "Use in routing" toggle per host (saved
  * at once, on the connection), and Model source is shown with Prefer available even without an endpoint of the
  * account's own: under Prefer the measured models of the listed hosts it connected come after its own endpoints.
+ *
+ * Same model, cheaper host (API release M18): when GET /router/preferences carries `sameModelCheaperHost`, "Providers and
+ * models" ends with its checkbox (not under Only my endpoints), saved with the other settings; Reset turns it off.
+ *
+ * Listed providers in the router (API release M22, owner 2026-11-18): the "Listed providers" group shows every listed
+ * provider GET /router/marketplace returns. A connected one has its choice instead of the "Use in routing" toggle (Automatic,
+ * our recommendation; Prefer; Never use automatically: saved at once, on the connection) and its models as chips that
+ * exclude them from automatic routing (mp/ ids in excludedModels, saved with the other settings); the others a Connect link
+ * to the Providers page's dialog (?host=). Each model shows its published scores; a provider listed since the account last
+ * looked is tagged New, and the page then marks the list seen. Against an older API (no `choice`) the control offers
+ * Automatic and Never only (the useInRouting toggle), and no model is excluded here.
  */
 
 type Strategy = {
@@ -248,8 +259,12 @@ function Preferences() {
   const [keyed, setKeyed] = useState<string[] | null>(null);
   // Model source (R4): the account's endpoints, read only when the API advertises the setting.
   const [endpoints, setEndpoints] = useState<EndpointsState>({ kind: 'idle' });
-  // Listed hosts the account connected (M8): [] while unknown and for every account the marketplace is not open to.
+  // Listed providers (M8; API M22: every one, connected or not): [] while unknown and for every account the marketplace is not open to.
   const [listedHosts, setListedHosts] = useState<ListedHost[]>([]);
+  // API M22: the "New" tags are shown for this visit; the list is marked seen once, after ListedGroup has rendered them.
+  const seenMarked = useRef(false);
+  // API M22: bumped when a listed provider's choice is saved (saved at once, not with Save changes), so the preview follows it.
+  const [listedRev, setListedRev] = useState(0);
   const [listedMsg, setListedMsg] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null);
   const [listedBusy, setListedBusy] = useState<string | null>(null);
   // A save whose Model source the API did not echo (D45); shown in the Model source pane.
@@ -284,19 +299,38 @@ function Preferences() {
   const loadListed = useCallback(async () => {
     try {
       const r = await apiClient.getListedHosts();
-      setListedHosts((Array.isArray(r.hosts) ? r.hosts : []).filter(h => h.connection));
+      setListedHosts(Array.isArray(r.hosts) ? r.hosts : []);
     } catch {
       setListedHosts([]);   // 404 (not offered), or unreadable: the page is as it is without listed hosts
     }
   }, []);
 
-  const toggleListed = useCallback(async (h: ListedHost, on: boolean) => {
+  /** Once per visit, after ListedGroup has shown the "New" tags (its mount effect): the list is seen. */
+  const markListedSeen = useCallback(() => {
+    if (seenMarked.current) return;
+    seenMarked.current = true;
+    apiClient.markListedSeen().catch(() => { /* the tags come back next time; nothing else depends on it */ });
+  }, []);
+
+  /**
+   * A connected provider's choice, saved at once (API M22; an older API takes Automatic and Never as useInRouting); the preview
+   * follows (listedRev). `takesEffect`: the saved settings let a preferred host go first (Model source Prefer my endpoints, or
+   * Same model, cheaper host on), so the message says so only then.
+   */
+  const chooseListed = useCallback(async (h: ListedHost, choice: ListedChoice, takesEffect: { now: boolean; when: string }) => {
     setListedBusy(h.slug);
     setListedMsg(null);
     try {
-      const r = await apiClient.updateListedHost(h.slug, { useInRouting: on });
-      setListedHosts(l => l.map(x => (x.slug === h.slug ? (r.host ?? { ...x, connection: x.connection ? { ...x.connection, useInRouting: on } : null }) : x)));
-      setListedMsg({ tone: 'good', text: on ? `${h.displayName} is used in routing again.` : `${h.displayName} is no longer used in routing. Requests that name its models still reach it.` });
+      const r = await apiClient.updateListedHost(h.slug, h.connection?.choice !== undefined ? { choice } : { useInRouting: choice !== 'never' });
+      setListedHosts(l => l.map(x => (x.slug === h.slug
+        ? (r.host ?? { ...x, connection: x.connection ? { ...x.connection, useInRouting: choice !== 'never', ...(x.connection.choice !== undefined ? { choice } : {}) } : null })
+        : x)));
+      setListedRev(n => n + 1);
+      setListedMsg({ tone: 'good', text: choice === 'prefer'
+        ? (takesEffect.now ? `${h.displayName} now goes first among your listed providers when it can serve the request.`
+          : `Prefer saved for ${h.displayName}. It takes effect ${takesEffect.when}.`)
+        : choice === 'never' ? `${h.displayName} is no longer used automatically. Requests that name its models still reach it.`
+        : `${h.displayName} follows our recommendation.` });
     } catch (err) {
       setListedMsg({ tone: 'bad', text: err instanceof Error ? err.message : 'Not saved. Try again.' });
     } finally {
@@ -367,7 +401,7 @@ function Preferences() {
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [prefs, samplePrompt, sample]);
+  }, [prefs, samplePrompt, sample, listedRev]);
 
   const dirty = useMemo(() => !!prefs && !!saved && JSON.stringify(norm(prefs)) !== JSON.stringify(norm(saved)), [prefs, saved]);
   const modelNames = useMemo(() => [...candidates].sort((a, b) => b.score - a.score).map(c => c.model), [candidates]);
@@ -494,7 +528,14 @@ function Preferences() {
   const strategy = ALL.find(s => s.id === prefs.routingStrategy) || ALL[0];
   // A2 (plan §5.2): the API sent the four settings, so the features apply to this account.
   const a2 = hasAdaptive(saved);
+  // M18: the API sent "Same model, cheaper host", so it supports the setting.
+  const cheaperHost = !!saved && 'sameModelCheaperHost' in saved;
   const excludedCount = prefs.excludedProviders.length + prefs.excludedModels.length;
+  const excludeModel = (id: string, off: boolean) => set({ excludedModels: off ? [...prefs.excludedModels, id] : prefs.excludedModels.filter(x => x !== id) });
+  // API M22: excluded models no chip below shows: listed models no listed provider shows here, and (once the preview has
+  // ranked the cloud models) names no longer among them. Shown under "Also excluded" with their own remove buttons.
+  const listedModelIds = new Set(listedHosts.flatMap(h => h.models.map(m => m.id)));
+  const otherExcluded = prefs.excludedModels.filter(m => (m.startsWith('mp/') ? !listedModelIds.has(m) : candidates.length > 0 && !candidates.some(c => c.model === m)));
 
   // ── Model source (R4) ──
   // The saved value is the API's capability flag (D45); the unsaved one drives the rest of the page.
@@ -514,10 +555,11 @@ function Preferences() {
   const usableEndpoints = epList
     ? [...epList.endpoints, ...epList.shared].filter(e => e.active && !e.overPlanLimit && (e.enabledModelCount ?? 0) > 0 && e.healthState !== 'quarantined')
     : [];
-  // M8: connected listed hosts the router may use under Prefer (in use, not paused).
-  const listedInUse = listedHosts.filter(h => h.connection && h.connection.useInRouting && h.connection.state !== 'paused');
+  // M8: connected listed hosts the router may use under Prefer (in use, not paused). API M22 lists the others too.
+  const connectedHosts = listedHosts.filter(h => h.connection);
+  const listedInUse = connectedHosts.filter(h => h.connection && h.connection.useInRouting && h.connection.state !== 'paused');
   const listedPrefer = listedInUse.length > 0;
-  const showSource = (!!savedSource && (endpoints.kind === 'ok' || savedSource !== 'all' || listedHosts.length > 0)) || !!sourceNotice;
+  const showSource = (!!savedSource && (endpoints.kind === 'ok' || savedSource !== 'all' || connectedHosts.length > 0)) || !!sourceNotice;
   // Prefer with listed hosts and no endpoints offered to the account: nothing is paused, the listed hosts answer first.
   const banner: 'paused' | 'plan' | null = !savedSource || savedSource === 'all' ? null
     : savedSource === 'prefer_endpoints' && listedPrefer && (endpoints.kind === 'off' || lock === 'plan') ? null
@@ -539,7 +581,7 @@ function Preferences() {
   // Provider keys matter unless Only my endpoints is chosen, and "nothing can be routed" holds only
   // while the preview finds nothing (under All with fallback on, or Prefer, endpoints may answer).
   // An account with a listed host connected can already route requests that name its models (M8): not "nothing".
-  const needKeyNote = keyedProviders !== null && keyedProviders.length === 0 && !only && !(preview && preview.ok) && listedHosts.length === 0;
+  const needKeyNote = keyedProviders !== null && keyedProviders.length === 0 && !only && !(preview && preview.ok) && connectedHosts.length === 0;
 
   return (
     <>
@@ -549,8 +591,8 @@ function Preferences() {
         lead={a2 ? <Rich text={PAGE_LEAD} /> : HEAD_LEAD}
         actions={<>
           {/* Reset keeps the Model source (§2.5): DEFAULTS has none, and Model source has its own control. The A2
-              settings, when the API sent them, go back to theirs (plan §5.5). */}
-          <button type="button" onClick={() => setPrefs({ ...norm(DEFAULTS), modelSource: prefs.modelSource, ...(a2 ? ADAPTIVE_DEFAULTS : {}) })} className="st-btn" disabled={saving}
+              settings, when the API sent them, go back to theirs (plan §5.5); so does M18's, to off. */}
+          <button type="button" onClick={() => setPrefs({ ...norm(DEFAULTS), modelSource: prefs.modelSource, ...(a2 ? ADAPTIVE_DEFAULTS : {}), ...(cheaperHost ? { sameModelCheaperHost: false } : {}) })} className="st-btn" disabled={saving}
             title={savedSource ? 'Resets routing settings. Model source is not changed.' : undefined}>Reset to defaults</button>
           <button type="button" onClick={save} disabled={saving || !dirty || !!validation} className="st-btn is-primary">
             {saving ? 'Saving…' : justSaved ? 'Saved' : 'Save changes'}
@@ -592,7 +634,7 @@ function Preferences() {
                 noneReady={noneReady}
                 notice={sourceNotice}
                 sharedWorkspace={sharedWorkspace}
-                listed={listedHosts.length > 0}
+                listed={connectedHosts.length > 0}
               />
             )}
 
@@ -777,8 +819,42 @@ function Preferences() {
                   </>
                 );
               })()}
+              {/* M18: shown only when GET /router/preferences carries the setting; never used under Only my endpoints. Above the
+                  listed providers (API M22), which can be many. */}
+              {cheaperHost && (
+                <div className="sr-listed">
+                  <label className="st-toggle">
+                    <input type="checkbox" className="st-check" checked={prefs.sameModelCheaperHost === true}
+                      onChange={e => set({ sameModelCheaperHost: e.target.checked })} />
+                    <span>
+                      <b>Same model, cheaper host</b>
+                      <span>When a provider hosting the chosen model is statistically tied with the official API on our tests and costs less, and you have connected your key for that provider, send the request there. Otherwise we use the official API.</span>
+                    </span>
+                  </label>
+                </div>
+              )}
               {listedHosts.length > 0 && (
-                <ListedGroup hosts={listedHosts} busy={listedBusy} msg={listedMsg} prefer={prefer} onToggle={(h, on) => void toggleListed(h, on)} />
+                <ListedGroup hosts={listedHosts} busy={listedBusy} msg={listedMsg} cheaperHost={cheaperHost} excluded={prefs.excludedModels}
+                  onChoose={(h, c) => void chooseListed(h, c, {
+                    now: savedSource === 'prefer_endpoints' || saved?.sameModelCheaperHost === true,
+                    when: `when Model source is Prefer my endpoints${cheaperHost ? ' or Same model, cheaper host is on' : ''}`,
+                  })}
+                  onExclude={excludeModel} onSeen={markListedSeen} />
+              )}
+              {/* API M22: every excluded model is shown somewhere, so none lingers unseen and the count above matches. */}
+              {otherExcluded.length > 0 && (
+                <div className="sr-listed">
+                  <p className="st-label sr-sublabel">Also excluded</p>
+                  <div className="sr-chips sr-lp-orphans">
+                    {otherExcluded.map(m => (
+                      <button type="button" key={m} aria-pressed className="st-chip sr-chip is-off" title={`${m} · excluded: click to include`}
+                        onClick={() => excludeModel(m, false)}>
+                        <span className="sr-x" aria-hidden="true">✕</span>{m}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="st-hint">These are no longer offered here (a listed model taken out, or a model no longer ranked). Click one to remove it from your exclusions.</p>
+                </div>
               )}
               </>)}
             </Pane>
@@ -873,35 +949,161 @@ function sourceNoticeText(n: SourceNotice): string {
     : 'Model source is not available on this server yet. Nothing was changed.';
 }
 
+/** The three choices for a connected listed provider (API M22). */
+const LISTED_CHOICES: Array<{ id: ListedChoice; label: string }> = [
+  { id: 'auto', label: 'Automatic (our recommendation)' },
+  { id: 'prefer', label: 'Prefer' },
+  { id: 'never', label: 'Never use automatically' },
+];
+
+const SCORE_SUITES: Array<[keyof ListedScores, string]> = [['combined', 'combined'], ['coding', 'coding'], ['reasoning', 'reasoning'], ['tooling', 'tool use']];
+
+/** "combined 84 · coding 87 · reasoning 72 · tool use 77", or null before a model's first published day. */
+function scoreLine(scores?: ListedScores): string | null {
+  const parts = SCORE_SUITES.filter(([k]) => typeof scores?.[k] === 'number').map(([k, label]) => `${label} ${scores![k]}`);
+  return parts.length ? parts.join(' · ') : null;
+}
+
+/** A provider's best published score for its one-line row: the best Combined, else the best single suite (null: none yet). */
+function bestScore(h: ListedHost): string | null {
+  let best: { label: string; v: number } | null = null;
+  for (const [k, label] of SCORE_SUITES) {
+    for (const m of h.models) {
+      const v = m.scores?.[k];
+      if (typeof v === 'number' && (!best || v > best.v)) best = { label, v };
+    }
+    if (best) break;   // Combined first: a single suite only when no model has a Combined score
+  }
+  return best ? `best ${best.label} ${best.v}` : null;
+}
+
+/** Above this many providers the group gets a filter. */
+const LISTED_FILTER_FROM = 9;
+
+/** API M23: a provider's "Top up credit" page, only as an https link (never a javascript: or http: one). */
+function topUpHref(h: ListedHost): string | null {
+  try {
+    const u = h.billingUrl ? new URL(h.billingUrl) : null;
+    return u && u.protocol === 'https:' ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * "Listed providers" under Providers and models (M8, plan §2.17): the hosts the account connected, each with a "Use in
- * routing" toggle (on by default), saved at once on the connection. Off: automatic routing skips the host; requests
- * that name one of its models still reach it.
+ * "Listed providers" under Providers and models (M8, plan §2.17; API M22): every listed provider, the connected ones first.
+ * A connected one has its choice (saved at once, on the connection), "Top up credit" when the provider gave its billing page
+ * (API M23), and its models as chips that exclude them from automatic routing (saved with the other settings); every other
+ * one is one line (name, models, best published score, Connect: the Providers page's dialog). A model the settings exclude is always shown as an excluded chip, whatever its provider's
+ * state, so it can be removed. "New": listed since the account last looked; once the group has shown them, `onSeen`.
  */
-function ListedGroup({ hosts, busy, msg, prefer, onToggle }: {
-  hosts: ListedHost[]; busy: string | null; msg: { tone: 'good' | 'bad'; text: string } | null; prefer: boolean;
-  onToggle: (h: ListedHost, on: boolean) => void;
+function ListedGroup({ hosts, busy, msg, cheaperHost, excluded, onChoose, onExclude, onSeen }: {
+  hosts: ListedHost[]; busy: string | null; msg: { tone: 'good' | 'bad'; text: string } | null; cheaperHost: boolean;
+  /** The settings' excludedModels (a listed model's mp/ id there excludes it). */
+  excluded: string[];
+  onChoose: (h: ListedHost, choice: ListedChoice) => void;
+  onExclude: (modelId: string, off: boolean) => void;
+  onSeen: () => void;
 }) {
+  const [filter, setFilter] = useState('');
+  const fresh = hosts.filter(h => h.isNew);
+  // The list is seen once the tags it marks are on the screen (the page sends it once per visit).
+  useEffect(() => { if (fresh.length > 0) onSeen(); }, [fresh.length, onSeen]);
+  const connected = hosts.filter(h => h.connection);
+  const others = hosts.filter(h => !h.connection);
+  const q = filter.trim().toLowerCase();
+  const shown = (h: ListedHost) => !q || h.displayName.toLowerCase().includes(q) || h.models.some(m => m.name.toLowerCase().includes(q));
+  /** An excluded model's chip: click to include it again. */
+  const excludedChip = (m: ListedHost['models'][number]) => (
+    <button type="button" aria-pressed className="st-chip sr-chip is-off" title={`${m.id} · excluded: click to include`} onClick={() => onExclude(m.id, false)}>
+      <span className="sr-x" aria-hidden="true">✕</span>{m.name}
+    </button>
+  );
   return (
     <div className="sr-listed">
       <p className="st-label sr-sublabel">Listed providers</p>
-      <div className="sr-stack">
-        {hosts.map(h => (
-          <label key={h.slug} className="st-toggle">
-            <input type="checkbox" className="st-check" checked={!!h.connection?.useInRouting} disabled={busy === h.slug || h.connection?.state === 'paused'}
-              onChange={e => onToggle(h, e.target.checked)} />
-            <span>
-              <b>{h.displayName} · Use in routing</b>
-              <span>{h.measured} of {h.total} {h.total === 1 ? 'model' : 'models'} measured. Only measured models are chosen automatically, and only
-                when Model source is Prefer my endpoints; any of its models can be named, for example <code className="st-ic">{h.models[0]?.id ?? `mp/${h.slug}/<model>`}</code>.</span>
-            </span>
-          </label>
-        ))}
+      <p className="st-hint">
+        Independent providers hosting models on their own servers. Connect one with your own key to use it in your router.
+        {fresh.length > 0 && <> New since your last visit: {fresh.map(h => h.displayName).join(', ')}.</>}
+      </p>
+      {hosts.length >= LISTED_FILTER_FROM && (
+        <input type="search" className="st-input sr-lp-filter" value={filter} onChange={e => setFilter(e.target.value)}
+          placeholder="Filter providers or models" aria-label="Filter listed providers" />
+      )}
+      <div className="sr-lp-list">
+        {connected.filter(shown).map(h => {
+          const c = h.connection!;
+          const hasChoice = c.choice !== undefined;
+          const choice: ListedChoice = c.choice ?? (c.useInRouting ? 'auto' : 'never');
+          const paused = c.state === 'paused';
+          const topUp = topUpHref(h);
+          return (
+            <div key={h.slug} className="sr-lp">
+              <div className="sr-lp-head">
+                <b>{h.displayName}</b>
+                {h.isNew && <Tag tone="accent">New</Tag>}
+                {paused && <Tag tone="warn">Paused</Tag>}
+                <span className="sr-lp-meta">{h.measured} of {h.total} {h.total === 1 ? 'model' : 'models'} measured</span>
+                {topUp && <a className="sr-lp-topup" href={topUp} rel="nofollow ugc noopener noreferrer" target="_blank">Top up credit ↗</a>}
+              </div>
+              <div className="st-seg sr-lp-choice" role="group" aria-label={`${h.displayName} in automatic routing`}>
+                {LISTED_CHOICES.filter(o => hasChoice || o.id !== 'prefer').map(o => (
+                  <button type="button" key={o.id} aria-pressed={choice === o.id} disabled={busy === h.slug || paused}
+                    onClick={() => { if (choice !== o.id) onChoose(h, o.id); }}>{o.label}</button>
+                ))}
+              </div>
+              <ul className="sr-lp-models">
+                {h.models.map(m => {
+                  const off = excluded.includes(m.id);
+                  return (
+                    <li key={m.id}>
+                      {off ? excludedChip(m)
+                        : hasChoice && choice !== 'never'
+                          ? (
+                            <button type="button" aria-pressed={false} className="st-chip sr-chip" title={`${m.id} · click to exclude`} onClick={() => onExclude(m.id, true)}>
+                              {m.name}
+                            </button>
+                          )
+                          : <span className="sr-lp-name" title={m.id}>{m.name}</span>}
+                      <small>{scoreLine(m.scores) ?? 'not measured yet'}</small>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
+        {others.filter(shown).map(h => {
+          const connectable = !h.stopped && h.transfer?.covered !== false;
+          const best = bestScore(h);
+          const off = h.models.filter(m => excluded.includes(m.id));
+          return (
+            <div key={h.slug} className="sr-lp is-line">
+              <div className="sr-lp-head">
+                <b>{h.displayName}</b>
+                {h.isNew && <Tag tone="accent">New</Tag>}
+                <span className="sr-lp-meta">{h.total} {h.total === 1 ? 'model' : 'models'} · {best ?? 'not measured yet'}</span>
+                {connectable
+                  ? <Link href={`/router/providers?host=${encodeURIComponent(h.slug)}`} className="st-btn is-sm sr-lp-connect">Connect</Link>
+                  : <span className="sr-lp-meta">{h.transfer?.reason ?? 'Cannot be connected right now.'}</span>}
+              </div>
+              {off.length > 0 && <div className="sr-chips">{off.map(m => <Fragment key={m.id}>{excludedChip(m)}</Fragment>)}</div>}
+            </div>
+          );
+        })}
+        {q && !hosts.some(shown) && <p className="st-hint">No listed provider or model matches “{filter.trim()}”.</p>}
       </div>
       {msg && <p className={`st-hint ${msg.tone === 'bad' ? 'sr-warn' : ''}`} role="status">{msg.text}</p>}
+      {connected.length > 0 && (
+        <p className="st-hint">
+          <b>Automatic</b> follows our measurements (only measured models are chosen). <b>Prefer</b> puts this provider first among your listed providers,
+          after your own endpoints, when Model source is Prefer my endpoints{cheaperHost ? ' (or when Same model, cheaper host picks among its hosts)' : ''}.{' '}
+          <b>Never use automatically</b> keeps it out of automatic routing; requests that name its models still reach it. Your choice is saved as you
+          pick it. Click a model to exclude it; Save changes applies that.
+        </p>
+      )}
       <p className="st-hint">
-        {prefer ? 'Saved as you switch it. ' : 'Saved as you switch it; it applies when Model source is Prefer my endpoints. '}
-        <Link href="/router/providers#listed-providers">Manage listed hosts</Link>.
+        Scores are the published daily ones from our tests. <Link href="/router/providers#listed-providers">Manage listed providers</Link>.
       </p>
     </div>
   );
@@ -935,8 +1137,9 @@ function SourceExplanation({ id, sharedWorkspace, listed = false }: { id: ModelS
     return (
       <p>
         Your endpoints first, in your order{sharedWorkspace ? ', including servers your workspace shares with members' : ''}.{listed
-          ? <> Then the measured models of the listed hosts you connected and use in routing, ordered by their measured scores; a listed host&rsquo;s
-            model that is not measured yet answers only when a request names it (<code className="st-ic">mp/&lt;host&gt;/&lt;model&gt;</code>).</> : null}{' '}
+          ? <> Then the measured models of the listed providers you connected, the ones you prefer first, then the others by our measurements; a
+            provider set to Never use automatically, a model you excluded and a model not measured yet answer only when a request names them
+            (<code className="st-ic">mp/&lt;host&gt;/&lt;model&gt;</code>).</> : null}{' '}
         If none of them can take a request, it goes to the best-ranked cloud model. If one fails, the next {listed ? 'one' : 'endpoint'} and then the cloud
         models are tried when Try other models automatically is on. The <code className="st-ic">X-AISM-Provider</code> header says which one answered.
       </p>
@@ -1118,8 +1321,15 @@ function PreviewPanel({ preview, previewing, strategy, dirty, samplePrompt, onSa
   const view = useMemo(() => (only ? null : previewToSnap(preview, names)), [only, preview, names]);
   const stateText = previewing ? 'Updating…' : dirty ? 'Preview of your unsaved settings' : 'With your saved settings';
   const eps = preview?.endpoints ?? [];
-  /** One step of the routing order: a cloud model as before, an endpoint by its name and model. */
-  const step = (e: PreviewChainEntry & { score?: number | null }, pick: boolean) => (isEndpointEntry(e)
+  /**
+   * One step of the routing order: a cloud model as before, an endpoint by its name and model, a listed host by its name: under
+   * Prefer my endpoints with the account's choice (API M22), otherwise the one "Same model, cheaper host" adds (M18).
+   */
+  const step = (e: PreviewChainEntry & { score?: number | null }, pick: boolean) => (e.source === 'listed' && e.choice
+    ? { name: `${e.host || 'Listed host'} · ${e.modelName || e.model}`, sub: e.choice === 'prefer' ? 'listed provider · you prefer it' : 'listed provider · our recommendation' }
+    : e.source === 'listed'
+    ? { name: `${e.host || 'Listed host'} · ${e.modelName || e.model}`, sub: 'same model, cheaper host' }
+    : isEndpointEntry(e)
     ? { name: endpointEntryLabel(e, preview?.endpoints), sub: 'your endpoint · not benchmarked' }
     : {
         name: nameOf(e.model),

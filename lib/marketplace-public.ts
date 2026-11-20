@@ -121,6 +121,8 @@ export interface Declaration {
 export interface PublicProvider {
   slug: string; kind: 'company' | 'individual'; displayName: string; operatedBy: string | null; country: string | null; standing: string;
   website: string | null; pricingUrl: string | null; getKeyUrl: string | null; docsUrl: string | null; statusUrl: string | null; support: string | null;
+  /** API M23: the "Top up credit" page (where a customer adds credit or pays); absent from an older API. */
+  billingUrl?: string | null;
   about: string | null; foundedYear: number | null; hqCity: string | null; regions: string[]; x: string | null; linkedin: string | null; github: string | null;
   logoSha256: string | null; publishedAt: string | null; domains: Array<{ domain: string; since: string }>; logoUrl: string | null;
   /** M13 (privacy 1.9): whether "Use in the Smart Router" is offered, and why not; absent from an older API. */
@@ -138,13 +140,17 @@ export interface ProviderPageDTO { provider: PublicProvider; entries: EntryDTO[]
 /** The directory (GET /marketplace/public/providers); M9b: `spotPractice`, fleet-wide, for the ranking criteria page. */
 export interface DirectoryDTO { providers: unknown[]; spotPractice?: boolean; /** F6: sent only with spotPractice while fresh task versions are in use or announced. */ spotOnFresh?: boolean }
 export type PaneSuite = 'combined' | 'coding' | 'reasoning' | 'tooling' | 'canary';
-/** M10 (design D-A2): one host's number beside the official API's for one suite, both on that host's own tests and days. */
-export interface VsOfficialLine { official: { mean: number; se: number; runs: number }; delta: number; tied: boolean }
+/**
+ * M10 (design D-A2): one host's reading against the official API for one suite, both on that host's own tests and days.
+ * M16 review (agreement v1.0 6.5, 10.1): the verdict only, computed by the API: `tied`, else `above` (false whenever tied);
+ * no SE, no mean and no number of points.
+ */
+export interface VsOfficialLine { official: { runs: number }; tied: boolean; above: boolean }
 /**
  * F5 (design D-A2 "After the move"): a host on fresh copies, compared through its model's calibration: the official API's
  * number on the standard tasks over the host's days, no tie verdict (the tests differ), and the calibration's margin.
  */
-export interface VsOfficialCalibrated { basis: 'standard_tasks'; official: { mean: number; se: number; runs: number }; margin: number }
+export interface VsOfficialCalibrated { basis: 'standard_tasks'; official: { mean: number; runs: number }; margin: number }
 export type VsOfficial = Partial<Record<PaneSuite, VsOfficialLine | VsOfficialCalibrated | null>>;
 export const isCalibrated = (x: VsOfficialLine | VsOfficialCalibrated | null | undefined): x is VsOfficialCalibrated => !!x && (x as VsOfficialCalibrated).basis === 'standard_tasks';
 /** M10: `vsOfficial` only where the API sends a comparison (older APIs and the zero-host pane: absent). */

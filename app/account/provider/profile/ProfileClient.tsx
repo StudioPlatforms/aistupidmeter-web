@@ -20,6 +20,8 @@ interface Profile {
   /** M13: required with the company number before the agreement can be accepted (v1.0's acceptance block). */
   registeredOffice: string;
   noticeEmail: string; website: string; pricingUrl: string; getKeyUrl: string; docsUrl: string; statusUrl: string; support: string;
+  /** API M23: "Top up credit", the page where customers add credit or pay. */
+  billingUrl: string;
   about: string; foundedYear: string; hqCity: string; regions: string[]; x: string; linkedin: string; github: string;
 }
 interface ProfileData {
@@ -34,7 +36,7 @@ interface ProfileData {
 
 const TEXT_FIELDS: Array<Exclude<keyof Profile, 'regions'>> = [
   'displayName', 'legalName', 'tradingName', 'country', 'companyNumber', 'vatNumber', 'registeredOffice', 'noticeEmail', 'website', 'pricingUrl',
-  'getKeyUrl', 'docsUrl', 'statusUrl', 'support', 'about', 'foundedYear', 'hqCity', 'x', 'linkedin', 'github',
+  'getKeyUrl', 'billingUrl', 'docsUrl', 'statusUrl', 'support', 'about', 'foundedYear', 'hqCity', 'x', 'linkedin', 'github',
 ];
 
 function fromApi(p: ProfileData['profile']): Profile {
@@ -55,7 +57,7 @@ function check(f: Profile, company: boolean): Record<string, string> {
   const e: Record<string, string> = {};
   if (!NAME_RE.test(f.displayName.trim())) e.displayName = 'Use 2–40 characters: letters, digits, spaces and . - & \'';
   if (company && f.legalName.trim() && (f.legalName.trim().length < 2 || f.legalName.trim().length > 120)) e.legalName = 'Use 2–120 characters.';
-  for (const k of ['website', 'pricingUrl', 'getKeyUrl', 'docsUrl', 'statusUrl'] as const) {
+  for (const k of ['website', 'pricingUrl', 'getKeyUrl', 'billingUrl', 'docsUrl', 'statusUrl'] as const) {
     if (f[k].trim() && !HTTPS_RE.test(f[k].trim())) e[k] = 'Enter a full address starting with https://';
   }
   if (f.support.trim() && !HTTPS_RE.test(f.support.trim()) && !EMAIL_RE.test(f.support.trim())) e.support = 'Enter an email address or an address starting with https://';
@@ -196,8 +198,8 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
         {msg && <div role="status" className={`st-note sw-flash${msg.bad ? ' is-bad' : ''}`}><div>{msg.text}</div></div>}
         {approved && (
           <Note title="Your page is published">
-            A new name, page address, domain or logo is reviewed first; until then your page keeps the published value.
-            Other changes go live after our automatic checks.
+            Changes to these fields go live at once; we may review them afterwards. Your name, registration details and notice email
+            stay as approved: contact us to change them.
           </Note>
         )}
 
@@ -208,21 +210,22 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
             <fieldset className="sw-fieldset" disabled={!editable || busy}>
               <Pane>
                 <div className="mp-form">
+                  {/* API M23: once approved, the basics and the notice email stay as approved (disabled; agreement 13.3); the rest saves at once. */}
                   <Part title="Basics">
                     <div className="sw-grid2">
                       <Field label={company ? 'Display name' : 'Handle'} who="public" error={errors.displayName}>
-                        <input className="st-input" value={f.displayName} maxLength={40} onChange={e => set({ displayName: e.target.value })} />
+                        <input className="st-input" value={f.displayName} maxLength={40} disabled={approved} onChange={e => set({ displayName: e.target.value })} />
                       </Field>
                       {company && (
                         <Field label="Legal name" who="public, as “Operated by …”" error={errors.legalName}>
-                          <input className="st-input" value={f.legalName} maxLength={120} onChange={e => set({ legalName: e.target.value })} />
+                          <input className="st-input" value={f.legalName} maxLength={120} disabled={approved} onChange={e => set({ legalName: e.target.value })} />
                         </Field>
                       )}
                       <Field label="Trading name" who="optional · public" error={errors.tradingName}>
-                        <input className="st-input" value={f.tradingName} maxLength={120} onChange={e => set({ tradingName: e.target.value })} />
+                        <input className="st-input" value={f.tradingName} maxLength={120} disabled={approved} onChange={e => set({ tradingName: e.target.value })} />
                       </Field>
                       <Field label={company ? 'Country of registration' : 'Country'} who="public" error={errors.country}>
-                        <select className="st-select" value={f.country} onChange={e => set({ country: e.target.value })}>
+                        <select className="st-select" value={f.country} disabled={approved} onChange={e => set({ country: e.target.value })}>
                           <option value="">Choose a country</option>
                           {countries.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
                         </select>
@@ -230,13 +233,13 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
                       {company && (
                         <>
                           <Field label="Company registration number" who="required to accept the agreement · not public" error={errors.companyNumber}>
-                            <input className="st-input" value={f.companyNumber} maxLength={60} onChange={e => set({ companyNumber: e.target.value })} />
+                            <input className="st-input" value={f.companyNumber} maxLength={60} disabled={approved} onChange={e => set({ companyNumber: e.target.value })} />
                           </Field>
                           <Field label="Registered office" who="required to accept the agreement · not public" error={errors.registeredOffice}>
-                            <input className="st-input" value={f.registeredOffice} maxLength={300} autoComplete="street-address" onChange={e => set({ registeredOffice: e.target.value })} />
+                            <input className="st-input" value={f.registeredOffice} maxLength={300} autoComplete="street-address" disabled={approved} onChange={e => set({ registeredOffice: e.target.value })} />
                           </Field>
                           <Field label="VAT number" who="optional · not public" error={errors.vatNumber}>
-                            <input className="st-input" value={f.vatNumber} maxLength={40} onChange={e => set({ vatNumber: e.target.value })} />
+                            <input className="st-input" value={f.vatNumber} maxLength={40} disabled={approved} onChange={e => set({ vatNumber: e.target.value })} />
                           </Field>
                         </>
                       )}
@@ -252,7 +255,7 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
                   <Part title="Notice email" id="notice" sub="Where we send formal notices about your provider account. Nobody else sees it.">
                     <div className="sw-grid2 sw-align-end">
                       <Field label="Notice email" who="not public" error={errors.noticeEmail}>
-                        <input className="st-input" type="email" value={f.noticeEmail} maxLength={254} onChange={e => set({ noticeEmail: e.target.value })} placeholder="legal@example.com" />
+                        <input className="st-input" type="email" value={f.noticeEmail} maxLength={254} disabled={approved} onChange={e => set({ noticeEmail: e.target.value })} placeholder="legal@example.com" />
                       </Field>
                       <div className="mp-inline">
                         {confirmedAt && f.noticeEmail && f.noticeEmail === JSON.parse(saved || '{}').noticeEmail && (
@@ -262,7 +265,9 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
                     </div>
                   </Part>
 
-                  <Part title="Links" sub="Each address must be on one of your verified domains, except where a field says otherwise. A link on a domain you have not verified yet is saved and marked until you verify it.">
+                  <Part title="Links" sub={approved
+                    ? 'Each address must be on one of your verified domains, except where a field says otherwise.'
+                    : 'Each address must be on one of your verified domains, except where a field says otherwise. A link on a domain you have not verified yet is saved and marked until you verify it.'}>
                     <div className="sw-grid2">
                       <Field label="Website" who="public" error={errors.website} warn={hostNote('website')}>
                         <input className="st-input" type="url" inputMode="url" value={f.website} maxLength={300} onChange={e => set({ website: e.target.value })} placeholder="https://example.com" />
@@ -272,6 +277,9 @@ export default function ProfileClient({ initial }: { initial: ProviderSummary })
                       </Field>
                       <Field label="Get-a-key page" who="public" hint="Needed before you submit. The main button on your page." error={errors.getKeyUrl} warn={hostNote('getKeyUrl')}>
                         <input className="st-input" type="url" inputMode="url" value={f.getKeyUrl} maxLength={300} onChange={e => set({ getKeyUrl: e.target.value })} placeholder="https://example.com/keys" />
+                      </Field>
+                      <Field label="Top up credit" who="optional · public" hint="The page where customers add credit or pay. Shown on your page and in the Smart Router, and emailed to customers whose key runs out of credit." error={errors.billingUrl} warn={hostNote('billingUrl')}>
+                        <input className="st-input" type="url" inputMode="url" value={f.billingUrl} maxLength={300} onChange={e => set({ billingUrl: e.target.value })} placeholder="https://example.com/billing" />
                       </Field>
                       <Field label="Docs" who="optional · public" hint="Also allowed: github.com/<org> or huggingface.co/<org>." error={errors.docsUrl} warn={hostNote('docsUrl')}>
                         <input className="st-input" type="url" inputMode="url" value={f.docsUrl} maxLength={300} onChange={e => set({ docsUrl: e.target.value })} placeholder="https://docs.example.com" />

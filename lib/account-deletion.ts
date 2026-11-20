@@ -8,8 +8,8 @@ import type { User } from '@/lib/db-client';
  * What goes: the account and everything that is only about it — watchlists, alert
  * preferences and deliveries, activation events, UI preferences, workspace and project
  * memberships (project_members), router credits, SSO tickets, billing notices (all ON DELETE CASCADE), the
- * forum profile and reactions, workspaces the person owns alone, and provider-account
- * memberships. What stays, without a link to the person: forum posts and topics (re-attributed
+ * forum profile and reactions, workspaces the person owns alone, provider-account
+ * memberships, and the delivery records of the host alerts and transfer notices mailed to it. What stays, without a link to the person: forum posts and topics (re-attributed
  * to the "Deleted user" placeholder so threads still read), provider-account legal and
  * moderation records (acceptances, actions, appeals, complaints, notices, reports: re-attributed
  * the same way), invitations other workspaces and provider accounts sent to the address, contact
@@ -201,6 +201,11 @@ export function deleteIdentityAccount(userId: number, placeholderId: number): Re
         if (email) {
           const n = db.prepare(`UPDATE marketplace_deliveries SET to_email = 'deleted-account' WHERE kind = 'user_test_statement' AND lower(to_email) = lower(?)`).run(email).changes;
           if (n > 0) counts.marketplace_deliveries_user_test = n;
+          // The alerts a listed host's drop sent to this address as a follower of the model (API M17, host_alert) and the
+          // notices of a connected host's transfer change (API M13, transfer_change) are about this person only: their
+          // delivery rows go. Counted only when one was sent.
+          const m = db.prepare(`DELETE FROM marketplace_deliveries WHERE kind IN ('host_alert', 'transfer_change') AND lower(to_email) = lower(?)`).run(email).changes;
+          if (m > 0) counts.marketplace_deliveries_alerts = m;
         }
       }
 

@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import ProviderLogo from '../ProviderLogo';
 import { HostMark } from '../marketplace/HostLogo';
 import WatchStar from '../WatchStar';
-import type { BoardRow } from '../../lib/use-boards';
+import { hostModelPart, hostsSummaryText, type BoardRow, type HostsSummary } from '../../lib/use-boards';
 
 /** Small shared pieces for the four leaderboard layouts. Styles: styles/studio-boards.css (sl-*). */
 
@@ -100,6 +100,73 @@ export function HostedName({ row, className = '' }: { row: BoardRow; className?:
       <span className="sl-hname-t">{narrow ? short : full}</span>
       <span ref={probe} className="sl-hname-probe" aria-hidden="true">{full}</span>
     </span>
+  );
+}
+
+// ── M16 (owner 2026-11-18): a leaderboard model's hosted providers, combined ───────────────────────────────────
+
+const HOSTS_TITLE = 'Independent hosts of this model, measured with our tests through each host\'s own API: the highest and the median of their scores on this board';
+
+/** Which rows' hosts are open in one layout, by "<board>:<row id>". */
+export function useOpenHosts() {
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const toggle = useCallback((key: string) => setOpen((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  }), []);
+  return [open, toggle] as const;
+}
+
+/** The id of a host list (aria-controls), from its key. */
+export const hostsListId = (key: string) => `sl-hosts-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+
+/**
+ * The chip under a leaderboard model's row: "3 hosts · best 71 · median 68" (`board` names the board where the row shows
+ * several). A button: it opens and closes the host rows (aria-expanded), and never follows the row's own link.
+ */
+export function HostsChip({ summary, open, onToggle, controls, board }: {
+  summary: HostsSummary; open: boolean; onToggle: () => void; controls: string; board?: string;
+}) {
+  const text = `${board ? `${board}: ` : ''}${hostsSummaryText(summary)}`;
+  return (
+    <button type="button" className={`sl-hchip${open ? ' is-open' : ''}`} aria-expanded={open} aria-controls={controls} title={HOSTS_TITLE}
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}>
+      <HostIcon size={12} />
+      <span className="sl-hchip-t">{text}</span>
+      <svg className="sl-hchip-chev" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+    </button>
+  );
+}
+
+/** The host rows under the chip: each host linking to its listing page, the model as listed, its whole-point score. */
+export function HostsRows({ summary, id, model }: { summary: HostsSummary; id: string; model: string }) {
+  return (
+    <ul id={id} className="sl-hrows" aria-label={`Hosts of ${model}`}>
+      {summary.rows.map((r) => (
+        <li key={r.href} className="sl-hrows-row">
+          <Link href={r.href} className="sl-hrows-name" title={r.label}>{r.provider.displayName}</Link>
+          <span className="sl-hrows-model">{hostModelPart(r.label)}</span>
+          <span className="sl-hrows-score">{r.score}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The chip with its rows, for the layouts where they sit inside the row (above its stretched link). */
+export function RowHosts({ row, k, open, onToggle, board }: {
+  row: BoardRow; k: string; open: boolean; onToggle: (key: string) => void; board?: string;
+}) {
+  const s = row.hostsSummary;
+  if (!s) return null;
+  const id = hostsListId(k);
+  return (
+    <div className="sl-row-hosts">
+      <HostsChip summary={s} open={open} onToggle={() => onToggle(k)} controls={id} board={board} />
+      {open && <HostsRows summary={s} id={id} model={row.label} />}
+    </div>
   );
 }
 
