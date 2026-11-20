@@ -308,3 +308,20 @@
   .lp .rd-plans th:first-child { position: sticky; left: 0; z-index: 1; width: 160px; min-width: 160px; background: var(--lp-card); }
   .lp .rd-plans thead th:first-child { background: var(--lp-sunk); }
 }
+
+/* ── the investor page: what companies in this layer were funded and bought at, with bars to scale ── */
+.lp .rd-outcomes tbody th { white-space: nowrap; }
+@media (max-width: 760px) {
+  /* Three columns do not fit a phone: each row becomes a block with the name and the figure on one line,
+     the bar under them and the text last. The header row stays for screen readers. */
+  .lp .rd-outcomes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .lp .rd-outcomes, .lp .rd-outcomes tbody { display: block; }
+  .lp .rd-outcomes tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 8px; align-items: baseline; padding: 16px 16px 18px; border-bottom: 1px solid var(--lp-line); }
+  .lp .rd-outcomes tbody tr:last-child { border-bottom: 0; }
+  .lp .rd-outcomes tbody th, .lp .rd-outcomes tbody td { display: block; width: auto; padding: 0; border-bottom: 0 !important; }
+  .lp .rd-outcomes tbody td.rd-wt { display: contents; }
+  .lp .rd-outcomes tbody th { font-size: 16px; }
+  .lp .rd-outcomes .rd-wt b { font-size: 16px; }
+  .lp .rd-outcomes .rd-w { grid-column: 1 / -1; margin-top: 0; }
+  .lp .rd-outcomes tbody td.muted { grid-column: 1 / -1; font-size: 14.5px; line-height: 1.6; }
+}
