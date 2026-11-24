@@ -241,7 +241,9 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
       .then(rf => { if (rf?.success && rf.data?.eligible) setRefund(rf.data as Refundable); })
       .catch(() => {});
     // Whether Cancel subscription shows. Not part of the wait either, and never in the way of
-    // Manage billing, which cancels too.
+    // Manage billing. While the button shows, Manage billing asks for the portal without a cancel
+    // of its own, so cancelling starts in one place (app/api/stripe/portal). If this reading
+    // fails the button stays off and Manage billing opens the whole portal, cancel included.
     fetch('/api/stripe/cancel/status', { cache: 'no-store' }).then(r => r.json())
       .then(cs => setCancellable(!!cs?.success && !!cs.data?.cancellable))
       .catch(() => {});
@@ -403,7 +405,7 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
               <div className="st-actions">
                 {plan === 'free'
                   ? <Link href="/pricing" className="st-btn is-primary">See plans <span className="st-ar" aria-hidden="true">→</span></Link>
-                  : <a href="/api/stripe/portal" className="st-btn is-primary">Manage billing</a>}
+                  : <a href={cancellable ? '/api/stripe/portal?without=cancel' : '/api/stripe/portal'} className="st-btn is-primary">Manage billing</a>}
                 <a href="#change-plan" className="st-btn">Change plan</a>
                 {/* Straight to Stripe's cancel page for this subscription (app/api/stripe/cancel). */}
                 {cancellable && <a href="/api/stripe/cancel" className="st-btn">Cancel subscription</a>}
@@ -413,13 +415,15 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
                   "Manage billing" mints a session for them and needs no second
                   sign-in, but if it ever fails the customer must not be left without
                   a way to cancel — being unable to stop paying is the one failure
-                  that is never acceptable on a billing page. */}
+                  that is never acceptable on a billing page. This link always opens
+                  the whole portal, cancel included. */}
               {plan !== 'free' && PORTAL_LOGIN_URL && (
                 <p className="sc-plan-fine">
-                  Cancel, change your card or download invoices from the billing portal. If the button
-                  above does not open it,{' '}
+                  {cancellable
+                    ? 'Change your card or download invoices from the billing portal. If a button above does not open,'
+                    : 'Cancel, change your card or download invoices from the billing portal. If the button above does not open it,'}{' '}
                   <a href={PORTAL_LOGIN_URL} target="_blank" rel="noopener noreferrer">sign in to Stripe directly</a>{' '}
-                  with the email you pay from.
+                  {cancellable ? 'with the email you pay from; you can cancel there too.' : 'with the email you pay from.'}
                 </p>
               )}
             </div>
@@ -444,8 +448,8 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
         </section>
 
         {/* The 7-day refund window of a first subscription (lib/paid-start.ts). Nothing else on this
-            page refunds: Manage billing (the portal) stops the next renewal and keeps the plan to
-            the end of the paid period. */}
+            page refunds: cancelling (Cancel subscription, or the portal) stops the next renewal and
+            keeps the plan to the end of the paid period. */}
         {(refund || refundNote) && (
           <Pane title={refund ? 'Changed your mind?' : 'Cancel and refund'} ruled className="sc-refund">
             {refund && (refund.requested

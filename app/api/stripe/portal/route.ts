@@ -2,12 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import Stripe from 'stripe';
 import { findUserById } from '@/lib/db-client';
+import { hasCancelButton } from '@/lib/stay-offer';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
 });
 
-// Handle GET requests - create portal session and redirect
+/**
+ * Manage billing (GET): opens the Stripe portal for the signed-in account (its payment method,
+ * invoices and billing details) and redirects there.
+ *
+ * Cancelling has its own button on the billing page, which opens Stripe's cancel page with the
+ * stay offer (app/api/stripe/cancel, lib/stay-offer.ts). While the page shows that button it asks
+ * for the portal without a cancel of its own (?without=cancel), so cancelling starts in one place
+ * and the offer is not missed by taking the other door. That portal is a second portal
+ * configuration in Stripe, named by STRIPE_PORTAL_WITHOUT_CANCEL.
+ *
+ * It is used only while the account still has the button: a subscription already set to end
+ * needs the whole portal, where it can be resumed. Without the request, without the setting, or
+ * when Stripe will not open the portal that way, the whole portal opens as it always did: the way
+ * to the portal never depends on this.
+ */
 export async function GET(request: NextRequest) {
   try {
     // Get authenticated user
@@ -38,10 +53,23 @@ export async function GET(request: NextRequest) {
     console.log('[Portal] Creating portal session for customer:', user.stripe_customer_id);
 
     // Create Stripe billing portal session
-    const portalSession = await stripe.billingPortal.sessions.create({
-      customer: user.stripe_customer_id,
+    const customer = user.stripe_customer_id;
+    const withoutCancel = request.nextUrl.searchParams.get('without') === 'cancel' && hasCancelButton(user)
+      ? process.env.STRIPE_PORTAL_WITHOUT_CANCEL || null
+      : null;
+    const open = (configuration: string | null) => stripe.billingPortal.sessions.create({
+      customer,
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/billing`,
+      ...(configuration ? { configuration } : {}),
     });
+    let portalSession: Stripe.BillingPortal.Session;
+    try {
+      portalSession = await open(withoutCancel);
+    } catch (err) {
+      if (!withoutCancel) throw err;
+      console.warn(`[Portal] the portal would not open without its own cancel for user ${user.id}; opening the whole portal:`, err instanceof Error ? err.message : err);
+      portalSession = await open(null);
+    }
 
     console.log('[Portal] Portal session created, redirecting to:', portalSession.url);
 

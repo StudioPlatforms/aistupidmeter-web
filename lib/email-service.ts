@@ -314,7 +314,7 @@ export async function sendPurchaseConfirmationEmail(
   if (opts.trialEnds) rows.push(['First charge', opts.trialEnds]);
 
   const intro = opts.trialEnds
-    ? `Your ${opts.planLabel} trial has started. You will not be charged until the date below, and you can cancel before then from the billing portal without paying anything.`
+    ? `Your ${opts.planLabel} trial has started. You will not be charged until the date below, and you can cancel before then from your billing page without paying anything.`
     : `Your ${opts.planLabel} subscription is active. Here is what you bought.`;
 
   return deliver(
@@ -353,7 +353,7 @@ function sendPaidConfirmation(
     ...(until ? [['Full refund until', until] as [string, string]] : []),
   ];
   const billing = `${SITE}/account/billing`;
-  const after = 'Cancelling from the billing portal stops the next renewal, and you keep the plan until the end of the period you have paid for.';
+  const after = 'Cancelling there stops the next renewal, and you keep the plan until the end of the period you have paid for.';
   const footnote = 'Manage or cancel your subscription any time from your billing page. ' +
     'Provider inference is billed separately by your own AI providers — we never mark it up.';
   return deliver(

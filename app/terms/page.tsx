@@ -9,8 +9,9 @@ import ListedHosts from './ListedHosts';
  * (lib/entitlements.ts, app/pricing/PricingClient.tsx) and the billing code (lib/paid-start.ts) as
  * of 2026-11-14; keep them in step. Provider marketplace release M12 (the opening): the "Listed hosts and provider
  * accounts" section, kept in ListedHosts.tsx with why it is true.
- * UPDATED is the day the page last changed for what it says: M12's planned deploy day; if the deploy moves, this date
- * moves with it (and lib/legal-dates.ts with it), in its own commit, before the web build.
+ * Cancelling starts at Cancel subscription on the billing page (lib/stay-offer.ts); the row says so.
+ * UPDATED is the day the page last changed for what it says, the day that change is deployed; if the deploy moves,
+ * this date moves with it (and lib/legal-dates.ts with it), before the web build.
  */
 
 export const metadata: Metadata = pageMeta({
@@ -19,7 +20,7 @@ export const metadata: Metadata = pageMeta({
   path: '/terms',
 });
 
-const UPDATED = '17 November 2026';
+const UPDATED = '24 November 2026';
 const EMAIL = 'hello@aistupidlevel.info';
 
 const TOC = [
@@ -122,7 +123,7 @@ export default function TermsPage() {
           ['7-day refund', 'Within 7 days of your first subscription on an account, Cancel and refund on the billing page ends the plan at once and we refund the full amount you paid. This is in addition to the EU right of withdrawal below.'],
           ['Earlier free trials', 'A subscription that began with a free trial is charged when the trial ends, unless you cancel before then.'],
           ['Renewal', 'Subscriptions renew automatically, monthly or yearly, until you cancel.'],
-          ['Cancelling', 'Cancel any time in the billing portal, which Manage billing on your billing page opens. You keep the paid plan until the end of the period already paid for, and you are not charged again.'],
+          ['Cancelling', 'Cancel any time with Cancel subscription on your billing page. You keep the paid plan until the end of the period already paid for, and you are not charged again.'],
           ['Price changes', 'We will tell you about a price change for your subscription at least 30 days before it applies. You can cancel before then.'],
           ['Refunds', 'Except for the 7-day refund above, where the law requires it (see the next section), or where we say otherwise in writing (for example the assessment’s refund promise), payments are not refunded.'],
           ['Failed payments', 'If a payment fails, Stripe retries it. If the subscription is cancelled because payment could not be collected, the account returns to the Free plan.'],

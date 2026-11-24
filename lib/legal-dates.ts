@@ -3,8 +3,8 @@
  * pages' own UPDATED constants say the same day (tests/m12 checks they agree). Change both together, on the deploy day.
  */
 export const LEGAL_UPDATED: Readonly<Record<string, string>> = Object.freeze({
-  '/privacy': '18 November 2026',
-  '/terms': '17 November 2026',
+  '/privacy': '24 November 2026',
+  '/terms': '24 November 2026',
 });
 
 /** The day as a Date (midnight UTC), or undefined for a path without one or a day that does not parse. */

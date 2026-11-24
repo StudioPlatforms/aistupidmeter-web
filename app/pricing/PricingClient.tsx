@@ -307,8 +307,8 @@ export default function PricingClient({ buyable = [] }: { buyable?: string[] }) 
           </div>
           <p className="pr-fine">
             Prices in USD, excluding any applicable tax. You pay when you subscribe. Within 7 days of your first
-            subscription, Cancel and refund on your billing page refunds it in full; cancelling in the billing portal at
-            any time stops the next renewal.
+            subscription, Cancel and refund on your billing page refunds it in full; Cancel subscription, on the same
+            page, stops the next renewal at any time.
           </p>
         </div>
       </section>

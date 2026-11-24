@@ -5,8 +5,13 @@
  * session opened on its cancel flow). When the account qualifies, the session carries a retention
  * coupon, so the page first offers the discount: accepting applies the coupon to the
  * subscription and keeps it, declining goes on to cancel as usual. Nothing about cancelling is
- * hidden or slowed: the offer is one screen with both choices, and Manage billing still opens the
- * whole portal.
+ * hidden or slowed: the offer is one screen with both choices.
+ *
+ * Cancelling starts in one place. While the billing page shows Cancel subscription
+ * (hasCancelButton), Manage billing opens the portal without a cancel of its own
+ * (app/api/stripe/portal), so the offer is not missed by taking the other door. Stripe's own
+ * sign-in link to the portal, the fallback on the billing page, always opens the whole portal,
+ * cancel included: the way out never depends on this code.
  *
  * Offered once per account, and only where it means something:
  *  - the subscription is running (active or in a trial) and not already set to end;
@@ -30,6 +35,22 @@ export const STAY_COUPONS = {
 
 export const isStayCoupon = (id: string | null | undefined): boolean =>
   !!id && (id === STAY_COUPONS.month || id === STAY_COUPONS.year);
+
+/**
+ * Whether the billing page shows Cancel subscription for this account: it has a subscription of
+ * its own that is not already set to end. Read from the account alone (no call to Stripe), so it
+ * never holds a page up. A complimentary plan has no subscription to cancel, and one already
+ * cancelled is managed from the whole portal (Manage billing), where it can be resumed.
+ */
+export function hasCancelButton(user: {
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_tier?: string | null;
+  subscription_canceled_at?: string | null;
+} | null | undefined): boolean {
+  return !!user && !!user.stripe_customer_id && !!user.stripe_subscription_id
+    && user.subscription_tier !== 'free' && !user.subscription_canceled_at;
+}
 
 /** Whether the account has already taken a stay offer. */
 export function stayOfferTaken(userId: number): boolean {
