@@ -26,6 +26,14 @@ const NOTICE: Record<string, string> = {
   granted_late: 'Plan granted by the watch',
   upgrade_voided: 'Unpaid plan change voided',
   credit_reversed: 'Plan-change credit reversed',
+  ended_no_account: 'Ended: account deleted',
+  ended_cancel_unpaid: 'Ended: cancelled while unpaid',
+  ended_unpaid: 'Ended: payment failed twice',
+  account_deleted: 'Account deleted',
+  cancel_confirmed: 'Emailed: cancellation confirmed',
+  ended_confirmed: 'Emailed: subscription ended',
+  stay_offer_accepted: 'Accepted the stay offer',
+  ended_cancelled: 'Ended: cancellation ran out',
 };
 
 const ENDED = new Set(['canceled', 'incomplete_expired']);

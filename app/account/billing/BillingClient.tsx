@@ -72,6 +72,8 @@ interface SwitchPreview {
   currency: string;
   prorationDate: number;
   endsTrial: boolean;
+  /** The stay discount was for the current plan and ends with this change (the amount shown is without it). */
+  endsStayDiscount?: boolean;
 }
 
 /** A plan change whose payment did not go through: Stripe drops it unpaid at `payBy` (about 23 hours). */
@@ -145,6 +147,8 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
   const [confirming, setConfirming] = useState(false);
   const [payUrl, setPayUrl] = useState<string | null>(null);
   const [refund, setRefund] = useState<Refundable | null>(null);
+  /** The account has a subscription of its own that is not already set to end (app/api/stripe/cancel/status). */
+  const [cancellable, setCancellable] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   const [refunding, setRefunding] = useState(false);
   const [refundNote, setRefundNote] = useState<{ tone: 'good' | 'warn'; text: string } | null>(null);
@@ -235,6 +239,11 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
     // appears when the answer does.
     fetch('/api/stripe/refund', { cache: 'no-store' }).then(r => r.json())
       .then(rf => { if (rf?.success && rf.data?.eligible) setRefund(rf.data as Refundable); })
+      .catch(() => {});
+    // Whether Cancel subscription shows. Not part of the wait either, and never in the way of
+    // Manage billing, which cancels too.
+    fetch('/api/stripe/cancel/status', { cache: 'no-store' }).then(r => r.json())
+      .then(cs => setCancellable(!!cs?.success && !!cs.data?.cancellable))
       .catch(() => {});
   }, [status]);
 
@@ -396,6 +405,8 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
                   ? <Link href="/pricing" className="st-btn is-primary">See plans <span className="st-ar" aria-hidden="true">→</span></Link>
                   : <a href="/api/stripe/portal" className="st-btn is-primary">Manage billing</a>}
                 <a href="#change-plan" className="st-btn">Change plan</a>
+                {/* Straight to Stripe's cancel page for this subscription (app/api/stripe/cancel). */}
+                {cancellable && <a href="/api/stripe/cancel" className="st-btn">Cancel subscription</a>}
               </div>
 
               {/* A second route to the portal, always present for a paying customer.
@@ -582,9 +593,10 @@ export default function BillingClient({ buyable = [] }: { buyable?: string[] }) 
             const due = preview.amountDueCents;
             const amount = moneyOf(due, preview.currency);
             const trial = preview.endsTrial ? 'This ends your trial today. ' : '';
-            const body = due > 0
+            const stay = preview.endsStayDiscount ? ' Your current discount was for the plan you have now and ends with this change.' : '';
+            const body = (due > 0
               ? `${trial}You pay ${amount} today.${preview.endsTrial ? '' : ' This already takes off the unused part of your current plan.'}`
-              : `${trial}Nothing to pay today. The unused part of your current plan is credited to your next invoices.`;
+              : `${trial}Nothing to pay today. The unused part of your current plan is credited to your next invoices.`) + stay;
             const target = PLANS[preview.plan];
             const per = preview.interval === 'annual' ? target.priceAnnual : target.priceMonthly;
             return (

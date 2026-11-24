@@ -50,7 +50,7 @@ export const metadata: Metadata = pageMeta({
  * date moves with it, and lib/legal-dates.ts with it, in its own commit, before the web build). A production build
  * refuses the deploy-day placeholder, as for A1 and A2.
  */
-const UPDATED: string = '18 November 2026';
+const UPDATED: string = '24 November 2026';
 if (UPDATED === 'AW4_DEPLOY_DAY' && process.env.NODE_ENV === 'production') {
   throw new Error('app/privacy/page.tsx: set UPDATED to the day router A1d is deployed before building this branch');
 }
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
 
       <RdSection id="retention" n={n('retention')} title="How long we keep it">
         <RdFacts rows={[
-          ['Account and settings', 'Until you delete your account (Settings, Delete account). Deleting it removes your data from both our databases; your forum posts stay, credited to “Deleted user”.'],
+          ['Account and settings', 'Until you delete your account (Settings, Delete account). Deleting it removes your data from both our databases; your forum posts stay, credited to “Deleted user”. It also ends any subscription the account still has and removes its saved payment method; we keep a note that the account was deleted (its number, no personal details), so that nothing can be charged to it afterwards.'],
           ['Request records', 'While your account exists. Deleted with your account.'],
           ['Logged prompts', 'Your retention setting, 90 days by default. Only if you turned logging on.'],
           ['Retry protection and tool-call turns', '24 hours.'],

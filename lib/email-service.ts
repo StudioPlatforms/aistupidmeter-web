@@ -455,7 +455,11 @@ export async function sendPaymentFailedEmail(
   email: string,
   opts: { planLabel: string; amount: string; nextAttempt: string | null },
 ) {
-  const retry = opts.nextAttempt ? `We will try again on ${opts.nextAttempt}. ` : '';
+  // A payment is tried twice at most (lib/billing-end.ts): this goes out after the first failure,
+  // so the attempt it names is the last one.
+  const outcome = opts.nextAttempt
+    ? `We will try once more on ${opts.nextAttempt}. If that payment also fails, your subscription will be cancelled, nothing further will be charged, and your account will move to the free plan.`
+    : `If the payment keeps failing, your subscription will be cancelled and your account will move to the free plan.`;
   return deliver(
     email,
     'Your AI Stupid Level payment did not go through',
@@ -463,8 +467,7 @@ export async function sendPaymentFailedEmail(
       heading: 'Your payment did not go through',
       preheader: 'Update your payment method to keep your subscription.',
       intro:
-        `We could not collect the payment for your ${opts.planLabel} subscription. ${retry}` +
-        `If the payment keeps failing, your subscription will be cancelled and your account will move to the free plan. ` +
+        `We could not collect the payment for your ${opts.planLabel} subscription. ${outcome} ` +
         `To keep it, update your payment method.`,
       rows: [
         ['Plan', opts.planLabel],
@@ -475,8 +478,7 @@ export async function sendPaymentFailedEmail(
       ctaUrl: `${SITE}/account/billing`,
       footnote: `If you meant to stop, you do not need to do anything. Questions: <a href="${SITE}/contact" style="color:#1a73e8;text-decoration:none;">contact us</a>.`,
     }),
-    `We could not collect the payment for your ${opts.planLabel} subscription (${opts.amount}). ${retry}` +
-    `If the payment keeps failing, your subscription will be cancelled and your account will move to the free plan.\n\n` +
+    `We could not collect the payment for your ${opts.planLabel} subscription (${opts.amount}). ${outcome}\n\n` +
     `Update your payment method: ${SITE}/account/billing\n`
   );
 }
@@ -499,6 +501,84 @@ export async function sendSubscriptionCancelledUnpaidEmail(email: string, opts: 
     }),
     `We could not collect the payment for your ${opts.planLabel} subscription, so it has been cancelled ` +
     `and your account is now on the free plan. You can subscribe again at any time:\n${SITE}/pricing\n`
+  );
+}
+
+/**
+ * The customer cancelled, and the period already paid for runs on (lib/billing-watch.ts
+ * notifyCancellationConfirmed). Says when the plan ends, that nothing more is charged, and that
+ * it can still be resumed until then.
+ */
+export async function sendCancellationConfirmedEmail(email: string, opts: { planLabel: string; endsOn: string | null; trial?: boolean }) {
+  // A trial was never charged, so "again" would be untrue of it.
+  const charged = opts.trial ? 'you will not be charged' : 'you will not be charged again';
+  const until = opts.endsOn
+    ? `You keep ${opts.planLabel} until ${opts.endsOn}, and ${charged}.`
+    : `You keep ${opts.planLabel} until the end of the period you have paid for, and ${charged}.`;
+  return deliver(
+    email,
+    'Your AI Stupid Level subscription is cancelled',
+    renderEmail({
+      heading: 'Your subscription is cancelled',
+      preheader: opts.endsOn ? `You keep ${opts.planLabel} until ${opts.endsOn}.` : 'It will not renew.',
+      intro:
+        `Your ${opts.planLabel} subscription is cancelled and will not renew. ${until} ` +
+        `If you change your mind, you can resume it from your billing page any time before then.`,
+      rows: [
+        ['Plan', opts.planLabel],
+        ...(opts.endsOn ? [['Ends on', opts.endsOn] as [string, string]] : []),
+      ],
+      ctaLabel: 'Open billing',
+      ctaUrl: `${SITE}/account/billing`,
+      footnote: `If you did not cancel, <a href="${SITE}/contact" style="color:#1a73e8;text-decoration:none;">contact us</a>.`,
+    }),
+    `Your ${opts.planLabel} subscription is cancelled and will not renew. ${until} ` +
+    `If you change your mind, you can resume it from your billing page any time before then:\n${SITE}/account/billing\n`
+  );
+}
+
+/**
+ * The customer cancelled while a payment was owed, so the subscription ended at once
+ * (lib/billing-end.ts): nothing more is charged.
+ */
+export async function sendCancelledNowEmail(email: string, opts: { planLabel: string }) {
+  const body =
+    `Your ${opts.planLabel} subscription is cancelled, effective immediately. Nothing further will be charged, ` +
+    `and your account is now on the free plan. Your account, watchlist and settings are unchanged, ` +
+    `and you can subscribe again at any time.`;
+  return deliver(
+    email,
+    'Your AI Stupid Level subscription is cancelled',
+    renderEmail({
+      heading: 'Your subscription is cancelled',
+      preheader: 'Nothing further will be charged.',
+      intro: body,
+      ctaLabel: 'See plans',
+      ctaUrl: `${SITE}/pricing`,
+      footnote: `If you did not cancel, <a href="${SITE}/contact" style="color:#1a73e8;text-decoration:none;">contact us</a>.`,
+    }),
+    `${body}\n${SITE}/pricing\n`
+  );
+}
+
+/** A cancelled subscription reached its end: the account is on the free plan now. */
+export async function sendSubscriptionEndedEmail(email: string, opts: { planLabel: string }) {
+  const body =
+    `Your ${opts.planLabel} subscription has ended and your account is now on the free plan. ` +
+    `Nothing further will be charged. Your account, watchlist and settings are unchanged, ` +
+    `and you can subscribe again at any time.`;
+  return deliver(
+    email,
+    'Your AI Stupid Level subscription has ended',
+    renderEmail({
+      heading: 'Your subscription has ended',
+      preheader: 'Your account is now on the free plan.',
+      intro: body,
+      ctaLabel: 'See plans',
+      ctaUrl: `${SITE}/pricing`,
+      footnote: `Questions: <a href="${SITE}/contact" style="color:#1a73e8;text-decoration:none;">contact us</a>.`,
+    }),
+    `${body}\n${SITE}/pricing\n`
   );
 }
 

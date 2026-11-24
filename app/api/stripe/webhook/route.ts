@@ -5,9 +5,13 @@ import { markAssessmentPaid } from '@/lib/assessment';
 import { applyCreditPurchase } from '@/lib/router-credits';
 import { recordActivation } from '@/lib/activation';
 import { sendPurchaseConfirmationEmail, sendTrialEndingEmail } from '@/lib/email-service';
-import { PLANS, isPlan, ownPlanFor } from '@/lib/entitlements';
-import { notifyCancelledUnpaid, notifyPaymentFailed } from '@/lib/billing-watch';
-import { recordNotice } from '@/lib/billing-notices';
+import { PLANS, isPlan, ownPlanFor, type Plan } from '@/lib/entitlements';
+import {
+  cancelEmailsOn, isInternal, notifyCancellationConfirmed, notifyCancelledNow, notifyCancelledUnpaid, notifyPaymentFailed, notifySubscriptionEnded,
+} from '@/lib/billing-watch';
+import { stayCouponOn } from '@/lib/stay-offer';
+import { hasFinishedNotice, hasNotice, once, recordNotice } from '@/lib/billing-notices';
+import { END_COMMENT, MAX_PAYMENT_ATTEMPTS, endBillingNow, isOwnEnding, isUnpaid } from '@/lib/billing-end';
 import { activatePaidStart, formatMoney, isPaidStart, refundRequested } from '@/lib/paid-start';
 import { 
   updateStripeCustomerId,
@@ -208,6 +212,56 @@ export async function POST(request: NextRequest) {
         const user = metaUserId
           ? findUserById(parseInt(metaUserId))
           : findUserByStripeCustomerId(subscription.customer as string);
+
+        // A subscription this code ended (lib/billing-end.ts) is not touched by any event about it
+        // again: one from before the ending, delivered or retried late, would grant the plan back.
+        // (A finished ending only: a claim a stopped server left behind must not silence the
+        // subscription for good.)
+        if (hasFinishedNotice('ended_cancel_unpaid', subscription.id) || hasFinishedNotice('ended_unpaid', subscription.id)) {
+          console.warn(`[stripe webhook] ignoring an update of ${subscription.id}: it was ended for a payment owed`);
+          break;
+        }
+
+        // Cancelled while a payment is owed: the period the cancellation would run to was never
+        // paid for, and Stripe would go on retrying its invoice. It ends now and nothing more is
+        // collected. Only a subscription our checkout made for an account (or the one an account
+        // uses), and only if this still holds on a fresh reading: the event may be late, and one
+        // paid in the meantime must stay. Before the account check: it holds for a subscription
+        // whose account is gone too. The deletion event that follows moves the account to Free.
+        const oursToEnd = !!metaUserId || (!!user && user.stripe_subscription_id === subscription.id);
+        if (cancellation(subscription) && isUnpaid(subscription.status) && oursToEnd
+          && !refundRequested(subscription) && !(user && isInternal(user))) {
+          let stale: string | undefined;
+          // The account is told when this is the subscription it uses and it had a plan from it;
+          // the record carries the account exactly then, which is how the billing watch finds
+          // an email that did not send.
+          const planWas = user && user.stripe_subscription_id === subscription.id ? ownPlanFor(user) : 'free';
+          const told = !!user && planWas !== 'free';
+          const done = await once(
+            {
+              kind: 'ended_cancel_unpaid', userId: told ? user!.id : null, email: user?.email ?? null, ref: subscription.id,
+              detail: `Cancelled by the customer with a payment unpaid: ${subscription.id} ended now, its open invoice voided${user && !told ? ` (account ${user.id})` : ''}`,
+            },
+            async () => {
+              const out = await endBillingNow(subscription.id, END_COMMENT.cancelled_unpaid, 'cancelled_unpaid');
+              if (out.skipped) { stale = out.skipped; return { success: false, error: out.skipped }; }
+              if (out.notVoided.length) console.error(`[stripe webhook] ${subscription.id} ended, an invoice not voided yet (the billing watch voids it): ${out.notVoided[0].error}`);
+            },
+            false,
+          );
+          // Ended, or already being ended elsewhere: nothing more for this event. A late event
+          // (it no longer holds) or a refusal by Stripe is handled as any update; the billing
+          // watch ends the subscription on its next run if it still should be.
+          if (stale) console.warn(`[stripe webhook] ${subscription.id} not ended at its cancellation: ${stale}`);
+          else if (done?.error) console.error(`[stripe webhook] ${subscription.id} could not be ended at its cancellation: ${done.error}`);
+          else {
+            // Tell the customer it ended at once and nothing more is charged (the account's plan
+            // as it was: the deletion event moves it to Free in a moment).
+            if (done?.done && told) void notifyCancelledNow(user!, subscription.id, planWas).catch(() => {});
+            break;
+          }
+        }
+
         if (!user) {
           console.error('Could not find user for subscription update');
           break;
@@ -232,10 +286,19 @@ export async function POST(request: NextRequest) {
         // cancel or relabel the one this account is paying for.
         const current = !user.stripe_subscription_id || user.stripe_subscription_id === subscription.id;
         const cancelled = cancellation(subscription);
-        if (cancelled) {
-          if (!current) break;
+        if (cancelled && !current) {
+          // A leftover subscription's cancellation: nothing of the account changes.
+        } else if (cancelled) {
           cancelSubscription(user.id, cancelled.endsAt);
           console.log(`Subscription canceled for user ${user.id}, ends at ${cancelled.endsAt ?? 'unknown'}`);
+          // Confirm it to the customer: until when the plan runs, and that nothing more is charged.
+          // Not while a payment is owed: that one ends at once, above, and says so.
+          const planNow = ownPlanFor(user);
+          if (planNow !== 'free' && (subscription.status === 'active' || subscription.status === 'trialing')) {
+            const at = (subscription as any).canceled_at;
+            void notifyCancellationConfirmed(user,
+              { id: subscription.id, canceledAt: typeof at === 'number' ? at : null, endsAt: cancelled.endsAt, trial: subscription.status === 'trialing' }, planNow).catch(() => {});
+          }
         } else if (subscription.status === 'active') {
           const plan = planForSubscription(subscription);
           activateSubscription(user.id, subscription.id, plan);
@@ -255,6 +318,19 @@ export async function POST(request: NextRequest) {
           });
           if (trialing) syncDataApiTier(user.id);
           console.log(`Subscription for user ${user.id} is ${subscription.status}`);
+        }
+
+        // The stay offer of the cancel page, accepted: its coupon is on the subscription now.
+        // Recorded once per subscription; an account is offered it once (lib/stay-offer.ts). After
+        // everything above, so a reading that fails never holds the account's state back; it does
+        // fail the event, so Stripe sends it again and an acceptance is not lost. Read only when
+        // the event says the discounts changed (or does not say what changed).
+        const discounts = (subscription as any).discounts;
+        const before = (event.data as any).previous_attributes;
+        if (Array.isArray(discounts) && discounts.length > 0 && (!before || 'discounts' in before)
+          && !hasNotice('stay_offer_accepted', subscription.id)) {
+          const coupon = stayCouponOn(await stripe.subscriptions.retrieve(subscription.id, { expand: ['discounts'] }));
+          if (coupon) recordNotice(user.id, 'stay_offer_accepted', subscription.id, `Took the stay offer on the cancel page (${coupon})`);
         }
         break;
       }
@@ -284,9 +360,20 @@ export async function POST(request: NextRequest) {
           );
           break;
         }
+        // Nor an account with no subscription linked: its plan, if it has one, does not come from
+        // this subscription (a complimentary plan), or it was moved to Free already when this
+        // subscription was ended for a payment owed.
+        if (!user.stripe_subscription_id) {
+          console.log(`[stripe] ignoring deletion of ${subscription.id} for user ${user.id}: no subscription is linked to the account`);
+          break;
+        }
 
         // Downgrade to free tier
         const planBefore = ownPlanFor(user);
+        // The plan this subscription was giving, for the "has ended" email: ownPlanFor already
+        // reads Free once a cancelled period has run out, which is exactly when this event comes,
+        // so the stored tier is read then.
+        const endedPlan: Plan = planBefore !== 'free' ? planBefore : (isPlan(user.subscription_tier) ? user.subscription_tier : 'free');
         downgradeToFree(user.id);
         // Data API keys carry their own tier column and would otherwise keep a
         // paid quota indefinitely — a cancelled Teams key stays at 100,000/day
@@ -298,6 +385,15 @@ export async function POST(request: NextRequest) {
         // billing watch would otherwise send it on its next run).
         if ((subscription as any).cancellation_details?.reason === 'payment_failed' && planBefore !== 'free') {
           void notifyCancelledUnpaid(user, subscription.id, planBefore).catch(() => {});
+        } else if (endedPlan !== 'free' && cancelEmailsOn() && !refundRequested(subscription)
+          && !isOwnEnding((subscription as any).cancellation_details?.comment)
+          && !hasNotice('ended_cancel_unpaid', subscription.id) && !hasNotice('ended_unpaid', subscription.id)) {
+          // Reached its end some other way (the customer's cancellation, usually): say so. Never
+          // for an ending made here (its comment says so, before any record of it exists): one
+          // ended for a payment owed has had its own email, and an account being deleted is not
+          // "on the free plan". The record is what the email is owed on, should it not send now.
+          recordNotice(user.id, 'ended_cancelled', subscription.id, `${PLANS[endedPlan].label} ended after its cancellation`);
+          void notifySubscriptionEnded(user, subscription.id, endedPlan).catch(() => {});
         }
         break;
       }
@@ -365,6 +461,44 @@ export async function POST(request: NextRequest) {
           if (!atRisk) break;
         }
         const payer = findUserByStripeCustomerId(invoice.customer as string);
+
+        // The second failed attempt (the first charge and one retry) ends the subscription: it is
+        // cancelled now, its invoice voided, and nothing more is collected (lib/billing-end.ts).
+        // Only a subscription our checkout made for an account (or the one an account uses), and
+        // only if it still holds on a fresh reading: the subscription unpaid, this invoice open
+        // and tried twice. A plan change waiting for its payment leaves the subscription active
+        // and is not ended. The deletion event that follows moves the account to Free; the
+        // customer is emailed once, and the billing watch sends that email if it did not go (the
+        // record carries the account exactly when one is due).
+        const madeFor = (invoice as any).parent?.subscription_details?.metadata?.userId;
+        const uses = !!payer && !!failedSub && payer.stripe_subscription_id === failedSub;
+        if (failedSub && (uses || !!madeFor) && (invoice.attempt_count ?? 0) >= MAX_PAYMENT_ATTEMPTS
+          && (invoice.amount_due ?? 0) > 0 && !(payer && isInternal(payer))) {
+          const planBefore = uses ? ownPlanFor(payer) : 'free';
+          const tell = uses && planBefore !== 'free';
+          let stale: string | undefined;
+          const done = await once(
+            {
+              kind: 'ended_unpaid', userId: tell ? payer!.id : null, email: payer?.email ?? null, ref: failedSub,
+              detail: `${formatMoney(invoice.amount_due, invoice.currency)} failed ${invoice.attempt_count} times: ${failedSub} cancelled, its invoice voided`,
+            },
+            async () => {
+              const out = await endBillingNow(failedSub, END_COMMENT.failed_twice, 'failed_twice');
+              if (out.skipped) { stale = out.skipped; return { success: false, error: out.skipped }; }
+              if (out.notVoided.length) console.error(`[stripe webhook] ${failedSub} ended, an invoice not voided yet (the billing watch voids it): ${out.notVoided[0].error}`);
+            },
+            false,
+          );
+          if (!stale) {
+            if (done?.error) console.error(`[stripe webhook] ${failedSub} could not be ended after ${invoice.attempt_count} failed attempts: ${done.error}`);
+            if (done?.done && tell) void notifyCancelledUnpaid(payer!, failedSub, planBefore).catch(() => {});
+            break;
+          }
+          // It no longer holds (paid in the meantime, or the subscription is not the unpaid one):
+          // handled as any failed payment, below.
+          console.warn(`[stripe webhook] ${failedSub} not ended after a failed payment: ${stale}`);
+        }
+
         if (payer && failedSub && payer.stripe_subscription_id === failedSub && (invoice.amount_due ?? 0) > 0 && invoice.id) {
           const next = (invoice as any).next_payment_attempt;
           void notifyPaymentFailed(

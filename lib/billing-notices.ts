@@ -23,7 +23,18 @@ export type NoticeKind =
   | 'paid_start' | 'purchase_confirmed' | 'refunded_in_window' | 'refund_confirmed' | 'refund_failed'
   | 'granted_late' | 'upgrade_voided'
   // A refund's plan-change credit, decided once per subscription (2026-11-14).
-  | 'credit_reversed';
+  | 'credit_reversed'
+  // Billing ended at once, nothing more collected (lib/billing-end.ts): the account was deleted,
+  // the customer cancelled while a payment was owed, or a payment failed twice.
+  | 'ended_no_account' | 'ended_cancel_unpaid' | 'ended_unpaid'
+  // An account deleted by its owner (the deletion route; ref user:<id>, kept with no account).
+  | 'account_deleted'
+  // Emails about a cancellation (2026-11-24): confirmed when the customer cancels, and again when
+  // the subscription reaches its end. And the discount accepted in the cancel flow, once per account.
+  | 'cancel_confirmed' | 'ended_confirmed' | 'stay_offer_accepted'
+  // The subscription an account used reached its end after a cancellation (not for a payment
+  // owed): the account is the one the "has ended" email is owed to.
+  | 'ended_cancelled';
 
 export interface WatchAction {
   kind: NoticeKind;
@@ -67,6 +78,30 @@ export function withNotices<T>(fn: (db: ReturnType<typeof openIdentityDb>) => T)
 /** Whether (kind, ref) is recorded, or claimed by an action still running. */
 export function hasNotice(kind: NoticeKind, ref: string): boolean {
   return withNotices(db => !!db.prepare('SELECT 1 FROM billing_notices WHERE kind = ? AND ref = ?').get(kind, ref));
+}
+
+/** Whether (kind, ref) is recorded as done: a claim still in progress (or left behind by a stopped server) does not count. */
+export function hasFinishedNotice(kind: NoticeKind, ref: string): boolean {
+  return withNotices(db => !!db.prepare('SELECT 1 FROM billing_notices WHERE kind = ? AND ref = ? AND (detail IS NULL OR detail NOT LIKE ?)').get(kind, ref, `${IN_PROGRESS}%`));
+}
+
+/**
+ * Claims of these kinds left in progress for longer than a claim may take (the server stopped
+ * half way), for which `done(ref)` says the thing did happen: marked finished, so what follows a
+ * finished record (an email still owed, the tidy-up) is not lost. The others stay as they are:
+ * once() takes a stale claim over when the action is tried again.
+ */
+export function finishInterrupted(kinds: readonly NoticeKind[], done: (ref: string) => boolean): Array<{ kind: NoticeKind; ref: string }> {
+  return withNotices(db => {
+    const rows = db.prepare(`
+      SELECT kind, ref, detail FROM billing_notices
+       WHERE kind IN (${kinds.map(() => '?').join(',')}) AND detail LIKE ? AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ','now', ?)
+    `).all(...kinds, `${IN_PROGRESS}%`, STALE_CLAIM) as Array<{ kind: NoticeKind; ref: string; detail: string }>;
+    const finished = rows.filter(r => done(r.ref));
+    const set = db.prepare('UPDATE billing_notices SET detail = ? WHERE kind = ? AND ref = ?');
+    for (const r of finished) set.run(`${r.detail.slice(IN_PROGRESS.length)} (finished after an interrupted run)`, r.kind, r.ref);
+    return finished.map(r => ({ kind: r.kind, ref: r.ref }));
+  });
 }
 
 /** Record (kind, ref) outright. True when this call wrote it, false when it was already there. */

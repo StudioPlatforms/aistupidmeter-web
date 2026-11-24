@@ -76,7 +76,9 @@ export function deletionBlockers(user: User): DeletionBlocker[] {
   const blockers: DeletionBlocker[] = [];
 
   // A subscription that will renew would keep charging an account that no longer exists.
-  // Cancelled ones (subscription_canceled_at set) never charge again, so they do not block.
+  // Cancelled ones (subscription_canceled_at set) do not renew, so they do not block; one can
+  // still have an unpaid invoice Stripe is retrying, so the deletion route ends the account's
+  // billing before anything is deleted (lib/billing-end.ts endCustomerBilling).
   if (user.stripe_subscription_id && user.subscription_tier !== 'free' && !user.subscription_canceled_at) {
     blockers.push({
       code: 'subscription',

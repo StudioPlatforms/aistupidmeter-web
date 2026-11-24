@@ -37,12 +37,14 @@ export interface StripeSubscriptionRecord {
   priceChangeAt: string | null;
   trialEnd: string | null;
   cancelAt: string | null;
+  /** When the cancellation was asked for (Stripe's canceled_at), whether or not it has taken effect. */
+  cancelRequestedAt: string | null;
   endedAt: string | null;
   /** Why Stripe cancelled it: 'payment_failed', 'cancellation_requested', 'payment_disputed'. */
   cancelReason: string | null;
   discounted: boolean;
   latestInvoiceId: string | null;
-  invoice?: { attempts: number; nextAttemptAt: string | null; amountDue: number };
+  invoice?: { attempts: number; nextAttemptAt: string | null; amountDue: number; open: boolean };
   /** Started paid by Checkout (metadata asl_start, from 2026-11-13; lib/paid-start.ts). */
   paidStart: boolean;
   /** When its 7-day refund window closes, if its checkout offered one. */
@@ -109,6 +111,7 @@ function record(s: Stripe.Subscription): StripeSubscriptionRecord {
     trialEnd: iso(raw.trial_end),
     // The customer portal cancels by setting cancel_at; older cancellations set the flag.
     cancelAt: iso(raw.cancel_at) ?? (raw.cancel_at_period_end ? iso(item?.current_period_end) : null),
+    cancelRequestedAt: iso(raw.canceled_at),
     endedAt: iso(raw.ended_at),
     cancelReason: raw.cancellation_details?.reason ?? null,
     discounted: Array.isArray(raw.discounts) ? raw.discounts.length > 0 : !!raw.discount,
@@ -145,7 +148,7 @@ async function load(): Promise<StripeSnapshot> {
     .map(async s => {
       try {
         const inv = await stripe.invoices.retrieve(s.latestInvoiceId!);
-        s.invoice = { attempts: inv.attempt_count ?? 0, nextAttemptAt: iso(inv.next_payment_attempt), amountDue: inv.amount_due ?? 0 };
+        s.invoice = { attempts: inv.attempt_count ?? 0, nextAttemptAt: iso(inv.next_payment_attempt), amountDue: inv.amount_due ?? 0, open: inv.status === 'open' };
       } catch { /* the row still shows as past due */ }
     }));
 

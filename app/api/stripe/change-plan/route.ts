@@ -7,6 +7,7 @@ import { PLANS } from '@/lib/entitlements';
 import { isSellablePlan, isInterval, priceIdFor, type Interval, type SellablePlan } from '@/lib/stripe-plans';
 import { sameOrigin } from '@/lib/same-origin';
 import { refundRequested } from '@/lib/paid-start';
+import { couponIdOf, isStayCoupon, stayCouponOn } from '@/lib/stay-offer';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-09-30.clover',
@@ -69,6 +70,15 @@ type Resolved =
   | {
       user: User; sub: Stripe.Subscription; item: Stripe.SubscriptionItem;
       plan: SellablePlan; interval: Interval; priceId: string; trialing: boolean;
+      /**
+       * The subscription carries the stay offer's discount (lib/stay-offer.ts): it was given for
+       * keeping the plan the customer had, so it ends with a change of plan. Without this a
+       * discount accepted on a small monthly plan would come off the whole invoice of a larger
+       * yearly one.
+       */
+      endsStayDiscount: boolean;
+      /** What the change sends as the subscription's discounts when it ends the stay discount: the others, kept. */
+      keptDiscounts: '' | Array<{ discount: string }>;
     };
 
 async function resolveChange(userId: number, rawPlan: unknown, rawInterval: unknown): Promise<Resolved> {
@@ -88,7 +98,7 @@ async function resolveChange(userId: number, rawPlan: unknown, rawInterval: unkn
     return fail(409, { error: 'no_subscription', checkoutUrl: `/api/stripe/checkout?plan=${plan}&interval=${interval}` });
   }
 
-  const sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id);
+  const sub = await stripe.subscriptions.retrieve(user.stripe_subscription_id, { expand: ['discounts'] });
   // Cancel and refund has been asked for (lib/paid-start.ts): the plan is ending, and a change now
   // would charge a card that is being refunded.
   if (refundRequested(sub)) {
@@ -103,7 +113,14 @@ async function resolveChange(userId: number, rawPlan: unknown, rawInterval: unkn
       message: 'Your last payment has not gone through yet. Update your payment method with Manage billing first; then you can change plan.',
     });
   }
-  return { user, sub, item, plan, interval, priceId, trialing: sub.status === 'trialing' };
+  // Every discount but the stay offer's stays on the subscription through the change.
+  const others = ((sub as any).discounts as unknown[] | undefined ?? [])
+    .filter((d): d is { id: string } => !!d && typeof d === 'object' && !isStayCoupon(couponIdOf(d)))
+    .map(d => ({ discount: d.id }));
+  return {
+    user, sub, item, plan, interval, priceId, trialing: sub.status === 'trialing',
+    endsStayDiscount: !!stayCouponOn(sub), keptDiscounts: others.length ? others : '',
+  };
 }
 
 const customerOf = (sub: Stripe.Subscription) => (typeof sub.customer === 'string' ? sub.customer : sub.customer.id);
@@ -124,6 +141,8 @@ export async function GET(request: NextRequest) {
     const preview = await stripe.invoices.createPreview({
       customer: customerOf(r.sub),
       subscription: r.sub.id,
+      // Priced as it will be charged: without the stay discount, which the change removes.
+      ...(r.endsStayDiscount ? { discounts: r.keptDiscounts } : {}),
       subscription_details: {
         items: [{ id: r.item.id, price: r.priceId }],
         proration_behavior: 'always_invoice',
@@ -136,7 +155,7 @@ export async function GET(request: NextRequest) {
       data: {
         plan: r.plan, interval: r.interval, planLabel: PLANS[r.plan].label,
         amountDueCents: preview.amount_due, totalCents: preview.total, currency: preview.currency,
-        prorationDate, endsTrial: r.trialing,
+        prorationDate, endsTrial: r.trialing, endsStayDiscount: r.endsStayDiscount,
       },
     }, { headers: NO_STORE });
   } catch (error: any) {
@@ -166,7 +185,7 @@ export async function POST(request: NextRequest) {
     const r = await resolveChange(Number(session.user.id), body.plan, body.interval ?? 'annual');
     if ('error' in r) return r.error;
     if ('unchanged' in r) return NextResponse.json({ success: true, data: { unchanged: true } }, { headers: NO_STORE });
-    const { user, sub, item, plan, interval, priceId, trialing } = r;
+    const { user, sub, item, plan, interval, priceId, trialing, endsStayDiscount, keptDiscounts } = r;
 
     // The previewed proration date, while fresh, so the charge is the amount that was shown.
     const now = Math.floor(Date.now() / 1000);
@@ -180,6 +199,9 @@ export async function POST(request: NextRequest) {
       payment_behavior: 'pending_if_incomplete',
       proration_date: prorationDate,
       ...(trialing ? { trial_end: 'now' as const } : {}),
+      // The stay discount goes with the plan it was given for. Part of the same update, so if the
+      // payment does not go through and the change stays pending, the discount stays too.
+      ...(endsStayDiscount ? { discounts: keptDiscounts } : {}),
       // Keep our own metadata current so the webhook's fallback path — used when
       // a Price cannot be mapped — does not resolve to a stale plan.
       metadata: { ...(sub.metadata ?? {}), userId: String(user.id), plan, interval },

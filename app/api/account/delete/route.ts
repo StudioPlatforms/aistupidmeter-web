@@ -8,6 +8,8 @@ import {
   deletionBlockers, deletedUserPlaceholderId, deleteIdentityAccount, ownedWorkspaceIds, ProviderOwnerError,
   type DeletionBlocker,
 } from '@/lib/account-deletion';
+import { END_COMMENT, endCustomerBilling } from '@/lib/billing-end';
+import { recordNotice } from '@/lib/billing-notices';
 import { readProviderSummary } from '@/lib/provider-membership';
 
 /**
@@ -90,6 +92,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Account deletion is unavailable right now. Please contact us.' }, { status: 503 });
   }
 
+  // Nothing may be collected for an account that is gone, so its billing ends first: every
+  // subscription it still has is cancelled now, its open invoices are voided and the saved
+  // payment methods removed (lib/billing-end.ts). A subscription the customer had cancelled can
+  // still have an unpaid invoice that Stripe is retrying. If Stripe cannot be reached or is too
+  // slow, the deletion is refused with nothing deleted: an account must not go while something
+  // of it can still be charged. Trying again is safe.
+  let billing: Awaited<ReturnType<typeof endCustomerBilling>> | null = null;
+  if (user.stripe_customer_id) {
+    try {
+      billing = await Promise.race([
+        endCustomerBilling(user.stripe_customer_id, END_COMMENT.account_deleted),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Stripe did not answer in time')), 25_000)),
+      ]);
+      console.log(`[account/delete] user ${user.id}: billing ended (${billing.subscriptions.length} subscription(s), ${billing.voided.length} invoice(s) voided, ${billing.paymentMethodsRemoved} payment method(s) removed)`);
+    } catch (err) {
+      console.error(`[account/delete] user ${user.id}: billing could not be ended, nothing deleted:`, err instanceof Error ? err.message : err);
+      return NextResponse.json({ success: false, error: 'We could not delete your account just now. Nothing was deleted; please try again in a few minutes.' }, { status: 502 });
+    }
+  }
+
+  // What a later failure must add to its message: the billing above has ended whatever follows.
+  const billingNote = billing && (billing.subscriptions.length || billing.paymentMethodsRemoved)
+    ? ' Your subscription has been ended and your saved payment method removed.' : '';
+
   const placeholderId = deletedUserPlaceholderId();
   const apiBase = process.env.API_INTERNAL_URL || 'http://127.0.0.1:4000';
   try {
@@ -107,7 +133,7 @@ export async function POST(request: NextRequest) {
     console.log(`[account/delete] user ${user.id}: benchmark database purged`, j.counts);
   } catch (err) {
     console.error(`[account/delete] user ${user.id}: purge failed, nothing deleted:`, err);
-    return NextResponse.json({ success: false, error: 'We could not delete your account just now. Nothing was deleted; please try again in a few minutes.' }, { status: 502 });
+    return NextResponse.json({ success: false, error: `We could not delete your account just now. None of your data was deleted; please try again in a few minutes.${billingNote}` }, { status: 502 });
   }
 
   try {
@@ -126,6 +152,18 @@ export async function POST(request: NextRequest) {
     }
     console.error(`[account/delete] user ${user.id}: identity delete failed after purge:`, err);
     return NextResponse.json({ success: false, error: 'Part of your data was deleted but your account was not. Please try again, or contact us.' }, { status: 500 });
+  }
+
+  // The record of the deletion, kept with no account: the billing watch ends a subscription
+  // for a deleted account only on it (a missing row alone ends nothing).
+  try {
+    recordNotice(null, 'account_deleted', `user:${user.id}`, `Account ${user.id} deleted by its owner`);
+    for (const id of billing?.subscriptions ?? []) {
+      recordNotice(null, 'ended_no_account', id, `Account ${user.id} was deleted: ${id} cancelled, its open invoices voided, the saved payment methods removed`);
+    }
+  } catch (err) {
+    // The account is deleted and its billing ended; only this record is missing.
+    console.error(`[account/delete] user ${user.id}: deleted, but its deletion record was not written:`, err instanceof Error ? err.message : err);
   }
 
   void sendAccountDeletedEmail(user.email).catch(() => {});

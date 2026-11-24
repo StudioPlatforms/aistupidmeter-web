@@ -67,8 +67,9 @@ const running = (r: Run | null) => !!r && (r.status === 'queued' || r.status ===
 const RUN_REASON: Record<string, string> = {
   auth: 'the endpoint refused the key', key_unreadable: 'the stored key could not be read', config_changed: 'the listing or its endpoint changed',
   hold: 'the endpoint is paused for a security check', not_allowed: 'the listing cannot run checks now', not_https: 'the endpoint is not https',
-  failed: 'it failed on our side', interrupted_by_us: 'we restarted the checker', crash: 'the checker stopped',
+  failed: 'the check could not be completed; nothing is needed from you, please run it again later', interrupted_by_us: 'we restarted the checker', crash: 'the checker stopped',
   unreachable: 'the endpoint gave no usable answer (no reply in time, or server errors only)', timeout: 'it took longer than 5 minutes',
+  rate_limited: 'your endpoint answered 429 (rate limit or capacity) to every request; run it again when it has capacity',
 };
 
 /** What a readiness row shows for a check the record does not carry: neutral, never red. */
@@ -426,6 +427,7 @@ export default function ModelsClient({ initial }: { initial: ProviderSummary }) 
                 <span className="st-field-label">Max output <small>tokens</small></span>
                 <input className="st-input" inputMode="numeric" value={form.maxOutputTokens} disabled={!editingDraft} onChange={e => setForm({ ...form, maxOutputTokens: e.target.value.replace(/[^0-9]/g, '') })} aria-invalid={!!fields.maxOutputTokens} />
                 <FieldError text={fields.maxOutputTokens} />
+                <span className="st-hint">The readiness check verifies up to 64,000 tokens.</span>
               </label>
             </div>
             <div className="mp-lst-row is-3">

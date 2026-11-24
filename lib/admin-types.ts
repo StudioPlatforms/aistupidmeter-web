@@ -55,7 +55,7 @@ export interface AdminSubscription {
   discounted: boolean;
   /** The account's own record points at this subscription (others on the customer are leftovers). */
   linked: boolean;
-  invoice?: { attempts: number; nextAttemptAt: string | null; amountDue: number };
+  invoice?: { attempts: number; nextAttemptAt: string | null; amountDue: number; open?: boolean };
 }
 
 export type AttentionKind =

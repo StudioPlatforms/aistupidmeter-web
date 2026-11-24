@@ -296,6 +296,14 @@ export interface PracticeData {
 export const usdSmall = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: n > 0 && n < 0.01 ? 4 : 2 })}`;
 const PRACTICE_SUITE: Record<PracticeSuite, string> = { coding: 'Coding', reasoning: 'Reasoning', tooling: 'Tool use' };
 const PRACTICE_STATUS: Record<PracticeRun['status'], string> = { queued: 'Queued', running: 'Running', done: 'Done', failed: 'Stopped', cancelled: 'Cancelled' };
+/**
+ * A run the API could not complete for a reason that is not the provider's reads neutrally here:
+ * nothing is needed from the provider. The API words every such end with one sentence, whatever
+ * its cause, so that sentence is all this needs to know.
+ */
+const PRACTICE_NEUTRAL = 'the run could not be completed; nothing is needed from you, please run it again later';
+const practiceEndText = (run: PracticeRun): string | null =>
+  (run.errorText === 'it failed on our side' ? PRACTICE_NEUTRAL : run.errorText);
 
 /** The practice dialog's words: the quote, then the API's sentence, then the limits (exported for the render tests). */
 export function PracticeText({ d }: { d: PracticeData }) {
@@ -317,7 +325,7 @@ export function PracticeResults({ label, runs }: { label: string; runs: Practice
       <p className="st-label">{label}</p>
       {runs.map(run => (
         <div key={run.id}>
-          <p className="mp-check-s">{dateOnly(run.requestedAt)} · {PRACTICE_STATUS[run.status] ?? run.status}{run.errorText ? `: ${run.errorText}` : ''} · {usdSmall(run.costUsd)}{run.counted ? '' : ' · not counted toward the limit'}</p>
+          <p className="mp-check-s">{dateOnly(run.requestedAt)} · {PRACTICE_STATUS[run.status] ?? run.status}{practiceEndText(run) ? `: ${practiceEndText(run)}` : ''} · {usdSmall(run.costUsd)}{run.counted ? '' : ' · not counted toward the limit'}</p>
           <ul className="sw-list">
             {(['coding', 'reasoning', 'tooling'] as const).map(s => {
               const x = run.results[s];

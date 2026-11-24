@@ -822,7 +822,9 @@ function EndpointRow({ e, first, last, chip, busy, onModels, onHealth, onTest, o
   extra?: ReactNode;
 }) {
   const unprotected = typeof e.unprotected === 'boolean' ? e.unprotected : e.authScheme === 'none' || e.keyHint === null;
-  const on = e.enabledModelCount;
+  // A provider's models are never turned on here (they are listed on Models; ProviderRowExtra names them), so the
+  // count would always read "No model on" and suggests a switch that readiness, listing and routing ignore.
+  const on = isProvider(useScope()) ? null : e.enabledModelCount;
   const anyBusy = !!busy && busy.startsWith(`${e.id}:`);
   const meta = [
     e.host,
