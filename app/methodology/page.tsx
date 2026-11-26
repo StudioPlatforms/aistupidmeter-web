@@ -249,6 +249,7 @@ export default async function MethodologyPage() {
         <RdProse>
           <p>A suite that is missing, or older than two of its own runs (8 hours for coding, 48 for reasoning and tool use), drops out and the remaining suites are reweighted by their base weights. It is never filled in with a placeholder value. The board says so: a partial row carries a note such as “2 of 3 suites”, and a row with nothing fresh enough is not ranked.</p>
           <p>Every score records the exact version of the tests it ran under — a fingerprint of every prompt, test and check — so a change we make is never mistaken for a change the model made. Scores are the model as served through its provider&apos;s public API, run with our own keys (the one exception is <a href="#community">community-funded runs</a>).</p>
+          <p>The three suites and how they combine are on one page: <Link href="/ai-benchmarks">AI benchmarks</Link>.</p>
         </RdProse>
       </RdSection>
 
@@ -264,6 +265,7 @@ export default async function MethodologyPage() {
           <p><b>Only the answer is graded</b>, never a model&apos;s hidden reasoning. An attempt that uses its whole output budget without answering, or answers without code, is a failed attempt, and a retry asks the identical question.</p>
           <h3>When a model declines a task</h3>
           <p>Some providers refuse entirely benign prompts. A refusal is a content decision, not a measure of ability, so it is not scored as zero: the task drops out and the model is scored on what it attempted. Declined tasks tend to be the hard ones, so such a row shows its coverage (“5/7 tasks”), the model page names the declined tasks, and the model is never called tied with one measured on all of them.</p>
+          <p>The suite has a page of its own: <Link href="/ai-coding-benchmark">AI coding benchmark</Link>.</p>
         </RdProse>
       </RdSection>
 
@@ -292,6 +294,7 @@ export default async function MethodologyPage() {
         </div>
         <RdProse>
           <p className="rd-note">Share of the task&apos;s score each measure carries in a normal session. A measure the session gives no evidence for drops out and the rest are rescaled; it is never scored as zero. Plan coherence is not taken on tasks that ask for no plan. *Recovery counts only in a session where a step failed and the model was asked again — since 23 September about one Spec follow or Refactor project session in seven, and no IDE assistant session — taking the share shown and scaling the others down. A document answer is never re-asked, so Document memory has none. Rounded.</p>
+          <p>The suite has a page of its own: <Link href="/llm-reasoning-benchmark">LLM reasoning benchmark</Link>.</p>
         </RdProse>
       </RdSection>
 
@@ -300,6 +303,7 @@ export default async function MethodologyPage() {
         <RdWeights rows={TOOL_WEIGHTS} />
         <RdProse>
           <p>Each model sees its own tool calls and their results in its provider&apos;s native tool format, with its own reasoning carried between calls. Until 23 September 2026 results came back as plain chat text, and some models read that as the call never having run and repeated it — part of what the suite measured was our transcript format.</p>
+          <p>The suite has a page of its own: <Link href="/llm-tool-calling-benchmark">LLM tool calling benchmark</Link>.</p>
         </RdProse>
       </RdSection>
 

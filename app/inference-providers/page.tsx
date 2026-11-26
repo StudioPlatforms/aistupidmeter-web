@@ -5,7 +5,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { ReadingPage, RdSection, RdFacts, RdRows, RdFinal, tocNumber } from '@/components/landing/Reading';
 import { getVisitTotal } from '@/components/landing/data';
 import { agreementPublicNow, providerSignupOpenNow } from '@/lib/provider-public';
-import ListingOpenPage, { OPEN_DESCRIPTION, OPEN_TITLE } from './ListingOpen';
+import ListingOpenPage, { OPEN_META_DESCRIPTION, OPEN_TITLE } from './ListingOpen';
 
 /**
  * "Providers" in the landing header, the phone drawer and the footer: inference providers register
@@ -29,7 +29,7 @@ const KEYWORDS = ['inference providers', 'list your models', 'LLM inference prov
 
 export async function generateMetadata(): Promise<Metadata> {
   const open = await providerSignupOpenNow();
-  return pageMeta({ title: open ? OPEN_TITLE : TITLE, description: open ? OPEN_DESCRIPTION : DESCRIPTION, path: PATH, keywords: KEYWORDS });
+  return pageMeta({ title: open ? OPEN_TITLE : TITLE, description: open ? OPEN_META_DESCRIPTION : DESCRIPTION, path: PATH, keywords: KEYWORDS });
 }
 
 const LD = graphLd([

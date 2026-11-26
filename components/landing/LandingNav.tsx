@@ -39,8 +39,8 @@ export default function LandingNav({ signInHref, signUpHref }: { signInHref: str
     <nav className={`lp-nav${scrolled || open ? ' is-scrolled' : ''}`} aria-label="Main">
       <div className="lp-wrap lp-nav-in">
         <a className="lp-brand" href="/" aria-label="AI Stupid Level home">
-          <img className="lp-mk-l" src="/asl-mark.png" alt="AI Stupid Level" width={754} height={160} />
-          <img className="lp-mk-d" src="/asl-mark-dark.png" alt="" width={754} height={160} />
+          <img className="lp-mk-l" src="/asl-mark-nav.png" alt="AI Stupid Level" width={377} height={80} />
+          <img className="lp-mk-d" src="/asl-mark-dark-nav.png" alt="" width={377} height={80} />
         </a>
         <div className="lp-links">
           {LINKS.map(([href, label]) => <a key={href} href={href}>{label}</a>)}

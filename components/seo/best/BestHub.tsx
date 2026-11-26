@@ -235,7 +235,7 @@ export default async function BestHub(): Promise<React.JSX.Element> {
                 repository bug fixes run against the project’s own tests, including hidden ones; multi-turn reasoning sessions whose continuity is checked by running code; and tool-use tasks in sandboxed machines where the job is either done or not.
               </p>
               <p>{TIES_RULE}</p>
-              <p>{OPENNESS} Read the <Link href="/methodology">methodology</Link> and <Link href="/ai-drift-detection">how drift detection works</Link>.</p>
+              <p>{OPENNESS} Read the <Link href="/methodology">methodology</Link>, the <Link href="/ai-benchmarks">AI benchmarks</Link> behind each board and <Link href="/ai-drift-detection">how drift detection works</Link>.</p>
             </RdProse>
             <WatchCta cta="best-hub-how-watch" {...(leaderSlug ? { slug: leaderSlug } : {})} label={leaderName ? `Get an email when ${leaderName} changes →` : undefined} />
           </RdSection>

@@ -21,6 +21,14 @@
 .lp .tk-family + .tk-family { margin-top: 44px; }
 .lp .tk-family h3 { margin: 0; color: var(--lp-fg); }
 .lp .tk-family-line { margin: 0; max-width: 80ch; font-size: 15px; line-height: 1.6; color: var(--lp-fg2); }
+.lp .tk-family-line a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
+/* /ai-nerf-tracker: one verdict per model, as a wrapping list of name + pill. */
+.lp .nf-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); gap: 8px 12px; margin: 0 0 14px; padding: 0; list-style: none; }
+.lp .nf-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 10px 14px; border: 1px solid var(--lp-line); border-radius: 12px; background: var(--lp-card); }
+.lp .nf-list li::before { content: none; }
+.lp .nf-list a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: var(--lp-fg); text-decoration: none; }
+.lp .nf-list a:hover { color: var(--lp-accent); }
+.lp .nf-list .lp-pill { flex: none; white-space: nowrap; }
 .lp .tk-family-links { display: flex; flex-wrap: wrap; gap: 6px 24px; margin: 0; font-size: 14px; }
 .lp .tk-family-links a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
 

@@ -15,6 +15,7 @@ import { lpBody, lpDisplay } from '@/lib/fonts';
 import { breadcrumbLd, faqLd, graphLd, isoDay, itemListLd, monthLabel, utcStamp, webPageLd } from '@/lib/seo';
 import { VENDORS, boardLabel, getBoards24h, getPrice, getRoster, pairSlug, relatedModels, vendorMention, type PriceSnapshot, type SeoModel } from '@/lib/seo-data';
 import { BEST, CADENCE, HUB, OPENNESS, TIES_RULE, fillDays, siblingsOf, type BestKey } from './best-config';
+import { BENCH, HUB as BENCH_HUB } from '@/components/seo/bench/bench-config';
 import {
   WINDOW_24H, barPhrase, boardTop, boardVerdict, claudeVsGptByMetric, claudeVsGptOnBoard, companyOf, costText, leadSentence, leadersOf,
   metricText, msText, nearTop, orderBy, passText, priceVerdict, rosterModel, runnerUpOf, scorePlaceText,
@@ -142,6 +143,8 @@ const pairLabel = (a: SeoModel, b: SeoModel): string => (a.slug <= b.slug ? `${a
 
 export default async function BestPage({ category }: { category: BestKey }): Promise<React.JSX.Element> {
   const c = BEST[category];
+  // The benchmark page of the suite behind this category's board; the price and speed pages have none and link the hub.
+  const benchPage = Object.values(BENCH).find((b) => b.best === category) ?? null;
   const [roster, boards, price] = await Promise.all([getRoster(), getBoards24h(), getPrice()]);
 
   const FREE = PLANS.free;
@@ -464,7 +467,10 @@ export default async function BestPage({ category }: { category: BestKey }): Pro
               </>
             )}
             <RdProse>
-              <p>{OPENNESS} The full method is on the <Link href={c.methodAnchor}>methodology page</Link>.</p>
+              <p>
+                {OPENNESS} The full method is on the <Link href={c.methodAnchor}>methodology page</Link>
+                {benchPage ? <>, and what the suite behind this board tests is on <Link href={benchPage.path}>{benchPage.label}</Link>.</> : <>, and the three suites are on <Link href={BENCH_HUB.path}>{BENCH_HUB.label}</Link>.</>}
+              </p>
             </RdProse>
           </RdSection>
 

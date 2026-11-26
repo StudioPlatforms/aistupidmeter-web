@@ -1,0 +1,54 @@
+# AI Stupid Level
+
+> AI Stupid Level (ASL) runs the same coding, reasoning and tool-use tasks against large language models from OpenAI, Anthropic, Google, DeepSeek, Moonshot AI (Kimi) and Z.ai (GLM) on a fixed schedule, tracks each model against its own past to detect degradation, and offers the Smart Router: one OpenAI-compatible endpoint that routes each request on those results, with the customer's own provider keys and no markup on tokens.
+
+The pages below are rendered from live data, so figures change through the day; each page states its own "as of" time. The methodology is public. The test tasks are private.
+
+## Rankings
+- [AI leaderboard](https://aistupidlevel.info/leaderboard): the first ten places on the Combined, Coding, Reasoning and Tool use boards over the last 24 hours, with statistical ties
+- [Best AI model for each job](https://aistupidlevel.info/best-ai-model): the leader for coding, reasoning, agents, value and speed
+- [Best LLM for coding](https://aistupidlevel.info/best-llm-for-coding)
+- [Best LLM for reasoning](https://aistupidlevel.info/best-llm-for-reasoning)
+- [Best AI model for agents and tool calling](https://aistupidlevel.info/best-ai-model-for-agents)
+- [Best value AI model](https://aistupidlevel.info/best-value-ai-model)
+- [Fastest AI model](https://aistupidlevel.info/fastest-ai-model)
+
+## Models and comparisons
+- [All models](https://aistupidlevel.info/models): every model on the board by vendor; each model has a page at /models/<slug> with its score, place, price and drift state
+- [OpenAI models](https://aistupidlevel.info/models/openai), [Claude models](https://aistupidlevel.info/models/anthropic), [Gemini models](https://aistupidlevel.info/models/google), [DeepSeek models](https://aistupidlevel.info/models/deepseek), [Kimi models](https://aistupidlevel.info/models/kimi), [GLM models](https://aistupidlevel.info/models/glm)
+- [Compare models](https://aistupidlevel.info/compare): head-to-head pages at /compare/<model-a>-vs-<model-b>, slugs in alphabetical order
+
+## Degradation, drift and status
+- [AI degradation tracker](https://aistupidlevel.info/ai-degradation-tracker): every model, suite by suite, with each drift detector's state and the canary's dated alarms
+- [AI nerf tracker](https://aistupidlevel.info/ai-nerf-tracker): what "nerfed" means, how the check works and where to check each model family
+- [AI drift detection](https://aistupidlevel.info/ai-drift-detection): the method (a Page-Hinkley detector per suite, an hourly canary)
+- [Is your AI getting worse?](https://aistupidlevel.info/is-ai-getting-worse), with pages for [ChatGPT](https://aistupidlevel.info/is-chatgpt-getting-worse), [Claude](https://aistupidlevel.info/is-claude-getting-worse), [Gemini](https://aistupidlevel.info/is-gemini-getting-worse) and [DeepSeek](https://aistupidlevel.info/is-deepseek-getting-worse)
+- [AI provider status](https://aistupidlevel.info/status): one real completion to each provider every 10 minutes
+
+## Benchmarks and method
+- [AI benchmarks](https://aistupidlevel.info/ai-benchmarks): the three suites and how they combine
+- [AI coding benchmark](https://aistupidlevel.info/ai-coding-benchmark)
+- [LLM reasoning benchmark](https://aistupidlevel.info/llm-reasoning-benchmark)
+- [LLM tool calling benchmark](https://aistupidlevel.info/llm-tool-calling-benchmark)
+- [Methodology](https://aistupidlevel.info/methodology): every weight, statistical test and drift constant
+- [Research](https://aistupidlevel.info/research)
+
+## Smart Router
+- [Smart Router](https://aistupidlevel.info/router): what it is, the routing modes and the rules it applies
+- [Router documentation](https://aistupidlevel.info/router/docs): endpoints, parameters and response headers
+- [AI router and LLM router, explained](https://aistupidlevel.info/ai-router)
+- [LLM routing by task](https://aistupidlevel.info/llm-routing-by-task)
+- [LLM fallback routing](https://aistupidlevel.info/llm-fallback-routing)
+- [LLM cost routing](https://aistupidlevel.info/llm-cost-routing)
+- [BYOK LLM router](https://aistupidlevel.info/byok-llm-router): your own provider keys, no markup on tokens
+- [Model routing for coding agents](https://aistupidlevel.info/llm-routing-for-coding-agents)
+- [Integrations](https://aistupidlevel.info/router/integrations): Claude Code, Cursor, Cline, Continue, Aider, OpenCode, n8n, LangChain, Zed, Open WebUI and LibreChat
+- [AI routers compared](https://aistupidlevel.info/best-ai-router) and [what an AI aggregator is](https://aistupidlevel.info/ai-aggregator)
+
+## Data, plans and contact
+- [Data API](https://aistupidlevel.info/api-docs)
+- [Pricing](https://aistupidlevel.info/pricing)
+- [FAQ](https://aistupidlevel.info/faq), [About](https://aistupidlevel.info/about), [Contact](https://aistupidlevel.info/contact)
+
+## Other languages
+- [中文：AI 降智雷达](https://aistupidlevel.info/zh)

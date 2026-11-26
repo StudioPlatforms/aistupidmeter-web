@@ -5,6 +5,7 @@ import { auth } from '@/auth';
 import { readProviderSummary } from '@/lib/provider-membership';
 import { providerSignupOpenCached, providerSignupOpenNow } from '@/lib/provider-public';
 import type { ProviderSummary } from '@/lib/provider-account';
+import { pageMeta } from '@/lib/seo';
 
 /**
  * The door of every /account/provider page, decided once per request (React cache: the page's
@@ -58,8 +59,13 @@ export async function marketplaceStaffGate(path: string): Promise<{ preview: boo
  */
 export function providerPageMetadata(path: string, title: string, description?: string) {
   return async (): Promise<Metadata> => {
-    // Public from the opening (M10): indexed, with the page's own description.
-    if (await providerSignupOpenNow()) return { title, ...(description ? { description } : {}), alternates: { canonical: path } };
+    // Public from the opening (M10): indexed, with the page's own description. A page with a
+    // description is a public document and gets the complete set (canonical, Open Graph and Twitter
+    // card of its own): with the title and canonical alone it inherited the home page's og:url and
+    // share text from the root layout.
+    if (await providerSignupOpenNow()) {
+      return description ? pageMeta({ title, description, path }) : { title, alternates: { canonical: path } };
+    }
     const access = await providerAccess(path);
     return access.kind === 'ok'
       ? { title, robots: { index: false, follow: false } }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { slugifyModelName } from '../lib/model-slug';
 import { cookies } from 'next/headers';
+import { permanentRedirect } from 'next/navigation';
 import HomeClient from './HomeClient';
 import { LAYOUT_COOKIE, toBoardLayout, type BoardLayout } from '../lib/board-layout';
 import { openIdentityDb } from '@/lib/identity-db';
@@ -93,11 +94,33 @@ function savedLayout(userId: number): BoardLayout | null {
   }
 }
 
-export default async function HomePage() {
+/**
+ * The query parameters of the leaderboard that lived at "/" until October 2026 (/?mode=speed&sortBy=…
+ * &period=7d). Nothing reads them any more, but search engines still hold those addresses: in the
+ * two weeks to 2026-11-26 more than half of Googlebot's requests for the home page were for one of
+ * them, each a copy of the landing page.
+ */
+const LEGACY_BOARD_PARAMS = ['mode', 'sortBy', 'period'];
+
+export default async function HomePage(props: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // The leaderboard is for signed-in accounts; everyone else, crawlers included, gets the landing
   // page (components/landing). A session check that fails counts as signed out.
   const session = await auth().catch(() => null);
-  if (!session?.user) return <Landing />;
+  if (!session?.user) {
+    // A signed-out request for one of the old leaderboard addresses goes to the page's one address
+    // (308), keeping any other parameter (a campaign tag, an offer code).
+    const sp = await props.searchParams;
+    if (LEGACY_BOARD_PARAMS.some((k) => sp[k] !== undefined)) {
+      const rest = new URLSearchParams();
+      for (const [k, v] of Object.entries(sp)) {
+        if (LEGACY_BOARD_PARAMS.includes(k) || v === undefined) continue;
+        for (const one of Array.isArray(v) ? v : [v]) rest.append(k, one);
+      }
+      const qs = rest.toString();
+      permanentRedirect(qs ? `/?${qs}` : '/');
+    }
+    return <Landing />;
+  }
 
   // The newest run is a paid view (lib/capabilities 'latest-scores'): a free account's board opens on
   // 24 hours, and its HTML must not carry the latest numbers either.

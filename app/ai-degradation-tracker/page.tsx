@@ -106,7 +106,7 @@ export default async function AiDegradationTrackerPage(): Promise<React.JSX.Elem
     },
     ...(familyAnswers ? [{
       q: 'Is Claude, GPT or Gemini getting worse right now?',
-      a: `${stamp ? `As of ${stamp}: ` : ''}${familyAnswers} Each family also has its own page with the 24-hour scores and the dated record: ${listJoin(worseLinks)}.`,
+      a: `${stamp ? `As of ${stamp}: ` : ''}${familyAnswers} Each family also has its own page with the 24-hour scores and the dated record: ${listJoin(worseLinks)}. What “nerfed” means, and how to check a model yourself, is on the [AI nerf tracker](/ai-nerf-tracker).`,
     }] : []),
     {
       q: 'Does the Smart Router avoid degraded models?',
@@ -200,7 +200,7 @@ export default async function AiDegradationTrackerPage(): Promise<React.JSX.Elem
           {stamp && <AsOf>As of {stamp} · per-suite Page-Hinkley detectors, the 24-hour boards and the hourly canary · the page refreshes every 15 minutes</AsOf>}
         </RdSection>
 
-        <RdSection id="models" n={num('models')} title="Every model, suite by suite"
+        <RdSection id="models" n={num('models')} title="LLM degradation tracker: every model, suite by suite"
           lead="Each pill is the detector’s verdict on one suite. The bar under it shows how close the detector’s statistic is to the alarm threshold, and the score beside it comes from the 24-hour board.">
           {data.groups.map((g) => (
             <div key={g.anchor} id={g.anchor} className="tk-family">

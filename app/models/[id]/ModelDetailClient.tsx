@@ -157,16 +157,64 @@ const getTrendFromHistory = (history: HistoryPoint[]): string => {
   return 'stable';
 };
 
-const formatTimeAgo = (dateStr: string): string => {
+/** `now` is the server's clock while the page hydrates, so the first browser render prints the same words. */
+const formatTimeAgo = (dateStr: string, now: number = Date.now()): string => {
   if (!dateStr) return 'Unknown';
   const date = new Date(dateStr);
-  const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+  const minutes = Math.floor((now - date.getTime()) / 60000);
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
 };
+
+/** The /dashboard/history response as this page keeps it. `fallbackTs` dates a point the API sent without a time. */
+const toHistory = (modelId: number, period: string, historyData: any, fallbackTs: string): ModelHistory => {
+  if (!historyData?.success || !Array.isArray(historyData.data) || historyData.data.length === 0) {
+    return { modelId, period, dataPoints: 0, history: [] };
+  }
+  return {
+    modelId,
+    period,
+    dataPoints: historyData.data.length,
+    canonicalScore: historyData.canonicalScore,
+    history: historyData.data.map((point: any) => ({
+      timestamp: point.timestamp || fallbackTs,
+      stupidScore: point.stupidScore || 0,
+      displayScore: point.score || point.displayScore || toDisplayScore(point) || 0,
+      score: point.score,
+      axes: point.axes || {},
+    })),
+  };
+};
+
+/**
+ * The dashboard's first view (24 hours, Combined) as the server fetched it for the page's HTML:
+ * the same public feeds a signed-out browser asks for, never the newest run (a paid view the API
+ * gates). With it the first HTML carries the model's figures (search engines and slow phones get
+ * them without running a script) and nothing below the dashboard moves when the page hydrates.
+ */
+export interface ModelSeed {
+  /** GET /api/models/:id */
+  details: ModelDetails;
+  /** GET /dashboard/history/:id?period=24h&sortBy=combined, as sent; null when it did not answer. */
+  history: unknown;
+  /** GET /api/models/:id/stats?period=24h&sortBy=combined */
+  stats: ModelStats;
+  /** GET /dashboard/model-cost/:id `data`, or null. */
+  cost: unknown;
+  /** GET /api/drift/signature/:id `data`, or null. */
+  drift: unknown;
+  /** GET /api/drift/slice-regressions/:id?limit=20&includeResolved=true, as sent; or null. */
+  regressions: unknown;
+  /** GET /dashboard/model-verbosity/:id `data`, or null. */
+  verbosity: unknown;
+  /** Today's funding slots of a community-funded model (GET /community-runs/model/:id `data`), or null. */
+  community: unknown;
+  /** The server's clock (ms) at render: relative times ("3h ago") are computed against it until the page has hydrated. */
+  now: number;
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -186,6 +234,8 @@ interface ModelDetailClientProps {
    * with their own keys, after the model's own panels (F7 review web MINOR-9). None unless the API shows them.
    */
   testedBy?: ReactNode;
+  /** The first view's data, fetched on the server; without it the page loads its data in the browser as before. */
+  initial?: ModelSeed | null;
 }
 
 export default function ModelDetailClient({
@@ -196,16 +246,24 @@ export default function ModelDetailClient({
   initialVendor,
   hostedBy,
   testedBy,
+  initial = null,
 }: ModelDetailClientProps) {
   const router = useRouter();
 
-  // Core data
-  const [modelDetails, setModelDetails] = useState<ModelDetails | null>(null);
-  const [history, setHistory] = useState<ModelHistory | null>(null);
-  const [stats, setStats] = useState<ModelStats | null>(null);
+  // Core data: from the server's seed when there is one, so the first render is the page itself.
+  const [modelDetails, setModelDetails] = useState<ModelDetails | null>(initial?.details ?? null);
+  const [history, setHistory] = useState<ModelHistory | null>(
+    () => (initial ? toHistory(modelId, '24h', initial.history, new Date(initial.now).toISOString()) : null),
+  );
+  const [stats, setStats] = useState<ModelStats | null>(initial?.stats ?? null);
+  // True until the seeded view has been accounted for by the fetch effect below.
+  const seeded = useRef(!!initial);
+  // False on the server and for the first browser render, which must print what the server printed.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
 
   // Loading states
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initial);
   const [loadingStage, setLoadingStage] = useState('Initializing...');
   const [loadingAttempts, setLoadingAttempts] = useState(0);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -347,23 +405,7 @@ export default function ModelDetailClient({
       let historyData: any = null;
       if (historyResponse.ok) {
         historyData = await historyResponse.json();
-        if (historyData.success && historyData.data && historyData.data.length > 0) {
-          setHistory({
-            modelId,
-            period: selectedPeriod,
-            dataPoints: historyData.data.length,
-            canonicalScore: historyData.canonicalScore,
-            history: historyData.data.map((point: any) => ({
-              timestamp: point.timestamp || new Date().toISOString(),
-              stupidScore: point.stupidScore || 0,
-              displayScore: point.score || point.displayScore || toDisplayScore(point) || 0,
-              score: point.score,
-              axes: point.axes || {},
-            })),
-          });
-        } else {
-          setHistory({ modelId, period: selectedPeriod, dataPoints: 0, history: [] });
-        }
+        setHistory(toHistory(modelId, selectedPeriod, historyData, new Date().toISOString()));
       } else {
         setHistory({ modelId, period: selectedPeriod, dataPoints: 0, history: [] });
       }
@@ -430,6 +472,14 @@ export default function ModelDetailClient({
     if (!sessionReady) return;
     if (latestAllowed && !periodChosen.current && selectedPeriod !== 'latest') {
       setSelectedPeriod('latest'); // this effect runs again with the new period
+      return;
+    }
+    if (seeded.current) {
+      seeded.current = false;
+      // The server rendered exactly this view from the same feeds: nothing to fetch.
+      if (selectedPeriod === '24h' && selectedScoringMode === 'combined') return;
+      // A plan that opens on the newest run: swap the figures in place, the page stays up.
+      fetchModelData(true);
       return;
     }
     fetchModelData();
@@ -571,12 +621,13 @@ export default function ModelDetailClient({
   // "Last update" is when the headline score last changed. The age of every contributing
   // suite goes in the cell's tooltip, so a fresh coding run does not hide an older
   // reasoning component from anyone who looks.
+  const nowMs = initial && !hydrated ? initial.now : Date.now();
   const lastUpdatedStr = stats?.lastUpdated
-    ? formatTimeAgo(stats.lastUpdated)
-    : modelDetails?.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts) : 'Unknown';
+    ? formatTimeAgo(stats.lastUpdated, nowMs)
+    : modelDetails?.latestScore?.ts ? formatTimeAgo(modelDetails.latestScore.ts, nowMs) : 'Unknown';
   const SUITE_LABEL: Record<string, string> = { hourly: 'coding', deep: 'reasoning', tooling: 'tools' };
   const suiteAges = stats?.suiteUpdatedAt
-    ? ['hourly', 'deep', 'tooling'].filter(s => stats.suiteUpdatedAt![s]).map(s => `${SUITE_LABEL[s]} ${formatTimeAgo(stats.suiteUpdatedAt![s])}`)
+    ? ['hourly', 'deep', 'tooling'].filter(s => stats.suiteUpdatedAt![s]).map(s => `${SUITE_LABEL[s]} ${formatTimeAgo(stats.suiteUpdatedAt![s], nowMs)}`)
     : [];
   const lastUpdatedTitle = suiteAges.length ? suiteAges.join(' · ') : undefined;
 
@@ -630,6 +681,7 @@ export default function ModelDetailClient({
             modelName={modelDetails.displayName || modelDetails.name}
             vendor={modelDetails.vendor}
             signedIn={Boolean(session?.user)}
+            initial={initial?.community}
           />
         )}
 
@@ -666,12 +718,13 @@ export default function ModelDetailClient({
           selectedPeriod={selectedPeriod}
           selectedScoringMode={selectedScoringMode}
           onSwitchPeriod={choosePeriod}
+          plainLabel={!hydrated}
         />
 
         {hostedBy}
 
         {/* Where each suite's detector stands — armed with its statistic, or still warming up (free) */}
-        <ModelDetailDriftStatus modelId={modelId} focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null} />
+        <ModelDetailDriftStatus modelId={modelId} initial={initial?.drift} focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null} />
 
         {/* Page-Hinkley CUSUM drift curve (Pro) */}
         <ModelDetailCusum
@@ -685,7 +738,7 @@ export default function ModelDetailClient({
             answers the question that curve raises but cannot resolve: the composite
             moved (or did not) — which task actually changed? */}
         {(selectedScoringMode === 'combined' || selectedScoringMode === 'speed') && (
-          <ModelDetailSliceRegressions modelId={modelId} includeResolved />
+          <ModelDetailSliceRegressions modelId={modelId} includeResolved initial={initial?.regressions} />
         )}
 
         {/* What the model was asked in each suite's last run, and what happened — per task,
@@ -707,6 +760,7 @@ export default function ModelDetailClient({
             the words a reader actually gets back from the reasoning inside that bill. Free. */}
         <ModelDetailVerbosity
           modelId={modelId}
+          initial={initial?.verbosity}
           focus={selectedScoringMode === 'reasoning' ? 'deep' : selectedScoringMode === 'tooling' ? 'tooling' : selectedScoringMode === 'speed' ? 'hourly' : null}
         />
 
@@ -767,6 +821,7 @@ export default function ModelDetailClient({
             provider={modelDetails.vendor}
             currentScore={currentScore}
             modelId={modelDetails.id}
+            initialCost={initial?.cost}
           />
         </div>
 

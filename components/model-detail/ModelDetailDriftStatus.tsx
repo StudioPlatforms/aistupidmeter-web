@@ -47,11 +47,17 @@ function chipState(s: SuiteState): 'cold' | 'ok' | 'warn' | 'alert' {
   return 'ok';
 }
 
-export default function ModelDetailDriftStatus({ modelId, focus = null }: { modelId: string | number; focus?: SuiteKey | null }) {
-  const [sig, setSig] = useState<Signature | null>(null);
+export default function ModelDetailDriftStatus({ modelId, focus = null, initial = null }: {
+  modelId: string | number; focus?: SuiteKey | null;
+  /** The signature as the server read it for this page (GET /api/drift/signature/:id `data`); with it the panel is in the first HTML and is not fetched again. */
+  initial?: unknown;
+}) {
+  const seed = initial && typeof initial === 'object' && (initial as Signature).pageHinkleyBySuite ? (initial as Signature) : null;
+  const [sig, setSig] = useState<Signature | null>(seed);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    if (seed) return;
     let alive = true;
     // Same-origin in production so the site's origin-token fetch wrapper attaches the header
     // (lib/asl-token.ts guards every /api/drift/ path).
@@ -61,6 +67,7 @@ export default function ModelDetailDriftStatus({ modelId, focus = null }: { mode
       .then(j => { if (alive) setSig(j?.data ?? null); })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelId]);
 
   // Older API or no signature: render nothing rather than an empty shell.

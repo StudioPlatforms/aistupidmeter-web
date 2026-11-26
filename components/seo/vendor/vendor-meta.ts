@@ -59,11 +59,18 @@ const TITLE_PART_MAX = TITLE_MAX - TITLE_SUFFIX.length; // 42
  * characters whatever the vendor or the month ("DeepSeek … (September 2026)" would be 44).
  */
 export function vendorTitle(v: Vendor, generatedAt: string | null | undefined): string {
-  const base = `${VENDOR_COPY[v.key].name} models benchmarked`;
+  const name = VENDOR_COPY[v.key].name;
   const d = toDate(generatedAt);
+  const shortMonth = `${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  // "ranked" is what the page does and what people search ("claude model ranking", "best kimi model"): the fullest
+  // form that fits 60 characters on its own (pageMeta drops the brand suffix when the two do not fit together).
+  const ranked = [`${name} models ranked & benchmarked (${monthLabel(d)})`, `${name} models ranked & benchmarked (${shortMonth})`];
+  const fit = ranked.find((t) => t.length <= TITLE_MAX);
+  if (fit) return fit;
+  const base = `${name} models benchmarked`;
   const long = `${base} (${monthLabel(d)})`;
   if (long.length <= TITLE_PART_MAX) return long;
-  const short = `${base} (${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()})`;
+  const short = `${base} (${shortMonth})`;
   return short.length <= TITLE_PART_MAX ? short : base;
 }
 

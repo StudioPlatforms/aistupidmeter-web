@@ -19,7 +19,7 @@ import {
   TITLE_MAX, TITLE_SUFFIX, DESC_MAX, breadcrumbLd, clampDesc, dayLabel, faqLd, graphLd, isoDay, pageMeta, toDate, utcStamp, webPageLd,
 } from '@/lib/seo';
 import {
-  boardLabel, findModel, getBoards24h, getDriftSignature, getPrice, getRoster, lastUpdatedOf, pairSlug, placementOn, placementSentence,
+  boardLabel, findModel, getBoards24h, getDriftSignature, getModelDashboardSeed, getPrice, getRoster, lastUpdatedOf, pairSlug, placementOn, placementSentence,
   relatedModels, retiredModelTarget, trendWord, vendorByKey, vendorMention,
   type DriftSignature, type Placement, type PriceSnapshot, type RelatedModels, type SeoBoards, type SeoModel, type Vendor,
 } from '@/lib/seo-data';
@@ -39,7 +39,10 @@ import '@/styles/studio-model-panels.css';
  * detector states are read at render time. The text is the same for everyone: it reads the free
  * 24-hour boards, the drift signature and the last-30-days price snapshot, never a session
  * (no auth(), cookies() or headers()) and never the newest run, which is a paid view the
- * dashboard unlocks on the client (ModelDetailClient) and the API gates. The route renders per
+ * dashboard unlocks on the client (ModelDetailClient) and the API gates. The dashboard's first view
+ * (24 hours, Combined) is server-rendered from the same public feeds a signed-out browser asks for
+ * (getModelDashboardSeed), so its figures are in the HTML and nothing moves when it hydrates; a
+ * model whose feeds do not answer falls back to loading in the browser. The route renders per
  * request because the dashboard reads the ?track=1 intent through useSearchParams, which a
  * static render would have to wrap in a Suspense boundary; every feed behind the text is cached
  * by next.revalidate in lib/seo-data.ts.
@@ -108,9 +111,15 @@ function modelTitle(name: string): string {
   return candidates.find((c) => c.length <= TITLE_MAX) ?? name.slice(0, TITLE_MAX);
 }
 
-/** 120–155 characters, the fullest form that fits; the audit's cadence wording is kept whole. */
+/**
+ * 120–155 characters, the fullest form that fits. It opens with the question most visitors arrive with
+ * (is the model degraded, is it nerfed); the earlier forms, with the audit's cadence wording, are the fallbacks.
+ */
 function modelDescription(name: string, vendor: string): string {
+  const schedule = 'coding re-tested every four hours, reasoning and tool use daily.';
   const candidates = [
+    `Is ${name} degraded or nerfed right now? Benchmark score, place, price and drift state by suite: ${schedule}`,
+    `Is ${name} degraded or nerfed? Score, place, price and drift state by suite: ${schedule}`,
     `${name} by ${vendor}: benchmark score, place, price and drift state — ${CADENCE_DESC}`,
     `${name} (${vendor}): score, place, price and drift — ${CADENCE_DESC}`,
     `${name}: score, place, price and drift — ${CADENCE_DESC}`,
@@ -230,7 +239,10 @@ export default async function ModelDetailPage(props: { params: Promise<{ id: str
 
   // The free 24-hour boards, the drift signature and the price snapshot (for the suites' task
   // counts): the same three feeds for every visitor, search engines included.
-  const [boards24, drift, price, hosted] = await Promise.all([getBoards24h(), getDriftSignature(m.id), getPrice(), fleetHostsRead(m.numericId).catch(() => null)]);
+  // …and the dashboard's own first view (24 hours, Combined), so its figures are in the HTML too.
+  const [boards24, drift, price, hosted, seed] = await Promise.all([
+    getBoards24h(), getDriftSignature(m.id), getPrice(), fleetHostsRead(m.numericId).catch(() => null), getModelDashboardSeed(m.numericId),
+  ]);
   // F7: the user-run tests of those hosts, asked only when the Hosted-by pane has hosts (as its own read decided).
   const tested = hosted && hosted.kind === 'ok' && hosted.data.hosts.length ? await userTestsRead({ fleetModel: m.numericId }).catch(() => null) : null;
   const testedPane = tested && tested.kind === 'ok' ? <UserTests data={tested.data} scope="hosts" framed /> : null;
@@ -271,8 +283,17 @@ export default async function ModelDetailPage(props: { params: Promise<{ id: str
     <>
       <JsonLd data={ld} />
       {/* The page's one h1 is the visible model name in the dashboard's hero (ModelHero), which is
-          server-rendered in the loading state too, so crawlers and screen readers get it. */}
+          server-rendered in the loading state too, so crawlers and screen readers get it. With the
+          seed, the dashboard's first view (score, runs, latency, prices, drift state) is server-rendered
+          as well; `key` gives each model its own state when the address changes in place. */}
       <ModelDetailClient
+        key={m.slug}
+        initial={seed ? {
+          ...seed,
+          // The drift panel's three fields of the signature the text below is written from.
+          drift: drift ? { driftStatus: drift.driftStatus, dataSource: drift.dataSource, pageHinkleyBySuite: drift.pageHinkleyBySuite } : null,
+          now: Date.now(),
+        } : null}
         modelId={m.numericId}
         slug={m.slug}
         initialName={m.name}
@@ -495,7 +516,7 @@ function buildContent(p: {
         ` Full details, including every weight, are on the [benchmarking methodology page](/methodology).`,
     },
     {
-      q: `Is ${name} getting worse over time?`,
+      q: `Is ${name} getting worse, degraded or nerfed?`,
       a:
         (verdict ? `${verdict}\n\n` : '') +
         `This section is ${name}'s degradation tracker, and the question the platform exists to answer. A provider can change a model behind the same API name, and without continuous re-testing that ` +
@@ -504,8 +525,8 @@ function buildContent(p: {
         `current version of the tests. An hourly canary of two fixed probes watches for a sudden collapse, tests it against the previous week with Welch's ` +
         `t-test, and records an incident when the fall is large and significant. A Page-Hinkley detection is marked on the chart above and changes ${name}'s ` +
         `status on the drift monitor. If you are wondering whether ${name} has been nerfed, or why it seems dumber lately, see ` +
-        `[the current answer for every ${family} model](${worseHref}), [every ${family} model on the AI degradation tracker](/ai-degradation-tracker${vendor ? `#${vendor.family.toLowerCase()}` : ''}) ` +
-        `and [how AI drift detection works](/ai-drift-detection) for the method.`,
+        `[the current answer for every ${family} model](${worseHref}), [every ${family} model on the AI degradation tracker](/ai-degradation-tracker${vendor ? `#${vendor.family.toLowerCase()}` : ''}), ` +
+        `the [AI nerf tracker](/ai-nerf-tracker) for what a nerf is and how to check one, and [how AI drift detection works](/ai-drift-detection) for the method.`,
     },
     {
       q: `How does ${name} compare with other models?`,

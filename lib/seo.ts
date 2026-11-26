@@ -33,6 +33,15 @@ export const OG_IMAGE = {
   alt: 'AI Stupid Level: the continuous LLM benchmark leaderboard',
 };
 
+/**
+ * The robots value of every page that may be indexed. The three preview rules set no limit on the
+ * text snippet, allow the large image preview and the full video preview. They are what search
+ * results, Discover and Google's generative AI features (AI Overviews, AI Mode) read to decide how
+ * much of a page they may show; a restrictive max-snippet also keeps a page out of those answers.
+ * Written into the general robots tag so Bing and the others read the same rule as Googlebot.
+ */
+export const ROBOTS_INDEX = { index: true, follow: true, 'max-snippet': -1, 'max-image-preview': 'large', 'max-video-preview': -1 } as const;
+
 export interface PageMetaInput {
   /** Without the " | AI Stupid Level" suffix; at most 42 characters so the whole title fits in 60. */
   title: string;
@@ -75,7 +84,7 @@ export function pageMeta(input: PageMetaInput): Metadata {
       ? { ...og, type: 'article', ...(input.publishedTime ? { publishedTime: input.publishedTime } : {}), ...(input.modifiedTime ? { modifiedTime: input.modifiedTime } : {}) }
       : { ...og, type: 'website' },
     twitter: { card: 'summary_large_image', site: TWITTER_SITE, title, description, images: [OG_IMAGE.url] },
-    robots: input.noindex ? { index: false, follow: true } : { index: true, follow: true },
+    robots: input.noindex ? { index: false, follow: true } : ROBOTS_INDEX,
   };
 }
 

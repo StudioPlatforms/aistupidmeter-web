@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { RdProse, RdRows } from '@/components/landing/Reading';
 import { PROVIDER_LABEL, type LandingSnapshot } from '@/components/landing/types';
 import { livePicksFastestQuality, scoringOf } from '@/lib/router-scoring';
-import { CHECKED, CLUSTER, LIVE_MODES, VALUE_FLOOR_POINTS, sourcesOf, type RouterEntry } from './routers-data';
+import { CHECKED, CLUSTER, GUIDES, LIVE_MODES, VALUE_FLOOR_POINTS, sourcesOf, type RouterEntry } from './routers-data';
 
 /**
  * Server blocks for the AI router pages. The comparison table shows only the two columns every
@@ -145,7 +145,17 @@ export function ClusterLinks({ current }: { current: string }) {
     <>
       {CLUSTER.filter((c) => c.path !== current).map((c) => <Link key={c.path} href={c.path}>{c.label}</Link>)}
       <Link href="/router/docs">Router documentation</Link>
+      {GUIDES.map((g) => <Link key={g.path} href={g.path}>{g.label}</Link>)}
     </>
+  );
+}
+
+/** The routing guides as a row of tags inside a section. */
+export function GuideTags({ label = 'Routing guides' }: { label?: string }) {
+  return (
+    <ul className="rd-tags lp-up" aria-label={label}>
+      {GUIDES.map((g) => <li key={g.path}><Link href={g.path}>{g.label}</Link></li>)}
+    </ul>
   );
 }
 

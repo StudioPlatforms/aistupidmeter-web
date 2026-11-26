@@ -49,6 +49,8 @@ export default function SiteFooter({ force = false }: { force?: boolean } = {}) 
         <Link href="/investors">Investors</Link>
         <Link href="/privacy">Privacy</Link>
         <Link href="/terms">Terms</Link>
+        {/* The Chinese page (/zh) had no link from any page: only the sitemap named it. */}
+        <Link href="/zh" hrefLang="zh-Hans" lang="zh-Hans">中文</Link>
         <CookieSettings />
         {nextRun && <span>Next bench: <b style={{ color: 'var(--phosphor-green)' }}>{nextRun.left} ({nextRun.local})</b></span>}
       </div>

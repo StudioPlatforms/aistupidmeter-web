@@ -21,8 +21,8 @@ export default function AuthShell({ mode, children }: { mode: Mode; children: Re
   const panel = PANEL[mode];
   const marks = (
     <>
-      <img className="au-mk-l" src="/asl-mark.png" alt="AI Stupid Level" width={754} height={160} />
-      <img className="au-mk-d" src="/asl-mark-dark.png" alt="" width={754} height={160} />
+      <img className="au-mk-l" src="/asl-mark-nav.png" alt="AI Stupid Level" width={377} height={80} />
+      <img className="au-mk-d" src="/asl-mark-dark-nav.png" alt="" width={377} height={80} />
     </>
   );
   return (

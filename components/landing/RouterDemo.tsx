@@ -216,8 +216,8 @@ export default function RouterDemo({
         </div>
         <div className="lp-rv-col lp-core">
           <div className={`lp-node${busy ? ' is-busy' : ''}`} ref={nodeRef}>
-            <img className="lp-mk-l" src="/asl-mark.png" alt="" width={754} height={160} />
-            <img className="lp-mk-d" src="/asl-mark-dark.png" alt="" width={754} height={160} />
+            <img className="lp-mk-l" src="/asl-mark-nav.png" alt="" width={377} height={80} />
+            <img className="lp-mk-d" src="/asl-mark-dark-nav.png" alt="" width={377} height={80} />
             <span className="lp-bars"><i /><i /><i /></span>
           </div>
           <dl className="lp-read">

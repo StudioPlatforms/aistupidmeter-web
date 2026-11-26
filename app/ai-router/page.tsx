@@ -9,7 +9,7 @@ import { AsOf } from '@/components/seo/Verdict';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { ClusterLinks, ClusterTags, LivePicks } from '@/components/seo/routers/RouterBlocks';
 import {
-  CADENCE, CHECKED_ISO, CIRCUIT_COOLDOWN_S, CIRCUIT_FAILURES, FREE_REQUESTS, FREE_ROUTER, KEY_CIPHER, MAX_FALLBACKS,
+  CADENCE, CHECKED_ISO, PUBLISHED_ISO, CIRCUIT_COOLDOWN_S, CIRCUIT_FAILURES, FREE_REQUESTS, FREE_ROUTER, KEY_CIPHER, MAX_FALLBACKS,
   MODE_COUNT, OPENNESS, OPENROUTER, OTHERS, PAID_ROUTER, PYTHON_SAMPLE, ROUTER_APP_ID, ROUTER_BASE_URL, VALUE_FLOOR_POINTS,
   listJoin, word,
 } from '@/components/seo/routers/routers-data';
@@ -29,7 +29,7 @@ import '@/styles/seo-routers.css';
  */
 
 const PATH = '/ai-router';
-const TITLE = 'AI router: the right LLM for every request';
+const TITLE = 'AI router & LLM router: how they choose';
 const DESCRIPTION = 'An AI router sends each request to the model best suited to it. The Smart Router decides from public benchmark results, with your own keys and no markup.';
 const H1 = 'AI router: one endpoint,';
 const H1_ACCENT = 'the right LLM for every request';
@@ -39,7 +39,7 @@ export const metadata: Metadata = pageMeta({
   description: DESCRIPTION,
   path: PATH,
   type: 'article',
-  publishedTime: CHECKED_ISO,
+  publishedTime: PUBLISHED_ISO,
   keywords: [
     'AI router', 'LLM router', 'AI model router', 'smart router', 'smart AI router', 'what is an AI router',
     'what is an LLM router', 'AI routing', 'LLM routing', 'model routing', 'automatic model selection',
@@ -112,7 +112,7 @@ export default async function AiRouterPage(): Promise<React.JSX.Element> {
       name: `${H1} ${H1_ACCENT}`,
       description: DESCRIPTION,
       type: 'TechArticle',
-      datePublished: CHECKED_ISO,
+      datePublished: PUBLISHED_ISO,
       dateModified: snapshot ? isoDay(snapshot.generatedAt) : CHECKED_ISO,
       about: { '@id': ROUTER_APP_ID },
     }),

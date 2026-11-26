@@ -105,6 +105,20 @@ html:has(.lp) { scroll-behavior: smooth; }
 
 .lp-wrap { max-width: var(--lp-max); margin-inline: auto; padding-inline: var(--lp-gutter); }
 .lp-sec { position: relative; padding-block: clamp(80px, 9.5vw, 152px); background: var(--lp-sec, var(--lp-bg)); border-top: 1px solid var(--lp-line); }
+/* The home page is fifteen sections, about 33,000 px tall on a phone, and the browser used to compute
+   styles and layout for all of them before its first paint (1.3 s on a mid-range phone, 2026-11-26).
+   content-visibility skips that work for a section that is not near the screen; the intrinsic size is
+   the room a skipped section keeps meanwhile. Home page only: the other pages built from .lp-sec are
+   a few screens long.
+
+   Only for the first paint. A jump link needs every section's real height (with estimates in the way,
+   "Pricing" landed a screen or two off), so once the page is interactive LandingEffects lays the
+   sections out one per frame (`is-laid`), and a click on any in-page link before that lays them all
+   out at once (`lp-all`, set by the inline script in Landing.tsx). From then on the page is laid out
+   exactly as it was without this rule. */
+.lp-home .lp-sec { content-visibility: auto; contain-intrinsic-size: auto 1300px; }
+@media (max-width: 760px) { .lp-home .lp-sec { contain-intrinsic-size: auto 2300px; } }
+.lp-home .lp-sec.is-laid, .lp-all .lp-home .lp-sec { content-visibility: visible; }
 .lp-A { --lp-sec: var(--lp-surface); }
 .lp-B { --lp-sec: var(--lp-bg); }
 .lp-C { --lp-sec: var(--lp-bg); }
@@ -201,6 +215,9 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-facts code { font-size: 12.5px; color: var(--lp-accent); }
 .lp-intro { animation: lpIntro .95s var(--lp-ease) both; animation-delay: var(--d, 0s); }
 @keyframes lpIntro { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+/* A visitor whose first frame comes more than a second after the visit began (the page's inline script
+   sets `lp-late` on <html> just before that frame) has waited long enough: the hero is simply there. */
+.lp-late .lp-intro { animation: none; }
 
 /* ── router demo ── */
 .lp-rv { position: relative; border: 1px solid var(--lp-line); border-radius: 20px; background: var(--lp-card); box-shadow: var(--lp-shadow-2); overflow: hidden; }
@@ -283,9 +300,7 @@ html:has(.lp) { scroll-behavior: smooth; }
 
 /* ── proof strip ── */
 .lp-proof { padding-block: clamp(44px, 5vw, 76px); }
-.lp-proof-row { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: clamp(24px, 4vw, 72px); row-gap: 20px; }
 .lp-proof-label { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--lp-fg3); line-height: 1.5; max-width: 15ch; }
-.lp-logos { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px 28px; }
 .lp-logo-it { display: flex; align-items: center; gap: 12px; font-family: var(--lp-font-disp); font-weight: 600; font-size: clamp(16px, 1.3vw, 20px); letter-spacing: -.01em; color: var(--lp-fg); }
 .lp-logo-it .lp-lgc { width: 40px; height: 40px; border-radius: 10px; }
 .lp-logo-it .lp-lgc img { width: 24px; height: 24px; }
@@ -300,9 +315,15 @@ html:has(.lp) { scroll-behavior: smooth; }
 .lp-tape:hover .lp-tape-track, .lp-tape:focus-within .lp-tape-track { animation-play-state: paused; }
 .lp-tape-more { grid-column: 2; justify-self: start; }
 @keyframes lpTape { to { transform: translateX(calc(-50% - var(--gap) / 2)); } }
+/* The provider tape (2026-11-25) is the first row of the strip, so it has no top margin. A loop moves
+   two of its four repeats (14 logos), so its duration keeps the same speed as the "Works with" tape,
+   and it runs the other way (left to right). */
+.lp-tape-row.is-providers { margin-top: 0; }
+.lp-tape-track.is-providers { animation-duration: 53s; animation-direction: reverse; }
 @media (max-width: 760px) {
   .lp-tape-row { grid-template-columns: minmax(0, 1fr); }
   .lp-tape-track { --gap: 28px; animation-duration: 107s; }
+  .lp-tape-track.is-providers { animation-duration: 42s; }
   .lp-tape-more { grid-column: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -706,9 +727,7 @@ html:has(.lp) { scroll-behavior: smooth; }
   .lp-rr { grid-template-columns: 16px 28px minmax(0, 1fr) 66px; column-gap: 10px; padding: 0 11px 0 7px; }
   .lp-rr .lp-bar { display: none; }
   .lp-lgc { width: 28px; height: 28px; }
-  .lp-proof-row { grid-template-columns: minmax(0, 1fr); }
   .lp-proof-label { max-width: none; }
-  .lp-logos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
   .lp-logo-it { font-size: 15.5px; }
   .lp-logo-it .lp-lgc { width: 34px; height: 34px; } .lp-logo-it .lp-lgc img { width: 20px; height: 20px; }
   .lp-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }

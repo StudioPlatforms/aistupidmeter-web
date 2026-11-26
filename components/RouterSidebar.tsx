@@ -196,8 +196,8 @@ export default function RouterSidebar() {
 
   const brand = (
     <a className="st-brand" href="/" aria-label="AI Stupid Level — leaderboard">
-      <img className="st-mk-l" src="/asl-mark.png" alt="AI Stupid Level" width={754} height={160} />
-      <img className="st-mk-d" src="/asl-mark-dark.png" alt="" width={754} height={160} />
+      <img className="st-mk-l" src="/asl-mark-nav.png" alt="AI Stupid Level" width={377} height={80} />
+      <img className="st-mk-d" src="/asl-mark-dark-nav.png" alt="" width={377} height={80} />
     </a>
   );
 

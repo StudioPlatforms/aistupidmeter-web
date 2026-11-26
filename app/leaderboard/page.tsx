@@ -7,11 +7,13 @@ import { ScoreTable, type ScoreTableRow } from '@/components/seo/ScoreTable';
 import { AsOf } from '@/components/seo/Verdict';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { boardVerdict, companyOf } from '@/components/seo/best/best-data';
+import { BENCH, HUB as BENCH_HUB } from '@/components/seo/bench/bench-config';
 import { LEADERBOARD_TOP_N } from '@/components/seo/leaderboard/leaderboard-config';
 import LeaderboardHosted from '@/components/seo/leaderboard/LeaderboardHosted';
 import LeaderboardFleetHosts from '@/components/seo/leaderboard/LeaderboardFleetHosts';
 import { CADENCE, OPENNESS, TIES_RULE } from '@/components/seo/best/best-config';
 import { PLANS } from '@/lib/entitlements';
+import { listSnapshots } from '@/lib/rankings-archive';
 import type { BoardKey } from '@/lib/boards-core';
 import { MONTHS_SHORT, TITLE_MAX, TITLE_SUFFIX, breadcrumbLd, faqLd, graphLd, isoDay, itemListLd, monthLabel, pageMeta, toDate, utcStamp, webPageLd } from '@/lib/seo';
 import { boardLabel, getBoards24h, getRoster, topOfBoard, type SeoBoards } from '@/lib/seo-data';
@@ -47,6 +49,10 @@ const BOARDS: Array<{ key: BoardKey; id: string; title: string; lead: string }> 
   { key: 'reasoning', id: 'reasoning', title: 'Reasoning leaderboard', lead: 'Long multi-turn working sessions, run daily; rules stated early in a session are checked by running code at later turns.' },
   { key: 'tooling', id: 'tooling', title: 'Tool use leaderboard', lead: 'Tasks in sandboxed machines, run daily: either the job is done at the end or it is not.' },
 ];
+
+/** The page that explains what a board tests: the suite's own page, or the hub for the Combined board. */
+const benchOf = (key: BoardKey): { path: string; label: string } =>
+  Object.values(BENCH).find((s) => s.board === key) ?? BENCH_HUB;
 
 const TOC = [
   ...BOARDS.map((b) => ({ id: b.id, label: b.key === 'combined' ? 'Combined' : boardLabel(b.key) })),
@@ -87,6 +93,8 @@ function rowsOf(boards: SeoBoards, key: BoardKey): ScoreTableRow[] {
 export default async function LeaderboardPage() {
   const [boards, roster] = await Promise.all([getBoards24h(), getRoster()]);
   const FREE = PLANS.free;
+  // The monthly archive is linked only once it holds a month (its pages are 404s before that).
+  const hasArchive = listSnapshots().length > 0;
   const modelCount = roster.length;
   const allLabel = modelCount > LEADERBOARD_TOP_N ? `See all ${modelCount} models →` : 'See every model on every board →';
   const stamp = boards?.generatedAt ?? null;
@@ -184,6 +192,7 @@ export default async function LeaderboardPage() {
               ) : (
                 <RdProse><p>The board is not answering at the moment; the places are on the <Link href="/">full leaderboard</Link>.</p></RdProse>
               )}
+              <RdProse><p>What this board tests and how it is graded: <Link href={benchOf(b.key).path}>{benchOf(b.key).label}</Link>.</p></RdProse>
             </RdSection>
           );
         })}
@@ -201,6 +210,7 @@ export default async function LeaderboardPage() {
               <Link href="/best-ai-model-for-agents">best AI model for agents</Link> and <Link href="/compare">head-to-head comparisons</Link>;
               whether a model is slipping is on the <Link href="/ai-degradation-tracker">AI degradation tracker</Link> and{' '}
               <Link href="/is-ai-getting-worse">is your AI getting worse?</Link>
+              {hasArchive && <>{' '}Past months are kept as frozen records in the <Link href="/rankings">monthly AI rankings</Link>.</>}
             </p>
           </RdProse>
         </RdSection>

@@ -54,13 +54,22 @@ export default function ModelDetailCommunityFunding({
   modelName,
   vendor,
   signedIn,
+  initial = null,
 }: {
   modelId: number;
   modelName: string;
   vendor: string;
   signedIn: boolean;
+  /**
+   * Today's slots as the server read them for this page (the same public answer a signed-out
+   * browser gets), so the notice is in the first HTML instead of arriving later and pushing the
+   * page down. The browser still asks again once it has loaded.
+   */
+  initial?: unknown;
 }) {
-  const [state, setState] = useState<State | null>(null);
+  const seed = initial && typeof initial === 'object' && Array.isArray((initial as State).slots) && Array.isArray((initial as State).communitySuites)
+    ? (initial as State) : null;
+  const [state, setState] = useState<State | null>(seed);
   const [introOpen, setIntroOpen] = useState(false);
   const [fundOpen, setFundOpen] = useState(false);
 

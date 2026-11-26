@@ -3,6 +3,7 @@ import { getBoards24h, getRoster } from '@/lib/seo-data';
 import { allRoutes, type MarketplaceDirectoryRow } from '@/lib/seo-routes';
 import { publicRead } from '@/lib/marketplace-public';
 import { agreementPublicNow, providerSignupOpenNow } from '@/lib/provider-public';
+import { listSnapshots, monthPath } from '@/lib/rankings-archive';
 
 /**
  * /sitemap.xml from the route registry (lib/seo-routes.ts), so a page and its sitemap entry
@@ -23,5 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // agreement's page only once a version is public (the same status route; any failure reads as not public).
   const [roster, boards, dir, termsOpen, agreementPublic] = await Promise.all([getRoster(), getBoards24h(),
     publicRead<{ providers: MarketplaceDirectoryRow[] }>('/marketplace/public/providers', ['mp:directory']).catch(() => null), providerSignupOpenNow(), agreementPublicNow()]);
-  return allRoutes(roster, boards, dir && dir.kind === 'ok' ? dir.data.providers : null, termsOpen, agreementPublic);
+  // The monthly rankings archive: one entry per recorded month (none until a month has been frozen).
+  const rankings = listSnapshots().map((s) => ({ path: monthPath(s.month), frozenAt: s.frozenAt }));
+  return allRoutes(roster, boards, dir && dir.kind === 'ok' ? dir.data.providers : null, termsOpen, agreementPublic, rankings);
 }

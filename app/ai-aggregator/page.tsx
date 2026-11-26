@@ -7,7 +7,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { ClusterLinks, ClusterTags } from '@/components/seo/routers/RouterBlocks';
 import {
-  CADENCE, CHECKED_ISO, CREDITS, CURL_SAMPLE, FREE_ROUTER, KEY_CIPHER, MAX_FALLBACKS, MODE_COUNT, OPENNESS, OPENROUTER,
+  CADENCE, CHECKED_ISO, PUBLISHED_ISO, CREDITS, CURL_SAMPLE, FREE_ROUTER, KEY_CIPHER, MAX_FALLBACKS, MODE_COUNT, OPENNESS, OPENROUTER,
   OTHERS, PAID_ROUTER, ROUTER_APP_ID, ROUTER_BASE_URL, VALUE_FLOOR_POINTS, listJoin, word,
 } from '@/components/seo/routers/routers-data';
 import { breadcrumbLd, faqLd, graphLd, pageMeta, webPageLd } from '@/lib/seo';
@@ -33,7 +33,7 @@ export const metadata: Metadata = pageMeta({
   description: DESCRIPTION,
   path: PATH,
   type: 'article',
-  publishedTime: CHECKED_ISO,
+  publishedTime: PUBLISHED_ISO,
   keywords: [
     'AI aggregator', 'LLM aggregator', 'AI API aggregator', 'AI model aggregator', 'LLM API aggregator',
     'one API for all AI models', 'one API key for every LLM', 'unified LLM API', 'multi-provider LLM API',
@@ -99,7 +99,7 @@ export default async function AiAggregatorPage(): Promise<React.JSX.Element> {
       name: `${H1} ${H1_ACCENT}`,
       description: DESCRIPTION,
       type: 'TechArticle',
-      datePublished: CHECKED_ISO,
+      datePublished: PUBLISHED_ISO,
       dateModified: CHECKED_ISO,
       about: { '@id': ROUTER_APP_ID },
     }),

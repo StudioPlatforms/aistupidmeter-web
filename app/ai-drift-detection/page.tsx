@@ -209,7 +209,7 @@ export default async function AiDriftDetectionPage(): Promise<React.JSX.Element>
           />
         )}
       >
-        <RdSection id="drift" n={num('drift')} title="What is AI drift?">
+        <RdSection id="drift" n={num('drift')} title="What is AI drift (LLM drift, model drift)?">
           <RdProse>
             <p>
               AI models change without changing their name. A provider can update the checkpoint behind a stable id such as{' '}
@@ -269,7 +269,7 @@ export default async function AiDriftDetectionPage(): Promise<React.JSX.Element>
           </RdProse>
         </RdSection>
 
-        <RdSection id="monitor" n={num('monitor')} title="Drift monitor now">
+        <RdSection id="monitor" n={num('monitor')} title="LLM drift monitoring: the monitor now">
           <Verdict>{verdict ?? fallbackLead}</Verdict>
           <DriftMonitorNow data={data} />
           <RdProse>

@@ -3,7 +3,7 @@ import pageDates from './page-dates.json';
 import { legalUpdated } from './legal-dates';
 import { RESEARCH, researchPath } from './research-index';
 import { SITE } from './seo';
-import { curatedPairs, lastUpdatedOf, pairSlug, type SeoBoards, type SeoModel } from './seo-data';
+import { allPairs, lastUpdatedOf, pairSlug, type SeoBoards, type SeoModel } from './seo-data';
 
 /**
  * The route registry: every indexable static URL with the file that renders it, plus the
@@ -40,7 +40,13 @@ export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/zh', file: 'app/zh/page.tsx', changeFrequency: 'daily', priority: 0.6, family: 'core' },
   { path: '/ai-drift-detection', file: 'app/ai-drift-detection/page.tsx', changeFrequency: 'daily', priority: 0.9, family: 'worse' },
   { path: '/ai-degradation-tracker', file: 'app/ai-degradation-tracker/page.tsx', changeFrequency: 'hourly', priority: 0.9, family: 'worse' },
+  { path: '/ai-nerf-tracker', file: 'app/ai-nerf-tracker/page.tsx', changeFrequency: 'weekly', priority: 0.7, family: 'worse' },
   { path: '/methodology', file: 'app/methodology/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
+  // the benchmark pages: the hub and one per suite (never under /benchmark: nginx sends that prefix to the API)
+  { path: '/ai-benchmarks', file: 'app/ai-benchmarks/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
+  { path: '/ai-coding-benchmark', file: 'app/ai-coding-benchmark/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
+  { path: '/llm-reasoning-benchmark', file: 'app/llm-reasoning-benchmark/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
+  { path: '/llm-tool-calling-benchmark', file: 'app/llm-tool-calling-benchmark/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
   { path: '/faq', file: 'app/faq/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
   { path: '/about', file: 'app/about/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'core' },
   { path: '/pricing', file: 'app/pricing/page.tsx', changeFrequency: 'monthly', priority: 0.8, family: 'core' },
@@ -54,7 +60,8 @@ export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/privacy', file: 'app/privacy/page.tsx', changeFrequency: 'yearly', priority: 0.3, family: 'core' },
   { path: '/terms', file: 'app/terms/page.tsx', changeFrequency: 'yearly', priority: 0.3, family: 'core' },
   // Smart Router (public surfaces only)
-  { path: '/router', file: 'app/router/page.tsx', changeFrequency: 'weekly', priority: 0.8, family: 'router' },
+  // /router's public page is the landing component (app/router/page.tsx only chooses between it and the dashboard): dated by that file
+  { path: '/router', file: 'components/seo/router/RouterLanding.tsx', changeFrequency: 'weekly', priority: 0.8, family: 'router' },
   { path: '/router/docs', file: 'app/router/docs/page.tsx', changeFrequency: 'weekly', priority: 0.7, family: 'router' },
   { path: '/router/help', file: 'app/router/help/page.tsx', changeFrequency: 'monthly', priority: 0.6, family: 'router' },
   { path: '/router/integrations', file: 'app/router/integrations/page.tsx', changeFrequency: 'weekly', priority: 0.7, family: 'router' },
@@ -62,6 +69,12 @@ export const STATIC_ROUTES: StaticRoute[] = [
   { path: '/ai-aggregator', file: 'app/ai-aggregator/page.tsx', changeFrequency: 'weekly', priority: 0.8, family: 'router' },
   { path: '/best-ai-router', file: 'app/best-ai-router/page.tsx', changeFrequency: 'weekly', priority: 0.8, family: 'router' },
   { path: '/openrouter-alternatives', file: 'app/openrouter-alternatives/page.tsx', changeFrequency: 'weekly', priority: 0.8, family: 'router' },
+  // Smart Router routing guides (facts in components/seo/routing/routing-data.ts)
+  { path: '/llm-routing-by-task', file: 'app/llm-routing-by-task/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'router' },
+  { path: '/llm-fallback-routing', file: 'app/llm-fallback-routing/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'router' },
+  { path: '/llm-cost-routing', file: 'app/llm-cost-routing/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'router' },
+  { path: '/byok-llm-router', file: 'app/byok-llm-router/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'router' },
+  { path: '/llm-routing-for-coding-agents', file: 'app/llm-routing-for-coding-agents/page.tsx', changeFrequency: 'monthly', priority: 0.7, family: 'router' },
   // best-for pages (hub first)
   { path: '/best-ai-model', file: 'app/best-ai-model/page.tsx', changeFrequency: 'daily', priority: 0.9, family: 'best' },
   { path: '/best-llm-for-coding', file: 'app/best-llm-for-coding/page.tsx', changeFrequency: 'daily', priority: 0.8, family: 'best' },
@@ -167,9 +180,13 @@ export function modelRoutes(roster: SeoModel[], boards: SeoBoards | null): Sitem
   return out;
 }
 
-/** The curated pair pages; lastmod is the newer of the two models' newest scores. */
+/**
+ * Every pair page; lastmod is the newer of the two models' newest scores. Until 2026-11-26 this listed the
+ * compare hub's curated pairs only, while the model pages linked to the others: an indexable, linked
+ * page belongs in the sitemap.
+ */
 export function pairRoutes(roster: SeoModel[], boards: SeoBoards | null): SitemapEntry[] {
-  return curatedPairs(roster, boards).map(([a, b]): SitemapEntry => {
+  return allPairs(roster).map(([a, b]): SitemapEntry => {
     const ts = [lastUpdatedOf(boards, a.id), lastUpdatedOf(boards, b.id)].filter((t): t is string => !!t).sort().pop() ?? null;
     const lastModified = dateOf(ts);
     return { url: `${SITE}/compare/${pairSlug(a, b)}`, ...(lastModified ? { lastModified } : {}), changeFrequency: 'daily', priority: 0.6 };
@@ -210,8 +227,26 @@ export function marketplaceRoutes(directory: MarketplaceDirectoryRow[] | null, t
   return out;
 }
 
+/**
+ * The monthly rankings archive: its index and one entry per recorded month, dated by the freeze. The
+ * caller reads the records (app/sitemap.ts, server only) and passes plain rows, so this file stays free
+ * of disk access. No record, no entry: the pages are 404s until a month exists.
+ */
+export interface RankingsMonthRow { path: string; frozenAt: string }
+export function rankingsRoutes(months: RankingsMonthRow[]): SitemapEntry[] {
+  if (!months.length) return [];
+  const newest = dateOf(months.map((m) => m.frozenAt).sort().pop() ?? null);
+  return [
+    { url: `${SITE}/rankings`, ...(newest ? { lastModified: newest } : {}), changeFrequency: 'monthly', priority: 0.6 },
+    ...months.map((m): SitemapEntry => {
+      const lastModified = dateOf(m.frozenAt);
+      return { url: `${SITE}${m.path}`, ...(lastModified ? { lastModified } : {}), changeFrequency: 'yearly', priority: 0.5 };
+    }),
+  ];
+}
+
 /** Every sitemap entry, in family order, each URL once. Works with an empty roster and null boards. */
-export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, directory: MarketplaceDirectoryRow[] | null = null, termsOpen = false, agreementPublic = false): SitemapEntry[] {
+export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, directory: MarketplaceDirectoryRow[] | null = null, termsOpen = false, agreementPublic = false, rankings: RankingsMonthRow[] = []): SitemapEntry[] {
   const all = [
     ...staticRoutes(),
     ...bestRoutes(),
@@ -220,6 +255,7 @@ export function allRoutes(roster: SeoModel[], boards: SeoBoards | null, director
     ...statusRoutes(),
     ...researchRoutes(),
     ...integrationRoutes(),
+    ...rankingsRoutes(rankings),
     ...modelRoutes(roster, boards),
     ...pairRoutes(roster, boards),
     ...marketplaceRoutes(directory, termsOpen, agreementPublic),

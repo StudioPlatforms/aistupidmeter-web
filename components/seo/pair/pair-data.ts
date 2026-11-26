@@ -313,14 +313,22 @@ export function nothingSeparates(a: Side, b: Side): string {
  */
 export function pairTitle(a: string, b: string, month: string): string {
   const base = `${a} vs ${b}`;
-  const variants = [`${base}: benchmark comparison (${month})`, `${base}: benchmark comparison`, `${base}: comparison`, base];
-  return variants.find((v) => v.length + TITLE_SUFFIX.length <= TITLE_MAX) ?? base;
+  // With the brand when the whole title still fits 60 characters; otherwise the longest form that
+  // fits on its own (pageMeta drops the suffix then): "A vs B: comparison | AI Stupid Level" spent
+  // 17 characters on the brand and one word on what the page compares.
+  const withBrand = [`${base}: benchmark comparison (${month})`, `${base}: benchmarks, price & speed`];
+  const fit = withBrand.find((v) => v.length + TITLE_SUFFIX.length <= TITLE_MAX);
+  if (fit) return fit;
+  const alone = [`${base}: benchmarks, price & speed`, `${base}: benchmarks & price`, `${base}: benchmark comparison`, `${base}: comparison`, base];
+  return alone.find((v) => v.length <= TITLE_MAX) ?? base;
 }
 
 /** The description, shortened clause by clause until it fits 155 characters. */
 export function pairDescription(a: string, b: string): string {
   const head = `${a} vs ${b} on the same coding, reasoning and tool-use tests: scores with statistical ties, price per 1M tokens`;
   const variants = [
+    // The question the searcher is asking, first; the "vs" forms below when the names leave no room for it.
+    `Which is better, ${a} or ${b}? Both on the same coding, reasoning and tool-use tests, with price per 1M tokens, speed and drift status.`,
     `${head}, speed and drift status, re-tested on a fixed schedule.`,
     `${head}, speed and drift status.`,
     `${head}.`,

@@ -16,7 +16,7 @@
  * falling back to modelled scores during a provider outage.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pane, Loader, Empty, Note, Tag } from '@/components/studio';
 import '@/styles/studio-model-panels.css';
 
@@ -55,6 +55,11 @@ interface Props {
   /** Show resolved episodes as well as open ones. */
   includeResolved?: boolean;
   limit?: number;
+  /**
+   * GET /api/drift/slice-regressions/:id (limit 20, resolved included) as the server read it for
+   * this page; with it the panel is in the first HTML and its first view is not fetched again.
+   */
+  initial?: unknown;
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
@@ -72,20 +77,27 @@ export default function ModelDetailSliceRegressions({
   modelId,
   includeResolved = false,
   limit = 20,
+  initial = null,
 }: Props) {
-  const [rows, setRows] = useState<SliceRegression[]>([]);
-  const [loading, setLoading] = useState(true);
+  const seed = initial && typeof initial === 'object' && (initial as { success?: unknown }).success === true
+    ? (initial as { data?: unknown; coverage?: any; tasks?: unknown; recentDays?: unknown })
+    : null;
+  const seeded = useRef(!!seed);
+  const [rows, setRows] = useState<SliceRegression[]>(seed && Array.isArray(seed.data) ? (seed.data as SliceRegression[]) : []);
+  const [loading, setLoading] = useState(!seed);
   const [error, setError] = useState<string | null>(null);
   // How much of this model the detector could actually test. Without it, "nothing found"
   // and "nothing was testable" render identically and mean opposite things.
-  const [coverage, setCoverage] = useState<{ tasksSeen: number; tasksTestable: number; minBaselineRuns: number; baselineDays: number } | null>(null);
+  const [coverage, setCoverage] = useState<{ tasksSeen: number; tasksTestable: number; minBaselineRuns: number; baselineDays: number } | null>(seed?.coverage ?? null);
   // Per-task pass rates. Without these, finding nothing rendered as a sentence
   // asserting that every task passes at its usual rate — the conclusion with the
   // evidence withheld, and no way for a reader to see which task is weakest.
-  const [tasks, setTasks] = useState<TaskRate[]>([]);
-  const [recentDays, setRecentDays] = useState(7);
+  const [tasks, setTasks] = useState<TaskRate[]>(seed && Array.isArray(seed.tasks) ? (seed.tasks as TaskRate[]) : []);
+  const [recentDays, setRecentDays] = useState(seed && typeof seed.recentDays === 'number' ? seed.recentDays : 7);
 
   useEffect(() => {
+    // The server's copy is this same request (limit 20, resolved included): the first view is not asked for twice.
+    if (seeded.current) { seeded.current = false; if (limit === 20 && includeResolved) return; }
     // Client component: an empty base means a same-origin request through nginx,
     // which is what we want in production. Only the dev server needs the host.
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';

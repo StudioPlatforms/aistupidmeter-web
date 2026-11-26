@@ -18,6 +18,12 @@ interface ModelDetailChartProps {
   selectedPeriod: HistoricalPeriod;
   selectedScoringMode: ScoringMode;
   onSwitchPeriod: (period: HistoricalPeriod) => void;
+  /**
+   * True for the server's render and the first browser render after it: the label then leaves out
+   * the clock times, which the server would print in its own time zone and the browser in the
+   * reader's (two different strings for one element).
+   */
+  plainLabel?: boolean;
 }
 
 const clamp = (n: number, lo = 0, hi = 100) => Math.min(hi, Math.max(lo, n));
@@ -47,6 +53,7 @@ export default function ModelDetailChart({
   selectedPeriod,
   selectedScoringMode,
   onSwitchPeriod,
+  plainLabel = false,
 }: ModelDetailChartProps) {
   // Filter/limit history based on period
   let filteredHistory: HistoryPoint[] = [];
@@ -146,8 +153,10 @@ export default function ModelDetailChart({
     : undefined;
 
   const latest = chartData[chartData.length - 1];
-  const ariaLabel = `${modeLabel} score over ${chartData.length} ${chartData.length === 1 ? 'run' : 'runs'}, `
-    + `from ${chartData[0].name} to ${latest.name}; latest ${latest.score}.`;
+  const runs = `${modeLabel} score over ${chartData.length} ${chartData.length === 1 ? 'run' : 'runs'}`;
+  const ariaLabel = plainLabel
+    ? `${runs}; latest ${latest.score}.`
+    : `${runs}, from ${chartData[0].name} to ${latest.name}; latest ${latest.score}.`;
 
   return (
     <Pane title="Performance timeline" sub={sub} className="sm-timeline">

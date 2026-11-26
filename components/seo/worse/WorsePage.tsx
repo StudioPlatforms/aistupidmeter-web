@@ -269,7 +269,8 @@ export default async function WorsePage({ vendor: key }: { vendor: WorseVendorKe
               Places are the leaderboard&apos;s own: walking down a board, a model joins the group above it unless that group&apos;s leader is ahead by more than the
               measurement can resolve, so &ldquo;joint&rdquo; places are normal. A detector is armed once it has {coldDays} days of daily medians on the current test
               version; it fires only on a sustained fall, never on one bad run. Every {family} model has its own page with its history, and all of them are on{' '}
-              <Link href={vendor.modelsPath}>{companyOf(vendor)} models</Link>.
+              <Link href={vendor.modelsPath}>{companyOf(vendor)} models</Link>. What “nerfed” means, and how to check a model yourself, is on the{' '}
+              <Link href="/ai-nerf-tracker">AI nerf tracker</Link>.
             </p>
           </RdProse>
           <LeaderboardCta cta={`worse-${key}-scores-leaderboard`} sub={FREE_TIER} />

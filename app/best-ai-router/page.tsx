@@ -6,7 +6,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { ClusterLinks, RouterList, RouterTable, VendorSources } from '@/components/seo/routers/RouterBlocks';
 import {
-  CADENCE, CHECKED, CHECKED_ISO, FREE_ROUTER, KEY_CIPHER, MODE_COUNT, OPENNESS, OPENROUTER, OTHERS, ROUTER_APP_ID,
+  CADENCE, CHECKED, CHECKED_ISO, FREE_ROUTER, KEY_CIPHER, MODE_COUNT, OPENNESS, OPENROUTER, OTHERS, PUBLISHED_ISO, ROUTER_APP_ID,
   aslEntry, cap, sourcesOf, word,
 } from '@/components/seo/routers/routers-data';
 import { breadcrumbLd, faqLd, graphLd, itemListLd, pageMeta, webPageLd } from '@/lib/seo';
@@ -35,7 +35,7 @@ export const metadata: Metadata = pageMeta({
   description: DESCRIPTION,
   path: PATH,
   type: 'article',
-  publishedTime: CHECKED_ISO,
+  publishedTime: PUBLISHED_ISO,
   modifiedTime: CHECKED_ISO,
   keywords: [
     'best AI router', 'best LLM router', 'world’s best AI router', 'best AI model router', 'best smart router for AI',
@@ -82,7 +82,7 @@ export default async function BestAiRouterPage(): Promise<React.JSX.Element> {
     },
     {
       q: 'Is OpenRouter an AI router?',
-      a: 'Yes. OpenRouter puts hundreds of models behind one OpenAI-compatible API, and its Auto Router picks a model for each prompt from its task type and what the OpenRouter community spends on for that task. [OpenRouter alternatives](/openrouter-alternatives) compares it with the other options and shows how to switch.',
+      a: 'Yes. OpenRouter puts hundreds of models behind one OpenAI-compatible API, and its Auto Router picks a model and a reasoning effort for each request, weighing a rating of the request against live prices, cache status and benchmark performance. [OpenRouter alternatives](/openrouter-alternatives) compares it with the other options and shows how to switch.',
     },
     {
       q: 'How was this comparison put together?',
@@ -97,7 +97,7 @@ export default async function BestAiRouterPage(): Promise<React.JSX.Element> {
       name: `${H1} ${H1_ACCENT}`,
       description: DESCRIPTION,
       type: 'Article',
-      datePublished: CHECKED_ISO,
+      datePublished: PUBLISHED_ISO,
       dateModified: CHECKED_ISO,
       about: { '@id': ROUTER_APP_ID },
     }),

@@ -20,6 +20,13 @@ import { MetadataRoute } from 'next';
  *   crawler can only read if it may fetch them.
  * Longer, more specific paths win over shorter ones, so each allow survives '/api/', and the two
  * paid paths under the allowed prefixes are disallowed again by their longer rules.
+ *
+ * '_rsc' (2026-11-26): the address the app's own router asks for when it prefetches a link
+ * (/models/x?_rsc=abc12). Google's renderer runs that script and then crawls those addresses as if
+ * they were pages; each answers with the page again, a duplicate that spends crawl requests. The
+ * page itself never needs them to render.
+ *
+ * No `host` line: it was a Yandex extension that Yandex dropped in 2018, and no crawler reads it.
  */
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -36,10 +43,11 @@ export default function robots(): MetadataRoute.Robots {
           '/internal/',
           '/track-visit',
           '/v1/',
+          '/*?_rsc=',
+          '/*&_rsc=',
         ],
       },
     ],
     sitemap: 'https://aistupidlevel.info/sitemap.xml',
-    host: 'https://aistupidlevel.info',
   };
 }

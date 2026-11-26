@@ -59,7 +59,8 @@
 /* ── phones: full-width buttons, a tighter table, and the newest 48 hours of the bars ── */
 @media (max-width: 760px) {
   .lp .seo-cta { justify-items: stretch; }
-  .lp .seo-cta .lp-btn { width: 100%; }
+  /* A label longer than the screen wraps inside its button; with nowrap it ran past the right edge and was cut off. */
+  .lp .seo-cta .lp-btn { width: 100%; height: auto; padding-block: 10px; white-space: normal; text-align: center; line-height: 1.3; }
   .lp .seo-table { font-size: 14px; }
   .lp .seo-table th, .lp .seo-table td { padding: 11px 12px; }
   .lp .seo-table caption { padding: 12px 12px 2px; }

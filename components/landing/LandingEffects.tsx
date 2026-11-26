@@ -42,7 +42,26 @@ export default function LandingEffects() {
     }, { threshold: 0.6 });
     root.querySelectorAll('[data-count]').forEach(el => counters.observe(el));
 
-    return () => { reveal.disconnect(); counters.disconnect(); };
+    // The home page leaves the layout of its off-screen sections out of the first paint
+    // (styles/landing.css, .lp-home .lp-sec). Now that the page is interactive they are laid out
+    // one per frame, while the browser is idle, so nothing blocks for long and the page ends up
+    // exactly as it would have been. No-ops on every other page (they have no .lp-home).
+    const pending = Array.from(document.querySelectorAll('.lp-home .lp-sec'));
+    let laying = pending.length > 0;
+    const w = window as any; // requestIdleCallback is missing in some Safari versions
+    const idle = (fn: () => void) => (typeof w.requestIdleCallback === 'function'
+      ? w.requestIdleCallback(fn, { timeout: 600 })
+      : w.setTimeout(fn, 60));
+    const layNext = () => {
+      if (!laying) return;
+      const section = pending.shift();
+      if (!section) { document.documentElement.classList.add('lp-all'); laying = false; return; }
+      section.classList.add('is-laid');
+      idle(() => requestAnimationFrame(layNext));
+    };
+    if (laying) idle(() => requestAnimationFrame(layNext));
+
+    return () => { laying = false; reveal.disconnect(); counters.disconnect(); };
   }, []);
   return null;
 }

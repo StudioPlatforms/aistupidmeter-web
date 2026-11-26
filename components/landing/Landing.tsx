@@ -30,6 +30,20 @@ const SIGN_UP = '/auth/signup?callbackUrl=%2F';
 const SIGN_UP_ROUTER = '/auth/signup?callbackUrl=%2Frouter';
 const PROVIDERS = ['openai', 'anthropic', 'google', 'deepseek', 'kimi', 'glm'];
 /**
+ * Inference providers listed on ASL, shown after the model makers in the provider row. Each logo is
+ * the one approved on the provider's account (public/logos/<slug>.svg); the provider's own page is
+ * /inference-providers/<slug>.
+ */
+const LISTED_HOSTS: Array<{ slug: string; name: string }> = [{ slug: 'heabsy', name: 'Heabsy' }];
+/**
+ * The provider tape: the model makers, then the listed inference providers. Seven logos are too few
+ * to fill a wide screen, so the tape repeats the row four times (only the first is read out).
+ */
+const PROVIDER_ROW: Array<{ slug: string; name: string }> = [
+  ...PROVIDERS.map(p => ({ slug: p, name: PROVIDER_LABEL[p] })),
+  ...LISTED_HOSTS,
+];
+/**
  * Tools the Smart Router works with, shown as a moving tape under the provider row. Every one is
  * either a published ASL integration (n8n node, MCP server, AI SDK provider, LangChain package,
  * RAGFlow provider, OpenClaw, Hermes Agent, DeepSeek Harness and Pi plugins, the Langflow package,
@@ -268,10 +282,15 @@ export default async function Landing() {
   ];
 
   return (
-    <div className={`lp ${lpBody.variable} ${lpDisplay.variable}`}>
+    <div className={`lp lp-home ${lpBody.variable} ${lpDisplay.variable}`}>
       {/* Dark unless the visitor chose a theme — before the first paint of anything below. */}
       <script dangerouslySetInnerHTML={{ __html: darkDefaultScript() }} />
-      <script dangerouslySetInnerHTML={{ __html: "(function(){var d=document.documentElement;d.classList.add('lp-js');setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();" }} />
+      {/* `lp-js` hides the blocks that reveal on scroll until the page's script marks them (with a 4 s failsafe).
+          `lp-late`: when the first frame comes more than a second after the visit began (a slow phone or
+          connection), the hero skips its entrance animation and is simply there (styles/landing.css).
+          `lp-all`: a click on an in-page link lays out every section first, so the jump lands on its
+          target even before LandingEffects has laid them out (styles/landing.css, .lp-home .lp-sec). */}
+      <script dangerouslySetInnerHTML={{ __html: "(function(){var d=document.documentElement;d.classList.add('lp-js');requestAnimationFrame(function(){if(performance.now()>1000)d.classList.add('lp-late')});addEventListener('click',function(e){var t=e.target;if(t&&t.closest&&t.closest('a[href*=\"#\"]'))d.classList.add('lp-all')},true);setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();" }} />
       {jsonLd.map((j, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(j) }} />)}
       <DarkDefault />
       <LandingEffects />
@@ -336,13 +355,17 @@ export default async function Landing() {
       {/* ── providers and scale ── */}
       <section className="lp-sec lp-proof lp-A" aria-label="Providers and scale">
         <div className="lp-wrap">
-          <div className="lp-proof-row lp-up">
-            <p className="lp-proof-label">Measured and routed across {providerCount} providers</p>
-            <ul className="lp-logos">
-              {PROVIDERS.map(p => (
-                <li key={p} className="lp-logo-it"><span className="lp-lgc"><img src={`/logos/${p}.svg`} alt="" width={24} height={24} /></span>{PROVIDER_LABEL[p]}</li>
-              ))}
-            </ul>
+          <div className="lp-tape-row is-providers lp-up">
+            <p className="lp-proof-label">Measured and routed across {providerCount + LISTED_HOSTS.length} providers</p>
+            <div className="lp-tape" role="region" aria-label="Providers the Smart Router routes to">
+              <ul className="lp-tape-track is-providers">
+                {[...PROVIDER_ROW, ...PROVIDER_ROW, ...PROVIDER_ROW, ...PROVIDER_ROW].map((it, i) => (
+                  <li key={i} className="lp-logo-it" aria-hidden={i >= PROVIDER_ROW.length || undefined}>
+                    <span className="lp-lgc"><img src={`/logos/${it.slug}.svg`} alt="" width={24} height={24} loading="lazy" decoding="async" /></span>{it.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <div className="lp-tape-row lp-up">
             <p className="lp-proof-label">Works with the tools you build on</p>

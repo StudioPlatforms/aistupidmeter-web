@@ -23,6 +23,8 @@ import '@/styles/inference-providers.css';
 export const PATH = '/inference-providers';
 export const OPEN_TITLE = 'Inference providers: list your models';
 export const OPEN_DESCRIPTION = 'List your models on AI Stupid Level for free. We benchmark your own endpoint with our coding, reasoning and tool-use suites and an hourly probe, publish what we measure, and the Smart Router can send you requests from people who bring your key.';
+/** The same offer within the 155 characters a search result shows (the sentence above is 244 and was cut mid-phrase). */
+export const OPEN_META_DESCRIPTION = 'List your models on AI Stupid Level for free. We benchmark your own endpoint on coding, reasoning and tool use, and the Smart Router can send you requests.';
 
 /** The set-up page (§2); "Become a provider" picks sign-up or this by the session (components/marketplace/BecomeProvider). */
 const START = PROVIDER_START;

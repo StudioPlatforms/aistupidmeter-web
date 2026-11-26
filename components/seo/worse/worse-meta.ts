@@ -105,7 +105,7 @@ export const worseTitle = (k: WorseVendorKey, generatedAt: string | null | undef
 export function worseDescription(k: WorseVendorKey): string {
   const v = worseVendor(k);
   return clampDesc(
-    `${worseH1(k)} Every ${v.family} model we track, re-tested on the same coding, reasoning and tool-use tasks, and a verdict from the last 24 hours.`,
+    `${worseH1(k).replace(/\?$/, '')} or nerfed? Every ${v.family} model we track on the same coding, reasoning and tool-use tasks, with a verdict from the last 24 hours.`,
   );
 }
 

@@ -455,6 +455,90 @@ export async function getDriftSignature(id: string | number): Promise<DriftSigna
   return { ...d, pageHinkleyBySuite: d.pageHinkleyBySuite && typeof d.pageHinkleyBySuite === 'object' ? d.pageHinkleyBySuite : {} } as DriftSignature;
 }
 
+/* ───────────────────────── the model dashboard's first view ───────────────────────── */
+
+/** What the model page's dashboard opens on, as a signed-out browser is sent it. */
+export interface ModelDashboardSeed {
+  details: any;
+  history: any;
+  stats: any;
+  cost: any;
+  regressions: any;
+  verbosity: any;
+  community: any;
+}
+
+/**
+ * The feeds the model dashboard asks for on its first view (24 hours, Combined), read on the server
+ * so the page's HTML carries the figures: GET /api/models/:id, /dashboard/history/:id,
+ * /api/models/:id/stats, /dashboard/model-cost/:id, /api/drift/slice-regressions/:id and
+ * /dashboard/model-verbosity/:id (the free panels). Asked without a token, exactly as a
+ * signed-out browser asks, so the API's own gate decides what comes back: the newest run is never
+ * in it (latestScore is null, and only the free 24-hour period is requested).
+ *
+ * null when the model record or a usable score is missing: the dashboard then loads in the browser
+ * as it always did, with its own retries. A short timeout, because a slow API must not hold the page.
+ */
+export async function getModelDashboardSeed(numericId: number): Promise<ModelDashboardSeed | null> {
+  if (!Number.isInteger(numericId) || numericId <= 0) return null;
+  const q = 'period=24h&sortBy=combined';
+  const [details, history, stats, cost, regressions, verbosity] = await Promise.all([
+    getJson<any>(`/api/models/${numericId}`, 300, 3000),
+    getJson<any>(`/dashboard/history/${numericId}?${q}`, 120, 3000),
+    getJson<any>(`/api/models/${numericId}/stats?${q}`, 120, 3000),
+    getJson<any>(`/dashboard/model-cost/${numericId}`, 900, 3000),
+    getJson<any>(`/api/drift/slice-regressions/${numericId}?limit=20&includeResolved=true`, 900, 3000),
+    getJson<any>(`/dashboard/model-verbosity/${numericId}`, 900, 3000),
+  ]);
+  if (!details || typeof details.name !== 'string' || !details.name) return null;
+  if (!stats || typeof stats.currentScore !== 'number' || !(stats.currentScore > 0)) return null;
+  // A model whose reasoning and tool-use tests the community funds opens with a notice above its
+  // figures; read here too, or it arrives a moment later and pushes the whole page down.
+  const community = details.communitySuites ? await getCommunityFunding(numericId) : null;
+  return {
+    // Only what the dashboard reads. latestScore is the paid view: null for everyone here, whatever was sent.
+    details: {
+      id: details.id,
+      name: details.name,
+      vendor: details.vendor,
+      displayName: details.displayName,
+      version: details.version,
+      daysTracked: details.daysTracked ?? null,
+      isCalibrating: details.isCalibrating,
+      calibrationDays: details.calibrationDays,
+      communitySuites: details.communitySuites ?? null,
+      latestScore: null,
+    },
+    history: history && history.success && Array.isArray(history.data) ? history : null,
+    stats,
+    cost: cost && cost.success && cost.data ? cost.data : null,
+    regressions: regressions && regressions.success === true ? regressions : null,
+    verbosity: verbosity && verbosity.success && verbosity.data ? verbosity.data : null,
+    community,
+  };
+}
+
+/**
+ * GET /community-runs/model/:id `data`: today's funding slots of a community-funded model, as a
+ * signed-out visitor is shown them (no user id is sent). The API has no public address for this
+ * route: the site's own proxy (app/api/community-runs) vouches with ROUTER_INTERNAL_TOKEN, and so
+ * does this server-side read. The browser asks again after it loads, so a minute-old copy is fine.
+ */
+async function getCommunityFunding(numericId: number): Promise<unknown | null> {
+  const token = process.env.ROUTER_INTERNAL_TOKEN;
+  if (!token) return null;
+  try {
+    const res = await fetch(`${API_INTERNAL}/community-runs/model/${numericId}`, {
+      headers: { 'x-internal-token': token }, next: { revalidate: 60 }, signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.success && json.data && Array.isArray(json.data.slots) ? json.data : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ───────────────────────── canary incidents ───────────────────────── */
 
 /**
@@ -575,6 +659,23 @@ export interface RelatedModels {
   nearest: SeoModel[];
   /** The best-placed ranked model of each other vendor. */
   flagships: SeoModel[];
+}
+
+/**
+ * Every pair of models on the roster, in slug order. Each one has a page (app/compare/[pair]) and is
+ * linked from the two model pages when the models sit close on the board, so the sitemap lists them
+ * all; the compare hub keeps showing the curated ones.
+ */
+export function allPairs(roster: SeoModel[]): Array<[SeoModel, SeoModel]> {
+  const out = new Map<string, [SeoModel, SeoModel]>();
+  for (let i = 0; i < roster.length; i++) {
+    for (let j = i + 1; j < roster.length; j++) {
+      if (roster[i].slug === roster[j].slug) continue;
+      const pair = orderPair(roster[i], roster[j]);
+      out.set(pairSlug(pair[0], pair[1]), pair);
+    }
+  }
+  return Array.from(out.entries()).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)).map(([, pair]) => pair);
 }
 
 export function relatedModels(m: SeoModel, roster: SeoModel[], boards: SeoBoards | null): RelatedModels {

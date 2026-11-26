@@ -5,7 +5,7 @@ import VisitorTracker from '../components/VisitorTracker'
 import SiteFooter from '../components/SiteFooter'
 import JsonLd from '../components/seo/JsonLd'
 import { themeBootScript } from '../lib/theme-config'
-import { OG_IMAGE, ORG_ID, SITE, SITE_NAME, TWITTER_SITE, WEBSITE_ID, graphLd } from '../lib/seo'
+import { OG_IMAGE, ORG_ID, ROBOTS_INDEX, SITE, SITE_NAME, TWITTER_SITE, WEBSITE_ID, graphLd } from '../lib/seo'
 import { planName, priceNumber } from '../lib/pricing-display'
 import '../styles/vintage.css'
 import '../styles/drift-cards.css'
@@ -194,21 +194,13 @@ export const metadata: Metadata = {
     site: TWITTER_SITE,
     images: [OG_IMAGE.url],
   },
-  robots: {
-    index: true,
-    follow: true,
-    // `nocache` was set here, which asks Google not to serve a cached copy of
-    // the page. It buys nothing for a site that wants maximum indexation and
-    // only removes a fallback surface, so it is deliberately not set.
-    googleBot: {
-      index: true,
-      follow: true,
-      noimageindex: false,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
+  // The default for a page that sets no robots of its own: indexable, with no limit on the text
+  // snippet and the large image preview (lib/seo.ts ROBOTS_INDEX, the value pageMeta writes too).
+  // One tag for every crawler; a second, Googlebot-only tag used to carry the preview rules, so
+  // pages built with pageMeta (which replaces this object) went out without them.
+  // `nocache` is deliberately not set: it asks Google not to serve a cached copy of the page, which
+  // buys nothing for a site that wants maximum indexation.
+  robots: ROBOTS_INDEX,
   // Search Console verification. Set GOOGLE_SITE_VERIFICATION (and optionally
   // BING_SITE_VERIFICATION) in the web app's environment to the value the
   // console gives you; the meta tag is only emitted when a real code exists, so

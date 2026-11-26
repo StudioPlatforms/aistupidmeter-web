@@ -50,6 +50,8 @@ interface ModelDetailPricingProps {
   provider: string;
   currentScore: number;
   modelId?: number | string;
+  /** GET /dashboard/model-cost/:id `data` as the server read it for this page; with it the figures are in the first HTML and are not fetched again. */
+  initialCost?: unknown;
 }
 
 /** Sub-cent runs need more places than dollars do. */
@@ -59,11 +61,13 @@ function usd(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
-export default function ModelDetailPricing({ modelName, provider, currentScore, modelId }: ModelDetailPricingProps) {
+export default function ModelDetailPricing({ modelName, provider, currentScore, modelId, initialCost }: ModelDetailPricingProps) {
   const pricing = getModelPricing(modelName, provider);
-  const [cost, setCost] = useState<CostData | null>(null);
+  const seed = initialCost && typeof initialCost === 'object' && Array.isArray((initialCost as CostData).perSuite) ? (initialCost as CostData) : null;
+  const [cost, setCost] = useState<CostData | null>(seed);
 
   useEffect(() => {
+    if (seed) return;
     if (modelId === undefined || modelId === null) return;
     let cancelled = false;
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
@@ -72,6 +76,7 @@ export default function ModelDetailPricing({ modelName, provider, currentScore, 
       .then(j => { if (!cancelled && j?.success) setCost(j.data); })
       .catch(() => { /* cost is supplementary; the list price above still stands */ });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelId]);
 
   // Value per dollar is anchored to what a benchmark run of this model really costs —

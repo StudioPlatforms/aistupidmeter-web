@@ -79,8 +79,8 @@ export default function TopBar({ selectedView, onViewChange, todayVisits }: TopB
             the dark theme's surface. Only one is ever displayed, so screen readers announce the
             name once. */}
         <a className="sb-brand" href="/" aria-label="AI Stupid Level home" onClick={navClick(() => onViewChange('dashboard'))}>
-          <img className="sb-mk-l" src="/asl-mark.png" width={754} height={160} alt="ASL — AI Stupid Level" />
-          <img className="sb-mk-d" src="/asl-mark-dark.png" width={754} height={160} alt="" />
+          <img className="sb-mk-l" src="/asl-mark-nav.png" width={377} height={80} alt="ASL — AI Stupid Level" />
+          <img className="sb-mk-d" src="/asl-mark-dark-nav.png" width={377} height={80} alt="" />
         </a>
 
         <nav className="sb-links" aria-label="Main">

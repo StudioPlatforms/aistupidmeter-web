@@ -125,11 +125,17 @@ function Strip({ fleet, suite }: { fleet: FleetPoint[]; suite: SuiteKey }) {
   );
 }
 
-export default function ModelDetailVerbosity({ modelId, focus = null }: { modelId: string | number; focus?: SuiteKey | null }) {
-  const [data, setData] = useState<Payload | null>(null);
+export default function ModelDetailVerbosity({ modelId, focus = null, initial = null }: {
+  modelId: string | number; focus?: SuiteKey | null;
+  /** GET /dashboard/model-verbosity/:id `data` as the server read it for this page; with it the panel is in the first HTML and is not fetched again. */
+  initial?: unknown;
+}) {
+  const seed = initial && typeof initial === 'object' && typeof (initial as Payload).suites === 'object' && (initial as Payload).suites ? (initial as Payload) : null;
+  const [data, setData] = useState<Payload | null>(seed);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    if (seed) return;
     let alive = true;
     const apiUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000';
     fetch(`${apiUrl}/dashboard/model-verbosity/${modelId}`)
@@ -137,6 +143,7 @@ export default function ModelDetailVerbosity({ modelId, focus = null }: { modelI
       .then(j => { if (alive) setData(j?.data ?? null); })
       .catch(() => { if (alive) setFailed(true); });
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modelId]);
 
   if (failed || !data) return null;

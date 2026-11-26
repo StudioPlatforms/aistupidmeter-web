@@ -6,7 +6,7 @@ import JsonLd from '@/components/seo/JsonLd';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
 import { ClusterLinks, RouterList, RouterTable, VendorSources, VsTable } from '@/components/seo/routers/RouterBlocks';
 import {
-  CADENCE, CHECKED, CHECKED_ISO, CREDITS, FREE_ROUTER, KEY_CIPHER, MIGRATE_SAMPLE, MODE_COUNT, OPENNESS, OPENROUTER, OTHERS,
+  CADENCE, CHECKED, CHECKED_ISO, CREDITS, FREE_ROUTER, KEY_CIPHER, MIGRATE_SAMPLE, MODE_COUNT, OPENNESS, OPENROUTER, OTHERS, PUBLISHED_ISO,
   PAID_ROUTER, ROUTER_APP_ID, ROUTER_BASE_URL, aslEntry, cap, listJoin, word,
 } from '@/components/seo/routers/routers-data';
 import { breadcrumbLd, faqLd, graphLd, itemListLd, pageMeta, webPageLd } from '@/lib/seo';
@@ -34,7 +34,7 @@ export const metadata: Metadata = pageMeta({
   description: DESCRIPTION,
   path: PATH,
   type: 'article',
-  publishedTime: CHECKED_ISO,
+  publishedTime: PUBLISHED_ISO,
   modifiedTime: CHECKED_ISO,
   keywords: [
     'OpenRouter alternative', 'OpenRouter alternatives', 'sites like OpenRouter', 'OpenRouter competitors',
@@ -94,7 +94,7 @@ export default async function OpenRouterAlternativesPage(): Promise<React.JSX.El
     },
     {
       q: 'OpenRouter vs Smart Router: what is the difference?',
-      a: `They choose the model differently. OpenRouter’s Auto Router gives each prompt a task type and ranks models by what the OpenRouter community spends on for that task over a trailing 7-day window. The Smart Router ranks on public benchmark results: every model on the same coding, reasoning and tool-use tasks, ${CADENCE}, and a model whose drift detector has fired moves behind the healthy ones. The Smart Router always uses your own provider keys, with no markup on tokens.`,
+      a: `They choose the model differently. OpenRouter’s Auto Router has a fast decision model rate each request, then weighs that rating against live prices, cache status and benchmark performance, within your cost tier, to pick a model and a reasoning effort. The Smart Router ranks on boards it publishes: every model on the same coding, reasoning and tool-use tasks, ${CADENCE}, with the method public, and a model whose drift detector has fired moves behind the healthy ones. The Smart Router always uses your own provider keys, with no markup on tokens.`,
     },
     {
       q: 'How do I migrate from OpenRouter to the Smart Router?',
@@ -109,7 +109,7 @@ export default async function OpenRouterAlternativesPage(): Promise<React.JSX.El
       name: `${H1} ${H1_ACCENT}`,
       description: DESCRIPTION,
       type: 'Article',
-      datePublished: CHECKED_ISO,
+      datePublished: PUBLISHED_ISO,
       dateModified: CHECKED_ISO,
       about: { '@id': ROUTER_APP_ID },
     }),
@@ -186,7 +186,7 @@ export default async function OpenRouterAlternativesPage(): Promise<React.JSX.El
           lead="Usually for one of four reasons. Each is a different trade-off rather than a verdict on OpenRouter."
         >
           <RdRows rows={[
-            ['The model chosen from test results', 'OpenRouter’s Auto Router ranks models by what its community spends on for each task type. Some teams would rather the choice came from fixed tasks that every model runs on the same schedule, with the results public.'],
+            ['The model chosen from a public board', 'OpenRouter’s Auto Router weighs a rating of each request against live prices, cache status and benchmark performance. Some teams would rather the choice came from one published board: fixed tasks that every model runs on the same schedule, with the results and the method public.'],
             ['Their own keys at any volume', 'Some teams want every request on their own provider accounts, under their own terms, limits and data agreements, at every volume.'],
             ['To know when a model changes', 'A model can change behind a stable name. Some teams want a router that watches each model for drift and routes around one that has slipped.'],
             ['A different way to pay', 'Paying each provider directly for tokens, and a flat plan for the routing, instead of buying credits.'],
@@ -218,7 +218,7 @@ export default async function OpenRouterAlternativesPage(): Promise<React.JSX.El
               [
                 'How it picks the model',
                 `Each of ${MODE_COUNT} auto-* modes ranks on a public board (Coding, Reasoning, Tool use or Combined) or on response time, price or your own split, among the providers you hold keys for. A model whose drift detector has fired moves behind the healthy ones.`,
-                'The Auto Router gives each prompt one of about 30 task types with a lightweight classifier, then ranks models by what the OpenRouter community spends on for that task over a trailing 7-day window.',
+                'The Auto Router has a fast decision model rate eleven aspects of each request, such as the kind of task and how hard it is, then weighs that rating against live prices, cache status and benchmark performance, within your cost tier, to pick the model and its reasoning effort.',
               ],
               [
                 'Your own provider keys',

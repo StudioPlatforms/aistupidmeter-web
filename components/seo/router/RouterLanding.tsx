@@ -8,7 +8,7 @@ import { CtaRow, LeaderboardCta, RouterCta } from '@/components/seo/Cta';
 import JsonLd from '@/components/seo/JsonLd';
 import { AsOf } from '@/components/seo/Verdict';
 import { Faq, type FaqItem } from '@/components/seo/pair/Faq';
-import { ClusterTags } from '@/components/seo/routers/RouterBlocks';
+import { ClusterTags, GuideTags } from '@/components/seo/routers/RouterBlocks';
 import { routerPageSnapshot } from '@/components/seo/router/live-reasoning';
 import { landingFastestQualityRow, landingFaqScoring, landingLeadScoring, landingTieRow, scoringOf, type RouterScoring } from '@/lib/router-scoring';
 import { PLANS, ROUTER_CREDITS, type Plan } from '@/lib/entitlements';
@@ -239,7 +239,7 @@ function buildFaq({ interval, perVendor, scoring }: FaqContext): FaqItem[] {
     },
     {
       q: 'Can I use it with Claude Code or Cursor?',
-      a: `Yes. Claude Code talks to the router through the native Anthropic endpoint: set ANTHROPIC_BASE_URL to ${SITE} and ANTHROPIC_API_KEY to your router key, and /v1/messages passes through, token counting included, with a routing mode such as auto-coding as the model name. Cursor uses its Override OpenAI Base URL setting with ${BASE_URL} and a mode as the custom model name, in chat and plan mode. Step-by-step pages: [Claude Code](/router/integrations/claude-code) and [Cursor](/router/integrations/cursor), with guides for ${TOOLS.filter((t) => !['claude-code', 'cursor'].includes(t.slug)).map((t) => t.name).join(', ')} on the [integrations hub](/router/integrations).`,
+      a: `Yes. Claude Code talks to the router through the native Anthropic endpoint: set ANTHROPIC_BASE_URL to ${SITE} and ANTHROPIC_API_KEY to your router key, and /v1/messages passes through to Anthropic with your own Anthropic key, token counting included, for the Claude model you choose in Claude Code; that path does no routing. Cursor uses its Override OpenAI Base URL setting with ${BASE_URL} and a mode such as auto-coding as the custom model name, in chat and plan mode. Step-by-step pages: [Claude Code](/router/integrations/claude-code) and [Cursor](/router/integrations/cursor), with guides for ${TOOLS.filter((t) => !['claude-code', 'cursor'].includes(t.slug)).map((t) => t.name).join(', ')} on the [integrations hub](/router/integrations).`,
     },
     {
       q: 'What happens when a provider is down?',
@@ -633,6 +633,13 @@ export default async function RouterLanding({ snapshot: raw }: { snapshot: Landi
             </p>
           </RdProse>
           <ClusterTags current={ROUTER_PATH} label="Compare routers" />
+          <RdProse>
+            <p>
+              <b>Routing guides.</b> One page for each job the router does: picking by task, falling back, routing on cost, your own
+              keys, and coding agents.
+            </p>
+          </RdProse>
+          <GuideTags />
         </RdSection>
 
         <RdSection id="faq" n={num('faq')} title="Smart Router questions">

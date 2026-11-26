@@ -19,8 +19,10 @@ import { SITE } from '@/lib/seo';
  */
 
 /** The day every competitor sentence was re-read on the vendor's own site. */
-export const CHECKED = '30 October 2026';
-export const CHECKED_ISO = '2026-10-30';
+export const CHECKED = '26 November 2026';
+export const CHECKED_ISO = '2026-11-26';
+/** The day the AI router pages were first published; CHECKED_ISO is the day they were last re-checked and modified. */
+export const PUBLISHED_ISO = '2026-10-30';
 
 export const ROUTER_BASE_URL = `${SITE}/v1`;
 /** The SoftwareApplication node app/router (components/seo/router/RouterLanding.tsx) declares. */
@@ -151,7 +153,7 @@ export const OPENROUTER: RouterEntry = {
   name: 'OpenRouter',
   url: 'https://openrouter.ai',
   what: 'One OpenAI-compatible API in front of hundreds of models from many providers, with routing, fallbacks and cost tracking.',
-  picks: 'Its Auto Router gives each prompt one of about 30 task types with a lightweight classifier, then ranks models by what the OpenRouter community spends on for that task over a trailing 7-day window. Among the providers of one model, a request goes by each provider’s price, throughput, latency and reliability, with fallbacks when one fails.',
+  picks: 'Its Auto Router has a fast decision model rate eleven aspects of each request, such as the kind of task and how hard it is, then weighs that rating against live prices, cache status and benchmark performance, within your cost tier, to pick the model and its reasoning effort. Among the providers of one model, a request goes by each provider’s price, throughput, latency and reliability, with fallbacks when one fails.',
   hosting: 'Hosted.',
   pricing: 'Provider prices passed through with no markup on inference; a fee applies when you buy credits. Free models carry low rate limits: 50 requests a day, or 1,000 a day after buying at least 10 credits.',
   keys: 'Supported. Pay-as-you-go includes $25,000 a month of list-price usage with no fee on your own keys; above that, the fee is 5% of what the same model and provider would cost on OpenRouter.',
@@ -171,7 +173,7 @@ export const OTHERS: RouterEntry[] = [
     name: 'Requesty',
     url: 'https://www.requesty.ai',
     what: 'A unified AI gateway, LLM router and OpenAI-compatible API for 600+ AI models.',
-    picks: 'Cost-based, latency-based and availability-based routing, automatic failover chains and weighted load balancing across models.',
+    picks: 'Latency-based routing, automatic failover chains and weighted load balancing across models.',
     hosting: 'Hosted, at router.requesty.ai.',
     pricing: 'Free plan with 200 requests a day; pay as you go carries a 5% markup; Enterprise is custom.',
     keys: 'Bring your own keys is listed on the pay-as-you-go plan.',
@@ -188,7 +190,7 @@ export const OTHERS: RouterEntry[] = [
     picks: 'Routes requests across providers and fallback models; you can set a provider order and ordered model fallbacks.',
     hosting: 'Hosted by Vercel; your application does not need to run on Vercel.',
     pricing: 'No markup and no platform fee on tokens. The free tier covers a subset of models with per-model rate limits; some optional features are charged separately.',
-    keys: 'Your own keys carry no markup or fee and need the paid tier, which means purchased credits.',
+    keys: 'Your own keys carry no markup, and no fee by default, and need the paid tier, which means purchased credits.',
     sources: [
       { label: 'Vercel AI Gateway docs', url: 'https://vercel.com/docs/ai-gateway' },
       { label: 'Vercel AI Gateway pricing', url: 'https://vercel.com/docs/ai-gateway/pricing' },
@@ -214,23 +216,21 @@ export const OTHERS: RouterEntry[] = [
     what: 'An AI gateway whose core is open source, run locally with one command or self-hosted and connected to Portkey.',
     picks: 'Fallbacks between providers and models, load balancing between API keys, and conditional routing on checks you define.',
     hosting: 'Hosted, or the open-source gateway on your own servers.',
-    pricing: 'Developer plan free with 10k recorded logs a month and 3-day log retention; Production $49 a month; Enterprise custom.',
     sources: [
       { label: 'Portkey AI Gateway docs', url: 'https://portkey.ai/docs/product/ai-gateway' },
-      { label: 'Portkey pricing', url: 'https://portkey.ai/pricing' },
     ],
   },
   {
     key: 'cloudflare',
     name: 'Cloudflare AI Gateway',
     url: 'https://developers.cloudflare.com/ai-gateway/',
-    what: 'A gateway to observe and control AI applications, with request retries and model fallbacks in case of an error.',
-    picks: 'Dynamic routing checks conditions on the request body, headers or metadata, splits traffic by percentage, and switches to a fallback model when a request or budget quota is exceeded.',
+    what: 'A gateway to observe and control AI applications, with request retries and model fallback.',
+    picks: 'Dynamic routing checks conditions on request metadata, splits traffic by percentage, and switches to a fallback when a request or budget quota is exceeded.',
     hosting: 'Hosted on Cloudflare, available on all plans.',
     keys: 'You can store provider API keys in the Cloudflare dashboard and reference them from the gateway.',
     sources: [
       { label: 'Cloudflare AI Gateway docs', url: 'https://developers.cloudflare.com/ai-gateway/' },
-      { label: 'Cloudflare dynamic routing', url: 'https://developers.cloudflare.com/ai-gateway/features/dynamic-routing/' },
+      { label: 'Cloudflare dynamic routing', url: 'https://developers.cloudflare.com/ai-gateway/features/routing/dynamic-routing/' },
       { label: 'Cloudflare stored keys', url: 'https://developers.cloudflare.com/ai-gateway/configuration/bring-your-own-keys/' },
     ],
   },
@@ -253,6 +253,98 @@ export const OTHERS: RouterEntry[] = [
     what: 'An intelligent model router for coding agents.',
     picks: 'Predicts which model to use for each input, aiming to cut cost while keeping accuracy.',
     sources: [{ label: 'notdiamond.ai', url: 'https://www.notdiamond.ai/' }],
+  },
+  {
+    key: 'kong',
+    name: 'Kong AI Gateway',
+    url: 'https://konghq.com/products/kong-ai-gateway',
+    what: 'A gateway that governs LLM, MCP and agent-to-agent (A2A) traffic, with one consistent API across the major LLM providers.',
+    picks: 'Load balancing across AI models with the strategy you configure: weighted round-robin, consistent hashing, least connections, lowest usage, lowest latency, semantic similarity between the prompt and model descriptions, or priority groups, with built-in retries and fallbacks.',
+    hosting: 'Managed through Kong Konnect: data plane nodes run in your own environment, or Kong hosts them on Dedicated Cloud Gateways. Self-hosted deployments are supported too.',
+    pricing: 'AI Management on the Plus plan from $25 a month plus usage, billed monthly, with a 30-day free trial and no credit card; Enterprise is custom, billed annually.',
+    keys: 'LLM provider credentials are centralized in one place and rotated without touching each team’s configuration.',
+    sources: [
+      { label: 'Kong AI Gateway', url: 'https://konghq.com/products/kong-ai-gateway' },
+      { label: 'Kong AI Gateway docs', url: 'https://developer.konghq.com/ai-gateway/' },
+      { label: 'Kong AI Gateway load balancing', url: 'https://developer.konghq.com/ai-gateway/load-balancing/' },
+      { label: 'Kong pricing', url: 'https://konghq.com/pricing' },
+    ],
+  },
+  {
+    key: 'truefoundry',
+    name: 'TrueFoundry AI Gateway',
+    url: 'https://www.truefoundry.com/ai-gateway',
+    what: 'A proxy layer between your applications and LLM providers and MCP servers: one endpoint with an OpenAI-compatible schema for every provider, with observability and governance.',
+    picks: 'A virtual model carries the routing strategy you choose: weight-based, priority-based with fallback to the next target on failure, latency-based on recent latency, or Auto Routing, which classifies each request as simple, medium or complex and routes it to the target set for that tier.',
+    hosting: 'SaaS, hybrid, or fully self-hosted in your own VPC.',
+    pricing: 'Model-provider costs are passed through with no markup on tokens. Developer plan free for up to 3 users, with 10K requests and tool calls per user a month; Pro $25 per user a month, with 20K per user; Enterprise custom, on an annual commitment.',
+    keys: 'Provider keys are stored once in the gateway, and applications use one gateway key.',
+    sources: [
+      { label: 'TrueFoundry AI Gateway', url: 'https://www.truefoundry.com/ai-gateway' },
+      { label: 'TrueFoundry AI Gateway docs', url: 'https://www.truefoundry.com/docs/ai-gateway/intro-to-llm-gateway' },
+      { label: 'TrueFoundry virtual models', url: 'https://www.truefoundry.com/docs/ai-gateway/virtual-model' },
+      { label: 'TrueFoundry pricing', url: 'https://www.truefoundry.com/pricing' },
+    ],
+  },
+  {
+    key: 'bifrost',
+    name: 'Bifrost by Maxim AI',
+    url: 'https://www.getmaxim.ai',
+    what: 'An open-source AI gateway that unifies 20+ providers behind a single OpenAI-compatible API.',
+    picks: 'Weighted load balancing across API keys, routing that directs requests to specific models, providers and keys, and automatic failover between providers and models. In Bifrost Enterprise, Adaptive Routing picks the provider and the API key for each request from what it observes on live traffic.',
+    hosting: 'Self-hosted with Docker, Kubernetes or a Go binary; Enterprise runs in a VPC, on-prem or air-gapped.',
+    pricing: 'The open-source gateway is free forever; Enterprise has custom pricing and a 14-day free trial.',
+    sources: [
+      { label: 'getmaxim.ai', url: 'https://www.getmaxim.ai/' },
+      { label: 'Bifrost docs', url: 'https://docs.getbifrost.ai/overview' },
+      { label: 'Bifrost adaptive routing', url: 'https://docs.getbifrost.ai/enterprise/adaptive-routing/overview' },
+      { label: 'Bifrost pricing', url: 'https://www.getmaxim.ai/pricing' },
+    ],
+  },
+  {
+    key: 'edenai',
+    name: 'Eden AI',
+    url: 'https://www.edenai.co',
+    what: 'An AI gateway and LLM router: one OpenAI-compatible API to around 1,000 LLMs and expert models across 80+ providers.',
+    picks: 'Name a model without a provider and Eden AI picks which provider serves it: by default the cheapest for the shape of your request, with cheaper providers receiving proportionally more traffic, or by an objective you set, such as speed or latency. Failing providers rank below healthy ones, and fallbacks are fields on the request.',
+    hosting: 'Hosted, at api.edenai.run, with a dedicated EU endpoint; you pick the region your workspace lives in at sign-up.',
+    pricing: 'Provider prices with no per-token markup, plus a 5.5% platform fee when you buy credits. No subscription, and credits never expire. The Advanced plan has custom pricing.',
+    keys: 'Supported: with your own provider API keys, requests routed to that provider are billed directly by the provider. Bring your own keys is listed as included on every plan.',
+    sources: [
+      { label: 'edenai.co', url: 'https://www.edenai.co/' },
+      { label: 'Eden AI provider routing', url: 'https://www.edenai.co/docs/v3/llms/provider-routing' },
+      { label: 'Eden AI bring your own keys', url: 'https://www.edenai.co/docs/v3/general/byok' },
+      { label: 'Eden AI pricing', url: 'https://www.edenai.co/pricing' },
+    ],
+  },
+  {
+    key: 'orcarouter',
+    name: 'OrcaRouter',
+    url: 'https://www.orcarouter.ai',
+    what: 'An AI gateway built for privacy and cybersecurity, with 200+ models behind one OpenAI-compatible API.',
+    picks: 'With orcarouter/auto, each prompt is classified by how hard it is and what it needs, then routed to the model that clears your bar. The choice is tuned on your own traffic, or follows the policy you set: cheapest that clears the bar, highest quality or balanced. A fallback chain you configure covers failures.',
+    hosting: 'Hosted, at api.orcarouter.ai. OrcaRouter Lite is an MIT-licensed gateway for your own infrastructure and provider keys.',
+    pricing: 'Tokens are billed at each provider’s published rate, with no markup. Hacker plan free; Team $499 a month; Enterprise custom.',
+    keys: 'Bring your own key: your own provider keys, rate limits and credits.',
+    sources: [
+      { label: 'orcarouter.ai', url: 'https://www.orcarouter.ai/' },
+      { label: 'OrcaRouter pricing', url: 'https://www.orcarouter.ai/pricing' },
+    ],
+  },
+  {
+    key: 'orq',
+    name: 'Orq.ai',
+    url: 'https://orq.ai/platform/ai-gateway',
+    what: 'An AI gateway and router: one OpenAI-compatible API for 500+ models from 30+ providers.',
+    picks: 'You switch models with a string change, or let Orq.ai’s own Smart Router feature choose: it auto-routes each request to the best model by a cost and quality strategy. Load balancing is weighted, round-robin or latency-based, with cross-provider fallback chains and routing rules that redirect by header, identity, metadata or project.',
+    hosting: 'EU SaaS, fully managed; Enterprise adds VPC and on-prem deployment options.',
+    pricing: 'Pay as you go and free to start: model traffic is billed at provider rates, with a 4.5% fee on credits when you use Orq.ai’s keys. Usage is metered in spans and processed data, with 100k spans and 5 GB included each month. Enterprise is custom.',
+    keys: 'Bring your own keys: billing stays with your provider, with unlimited requests and no fee.',
+    sources: [
+      { label: 'Orq.ai AI Gateway', url: 'https://orq.ai/platform/ai-gateway' },
+      { label: 'Orq.ai AI Gateway docs', url: 'https://docs.orq.ai/ai-gateway/get-started/introduction' },
+      { label: 'Orq.ai pricing', url: 'https://orq.ai/pricing' },
+    ],
   },
 ];
 
@@ -278,6 +370,19 @@ export function listJoin(items: string[]): string {
 }
 
 /** The four pages of the cluster and the product page, for each page's link row. */
+/**
+ * The Smart Router's routing guides: one page per job (by task, fallbacks, cost, own keys, coding
+ * agents). Listed here so every AI router page links to them from one list; what they say is in
+ * components/seo/routing/routing-data.ts.
+ */
+export const GUIDES: Array<{ path: string; label: string }> = [
+  { path: '/llm-routing-by-task', label: 'LLM routing by task' },
+  { path: '/llm-fallback-routing', label: 'LLM fallback routing' },
+  { path: '/llm-cost-routing', label: 'LLM cost routing' },
+  { path: '/byok-llm-router', label: 'BYOK LLM router' },
+  { path: '/llm-routing-for-coding-agents', label: 'Model routing for coding agents' },
+];
+
 export const CLUSTER: Array<{ path: string; label: string }> = [
   { path: '/ai-router', label: 'What an AI router is' },
   { path: '/ai-aggregator', label: 'AI aggregator' },

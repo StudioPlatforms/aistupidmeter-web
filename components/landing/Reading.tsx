@@ -22,7 +22,8 @@ export type { RdTocItem };
 const intro = (d: string): CSSProperties => ({ '--d': d } as CSSProperties);
 
 // Reveal-on-scroll hides blocks only once scripts run; the failsafe shows everything if they never do.
-const FAILSAFE = "(function(){var d=document.documentElement;d.classList.add('lp-js');setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();";
+// `lp-late` (styles/landing.css): a first frame more than a second after the visit began skips the entrance animation.
+const FAILSAFE = "(function(){var d=document.documentElement;d.classList.add('lp-js');requestAnimationFrame(function(){if(performance.now()>1000)d.classList.add('lp-late')});setTimeout(function(){if(!window.__lpReady)d.classList.remove('lp-js')},4000)})();";
 
 /** "01" for the first entry of the contents. */
 export const tocNumber = (toc: RdTocItem[], id: string): string =>

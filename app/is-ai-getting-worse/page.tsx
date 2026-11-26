@@ -165,7 +165,8 @@ export default async function IsAiGettingWorsePage(): Promise<React.JSX.Element>
           ]} />
           <RdProse>
             <p>
-              {verdict ?? fallbackLead} {stamp && <>The verdict is read from the 24-hour boards and the per-suite detectors, as of {stamp}.</>}
+              {verdict ?? fallbackLead} {stamp && <>The verdict is read from the 24-hour boards and the per-suite detectors, as of {stamp}.</>}{' '}
+              The <Link href="/ai-nerf-tracker">AI nerf tracker</Link> explains what a nerf is and how to check a model yourself.
             </p>
           </RdProse>
         </RdSection>
